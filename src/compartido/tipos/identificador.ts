@@ -1,0 +1,1 @@
+export type Identificador = string;

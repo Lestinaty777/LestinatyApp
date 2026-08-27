@@ -1,0 +1,10 @@
+export * from './componentes';
+export { colores } from './fundamentos/colores';
+export { biomas } from './tema/biomas';
+export type { BiomaVisual } from './tema/biomas';
+export type { PaletaBioma } from './fundamentos/colores';
+export { crearPaletaBioma } from './fundamentos/colores';
+export { espaciado } from './fundamentos/espaciado';
+export { tipografia } from './fundamentos/tipografia';
+export { bordes } from './fundamentos/bordes';
+export { sombras } from './fundamentos/sombras';
