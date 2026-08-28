@@ -26,7 +26,7 @@ export default function LayoutRaiz() {
         <Stack.Screen name="index" />
         <Stack.Screen name="(publico)" />
         <Stack.Screen name="(principal)" />
-        <Stack.Screen name="senderos/activos" />
+        <Stack.Screen name="senderos/analisis" />
         <Stack.Screen name="senderos/[id]" />
         <Stack.Screen name="tienda/producto/[id]" />
         <Stack.Screen name="tienda/pago" />

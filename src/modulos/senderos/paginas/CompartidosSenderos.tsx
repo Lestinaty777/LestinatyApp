@@ -173,10 +173,24 @@ function Libro({
   );
 }
 
-export function CompartidosSenderos() {
+export function CompartidosSenderos({ onHeroDataChange }: { onHeroDataChange?: (data: any) => void }) {
   const [indiceActivo, setIndiceActivo] = useState(0);
   const [mostrarMapa, setMostrarMapa] = useState(false);
+  const [itemsCargados, setItemsCargados] = useState(0);
+
+  useEffect(() => {
+    let timeout: any;
+    if (itemsCargados < senderosCompartidosMock.length) {
+      timeout = setTimeout(() => {
+        setItemsCargados(prev => prev + 1);
+      }, 75);
+    }
+    return () => clearTimeout(timeout);
+  }, [itemsCargados]);
   const senderoActivo = senderosCompartidosMock[indiceActivo];
+  useEffect(() => {
+    if (onHeroDataChange) onHeroDataChange(senderoActivo);
+  }, [senderoActivo]);
   
   const opacidadBitacora = useRef(new RNAnimated.Value(1)).current;
   const slideBitacora = useRef(new RNAnimated.Value(0)).current;
@@ -221,55 +235,22 @@ export function CompartidosSenderos() {
       contentContainerStyle={[styles.raiz, { paddingBottom: espaciado.xl + 40 }]}
       showsVerticalScrollIndicator={false}>
       
-      {/* DYNAMIC HERO SECTION COMPACT */}
-      {senderoActivo && (
-      <RNAnimated.View style={[styles.heroFogata, { opacity: opacidadBitacora }]}>
-        <View style={[styles.heroTinte, { backgroundColor: senderoActivo.acento, opacity: 0.08 }]} />
-        <View style={styles.heroTexto}>
-          <Texto style={[styles.heroEtiqueta, { color: senderoActivo.acento, fontSize: 8 }]}>{senderoActivo.categoria}</Texto>
-          <Texto style={[styles.heroTitulo, { fontSize: 18, marginTop: 0 }]}>{senderoActivo.titulo}</Texto>
-          <Texto style={[styles.heroSubtitulo, { fontSize: 10, marginTop: 2 }]} numberOfLines={2}>
-            {senderoActivo.descripcion}
-          </Texto>
-          
-          <BarraProgresoLiquida porcentaje={senderoActivo.progresoPorcentaje} color={senderoActivo.acento} />
-          
-          <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 10, gap: 8 }}>
-            <View style={{ flexDirection: 'row' }}>
-              {senderoActivo.miembros.map((m, i) => (
-                <View key={m.id} style={{
-                  width: 22, height: 22, borderRadius: 11, backgroundColor: m.colorAvatar,
-                  justifyContent: 'center', alignItems: 'center',
-                  marginLeft: i > 0 ? -6 : 0, borderWidth: 1, borderColor: '#1A1A1A'
-                }}>
-                   <Texto style={{ fontSize: 7, fontFamily: 'MontserratAlternates-Bold', color: '#FFF' }}>{m.iniciales}</Texto>
-                </View>
-              ))}
-            </View>
-            <Texto style={{ fontSize: 9, fontFamily: 'MontserratAlternates-Bold', color: colores.textoSecundario }}>
-               {senderoActivo.progresoPorcentaje}% Completado
-            </Texto>
-          </View>
-
-        </View>
-        <View style={[styles.fogataCentro, { transform: [{ scale: 0.85 }] }]}>
-          <View style={[styles.fogataPulso, { backgroundColor: senderoActivo.acento, opacity: 0.1, borderColor: senderoActivo.acento }]} />
-          <View style={[styles.fogataOrbita, { borderColor: senderoActivo.acento, backgroundColor: 'rgba(255,255,255,0.2)' }]}>
-             {React.createElement(iconosCategoria[senderoActivo.categoriaId] || Compass, {
-               color: senderoActivo.acento,
-               size: 34,
-               strokeWidth: 2
-             })}
-          </View>
-        </View>
-      </RNAnimated.View>
-      )}
+            {/* ENCABEZADO COMPACTO DE BIBLIOTECA */}
+      <View style={{ paddingHorizontal: 24, marginTop: 10, marginBottom: -10, zIndex: 10 }}>
+         <Texto style={{ fontFamily: 'MontserratAlternates-Bold', fontSize: 10, color: 'rgba(0,0,0,0.3)', letterSpacing: 1.5 }}>
+           BIBLIOTECA COMPARTIDA
+         </Texto>
+         <View style={{ height: 1, backgroundColor: 'rgba(0,0,0,0.06)', width: '100%', marginTop: 8 }} />
+      </View>
 
       {/* LIBRERO PREMIUM Y LIBROS */}
       <View style={styles.libreroContenedorPrincipal}>
         <LibreroSVG />
         <View style={styles.librosFila}>
           {senderosCompartidosMock.map((sendero, index) => {
+            if (index >= itemsCargados) {
+              return <View key={`skeleton-${sendero.id}`} style={{ width: 44, height: 60, backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 4, marginHorizontal: 8 }} />;
+            }
             const isActive = index === indiceActivo;
             const isDimmed = !isActive && indiceActivo !== -1;
             return (

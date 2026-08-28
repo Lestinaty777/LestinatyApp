@@ -1,4 +1,4 @@
-export type PaginaSenderosId = 'activo' | 'compartidos' | 'explorar' | 'mis-senderos';
+export type PaginaSenderosId = 'analisis' | 'compartidos' | 'explorar' | 'mis-senderos';
 
 export type PaginaSenderos = {
   subtitulo: string;

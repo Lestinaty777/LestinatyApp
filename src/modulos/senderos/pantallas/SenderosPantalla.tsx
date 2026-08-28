@@ -1,6 +1,5 @@
 import type { LucideIcon } from 'lucide-react-native';
 import {
-  Archive,
   ChevronRight,
   Compass,
   Flame,
@@ -14,18 +13,21 @@ import {
   Search,
   Sparkles,
   Sprout,
+  TrendingUp,
   Users,
 } from 'lucide-react-native';
-import { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import type { ImageSourcePropType } from 'react-native';
+import Reanimated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import { Animated, Image, Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
+import { BarraProgresoLiquida } from '../../../diseno/componentes/BarraProgresoLiquida';
 import FogEffectSkia from '../../../diseno/componentes/NieblaUi';
 import { RecuadroGlass, Texto, biomas, colores, espaciado } from '../../../diseno';
 import { hapticSeguro } from '../../../nucleo/dispositivo/haptics';
-import { ActivosSenderos } from '../paginas/ActivosSenderos';
+import { AnalisisSenderos } from '../paginas/AnalisisSenderos';
 import { CompartidosSenderos } from '../paginas/CompartidosSenderos';
 import { PaginaSenderosId, paginasSenderos } from '../paginas/paginasSenderos';
 
@@ -38,7 +40,7 @@ const desplazamientoSeparadorActivo = -44;
 
 const pestanasSenderos = [
   { id: 'mis-senderos', etiqueta: 'Mis senderos', Icono: Map },
-  { id: 'activo', etiqueta: 'Activo', Icono: Archive },
+  { id: 'analisis', etiqueta: 'Analisis', Icono: TrendingUp },
   { id: 'compartidos', etiqueta: 'Compartidos', Icono: Users },
   { id: 'explorar', etiqueta: 'Explorar', Icono: Compass },
 ] as const;
@@ -664,6 +666,18 @@ function SeparadorColorCarpeta({
 }
 
 function CarpetaGiganteSenderos({ categoriaAbierta, setCategoriaAbierta }: { categoriaAbierta: string, setCategoriaAbierta: React.Dispatch<React.SetStateAction<string>> }) {
+  const [itemsCargados, setItemsCargados] = useState(0);
+
+  useEffect(() => {
+    let timeout: any;
+    if (itemsCargados < categoriasCarpeta.length) {
+      timeout = setTimeout(() => {
+        setItemsCargados(prev => prev + 1);
+      }, 55); // A bit faster for tabs so it feels snappy
+    }
+    return () => clearTimeout(timeout);
+  }, [itemsCargados]);
+
   const entradaCarpeta = useRef(new Animated.Value(0)).current;
   const progresoModo = useRef(new Animated.Value(1)).current;
   const brilloCarpeta = useRef(new Animated.Value(0)).current;
@@ -742,14 +756,24 @@ function CarpetaGiganteSenderos({ categoriaAbierta, setCategoriaAbierta }: { cat
       ]}
     >
       <View style={styles.pestanasColorCarpeta}>
-        {categoriasCarpeta.map((categoria) => (
-          <SeparadorColorCarpeta
-            key={categoria.id}
-            activo={categoriaAbierta === categoria.id}
-            categoria={categoria}
-            onPress={() => alternarCategoria(categoria.id)}
-          />
-        ))}
+        {categoriasCarpeta.map((categoria, index) => {
+          if (index >= itemsCargados) {
+            return (
+              <View 
+                key={`skel-sep-${categoria.id}`} 
+                style={{ width: 44, height: 44, backgroundColor: 'rgba(255,255,255,0.08)', borderTopLeftRadius: 14, borderTopRightRadius: 14, marginRight: 2 }} 
+              />
+            );
+          }
+          return (
+            <SeparadorColorCarpeta
+              key={categoria.id}
+              activo={categoriaAbierta === categoria.id}
+              categoria={categoria}
+              onPress={() => alternarCategoria(categoria.id)}
+            />
+          );
+        })}
       </View>
 
       <RecuadroGlass blur intensity={77} style={styles.carpetaGiganteCuerpo}>
@@ -781,35 +805,47 @@ function CarpetaGiganteSenderos({ categoriaAbierta, setCategoriaAbierta }: { cat
 
         {categoriaEnfocada ? (
           <Animated.View style={[styles.modoCategoria, { opacity: progresoModo, transform: [{ translateY: desplazamientoModo }] }]}>
-            <View style={styles.barraBusquedaCategoria}>
+            <Reanimated.View key={'busq-' + categoriaEnfocada.id} entering={FadeInDown.delay(200).duration(400)} style={styles.barraBusquedaCategoria}>
               <Search color={categoriaEnfocada.acento} size={15} strokeWidth={2.4} />
               <Texto style={styles.barraBusquedaTexto}>Buscar en {categoriaEnfocada.titulo.toLowerCase()}</Texto>
-            </View>
+            </Reanimated.View>
 
-            <View style={styles.filtrosCategoria}>
+            <Reanimated.View key={'filt-' + categoriaEnfocada.id} entering={FadeInDown.delay(300).duration(400)} style={styles.filtrosCategoria}>
               <Texto style={[styles.filtroCategoriaActivo, { backgroundColor: colorConAlpha(categoriaEnfocada.acento, '24'), color: categoriaEnfocada.acento }]}>
                 Todos
               </Texto>
               <Texto style={styles.filtroCategoria}>Activos</Texto>
               <Texto style={styles.filtroCategoria}>Recientes</Texto>
-            </View>
+            </Reanimated.View>
 
             <View style={styles.listaVerticalSenderos}>
-              {categoriaEnfocada.senderos.map((sendero) => (
-                <TarjetaSenderoVertical key={sendero.id} categoria={categoriaEnfocada} sendero={sendero} />
+              {categoriaEnfocada.senderos.map((sendero, idx) => (
+                <Reanimated.View key={sendero.id} entering={FadeInDown.delay(400 + idx * 100).duration(400)}>
+                  <TarjetaSenderoVertical categoria={categoriaEnfocada} sendero={sendero} />
+                </Reanimated.View>
               ))}
             </View>
           </Animated.View>
         ) : (
           <Animated.View style={[styles.filasCarpeta, { opacity: progresoModo, transform: [{ translateY: desplazamientoModo }] }]}>
-            {categoriasCarpeta.map((categoria) => (
-              <FilaCategoriaCarpeta
-                key={categoria.id}
-                abierta={categoriaAbierta === categoria.id}
-                categoria={categoria}
-                onPress={() => alternarCategoria(categoria.id)}
-              />
-            ))}
+            {categoriasCarpeta.map((categoria, index) => {
+              if (index >= itemsCargados) {
+                return (
+                  <View 
+                    key={`skel-fila-${categoria.id}`} 
+                    style={{ width: '100%', height: 72, backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 20, marginBottom: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' }} 
+                  />
+                );
+              }
+              return (
+                <FilaCategoriaCarpeta
+                  key={categoria.id}
+                  abierta={categoriaAbierta === categoria.id}
+                  categoria={categoria}
+                  onPress={() => alternarCategoria(categoria.id)}
+                />
+              );
+            })}
           </Animated.View>
         )}
       </RecuadroGlass>
@@ -839,8 +875,20 @@ export function SenderosPantalla() {
   }, []);
   const insets = useSafeAreaInsets();
   const [pestanaActiva, setPestanaActiva] = useState<PaginaSenderosId>('mis-senderos');
+  const [sharedHeroData, setSharedHeroData] = useState<any>(null);
+  const [analisisCategoria, setAnalisisCategoria] = useState<string>('rutinas');
   const [categoriaAbierta, setCategoriaAbierta] = useState('');
   const progresoPestana = useRef(new Animated.Value(0)).current;
+  const ultimoTapPestana = useRef(0);
+
+  const handleCambiarPestana = (id: PaginaSenderosId) => {
+    const ahora = Date.now();
+    if (ahora - ultimoTapPestana.current < 350) return; // Bloqueo Anti-Spam
+    ultimoTapPestana.current = ahora;
+    if (id === pestanaActiva) return;
+    hapticSeleccion();
+    setPestanaActiva(id);
+  };
   const altoSuperior = height * 0.4;
   const altoZonaPestanas = height - altoSuperior + 28;
   const anchoSubtitulo = width * 0.5;
@@ -857,39 +905,49 @@ export function SenderosPantalla() {
   let headerTitle = '{headerTitle}';
   let emptyStateTitle = 'Aún no tienes senderos';
   let emptyStateSub = 'Crea tu primer camino y empieza a construir hábitos que te acerquen a tus metas.';
+  let EmptyIcon = Sprout;
+  let emptyIconColor = Bioma.MasterColor;
+  const catInfo = categoriasCarpeta.find(c => c.id === catActiva);
+  if (catInfo) {
+    EmptyIcon = catInfo.Icono;
+    emptyIconColor = catInfo.acento;
+  }
   
-  if (pestanaActiva === 'mis-senderos' && categoriaAbierta) {
-    if (categoriaAbierta === 'rutinas') {
+  const catActiva = pestanaActiva === 'mis-senderos' ? categoriaAbierta : pestanaActiva === 'analisis' ? analisisCategoria : null;
+  if (catActiva) {
+    let mapCat = catActiva;
+
+    if (mapCat === 'rutinas') {
       headerImg = require('../../../../assets/ilustraciones/senderos/rutina.png');
       headerTitle = 'La disciplina forja el carácter';
       emptyStateTitle = 'No tienes rutinas activas';
       emptyStateSub = 'Configura tu mañana ideal y asegura tus victorias diarias.';
-    } else if (categoriaAbierta === 'salud') {
+    } else if (mapCat === 'salud') {
       headerImg = require('../../../../assets/ilustraciones/senderos/salud.png');
       headerTitle = 'Tu cuerpo es tu templo';
       emptyStateTitle = 'Sin metas de salud';
       emptyStateSub = 'Programa tus sesiones de entrenamiento y nutrición.';
-    } else if (categoriaAbierta === 'habitos') {
+    } else if (mapCat === 'habitos') {
       headerImg = require('../../../../assets/ilustraciones/senderos/habitos.png');
       headerTitle = 'Pequeñas acciones, grandes resultados';
       emptyStateTitle = 'Sin hábitos rastreados';
       emptyStateSub = 'Elige un hábito pequeño y empieza tu primera racha hoy.';
-    } else if (categoriaAbierta === 'tareas') {
+    } else if (mapCat === 'tareas') {
       headerImg = require('../../../../assets/ilustraciones/senderos/tareas.png');
       headerTitle = 'El orden es tu mejor aliado';
       emptyStateTitle = 'El tablero está limpio';
       emptyStateSub = 'No hay tareas pendientes. Agrega un proyecto para empezar.';
-    } else if (categoriaAbierta === 'finanzas') {
+    } else if (mapCat === 'finanzas') {
       headerImg = require('../../../../assets/ilustraciones/senderos/finanzas.png');
       headerTitle = 'Construye tu imperio, paso a paso';
       emptyStateTitle = 'Sin presupuestos o metas';
       emptyStateSub = 'Traza una meta de ahorro y controla tu patrimonio.';
-    } else if (categoriaAbierta === 'relaciones') {
+    } else if (mapCat === 'relaciones') {
       headerImg = require('../../../../assets/ilustraciones/senderos/relaciones.png');
       headerTitle = 'Conecta, nutre y crece';
       emptyStateTitle = 'Red de contactos vacía';
       emptyStateSub = 'Programa recordatorios para cultivar tus relaciones importantes.';
-    } else if (categoriaAbierta === 'estudio') {
+    } else if (mapCat === 'estudio') {
       headerImg = require('../../../../assets/ilustraciones/senderos/estudio.png');
       headerTitle = 'El conocimiento es libertad';
       emptyStateTitle = 'Sin currículum de aprendizaje';
@@ -911,7 +969,9 @@ export function SenderosPantalla() {
   return (
     <SafeAreaView style={styles.raiz} edges={['left', 'right', 'top', 'bottom']}>
       <View style={[styles.superior, { height: altoSuperior }]}>
-        <Image source={headerImg} resizeMode="cover" style={styles.ilustracion} />
+        <Reanimated.View key={headerImg} entering={FadeIn.duration(1200)} style={StyleSheet.absoluteFill}>
+          <Image source={headerImg} resizeMode="cover" style={styles.ilustracion} />
+        </Reanimated.View>
 
         <View pointerEvents="none" style={styles.veloIlustracion} />
 
@@ -920,22 +980,49 @@ export function SenderosPantalla() {
             <Texto style={styles.titulo}>Senderos</Texto>
             <Sprout color={Bioma.MasterColor} size={21} strokeWidth={2.4} />
           </View>
-          <Texto style={[styles.subtitulo, { maxWidth: anchoSubtitulo }]}>
-            {headerTitle}
-          </Texto>
+          <Reanimated.View key={'tit-' + headerTitle} entering={FadeInDown.delay(100).duration(500)}>
+            <Texto style={[styles.subtitulo, { maxWidth: anchoSubtitulo }]}>
+              {headerTitle}
+            </Texto>
+          </Reanimated.View>
         </View>
 
-        <View style={styles.estadoVacioPosicion}>
+        <Reanimated.View key={'emp-' + headerTitle + (sharedHeroData?.id || '')} entering={FadeInDown.delay(800).duration(700)} style={styles.estadoVacioPosicion}>
           <RecuadroGlass style={styles.estadoVacio}>
-            <View style={styles.iconoPlanta}>
-              <Sprout color={Bioma.MasterColor} size={20} strokeWidth={2.4} />
-            </View>
-            <Texto style={styles.estadoTitulo}>{emptyStateTitle}</Texto>
-            <Texto style={styles.estadoSubtitulo}>
-              {emptyStateSub}
-            </Texto>
+            {pestanaActiva === 'compartidos' && sharedHeroData ? (
+              <View style={{ gap: 4 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  {React.createElement(categoriasCarpeta.find(c => c.id === sharedHeroData.categoriaId)?.Icono || Compass, { color: sharedHeroData.acento, size: 14, strokeWidth: 3 })}
+                  <Texto style={[styles.estadoTitulo, { color: sharedHeroData.acento, flex: 1, marginTop: 0 }]} numberOfLines={1}>{sharedHeroData.titulo}</Texto>
+                </View>
+                <Texto style={styles.estadoSubtitulo} numberOfLines={2}>{sharedHeroData.descripcion}</Texto>
+                <View style={{ marginTop: 4 }}>
+                  <BarraProgresoLiquida porcentaje={sharedHeroData.progresoPorcentaje} color={sharedHeroData.acento} />
+                </View>
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4, gap: 8 }}>
+                  <View style={{ flexDirection: 'row' }}>
+                    {sharedHeroData.miembros.map((m: any, i: number) => (
+                      <View key={m.id} style={{ width: 18, height: 18, borderRadius: 9, backgroundColor: m.colorAvatar, justifyContent: 'center', alignItems: 'center', marginLeft: i > 0 ? -6 : 0, borderWidth: 1, borderColor: '#FFF' }}>
+                        <Texto style={{ fontSize: 6, fontFamily: 'MontserratAlternates-Bold', color: '#FFF' }}>{m.iniciales}</Texto>
+                      </View>
+                    ))}
+                  </View>
+                  <Texto style={{ fontSize: 8, fontFamily: 'MontserratAlternates-Bold', color: '#777' }}>{sharedHeroData.progresoPorcentaje}% Completado</Texto>
+                </View>
+              </View>
+            ) : (
+              <>
+                <View style={styles.iconoPlanta}>
+                  <EmptyIcon color={emptyIconColor} size={20} strokeWidth={2.4} />
+                </View>
+                <Texto style={styles.estadoTitulo}>{emptyStateTitle}</Texto>
+                <Texto style={styles.estadoSubtitulo}>
+                  {emptyStateSub}
+                </Texto>
+              </>
+            )}
           </RecuadroGlass>
-        </View>
+        </Reanimated.View>
       </View>
 
       <View style={[styles.contenedorPestanas, { height: altoZonaPestanas }]}>
@@ -963,10 +1050,7 @@ export function SenderosPantalla() {
                 key={id}
                 accessibilityRole="tab"
                 accessibilityState={{ selected: activa }}
-                onPress={() => {
-                  hapticSeleccion();
-                  setPestanaActiva(id);
-                }}
+                onPress={() => handleCambiarPestana(id)}
                 style={({ pressed }) => [styles.pestana, pressed && styles.pestanaPresionada]}
               >
                 <Icono color={activa ? Bioma.MasterColor : colores.textoSecundario} size={18} strokeWidth={2.3} />
@@ -990,10 +1074,10 @@ export function SenderosPantalla() {
         >
           {pestanaActiva === 'mis-senderos' ? (
             <CarpetaGiganteSenderos categoriaAbierta={categoriaAbierta} setCategoriaAbierta={setCategoriaAbierta} />
-          ) : pestanaActiva === 'activo' ? (
-            <ActivosSenderos />
+          ) : pestanaActiva === 'analisis' ? (
+            <AnalisisSenderos categoriaActiva={analisisCategoria} onCategoriaChange={setAnalisisCategoria} />
           ) : pestanaActiva === 'compartidos' ? (
-            <CompartidosSenderos />
+            <CompartidosSenderos onHeroDataChange={setSharedHeroData} />
           ) : (
             <RecuadroGlass style={styles.contenidoPestana}>
               <View style={styles.iconoContenido}>
