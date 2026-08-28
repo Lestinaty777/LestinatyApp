@@ -907,13 +907,13 @@ export function SenderosPantalla() {
   let emptyStateSub = 'Crea tu primer camino y empieza a construir hábitos que te acerquen a tus metas.';
   let EmptyIcon = Sprout;
   let emptyIconColor = Bioma.MasterColor;
+  const catActiva = pestanaActiva === 'mis-senderos' ? categoriaAbierta : pestanaActiva === 'analisis' ? analisisCategoria : null;
   const catInfo = categoriasCarpeta.find(c => c.id === catActiva);
   if (catInfo) {
     EmptyIcon = catInfo.Icono;
     emptyIconColor = catInfo.acento;
   }
   
-  const catActiva = pestanaActiva === 'mis-senderos' ? categoriaAbierta : pestanaActiva === 'analisis' ? analisisCategoria : null;
   if (catActiva) {
     let mapCat = catActiva;
 

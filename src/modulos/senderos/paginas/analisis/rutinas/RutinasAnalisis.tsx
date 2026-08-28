@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { View, StyleSheet } from 'react-native';
-import Reanimated, { FadeInDown, useSharedValue, useAnimatedStyle, withRepeat, withSequence, withTiming, useAnimatedProps } from 'react-native-reanimated';
+import Reanimated, { FadeInDown, useSharedValue, useAnimatedStyle, withRepeat, withSequence, withTiming, useAnimatedProps, Easing } from 'react-native-reanimated';
 import Svg, { Path, Circle, Defs, LinearGradient, Stop } from 'react-native-svg';
 
 const AnimatedPath = Reanimated.createAnimatedComponent(Path);
@@ -8,28 +8,29 @@ const AnimatedCircle = Reanimated.createAnimatedComponent(Circle);
 import { Clock, Zap, Target, PieChart, Activity } from 'lucide-react-native';
 
 import { Texto, RecuadroGlass, colores } from '../../../../../diseno';
+import { MapaCalor } from './MapaCalor';
 
 interface Props {
   datos: any;
   acento: string;
   itemsCargados: number;
+  senderoFiltro?: { titulo: string; meta?: string } | null;
 }
 
 function conAlpha(color: string, alpha: string) {
   return `${color}${alpha}`;
 }
 
-export function RutinasAnalisis({ acento, itemsCargados }: Props) {
+export function RutinasAnalisis({ acento, itemsCargados, senderoFiltro, datos }: Props) {
   const pulsoEnergia = useSharedValue(0.7);
+  const rayoOffset = useSharedValue(0);
 
   useEffect(() => {
-    pulsoEnergia.value = withRepeat(
-      withSequence(
-        withTiming(1, { duration: 1500 }),
-        withTiming(0.6, { duration: 1500 })
-      ),
+
+    rayoOffset.value = withRepeat(
+      withTiming(1, { duration: 2500, easing: Easing.linear }),
       -1,
-      true
+      false
     );
   }, []);
 
@@ -39,17 +40,82 @@ export function RutinasAnalisis({ acento, itemsCargados }: Props) {
   
   // Sombra falsa de neón para vistas
   const svgProps = useAnimatedProps(() => ({
-    opacity: pulsoEnergia.value
+    // Removed opacity pulse for readability
   })) as any;
 
+  const gaugeBeamProps = useAnimatedProps(() => ({
+    strokeDashoffset: 220 - (rayoOffset.value * 300)
+  })) as any;
+
+  const donutBeamProps = useAnimatedProps(() => ({
+    strokeDashoffset: 377 - (rayoOffset.value * 450)
+  })) as any;
+
+  const beamStyleH = useAnimatedStyle(() => ({
+    transform: [
+      { translateX: -20 + (rayoOffset.value * 350) }
+    ]
+  }));
+
+  const beamStyleV = useAnimatedStyle(() => ({
+    transform: [
+      { translateY: -10 + (rayoOffset.value * 130) }
+    ]
+  }));
+
   const estiloNeon = useAnimatedStyle(() => ({
-    opacity: pulsoEnergia.value,
     shadowColor: acento,
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.8,
     shadowRadius: 8,
     elevation: 4
   }));
+if (senderoFiltro === null) {
+    return (
+      <View style={styles.raiz}>
+        {itemsCargados < 1 ? (
+          <View style={[styles.skeleton, { height: 260 }]} />
+        ) : (
+          <Reanimated.View entering={FadeInDown.duration(400)}>
+            <RecuadroGlass blur intensity={40} style={[styles.panel, { borderColor: conAlpha(acento, '20') }]}>
+              <View style={styles.cabeceraPanel}>
+                <View>
+                  <Texto style={styles.titulo}>Consistencia Mensual</Texto>
+                  <Texto style={styles.subtitulo}>Mapa de calor de tus rutinas</Texto>
+                </View>
+                <View style={[styles.iconoCaja, { backgroundColor: conAlpha(acento, '15') }]}>
+                  <Activity color={acento} size={18} />
+                </View>
+              </View>
+              <MapaCalor datos={datos.actividadReciente || []} acento={acento} />
+            </RecuadroGlass>
+          </Reanimated.View>
+        )}
+
+        {itemsCargados < 2 ? (
+          <View style={[styles.skeleton, { height: 120 }]} />
+        ) : (
+          <Reanimated.View entering={FadeInDown.duration(400).delay(100)}>
+            <RecuadroGlass blur intensity={40} style={[styles.panel, { borderColor: conAlpha(acento, '20') }]}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 12 }}>
+                <Texto style={[styles.numeroGigante, { color: colores.texto }]}>
+                  78<Texto style={{ fontSize: 16, color: colores.textoSecundario }}>%</Texto>
+                </Texto>
+                <Texto style={styles.subtitulo}>Tasa Global de Cumplimiento</Texto>
+              </View>
+              <View style={styles.barraFondo}>
+                <Reanimated.View style={[styles.barraRelleno, estiloNeon, { backgroundColor: acento, width: '78%', overflow: 'hidden' }]}>
+                  <Reanimated.View style={[{ width: 4, height: '100%', backgroundColor: '#FFFFFF', position: 'absolute', top: 0, left: 0, opacity: 0.8, borderRadius: 2, shadowColor: '#FFF', shadowOpacity: 1, shadowRadius: 4 }, beamStyleH]} />
+                </Reanimated.View>
+              </View>
+            </RecuadroGlass>
+          </Reanimated.View>
+        )}
+      </View>
+    );
+  }
+
+  // VISTA INDIVIDUAL (Rayos X)
   return (
     <View style={styles.raiz}>
       
@@ -87,7 +153,9 @@ export function RutinasAnalisis({ acento, itemsCargados }: Props) {
                   <Texto style={styles.textoValor}>38m</Texto>
                 </View>
                 <View style={styles.barraFondo}>
-                  <Reanimated.View style={[styles.barraRelleno, estiloNeon, { backgroundColor: acento, width: '84.4%' }]} />
+                  <Reanimated.View style={[styles.barraRelleno, estiloNeon, { backgroundColor: acento, width: '84.4%', overflow: 'hidden' }]}>
+                  <Reanimated.View style={[{ width: 4, height: '100%', backgroundColor: '#FFFFFF', position: 'absolute', top: 0, left: 0, opacity: 0.8, borderRadius: 2, shadowColor: '#FFF', shadowOpacity: 1, shadowRadius: 4 }, beamStyleH]} />
+                </Reanimated.View>
                 </View>
               </View>
             </View>
@@ -97,7 +165,7 @@ export function RutinasAnalisis({ acento, itemsCargados }: Props) {
           <RecuadroGlass blur intensity={40} style={[styles.panelMitad, { borderColor: conAlpha(acento, '20'), justifyContent: 'center' }]}>
             <View style={{ alignItems: 'center' }}>
               <Clock color={conAlpha(acento, '80')} size={24} style={{ marginBottom: 12 }} />
-              <Texto style={[styles.numeroGigante, { color: colores.texto }]}>6:42<Texto style={{ fontSize: 16, color: colores.textoSecundario }}> AM</Texto></Texto>
+              <Texto style={[styles.numeroGigante, { color: colores.texto }]} numberOfLines={1} adjustsFontSizeToFit>6:42<Texto style={{ fontSize: 16, color: colores.textoSecundario }}> AM</Texto></Texto>
               <Texto style={[styles.subtituloMini, { marginTop: 4 }]}>Hora pico de inicio</Texto>
             </View>
           </RecuadroGlass>
@@ -133,7 +201,9 @@ export function RutinasAnalisis({ acento, itemsCargados }: Props) {
                 <View key={i} style={styles.columnaBarra}>
                   <Texto style={[styles.etiquetaPorcentaje, b.critico && { color: acento, fontWeight: 'bold' }]}>{b.val}</Texto>
                   <View style={styles.barraVerticalFondo}>
-                    <Reanimated.View style={[styles.barraVerticalRelleno, b.critico ? estiloNeon : undefined, { backgroundColor: b.critico ? acento : conAlpha(acento, '60'), height: b.h as any }]} />
+                    <Reanimated.View style={[styles.barraVerticalRelleno, b.critico ? estiloNeon : undefined, { backgroundColor: b.critico ? acento : conAlpha(acento, '60'), height: b.h as any, overflow: 'hidden' }]}>
+                      {b.critico && <Reanimated.View style={[{ width: '100%', height: 4, backgroundColor: '#FFFFFF', position: 'absolute', left: 0, top: 0, opacity: 0.8, borderRadius: 2, shadowColor: '#FFF', shadowOpacity: 1, shadowRadius: 4 }, beamStyleV]} />}
+                    </Reanimated.View>
                   </View>
                   <Texto style={styles.etiquetaPaso} numberOfLines={1}>{b.lbl}</Texto>
                 </View>
@@ -161,17 +231,19 @@ export function RutinasAnalisis({ acento, itemsCargados }: Props) {
             
             <View style={{ alignItems: 'center', marginTop: 16 }}>
               <Svg width="120" height="80" viewBox="0 0 200 120">
+                
+                <Path d="M 20 100 A 70 70 0 0 1 180 100" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth={14} strokeLinecap="round" />
                 <Defs>
                   <LinearGradient id="gauge" x1="0%" y1="0%" x2="100%" y2="0%">
                     <Stop offset="0%" stopColor={conAlpha(acento, '40')} />
                     <Stop offset="100%" stopColor={acento} />
                   </LinearGradient>
                 </Defs>
-                <Path d="M 20 100 A 70 70 0 0 1 180 100" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth={14} strokeLinecap="round" />
                 <AnimatedPath d="M 20 100 A 70 70 0 0 1 180 100" fill="none" stroke="url(#gauge)" strokeWidth={14} strokeLinecap="round" strokeDasharray="219.91" strokeDashoffset="14.66" animatedProps={svgProps} />
+                <AnimatedPath d="M 20 100 A 70 70 0 0 1 180 100" fill="none" stroke="rgba(255,255,255,0.8)" strokeWidth={6} strokeLinecap="round" strokeDasharray="15 220" animatedProps={gaugeBeamProps} />
               </Svg>
               <View style={styles.textoGaugeAbsoluto}>
-                <Texto style={[styles.numeroGigante, { fontSize: 24, lineHeight: 28 }]}>28<Texto style={{ fontSize: 12, color: colores.textoSecundario }}> d</Texto></Texto>
+                <Texto style={[styles.numeroGigante, { fontSize: 24, lineHeight: 28 }]} numberOfLines={1} adjustsFontSizeToFit>28<Texto style={{ fontSize: 12, color: colores.textoSecundario }}> d</Texto></Texto>
               </View>
             </View>
           </RecuadroGlass>
@@ -187,10 +259,11 @@ export function RutinasAnalisis({ acento, itemsCargados }: Props) {
               <Svg width="90" height="90" viewBox="0 0 160 160">
                 <Circle cx="80" cy="80" r="60" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="18" />
                 <AnimatedCircle cx="80" cy="80" r="60" fill="none" stroke={acento} strokeWidth="18" strokeDasharray="256.35 120.64" transform="rotate(-90 80 80)" animatedProps={svgProps} />
+                <AnimatedCircle cx="80" cy="80" r="60" fill="none" stroke="rgba(255,255,255,0.8)" strokeWidth={6} strokeDasharray="15 377" transform="rotate(-90 80 80)" animatedProps={donutBeamProps} />
                 <Circle cx="80" cy="80" r="60" fill="none" stroke={conAlpha(acento, '30')} strokeWidth="18" strokeDasharray="120.64 256.35" transform="rotate(154.8 80 80)" />
               </Svg>
               <View style={[styles.textoGaugeAbsoluto, { top: 31 }]}>
-                <Texto style={[styles.numeroGigante, { fontSize: 18, lineHeight: 22 }]}>68%</Texto>
+                <Texto style={[styles.numeroGigante, { fontSize: 18, lineHeight: 22 }]} numberOfLines={1} adjustsFontSizeToFit>68%</Texto>
               </View>
             </View>
             
@@ -217,8 +290,10 @@ const styles = StyleSheet.create({
   raiz: { gap: 12, paddingBottom: 20 },
   skeleton: { backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 24, borderColor: 'rgba(255,255,255,0.1)', borderWidth: 1, marginTop: 12 },
   panel: { padding: 18, borderRadius: 24, borderWidth: 1, marginTop: 12, overflow: 'hidden' },
-  filaDoble: { flexDirection: 'row', gap: 12, marginTop: 12 },
-  panelMitad: { flex: 1, padding: 16, borderRadius: 24, borderWidth: 1 },
+  filaDoble: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 12 },
+  panelMitad: { width: '48%', padding: 14, borderRadius: 24, borderWidth: 1 },
+
+
   cabeceraMini: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 },
   tituloMini: { fontFamily: 'MontserratAlternates-Bold', fontSize: 13, color: colores.texto },
   subtituloMini: { fontFamily: 'MontserratAlternates-Medium', fontSize: 10, color: colores.textoSecundario },

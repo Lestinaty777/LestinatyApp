@@ -2,10 +2,12 @@ import type { LucideIcon } from 'lucide-react-native';
 import { AlertTriangle, CalendarDays, Flame, GraduationCap, Handshake, Leaf, ListChecks, PiggyBank, Repeat2, Sparkles, TrendingUp } from 'lucide-react-native';
 import { useState, useEffect } from 'react';
 import Reanimated, { FadeIn, FadeInDown, ZoomIn } from 'react-native-reanimated';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View, ScrollView } from 'react-native';
 
 import { RecuadroGlass, Texto, colores } from '../../../diseno';
 import { RutinasAnalisis } from './analisis/rutinas/RutinasAnalisis';
+import { SaludAnalisis } from './analisis/salud/SaludAnalisis';
+import { saludMockData } from './analisis/salud/datosMock';
 import { rutinasMockData } from './analisis/rutinas/datosMock';
 import { hapticSeguro } from '../../../nucleo/dispositivo/haptics';
 
@@ -20,14 +22,14 @@ type Categoria = {
   mejorMomento: string;
   principal: { etiqueta: string; valor: string };
   secundario: { etiqueta: string; valor: string };
-  senderos: { etiqueta: string; progreso: number; titulo: string }[];
+  senderos: { etiqueta: string; progreso: number; titulo: string; meta?: string }[];
   serie: number[];
   tendencia: string;
 };
 
 const categorias: Categoria[] = [
-  { acento: '#1463FF', alerta: 'Tu cierre de dia necesita una sesion para recuperar ritmo.', categoria: 'Rutinas', Icono: Repeat2, id: 'rutinas', mejorMomento: 'Viernes', principal: { etiqueta: 'consistencia', valor: '68%' }, secundario: { etiqueta: 'racha actual', valor: '6 dias' }, senderos: [{ etiqueta: '4 bloques', progreso: 68, titulo: 'Rutina de brazo' }, { etiqueta: '15 min', progreso: 42, titulo: 'Cierre del dia' }, { etiqueta: '2 bloques', progreso: 74, titulo: 'Bloque de enfoque' }], serie: [36, 54, 42, 72, 58, 86, 68], tendencia: '+12%' },
-  { acento: '#34D946', alerta: 'Caminar mantiene la energia mas estable de tus senderos.', categoria: 'Salud', Icono: Leaf, id: 'salud', mejorMomento: 'Jueves', principal: { etiqueta: 'bienestar', valor: '81%' }, secundario: { etiqueta: 'objetivo semanal', valor: '4/5' }, senderos: [{ etiqueta: '20 min', progreso: 81, titulo: 'Caminar 20 min' }, { etiqueta: '10 min', progreso: 54, titulo: 'Meditacion diaria' }, { etiqueta: '7 noches', progreso: 46, titulo: 'Mejor sueno' }], serie: [48, 62, 55, 72, 66, 82, 81], tendencia: '+9%' },
+  { acento: '#1463FF', alerta: 'Tu cierre de dia necesita una sesion para recuperar ritmo.', categoria: 'Rutinas', Icono: Repeat2, id: 'rutinas', mejorMomento: 'Viernes', principal: { etiqueta: 'consistencia', valor: '68%' }, secundario: { etiqueta: 'racha actual', valor: '6 dias' }, senderos: [{ etiqueta: '4 bloques', progreso: 68, titulo: 'Rutina de brazo', meta: 'diaria' }, { etiqueta: '15 min', progreso: 42, titulo: 'Cierre del dia', meta: 'diaria' }, { etiqueta: '2 bloques', progreso: 74, titulo: 'Bloque de enfoque', meta: 'diaria' }], serie: [36, 54, 42, 72, 58, 86, 68], tendencia: '+12%' },
+  { acento: '#34D946', alerta: 'Caminar mantiene la energia mas estable de tus senderos.', categoria: 'Salud', Icono: Leaf, id: 'salud', mejorMomento: 'Jueves', principal: { etiqueta: 'bienestar', valor: '81%' }, secundario: { etiqueta: 'objetivo semanal', valor: '4/5' }, senderos: [{ etiqueta: '20 min', progreso: 81, titulo: 'Caminar 20 min', meta: 'fisico' }, { etiqueta: '3 Litros', progreso: 90, titulo: 'Tomar Agua', meta: 'hidratacion' }, { etiqueta: '7 noches', progreso: 46, titulo: 'Mejor sueno', meta: 'sueno' }], serie: [48, 62, 55, 72, 66, 82, 81], tendencia: '+9%' },
   { acento: '#FF3B30', alerta: 'Leer diario esta a una sesion de proteger su racha.', categoria: 'Habitos', Icono: Flame, id: 'habitos', mejorMomento: 'Noche', principal: { etiqueta: 'ritmo mensual', valor: '72%' }, secundario: { etiqueta: 'mejor racha', valor: '12 dias' }, senderos: [{ etiqueta: '7 dias', progreso: 72, titulo: 'Leer diario' }, { etiqueta: '4 dias', progreso: 63, titulo: 'Ser constante' }], serie: [78, 68, 82, 75, 84, 58, 72], tendencia: '-4%' },
   { acento: '#FFC400', alerta: 'Una tarea importante vence esta semana.', categoria: 'Tareas', Icono: ListChecks, id: 'tareas', mejorMomento: 'Manana', principal: { etiqueta: 'resueltas', valor: '14' }, secundario: { etiqueta: 'pendientes', valor: '3' }, senderos: [{ etiqueta: '2 pendientes', progreso: 66, titulo: 'Proyecto personal' }, { etiqueta: 'vence viernes', progreso: 38, titulo: 'Organizar archivos' }], serie: [42, 66, 48, 74, 55, 72, 64], tendencia: '+6%' },
   { acento: '#FF8A00', alerta: 'Tu proximo aporte llega el 1 de septiembre.', categoria: 'Finanzas', Icono: PiggyBank, id: 'finanzas', mejorMomento: 'Lunes', principal: { etiqueta: 'meta acumulada', valor: '57%' }, secundario: { etiqueta: 'ahorro actual', valor: '$285' }, senderos: [{ etiqueta: 'aporte mensual', progreso: 57, titulo: 'Ahorro mensual' }, { etiqueta: 'presupuesto', progreso: 76, titulo: 'Gastos conscientes' }], serie: [24, 31, 36, 48, 45, 54, 57], tendencia: '+7%' },
@@ -45,6 +47,7 @@ export function AnalisisSenderos({ categoriaActiva, onCategoriaChange }: { categ
   const categoriaId = (categoriaActiva as CategoriaId) || 'rutinas';
   
   const [itemsCargados, setItemsCargados] = useState(0);
+  const [senderoFiltro, setSenderoFiltro] = useState<{ titulo: string; meta?: string } | null>(null);
   useEffect(() => {
     let timeout: any;
     if (itemsCargados < 5) {
@@ -60,6 +63,7 @@ export function AnalisisSenderos({ categoriaActiva, onCategoriaChange }: { categ
   const seleccionarCategoria = (id: CategoriaId) => {
     if (id === categoriaId) return;
     hapticSeguro('seleccion');
+    setSenderoFiltro(null); // Reset filter on category change
     if (onCategoriaChange) onCategoriaChange(id);
   };
 
@@ -79,8 +83,38 @@ export function AnalisisSenderos({ categoriaActiva, onCategoriaChange }: { categ
         })}
       </View>
 
+      {/* FILTRO DE SENDEROS (PÍLDORAS) */}
+      <View style={{ marginTop: 16 }}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, gap: 8 }}>
+          <Reanimated.View entering={ZoomIn.delay(0).springify()}>
+            <Pressable 
+              onPress={() => { hapticSeguro('seleccion'); setSenderoFiltro(null); }}
+              style={[styles.pildoraFiltro, senderoFiltro === null && { backgroundColor: categoria.acento, borderColor: categoria.acento }]}
+            >
+              <Texto style={[styles.pildoraTexto, senderoFiltro === null && { color: '#FFF' }]}>Todos</Texto>
+            </Pressable>
+          </Reanimated.View>
+          
+          {categoria.senderos.map((sendero, index) => {
+            const activo = senderoFiltro?.titulo === sendero.titulo;
+            return (
+              <Reanimated.View key={sendero.titulo} entering={ZoomIn.delay((index + 1) * 60).springify()}>
+                <Pressable 
+                  onPress={() => { hapticSeguro('seleccion'); setSenderoFiltro(sendero); }}
+                  style={[styles.pildoraFiltro, activo && { backgroundColor: categoria.acento, borderColor: categoria.acento }]}
+                >
+                  <Texto style={[styles.pildoraTexto, activo && { color: '#FFF' }]}>{sendero.titulo}</Texto>
+                </Pressable>
+              </Reanimated.View>
+            );
+          })}
+        </ScrollView>
+      </View>
+
       {categoriaId === 'rutinas' ? (
-        <RutinasAnalisis datos={rutinasMockData} acento={categoria.acento} itemsCargados={itemsCargados} />
+        <RutinasAnalisis datos={rutinasMockData} acento={categoria.acento} itemsCargados={itemsCargados} senderoFiltro={senderoFiltro} />
+      ) : categoriaId === 'salud' ? (
+        <SaludAnalisis datos={saludMockData} acento={categoria.acento} itemsCargados={itemsCargados} senderoFiltro={senderoFiltro} />
       ) : (
         <>
           {itemsCargados < 1 ? <View style={[styles.resumenGlass, { backgroundColor: 'rgba(255,255,255,0.05)', height: 110, borderColor: 'rgba(255,255,255,0.1)' }]} /> : (
@@ -184,6 +218,8 @@ const styles = StyleSheet.create({
   selectorCategorias: { flexDirection: 'row', gap: 4, width: '100%' },
   botonCategoria: { alignItems: 'center', aspectRatio: 1, backgroundColor: 'rgba(255, 255, 255, 0.56)', borderColor: 'rgba(255, 255, 255, 0.76)', borderRadius: 12, borderWidth: 0.7, flex: 1, justifyContent: 'center', minWidth: 0 },
   botonCategoriaPresionado: { opacity: 0.78, transform: [{ scale: 0.94 }] },
+  pildoraFiltro: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 99, borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)', backgroundColor: 'rgba(255,255,255,0.05)' },
+  pildoraTexto: { fontFamily: 'MontserratAlternates-SemiBold', fontSize: 12, color: colores.textoSecundario },
   indicadorCategoriaActivo: { backgroundColor: '#FFFFFF', borderRadius: 99, bottom: 5, height: 3, position: 'absolute', width: 12 },
   resumenGlass: { borderRadius: 24, borderWidth: 0.8, overflow: 'hidden', padding: 15 },
   resumenTinte: { bottom: 0, left: 0, position: 'absolute', right: 0, top: 0 },
