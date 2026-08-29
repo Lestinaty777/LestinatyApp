@@ -1,17 +1,25 @@
-import { useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
+import { ArrowLeft, Check, Flame, Play } from 'lucide-react-native';
+import { useRef, useState } from 'react';
+import { Animated, FlatList, Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { RecuadroGlass, Texto, colores } from '../../../diseno';
+import { hapticSeguro } from '../../../nucleo/dispositivo/haptics';
+import { obtenerPasosMock, PasoSendero } from '../datos/pasosMock';
 
-import { Pantalla, Tarjeta, Texto } from '../../../diseno';
-
+const ITEM = 88;
 export function DetalleSenderoPantalla() {
-  const { id } = useLocalSearchParams<{ id: string }>();
-
-  return (
-    <Pantalla>
-      <Texto variante="titulo">Detalle de sendero</Texto>
-      <Tarjeta>
-        <Texto variante="subtitulo">Sendero {id}</Texto>
-        <Texto variante="cuerpo">Aqui viviran mapa, distancia, desnivel, clima y favoritos.</Texto>
-      </Tarjeta>
-    </Pantalla>
-  );
+  const { id = '' } = useLocalSearchParams<{ id: string }>();
+  const pasos = obtenerPasosMock(id); const { width } = useWindowDimensions();
+  const [actual, setActual] = useState(0); const [completados, setCompletados] = useState<number[]>([]);
+  const lista = useRef<FlatList<PasoSendero>>(null); const entrada = useRef(new Animated.Value(1)).current;
+  const paso = pasos[actual]; const Icono = paso.icono; const lateral = (width - ITEM) / 2;
+  const cambiar = (indice: number) => { if (indice > actual) return; entrada.setValue(0); setActual(indice); Animated.timing(entrada,{toValue:1,duration:180,useNativeDriver:true}).start(); };
+  const completar = () => { hapticSeguro('accion'); setCompletados(v => [...v, actual]); if (actual < pasos.length - 1) { const siguiente = actual + 1; setActual(siguiente); lista.current?.scrollToIndex({ index:siguiente, animated:true, viewPosition:.5 }); } };
+  return <SafeAreaView style={s.root} edges={['top','bottom']}><RecuadroGlass blur intensity={72} style={s.shell}>
+    <View style={s.top}><Pressable onPress={router.back} style={s.back}><ArrowLeft color={colores.texto} size={19}/></Pressable><View style={{flex:1}}><Texto style={s.crumb}>RUTINAS / ESPACIO DE TRABAJO</Texto><Texto style={s.title}>{id === 'rutina-manana' ? 'Rutina de manana' : 'Tu sendero'}</Texto></View><View style={s.streak}><Flame color="#FF6B00" size={16}/><Texto style={s.streakText}>12</Texto></View></View>
+    <View style={s.rail}><View style={s.line}/><FlatList ref={lista} horizontal data={pasos} keyExtractor={p=>p.id} contentContainerStyle={{paddingHorizontal:lateral}} getItemLayout={(_,i)=>({index:i,length:ITEM,offset:i*ITEM})} showsHorizontalScrollIndicator={false} renderItem={({item,index})=>{ const done=completados.includes(index), selected=index===actual, I=item.icono; return <Pressable disabled={index>actual} onPress={()=>cambiar(index)} style={s.item}><View style={[s.node,done&&s.done,selected&&s.selected,index>actual&&s.locked]}>{done?<Check color="#fff" size={22}/>:<I color={index>actual?'#aaa':'#1463FF'} size={22}/>}</View><Texto numberOfLines={2} style={[s.nodeText,selected&&{color:'#1463FF'}]}>{item.titulo}</Texto></Pressable>}}/></View>
+    <Animated.View style={[s.workspace,{opacity:entrada,transform:[{translateY:entrada.interpolate({inputRange:[0,1],outputRange:[8,0]})}]}]}><View style={s.stepHead}><View style={s.icon}><Icono color="#1463FF" size={20}/></View><View style={{flex:1}}><Texto style={s.label}>PASO {actual+1} DE {pasos.length}</Texto><Texto style={s.stepTitle}>{paso.titulo}</Texto></View></View><Texto style={s.desc}>{paso.descripcion}</Texto><View style={s.widget}><Texto style={s.widgetText}>{paso.tipo === 'temporizador' ? `Enfoque guiado · ${paso.metadata}` : paso.metadata}</Texto></View><Pressable onPress={completar} disabled={completados.includes(actual)} style={[s.button,completados.includes(actual)&&s.buttonDone]}><Play color="#fff" size={17} fill="#fff"/><Texto style={s.buttonText}>{completados.includes(actual)?'Paso completado':'Completar paso'}</Texto></Pressable></Animated.View>
+  </RecuadroGlass></SafeAreaView>;
 }
+const s=StyleSheet.create({root:{flex:1,backgroundColor:'#F3EFE8',padding:14},shell:{flex:1,borderRadius:30,padding:16,overflow:'hidden'},top:{alignItems:'center',flexDirection:'row',gap:10,height:78},back:{alignItems:'center',backgroundColor:'rgba(255,255,255,.7)',borderRadius:16,height:38,justifyContent:'center',width:38},crumb:{color:colores.textoSecundario,fontFamily:'MontserratAlternates-Bold',fontSize:8,letterSpacing:.6},title:{color:colores.texto,fontFamily:'MontserratAlternates-Bold',fontSize:22},streak:{flexDirection:'row',gap:3},streakText:{fontFamily:'MontserratAlternates-Bold'},rail:{height:175,justifyContent:'center',marginHorizontal:-16,position:'relative'},line:{backgroundColor:'rgba(20,99,255,.22)',height:3,left:0,position:'absolute',right:0,top:70},item:{alignItems:'center',width:ITEM},node:{alignItems:'center',backgroundColor:'rgba(255,255,255,.75)',borderRadius:27,height:54,justifyContent:'center',width:54},done:{backgroundColor:'#1463FF'},selected:{borderColor:'#1463FF',borderWidth:2,transform:[{scale:1.12}]},locked:{backgroundColor:'rgba(220,220,220,.65)'},nodeText:{color:colores.textoSecundario,fontFamily:'MontserratAlternates-Bold',fontSize:9,marginTop:10,textAlign:'center',width:82},workspace:{backgroundColor:'rgba(255,255,255,.52)',borderColor:'rgba(255,255,255,.9)',borderRadius:24,borderWidth:1,flex:1,gap:12,justifyContent:'center',padding:18},stepHead:{alignItems:'center',flexDirection:'row',gap:12},icon:{alignItems:'center',backgroundColor:'rgba(20,99,255,.12)',borderRadius:16,height:42,justifyContent:'center',width:42},label:{color:colores.textoSecundario,fontFamily:'MontserratAlternates-Bold',fontSize:9},stepTitle:{color:colores.texto,fontFamily:'MontserratAlternates-Bold',fontSize:18},desc:{color:colores.textoSecundario,fontFamily:'MontserratAlternates-SemiBold',fontSize:12,lineHeight:17},widget:{backgroundColor:'rgba(20,99,255,.08)',borderRadius:14,padding:12},widgetText:{color:colores.texto,fontFamily:'MontserratAlternates-Bold',fontSize:12},button:{alignItems:'center',backgroundColor:'#1463FF',borderRadius:18,flexDirection:'row',gap:8,justifyContent:'center',minHeight:54},buttonDone:{backgroundColor:'#777'},buttonText:{color:'#fff',fontFamily:'MontserratAlternates-Bold',fontSize:14}});

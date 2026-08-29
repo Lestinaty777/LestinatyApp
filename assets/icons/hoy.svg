@@ -1,0 +1,16 @@
+<svg viewBox="0 0 64 64" width="80" height="80" xmlns="http://www.w3.org/2000/svg">
+  <!-- Sombra -->
+  <rect x="14" y="16" width="40" height="40" rx="6" fill="#000000" opacity="0.1" transform="translate(2, 4)" />
+  <!-- Base Papel -->
+  <rect x="12" y="16" width="40" height="40" rx="6" fill="#FAFAFA" stroke="#E0E0E0" stroke-width="2" />
+  <!-- Cabecera Roja -->
+  <path d="M12 26 L52 26 L52 20 Q52 16 48 16 L16 16 Q12 16 12 20 Z" fill="#F44336" />
+  <!-- Anillos Metálicos -->
+  <rect x="20" y="8" width="6" height="14" rx="3" fill="#B0BEC5" />
+  <rect x="22" y="8" width="2" height="14" fill="#ECEFF1" /> <!-- Brillo anillo -->
+  <rect x="38" y="8" width="6" height="14" rx="3" fill="#B0BEC5" />
+  <rect x="40" y="8" width="2" height="14" fill="#ECEFF1" />
+  <!-- Estrella/Sol (Día Actual) -->
+  <polygon points="32,32 35,39 42,40 36,45 38,52 32,48 26,52 28,45 22,40 29,39" fill="#FFC107" />
+  <polygon points="32,32 32,48 26,52 28,45 22,40 29,39" fill="#FFCA28" opacity="0.8" />
+</svg>

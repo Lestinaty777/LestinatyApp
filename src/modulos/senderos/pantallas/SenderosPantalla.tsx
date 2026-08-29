@@ -1,4 +1,5 @@
 import type { LucideIcon } from 'lucide-react-native';
+import { usePathname } from 'expo-router';
 import {
   ChevronRight,
   Compass,
@@ -8,18 +9,25 @@ import {
   Leaf,
   ListChecks,
   Map,
+  Moon,
   PiggyBank,
+  Plus,
   Repeat2,
   Search,
   Sparkles,
   Sprout,
+  Sun,
   TrendingUp,
   Users,
+  Utensils,
+  WalletCards,
+  Droplets,
+  Dumbbell,
 } from 'lucide-react-native';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { ImageSourcePropType } from 'react-native';
 import Reanimated, { FadeIn, FadeInDown } from 'react-native-reanimated';
-import { Animated, Image, Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { Animated, Easing, Image, Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
@@ -27,13 +35,16 @@ import { BarraProgresoLiquida } from '../../../diseno/componentes/BarraProgresoL
 import FogEffectSkia from '../../../diseno/componentes/NieblaUi';
 import { RecuadroGlass, Texto, biomas, colores, espaciado } from '../../../diseno';
 import { hapticSeguro } from '../../../nucleo/dispositivo/haptics';
+import { usarAccionBarraSenderos } from '../estado/accionBarraSenderos.estado';
 import { AnalisisSenderos } from '../paginas/AnalisisSenderos';
 import { CompartidosSenderos } from '../paginas/CompartidosSenderos';
+import { EspacioTrabajoSendero } from '../paginas/EspacioTrabajoSendero';
 import { PaginaSenderosId, paginasSenderos } from '../paginas/paginasSenderos';
 
 const Bioma = biomas.inicio;
 const paddingPestanas = 6;
 const gapPestanas = 4;
+const altoPestanasInternas = 64;
 const altoSeparadorCompleto = 102;
 const altoSeparadorVisible = 34;
 const desplazamientoSeparadorActivo = -44;
@@ -108,6 +119,15 @@ type CategoriaCarpeta = {
   id: CategoriaSenderoId;
   etiquetaSeparador?: string;
   senderos: SenderoMini[];
+  titulo: string;
+};
+
+type SubcategoriaCarpeta = {
+  acento: string;
+  esCrear?: boolean;
+  Icono: LucideIcon;
+  id: string;
+  senderoIds: string[];
   titulo: string;
 };
 
@@ -369,12 +389,78 @@ const categoriasCarpeta: CategoriaCarpeta[] = [
   },
 ];
 
+const subcategoriasPorCategoria: Record<CategoriaSenderoId, SubcategoriaCarpeta[]> = {
+  rutinas: [
+    { acento: '#1463FF', Icono: Sun, id: 'manana', senderoIds: ['rutina-manana'], titulo: 'Manana' },
+    { acento: '#1257E0', Icono: Repeat2, id: 'tarde', senderoIds: ['bloque-enfoque'], titulo: 'Tarde' },
+    { acento: '#104BC2', Icono: Moon, id: 'noche', senderoIds: ['rutina-noche'], titulo: 'Noche' },
+    { acento: '#0D3F9E', Icono: Dumbbell, id: 'entrenamiento', senderoIds: [], titulo: 'Entreno' },
+    { acento: '#0A337B', Icono: Sparkles, id: 'reinicio', senderoIds: [], titulo: 'Reinicio' },
+    { acento: '#07295D', esCrear: true, Icono: Plus, id: 'crear', senderoIds: [], titulo: 'Nueva' },
+  ],
+  salud: [
+    { acento: '#34D946', Icono: Moon, id: 'sueno', senderoIds: ['sueno'], titulo: 'Sueno' },
+    { acento: '#2EBF3E', Icono: Dumbbell, id: 'ejercicio', senderoIds: ['caminar'], titulo: 'Ejercicio' },
+    { acento: '#259D33', Icono: Droplets, id: 'hidratacion', senderoIds: [], titulo: 'Agua' },
+    { acento: '#1C7D29', Icono: Utensils, id: 'nutricion', senderoIds: ['nutricion-simple'], titulo: 'Comida' },
+    { acento: '#145F20', Icono: Sparkles, id: 'mente', senderoIds: ['meditacion-diaria'], titulo: 'Mente' },
+    { acento: '#0D4317', esCrear: true, Icono: Plus, id: 'crear', senderoIds: [], titulo: 'Nueva' },
+  ],
+  habitos: [
+    { acento: '#FF3B30', Icono: Flame, id: 'constancia', senderoIds: ['constancia'], titulo: 'Racha' },
+    { acento: '#E02E25', Icono: Sparkles, id: 'lectura', senderoIds: ['leer'], titulo: 'Lectura' },
+    { acento: '#BE241D', Icono: Repeat2, id: 'diario', senderoIds: [], titulo: 'Diario' },
+    { acento: '#991B16', Icono: Sun, id: 'manana', senderoIds: [], titulo: 'Manana' },
+    { acento: '#72130F', Icono: Moon, id: 'noche', senderoIds: [], titulo: 'Noche' },
+    { acento: '#4E0C0A', esCrear: true, Icono: Plus, id: 'crear', senderoIds: [], titulo: 'Nueva' },
+  ],
+  tareas: [
+    { acento: '#FFC400', Icono: ListChecks, id: 'hoy', senderoIds: ['ordenar-casa'], titulo: 'Hoy' },
+    { acento: '#D9A800', Icono: Sparkles, id: 'importante', senderoIds: ['tramites'], titulo: 'Clave' },
+    { acento: '#B88F00', Icono: Repeat2, id: 'repetitivas', senderoIds: [], titulo: 'Ciclos' },
+    { acento: '#927100', Icono: Sun, id: 'manana', senderoIds: [], titulo: 'Manana' },
+    { acento: '#6D5400', Icono: WalletCards, id: 'proyectos', senderoIds: [], titulo: 'Proyecto' },
+    { acento: '#4B3A00', esCrear: true, Icono: Plus, id: 'crear', senderoIds: [], titulo: 'Nueva' },
+  ],
+  finanzas: [
+    { acento: '#FF8A00', Icono: PiggyBank, id: 'ahorro', senderoIds: ['ahorro'], titulo: 'Ahorro' },
+    { acento: '#E67700', Icono: WalletCards, id: 'presupuesto', senderoIds: ['presupuesto'], titulo: 'Gastos' },
+    { acento: '#BF6100', Icono: TrendingUp, id: 'inversion', senderoIds: ['negocio'], titulo: 'Invertir' },
+    { acento: '#984C00', Icono: ListChecks, id: 'deudas', senderoIds: [], titulo: 'Deudas' },
+    { acento: '#703700', Icono: Sparkles, id: 'ingresos', senderoIds: [], titulo: 'Ingresos' },
+    { acento: '#4D2600', esCrear: true, Icono: Plus, id: 'crear', senderoIds: [], titulo: 'Nueva' },
+  ],
+  relaciones: [
+    { acento: '#FF2D93', Icono: Handshake, id: 'pareja', senderoIds: [], titulo: 'Pareja' },
+    { acento: '#E0267E', Icono: Users, id: 'familia', senderoIds: ['familia'], titulo: 'Familia' },
+    { acento: '#BD1B68', Icono: Users, id: 'amistades', senderoIds: [], titulo: 'Amigos' },
+    { acento: '#94134F', Icono: Sparkles, id: 'amor-propio', senderoIds: ['amor-propio'], titulo: 'Yo' },
+    { acento: '#6B0D39', Icono: Sun, id: 'social', senderoIds: [], titulo: 'Social' },
+    { acento: '#480825', esCrear: true, Icono: Plus, id: 'crear', senderoIds: [], titulo: 'Nueva' },
+  ],
+  estudio: [
+    { acento: '#8E3DFF', Icono: GraduationCap, id: 'aprendizaje', senderoIds: ['ingles'], titulo: 'Aprender' },
+    { acento: '#7A2EE0', Icono: Sparkles, id: 'creatividad', senderoIds: ['creatividad'], titulo: 'Crear' },
+    { acento: '#6123BC', Icono: ListChecks, id: 'proyectos', senderoIds: ['proyecto'], titulo: 'Proyecto' },
+    { acento: '#49198F', Icono: Repeat2, id: 'practica', senderoIds: [], titulo: 'Practica' },
+    { acento: '#331166', Icono: Moon, id: 'lectura', senderoIds: [], titulo: 'Lectura' },
+    { acento: '#210A45', esCrear: true, Icono: Plus, id: 'crear', senderoIds: [], titulo: 'Nueva' },
+  ],
+};
+
 function hapticSeleccion() {
   hapticSeguro('seleccion');
 }
 
 function colorConAlpha(color: string, alpha: string) {
   return `${color}${alpha}`;
+}
+
+function colorPastel(color: string) {
+  const hex = color.replace('#', '');
+  const canales = [0, 2, 4].map((inicio) => parseInt(hex.slice(inicio, inicio + 2), 16));
+  const suavizado = canales.map((canal) => Math.round(canal * 0.13 + 255 * 0.87));
+  return `#${suavizado.map((canal) => canal.toString(16).padStart(2, '0')).join('')}`;
 }
 
 function IconoBaseColor({
@@ -413,7 +499,7 @@ function IconoBaseColor({
   );
 }
 
-function TarjetaSenderoMini({ categoria, sendero }: { categoria: CategoriaCarpeta; sendero: SenderoMini }) {
+function TarjetaSenderoMini({ categoria, sendero, onAbrir }: { categoria: CategoriaCarpeta; sendero: SenderoMini; onAbrir: (sendero: SenderoMini, color: string) => void }) {
   const IconoCategoria = categoria.Icono;
   const entrada = useRef(new Animated.Value(0)).current;
   const metadataVisible = sendero.metadata.slice(0, 2);
@@ -436,7 +522,10 @@ function TarjetaSenderoMini({ categoria, sendero }: { categoria: CategoriaCarpet
   return (
     <Animated.View style={{ opacity: entrada, transform: [{ translateY: desplazamientoEntrada }] }}>
       <Pressable
-        onPress={() => hapticSeguro('accion')}
+        onPress={() => {
+          hapticSeguro('accion');
+          onAbrir(sendero, categoria.acento);
+        }}
         style={({ pressed }) => [styles.tarjetaSenderoMini, pressed && styles.tarjetaSenderoMiniPresionada]}
       >
         <RecuadroGlass blur intensity={36} style={[styles.tarjetaSenderoMiniGlass, { borderColor: colorConAlpha(categoria.acento, '30') }]}>
@@ -472,7 +561,7 @@ function TarjetaSenderoMini({ categoria, sendero }: { categoria: CategoriaCarpet
   );
 }
 
-function TarjetaSenderoVertical({ categoria, sendero }: { categoria: CategoriaCarpeta; sendero: SenderoMini }) {
+function TarjetaSenderoVertical({ categoria, sendero, onAbrir }: { categoria: CategoriaCarpeta; sendero: SenderoMini; onAbrir: (sendero: SenderoMini, color: string) => void }) {
   const IconoCategoria = categoria.Icono;
   const entrada = useRef(new Animated.Value(0)).current;
   const metadataVisible = sendero.metadata.slice(0, 3);
@@ -495,7 +584,10 @@ function TarjetaSenderoVertical({ categoria, sendero }: { categoria: CategoriaCa
   return (
     <Animated.View style={{ opacity: entrada, transform: [{ translateY: desplazamientoEntrada }] }}>
       <Pressable
-        onPress={() => hapticSeguro('accion')}
+        onPress={() => {
+          hapticSeguro('accion');
+          onAbrir(sendero, categoria.acento);
+        }}
         style={({ pressed }) => [styles.tarjetaSenderoVertical, pressed && styles.tarjetaSenderoMiniPresionada]}
       >
         <RecuadroGlass blur intensity={48} style={[styles.tarjetaSenderoVerticalGlass, { borderColor: colorConAlpha(categoria.acento, '34') }]}>
@@ -536,13 +628,145 @@ function TarjetaSenderoVertical({ categoria, sendero }: { categoria: CategoriaCa
   );
 }
 
+function FichaArchivador({ categoria, espacioInferior, sendero, onAbrir }: { categoria: CategoriaCarpeta; espacioInferior: number; sendero: SenderoMini; onAbrir: (sendero: SenderoMini, color: string) => void }) {
+  const IconoCategoria = categoria.Icono;
+  const entrada = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.spring(entrada, {
+      damping: 17,
+      mass: 0.65,
+      overshootClamping: true,
+      stiffness: 230,
+      toValue: 1,
+      useNativeDriver: true,
+    }).start();
+  }, [entrada]);
+
+  const desplazamiento = entrada.interpolate({ inputRange: [0, 1], outputRange: [10, 0] });
+  const escala = entrada.interpolate({ inputRange: [0, 1], outputRange: [0.97, 1] });
+
+  return (
+    <Animated.View
+      style={[
+        styles.fichaArchivadorPosicion,
+        { bottom: espacioInferior, opacity: entrada, transform: [{ translateY: desplazamiento }, { scale: escala }], zIndex: 3 },
+      ]}
+    >
+      <Pressable
+        onPress={() => {
+          hapticSeguro('accion');
+          onAbrir(sendero, categoria.acento);
+        }}
+        style={({ pressed }) => [styles.fichaArchivadorPresionable, pressed && styles.fichaArchivadorPresionada]}
+      >
+        <RecuadroGlass blur intensity={54} style={[styles.fichaArchivador, { borderColor: colorConAlpha(categoria.acento, '50') }]}>
+          <View pointerEvents="none" style={[styles.tarjetaSenderoTinte, { backgroundColor: colorConAlpha(categoria.acento, '18') }]} />
+          <View style={[styles.fichaArchivadorLomo, { backgroundColor: categoria.acento }]} />
+          <View style={styles.fichaArchivadorContenido}>
+            <IconoBaseColor color={categoria.acento} Icono={IconoCategoria} iconoSize={18} size={48} />
+            <View style={styles.fichaArchivadorTexto}>
+              <View style={styles.fichaArchivadorCabecera}>
+                <Texto style={[styles.senderoEstado, { color: categoria.acento }]}>{sendero.estado}</Texto>
+              </View>
+              <Texto numberOfLines={2} style={styles.fichaArchivadorTitulo}>{sendero.titulo}</Texto>
+              <Texto numberOfLines={1} style={styles.fichaArchivadorMeta}>{sendero.metadata.slice(0, 2).join('  ·  ')}</Texto>
+            </View>
+          </View>
+        </RecuadroGlass>
+      </Pressable>
+    </Animated.View>
+  );
+}
+
+function LomoArchivador({ categoria, sendero, onPress }: { categoria: CategoriaCarpeta; sendero: SenderoMini; onPress: () => void }) {
+  const IconoCategoria = categoria.Icono;
+
+  return (
+    <Pressable onPress={onPress} style={({ pressed }) => [styles.lomoArchivador, { backgroundColor: colorConAlpha(categoria.acento, '20') }, pressed && styles.lomoArchivadorPresionado]}>
+      <IconoCategoria color={categoria.acento} size={14} strokeWidth={2.6} />
+      <Texto numberOfLines={1} style={styles.lomoArchivadorTitulo}>{sendero.titulo}</Texto>
+      <ChevronRight color={categoria.acento} size={15} strokeWidth={2.8} />
+    </Pressable>
+  );
+}
+
+function ArchivadorSenderos({ categoria, senderos, onAbrir }: { categoria: CategoriaCarpeta; senderos: SenderoMini[]; onAbrir: (sendero: SenderoMini, color: string) => void }) {
+  const [ancho, setAncho] = useState(0);
+  const [paginaActiva, setPaginaActiva] = useState(0);
+  const [frontalPorPagina, setFrontalPorPagina] = useState<Record<number, string>>({});
+  const paginas: SenderoMini[][] = [];
+
+  for (let indice = 0; indice < senderos.length; indice += 3) paginas.push(senderos.slice(indice, indice + 3));
+
+  return (
+    <View onLayout={(evento) => setAncho(evento.nativeEvent.layout.width)} style={styles.archivadorRaiz}>
+      <View style={styles.archivadorCabecera}>
+        <Texto style={[styles.archivadorEtiqueta, { color: categoria.acento }]}>ARCHIVADOR</Texto>
+        <Texto style={styles.archivadorContador}>
+          {paginaActiva * 3 + 1}-{Math.min((paginaActiva + 1) * 3, senderos.length)} de {senderos.length}
+        </Texto>
+      </View>
+      {ancho > 0 ? (
+        <ScrollView
+          horizontal
+          onMomentumScrollEnd={(evento) => setPaginaActiva(Math.round(evento.nativeEvent.contentOffset.x / ancho))}
+          pagingEnabled
+          showsHorizontalScrollIndicator={false}
+          style={styles.archivadorPaginador}
+        >
+          {paginas.map((pagina, indicePagina) => {
+            const frontalId = frontalPorPagina[indicePagina] ?? pagina[0]?.id;
+            const ordenados = [...pagina].sort((a, b) => (a.id === frontalId ? -1 : b.id === frontalId ? 1 : 0));
+            const [frontal, ...secundarios] = ordenados;
+
+            return (
+              <View key={`pagina-${indicePagina}`} style={[styles.archivadorPagina, { width: ancho }]}>
+                {frontal ? (
+                  <FichaArchivador
+                    key={frontal.id}
+                    categoria={categoria}
+                    espacioInferior={secundarios.length * 30 + (secundarios.length ? 5 : 0)}
+                    sendero={frontal}
+                    onAbrir={onAbrir}
+                  />
+                ) : null}
+                {secundarios.length > 0 ? (
+                  <View style={styles.lomosArchivador}>
+                    {secundarios.map((sendero) => (
+                      <LomoArchivador
+                        key={sendero.id}
+                        categoria={categoria}
+                        sendero={sendero}
+                        onPress={() => {
+                          hapticSeguro('seleccion');
+                          setFrontalPorPagina((actual) => ({ ...actual, [indicePagina]: sendero.id }));
+                        }}
+                      />
+                    ))}
+                  </View>
+                ) : null}
+              </View>
+            );
+          })}
+        </ScrollView>
+      ) : null}
+      <View style={styles.archivadorPuntos}>
+        {paginas.map((_, indice) => <View key={indice} style={[styles.archivadorPunto, { backgroundColor: indice === paginaActiva ? categoria.acento : colorConAlpha(categoria.acento, '24') }]} />)}
+      </View>
+    </View>
+  );
+}
+
 function FilaCategoriaCarpeta({
   abierta,
   categoria,
+  onAbrir,
   onPress,
 }: {
   abierta: boolean;
   categoria: CategoriaCarpeta;
+  onAbrir: (sendero: SenderoMini, color: string) => void;
   onPress: () => void;
 }) {
   const IconoCategoria = categoria.Icono;
@@ -596,7 +820,7 @@ function FilaCategoriaCarpeta({
             showsHorizontalScrollIndicator={false}
           >
             {categoria.senderos.map((sendero) => (
-              <TarjetaSenderoMini key={sendero.id} categoria={categoria} sendero={sendero} />
+              <TarjetaSenderoMini key={sendero.id} categoria={categoria} sendero={sendero} onAbrir={onAbrir} />
             ))}
           </ScrollView>
         </Animated.View>
@@ -607,25 +831,60 @@ function FilaCategoriaCarpeta({
 
 function SeparadorColorCarpeta({
   activo,
-  categoria,
+  item,
   onPress,
+  seleccionado = false,
+  oculto = false,
+  cerrandoPrincipal = false,
+  entrada = false,
+  elevarAlPresionar = true,
+  animacionInterna = true,
+  retrasoEntrada = 0,
 }: {
   activo: boolean;
-  categoria: CategoriaCarpeta;
+  item: Pick<CategoriaCarpeta, 'acento' | 'Icono' | 'titulo' | 'etiquetaSeparador'> | SubcategoriaCarpeta;
   onPress: () => void;
+  seleccionado?: boolean;
+  oculto?: boolean;
+  cerrandoPrincipal?: boolean;
+  entrada?: boolean;
+  elevarAlPresionar?: boolean;
+  animacionInterna?: boolean;
+  retrasoEntrada?: number;
 }) {
-  const IconoCategoria = categoria.Icono;
+  const IconoCategoria = item.Icono;
   const progreso = useRef(new Animated.Value(activo ? 1 : 0)).current;
+  const visibilidad = useRef(new Animated.Value(oculto || entrada ? 0 : 1)).current;
+  const presion = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    Animated.spring(progreso, {
-      damping: 15,
-      mass: 0.72,
-      stiffness: 235,
-      toValue: activo ? 1 : 0,
+    const animacion = cerrandoPrincipal
+      ? Animated.timing(progreso, {
+          duration: 360,
+          easing: Easing.out(Easing.cubic),
+          toValue: 0,
+          useNativeDriver: true,
+        })
+      : Animated.spring(progreso, {
+          damping: 15,
+          mass: 0.72,
+          stiffness: 235,
+          toValue: activo ? 1 : 0,
+          useNativeDriver: true,
+        });
+
+    animacion.start();
+    return () => animacion.stop();
+  }, [activo, cerrandoPrincipal, progreso]);
+
+  useEffect(() => {
+    Animated.timing(visibilidad, {
+      delay: entrada && !oculto ? retrasoEntrada : 0,
+      duration: oculto ? 170 : 180,
+      toValue: oculto ? 0 : 1,
       useNativeDriver: true,
     }).start();
-  }, [activo, progreso]);
+  }, [entrada, oculto, visibilidad]);
 
   const desplazamiento = progreso.interpolate({
     inputRange: [0, 1],
@@ -639,34 +898,269 @@ function SeparadorColorCarpeta({
     inputRange: [0, 1],
     outputRange: [0, 1],
   });
-  const etiquetaSeparador = categoria.etiquetaSeparador ?? categoria.titulo;
+  const desplazamientoVisibilidad = visibilidad.interpolate({
+    inputRange: [0, 1],
+    outputRange: [altoSeparadorCompleto, 0],
+  });
+  const elevacionPresion = presion.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, -3],
+  });
+  const etiquetaSeparador = 'etiquetaSeparador' in item ? item.etiquetaSeparador ?? item.titulo : item.titulo;
   const textoLargo = etiquetaSeparador.length > 8;
 
-  return (
-    <Pressable onPress={onPress} style={styles.separadorCarpetaHitbox}>
+  const contenido = (
+    <Pressable
+      disabled={oculto}
+      onPress={onPress}
+      onPressIn={() => elevarAlPresionar && Animated.spring(presion, { damping: 16, stiffness: 340, toValue: 1, useNativeDriver: true }).start()}
+      onPressOut={() => elevarAlPresionar && Animated.spring(presion, { damping: 13, stiffness: 250, toValue: 0, useNativeDriver: true }).start()}
+      style={styles.separadorCarpetaHitbox}
+    >
       <Animated.View
         style={[
           styles.pestanaColorCarpeta,
           {
-            backgroundColor: categoria.acento,
-            transform: [{ translateY: desplazamiento }, { scale: escala }],
+            backgroundColor: item.acento,
+            transform: !animacionInterna
+              ? []
+              : elevarAlPresionar
+              ? [{ translateY: desplazamiento }, { translateY: elevacionPresion }, { scale: escala }]
+              : [{ translateY: desplazamiento }, { scale: escala }],
           },
         ]}
       >
         <View pointerEvents="none" style={styles.pestanaColorActivaBrillo} />
+        {seleccionado ? <View pointerEvents="none" style={styles.pestanaColorBordeSeleccionado} /> : null}
         <View pointerEvents="none" style={styles.pestanaColorIcono}>
           <IconoCategoria color="#FFFFFF" size={15} strokeWidth={2.6} />
         </View>
-        <Animated.Text style={[styles.pestanaColorTexto, textoLargo && styles.pestanaColorTextoLargo, { opacity: opacidadTexto }]}>
+        <Animated.Text style={[styles.pestanaColorTexto, textoLargo && styles.pestanaColorTextoLargo, { opacity: seleccionado ? 1 : opacidadTexto }]}>
           {etiquetaSeparador}
         </Animated.Text>
       </Animated.View>
     </Pressable>
   );
+
+  if (!animacionInterna) return contenido;
+
+  return (
+    <Animated.View style={{ opacity: visibilidad, transform: [{ translateY: desplazamientoVisibilidad }] }}>
+      {contenido}
+    </Animated.View>
+  );
 }
 
-function CarpetaGiganteSenderos({ categoriaAbierta, setCategoriaAbierta }: { categoriaAbierta: string, setCategoriaAbierta: React.Dispatch<React.SetStateAction<string>> }) {
+function SeparadorSubcategoria({
+  categoriaId,
+  indice,
+  item,
+  onPress,
+  cerrando = false,
+  retrasoEntrada,
+  seleccionado,
+  total,
+}: {
+  categoriaId: CategoriaSenderoId;
+  indice: number;
+  item: SubcategoriaCarpeta;
+  onPress: () => void;
+  cerrando?: boolean;
+  retrasoEntrada: number;
+  seleccionado: boolean;
+  total: number;
+}) {
+  const entrada = useRef(new Animated.Value(0)).current;
+  const salida = useRef(new Animated.Value(1)).current;
+  const [entradaTerminada, setEntradaTerminada] = useState(false);
+  const IconoSubcategoria = item.Icono;
+  const centro = (total - 1) / 2;
+  const distanciaCentro = Math.abs(indice - centro);
+  const distanciaMaxima = Math.max(centro, 1);
+  const direccionCentro = indice < centro ? 1 : -1;
+  const ordenAlternado = indice % 2 === 0 ? Math.floor(indice / 2) : Math.floor((total + indice) / 2);
+  const retrasoSalida = categoriaId === 'rutinas' || categoriaId === 'finanzas'
+    ? Math.round((distanciaMaxima - distanciaCentro) * 130)
+    : categoriaId === 'salud'
+    ? Math.round(distanciaCentro * 115)
+    : categoriaId === 'habitos' || categoriaId === 'estudio'
+    ? indice * 105
+    : categoriaId === 'tareas'
+    ? Math.round((distanciaMaxima - distanciaCentro) * 120)
+    : ordenAlternado * 100;
+
+  useEffect(() => {
+    Animated.timing(entrada, {
+      delay: retrasoEntrada,
+      duration: 180,
+      toValue: 1,
+      useNativeDriver: true,
+    }).start(({ finished }) => {
+      if (finished) setEntradaTerminada(true);
+    });
+  }, [entrada, retrasoEntrada]);
+
+  useEffect(() => {
+    if (!cerrando) return;
+    Animated.timing(salida, {
+      delay: retrasoSalida,
+      duration: 360,
+      easing: Easing.inOut(Easing.cubic),
+      toValue: 0,
+      useNativeDriver: true,
+    }).start();
+  }, [categoriaId, cerrando, indice, salida, total]);
+
+  const desplazamiento = entrada.interpolate({
+    inputRange: [0, 1],
+    outputRange: [20, 0],
+  });
+  const desplazamientoSalida = salida.interpolate({
+    inputRange: [0, 1],
+    outputRange: [categoriaId === 'habitos' ? 28 : 18, 0],
+  });
+  const desplazamientoLateralSalida = salida.interpolate({
+    inputRange: [0, 1],
+    outputRange: [categoriaId === 'finanzas' ? direccionCentro * 18 : categoriaId === 'tareas' || categoriaId === 'relaciones' ? direccionCentro * 12 : categoriaId === 'estudio' ? -14 : 0, 0],
+  });
+  const escalaSalida = salida.interpolate({
+    inputRange: [0, 1],
+    outputRange: [categoriaId === 'salud' ? 0.82 : 0.9, 1],
+  });
+
+  const contenido = (
+    <Pressable onPress={onPress} style={styles.separadorCarpetaHitbox}>
+      <View
+        style={[
+          styles.pestanaColorCarpeta,
+          { backgroundColor: item.acento },
+        ]}
+      >
+        <View pointerEvents="none" style={styles.pestanaColorActivaBrillo} />
+        {seleccionado ? <View pointerEvents="none" style={styles.pestanaColorBordeSeleccionado} /> : null}
+        <View pointerEvents="none" style={styles.pestanaColorIcono}>
+          <IconoSubcategoria color="#FFFFFF" size={15} strokeWidth={2.6} />
+        </View>
+      </View>
+    </Pressable>
+  );
+
+  if (cerrando) {
+    return (
+      <Animated.View style={{ opacity: salida, transform: [{ translateX: desplazamientoLateralSalida }, { translateY: desplazamientoSalida }, { scale: escalaSalida }] }}>
+        {contenido}
+      </Animated.View>
+    );
+  }
+
+  if (entradaTerminada) return <View>{contenido}</View>;
+
+  return (
+    <Animated.View style={{ opacity: entrada, transform: [{ translateY: desplazamiento }] }}>
+      {contenido}
+    </Animated.View>
+  );
+}
+
+function ParticulaEnfoque({ activa, color, izquierda, retraso, subida }: { activa: boolean; color: string; izquierda: `${number}%`; retraso: number; subida: number }) {
+  const progreso = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (!activa) {
+      progreso.setValue(0);
+      return;
+    }
+
+    const animacion = Animated.sequence([
+      Animated.delay(retraso),
+      Animated.timing(progreso, { duration: 430, toValue: 1, useNativeDriver: true }),
+    ]);
+    animacion.start();
+
+    return () => animacion.stop();
+  }, [activa, progreso, retraso]);
+
+  return (
+    <Animated.View
+      style={[
+        styles.particulaEnfoque,
+        {
+          backgroundColor: color,
+          left: izquierda,
+          opacity: progreso.interpolate({ inputRange: [0, 0.25, 1], outputRange: [0, 0.92, 0] }),
+          transform: [
+            { scale: progreso.interpolate({ inputRange: [0, 0.25, 1], outputRange: [0.45, 1, 0.7] }) },
+            { translateY: progreso.interpolate({ inputRange: [0, 1], outputRange: [0, subida] }) },
+          ],
+        },
+      ]}
+    />
+  );
+}
+
+function ParticulasEnfoque({ activas, color }: { activas: boolean; color: string }) {
+  const particulas: Array<{ izquierda: `${number}%`; retraso: number; subida: number }> = [
+    { izquierda: '20%', retraso: 0, subida: -42 },
+    { izquierda: '38%', retraso: 35, subida: -62 },
+    { izquierda: '56%', retraso: 70, subida: -38 },
+    { izquierda: '74%', retraso: 110, subida: -54 },
+  ];
+
+  return (
+    <View pointerEvents="none" style={styles.particulasEnfoque}>
+      {particulas.map((particula) => (
+        <ParticulaEnfoque
+          activa={activas}
+          color={color}
+          key={particula.izquierda}
+          izquierda={particula.izquierda}
+          retraso={particula.retraso}
+          subida={particula.subida}
+        />
+      ))}
+    </View>
+  );
+}
+
+function MapaSubcategoria({ alturaEnfoque, categoria, color, enfocado, onMedirInicio }: { alturaEnfoque: number; categoria: CategoriaCarpeta; color: string; enfocado: boolean; onMedirInicio: (posicion: number) => void }) {
+  const referenciaMapa = useRef<View>(null);
+
+  function medirInicioMapa() {
+    if (enfocado) return;
+
+    requestAnimationFrame(() => {
+      referenciaMapa.current?.measureInWindow((_x, y) => onMedirInicio(Math.round(y)));
+    });
+  }
+
+  return (
+    <View ref={referenciaMapa} onLayout={medirInicioMapa} style={[styles.mapaSubcategoria, { backgroundColor: colorPastel(categoria.acento), height: alturaEnfoque }]}>
+      <ScrollView
+        nestedScrollEnabled
+        scrollEnabled={enfocado}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.mapaSubcategoriaContenido}
+      >
+        <ParticulasEnfoque activas={enfocado} color={color} />
+      </ScrollView>
+    </View>
+  );
+}
+
+function CarpetaGiganteSenderos({ alturaMapaEnfoque, alturaObjetivoEnfoque, categoriaAbierta, elevacionEnfoque, layoutEnfoqueActivo, mapaEnfocado, mostrarAccionContextual, onAbrir, onActivarMapaEnfocado, onDesactivarMapaEnfocado, onMedirElevacionEnfoque, onMedirInicioMapa, progresoEnfoque, setCategoriaAbierta }: { alturaMapaEnfoque: number; alturaObjetivoEnfoque: number; categoriaAbierta: string; elevacionEnfoque: number; layoutEnfoqueActivo: boolean; mapaEnfocado: boolean; mostrarAccionContextual: boolean; onAbrir: (sendero: SenderoMini, color: string) => void; onActivarMapaEnfocado: (elevacion: number) => void; onDesactivarMapaEnfocado: () => void; onMedirElevacionEnfoque: (elevacion: number) => void; onMedirInicioMapa: (posicion: number) => void; progresoEnfoque: Animated.Value; setCategoriaAbierta: React.Dispatch<React.SetStateAction<string>> }) {
   const [itemsCargados, setItemsCargados] = useState(0);
+  const [subcategoriaActiva, setSubcategoriaActiva] = useState('');
+  const [subcategoriasVisibles, setSubcategoriasVisibles] = useState(false);
+  const [bajandoCategoria, setBajandoCategoria] = useState(false);
+  const [cerrandoSubcategorias, setCerrandoSubcategorias] = useState(false);
+  const [ocultandoCategoria, setOcultandoCategoria] = useState(false);
+  const [retornandoCuerpo, setRetornandoCuerpo] = useState(false);
+  const [raizOculta, setRaizOculta] = useState(false);
+  const [animandoEntradaRaiz, setAnimandoEntradaRaiz] = useState(false);
+  const cierreTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const referenciaSeparadores = useRef<View>(null);
+  const definirAccionBarra = usarAccionBarraSenderos((estado) => estado.definirAccion);
+  const limpiarAccionBarra = usarAccionBarraSenderos((estado) => estado.limpiarAccion);
 
   useEffect(() => {
     let timeout: any;
@@ -681,8 +1175,58 @@ function CarpetaGiganteSenderos({ categoriaAbierta, setCategoriaAbierta }: { cat
   const entradaCarpeta = useRef(new Animated.Value(0)).current;
   const progresoModo = useRef(new Animated.Value(1)).current;
   const brilloCarpeta = useRef(new Animated.Value(0)).current;
+  const retornoCuerpoCarpeta = useRef(new Animated.Value(0)).current;
   const categoriaEnfocada = categoriasCarpeta.find((categoria) => categoria.id === categoriaAbierta) ?? null;
   const IconoCategoriaEnfocada = categoriaEnfocada?.Icono;
+  const subcategorias = categoriaEnfocada ? subcategoriasPorCategoria[categoriaEnfocada.id] : [];
+  const subcategoriaEnfocada = subcategorias.find((subcategoria) => subcategoria.id === subcategoriaActiva) ?? null;
+  const senderosVisibles = subcategoriaEnfocada && !subcategoriaEnfocada.esCrear
+    ? categoriaEnfocada?.senderos.filter((sendero) => subcategoriaEnfocada.senderoIds.includes(sendero.id)) ?? []
+    : categoriaEnfocada?.senderos ?? [];
+
+  const alternarEnfoque = useCallback(() => {
+    if (mapaEnfocado) {
+      onDesactivarMapaEnfocado();
+      return;
+    }
+
+    referenciaSeparadores.current?.measureInWindow((_x, y) => {
+      const elevacion = Math.max(0, Math.round(y - alturaObjetivoEnfoque));
+      onMedirElevacionEnfoque(elevacion);
+      onActivarMapaEnfocado(elevacion);
+    });
+  }, [alturaObjetivoEnfoque, mapaEnfocado, onActivarMapaEnfocado, onDesactivarMapaEnfocado, onMedirElevacionEnfoque]);
+
+  useEffect(() => {
+    const categoriaConAccion = subcategoriaEnfocada && !subcategoriaEnfocada.esCrear
+      ? subcategoriaEnfocada
+      : categoriaEnfocada;
+
+    if (mostrarAccionContextual && (categoriaConAccion || mapaEnfocado)) {
+      definirAccionBarra({ color: categoriaConAccion?.acento ?? Bioma.MasterColor, ejecutar: alternarEnfoque });
+      return;
+    }
+
+    limpiarAccionBarra();
+  }, [alternarEnfoque, categoriaEnfocada, definirAccionBarra, limpiarAccionBarra, mapaEnfocado, mostrarAccionContextual, subcategoriaEnfocada]);
+
+  useEffect(() => () => limpiarAccionBarra(), [limpiarAccionBarra]);
+
+  const medirElevacionEnfoque = useCallback(() => {
+    if (mapaEnfocado || layoutEnfoqueActivo) return;
+
+    requestAnimationFrame(() => {
+      referenciaSeparadores.current?.measureInWindow((_x, y) => {
+        // Situa toda la cabeza de los separadores dentro de la ilustracion.
+        const elevacion = Math.max(0, Math.round(y - alturaObjetivoEnfoque));
+        onMedirElevacionEnfoque(elevacion);
+      });
+    });
+  }, [alturaObjetivoEnfoque, layoutEnfoqueActivo, mapaEnfocado, onMedirElevacionEnfoque]);
+
+  useEffect(() => {
+    medirElevacionEnfoque();
+  }, [categoriaAbierta, medirElevacionEnfoque, subcategoriasVisibles]);
 
   useEffect(() => {
     Animated.spring(entradaCarpeta, {
@@ -705,6 +1249,40 @@ function CarpetaGiganteSenderos({ categoriaAbierta, setCategoriaAbierta }: { cat
     }).start();
   }, [categoriaAbierta, progresoModo]);
 
+  useLayoutEffect(() => {
+    if (!retornandoCuerpo || categoriaAbierta) return;
+
+    retornoCuerpoCarpeta.setValue(1);
+    const frame = requestAnimationFrame(() => {
+      Animated.timing(retornoCuerpoCarpeta, {
+        duration: 1000,
+        easing: Easing.out(Easing.cubic),
+        toValue: 0,
+        useNativeDriver: true,
+      }).start(() => {
+        setRetornandoCuerpo(false);
+        setRaizOculta(false);
+        setAnimandoEntradaRaiz(true);
+      });
+    });
+
+    return () => cancelAnimationFrame(frame);
+  }, [categoriaAbierta, retornoCuerpoCarpeta, retornandoCuerpo]);
+
+  useEffect(() => {
+    if (!categoriaAbierta) {
+      setSubcategoriasVisibles(false);
+      return;
+    }
+
+    const timeout = setTimeout(() => setSubcategoriasVisibles(true), 185);
+    return () => clearTimeout(timeout);
+  }, [categoriaAbierta]);
+
+  useEffect(() => () => {
+    if (cierreTimeout.current) clearTimeout(cierreTimeout.current);
+  }, []);
+
   useEffect(() => {
     const animacion = Animated.loop(
       Animated.sequence([
@@ -726,8 +1304,37 @@ function CarpetaGiganteSenderos({ categoriaAbierta, setCategoriaAbierta }: { cat
   }, [brilloCarpeta]);
 
   function alternarCategoria(id: string) {
+    if (cerrandoSubcategorias) return;
     hapticSeguro('seleccion');
-    setCategoriaAbierta((actual) => (actual === id ? '' : id));
+    setCategoriaAbierta((actual) => {
+      if (actual === id) {
+        setSubcategoriaActiva('');
+        cierreTimeout.current = setTimeout(() => {
+          setCerrandoSubcategorias(true);
+          cierreTimeout.current = setTimeout(() => {
+            setOcultandoCategoria(true);
+            cierreTimeout.current = setTimeout(() => {
+              setRaizOculta(true);
+              setRetornandoCuerpo(true);
+              setSubcategoriasVisibles(false);
+              setCategoriaAbierta('');
+              setBajandoCategoria(false);
+              setCerrandoSubcategorias(false);
+              setOcultandoCategoria(false);
+            }, 300);
+          }, 780);
+        }, 390);
+        setBajandoCategoria(true);
+        return actual;
+      }
+      setSubcategoriaActiva('');
+      return id;
+    });
+  }
+
+  function seleccionarSubcategoria(id: string) {
+    hapticSeguro('seleccion');
+    setSubcategoriaActiva((actual) => actual === id ? actual : id);
   }
 
   const desplazamientoEntrada = entradaCarpeta.interpolate({
@@ -746,36 +1353,72 @@ function CarpetaGiganteSenderos({ categoriaAbierta, setCategoriaAbierta }: { cat
     inputRange: [0, 0.45, 1],
     outputRange: [0.22, 0.48, 0.24],
   });
-
+  const desplazamientoRetornoCuerpo = retornoCuerpoCarpeta.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, 38],
+  });
   return (
     <Animated.View
       style={[
         styles.carpetaGigante,
-        categoriaEnfocada && styles.carpetaGiganteActiva,
+        mapaEnfocado && styles.carpetaGiganteEnfocada,
         { opacity: entradaCarpeta, transform: [{ translateY: desplazamientoEntrada }] },
       ]}
     >
-      <View style={styles.pestanasColorCarpeta}>
-        {categoriasCarpeta.map((categoria, index) => {
+      <View ref={referenciaSeparadores} onLayout={medirElevacionEnfoque} style={[styles.pestanasColorCarpeta, categoriaEnfocada && styles.pestanasColorCarpetaActiva]}>
+        {categoriasCarpeta.map((item, index) => {
           if (index >= itemsCargados) {
             return (
               <View 
-                key={`skel-sep-${categoria.id}`} 
+                key={`skel-sep-${item.id}`}
                 style={{ width: 44, height: 44, backgroundColor: 'rgba(255,255,255,0.08)', borderTopLeftRadius: 14, borderTopRightRadius: 14, marginRight: 2 }} 
               />
             );
           }
           return (
             <SeparadorColorCarpeta
-              key={categoria.id}
-              activo={categoriaAbierta === categoria.id}
-              categoria={categoria}
-              onPress={() => alternarCategoria(categoria.id)}
+              key={item.id}
+              activo={categoriaAbierta === item.id && !bajandoCategoria}
+              cerrandoPrincipal={categoriaAbierta === item.id && bajandoCategoria}
+              entrada={animandoEntradaRaiz}
+              item={item}
+              oculto={raizOculta || (Boolean(categoriaAbierta) && (categoriaAbierta !== item.id || ocultandoCategoria))}
+              onPress={() => alternarCategoria(item.id)}
+              retrasoEntrada={index * 55}
             />
           );
         })}
+        {categoriaEnfocada && subcategoriasVisibles ? (
+          <View pointerEvents="box-none" style={styles.subcategoriasOverlay}>
+            {subcategorias.map((subcategoria, index) => {
+              const indiceRaiz = categoriasCarpeta.findIndex((categoria) => categoria.id === categoriaEnfocada.id);
+              const indiceVisual = index >= indiceRaiz ? index + 1 : index;
+              return (
+                <View
+                  key={`${categoriaEnfocada.id}-${subcategoria.id}`}
+                  style={[
+                    styles.subcategoriaPosicion,
+                    { bottom: subcategoriaActiva === subcategoria.id ? 6 : 0, left: 18 + indiceVisual * 43 },
+                  ]}
+                >
+                  <SeparadorSubcategoria
+                    categoriaId={categoriaEnfocada.id}
+                    cerrando={cerrandoSubcategorias}
+                    indice={index}
+                    item={subcategoria}
+                    onPress={() => seleccionarSubcategoria(subcategoria.id)}
+                    retrasoEntrada={index * 58}
+                    seleccionado={subcategoriaActiva === subcategoria.id}
+                    total={subcategorias.length}
+                  />
+                </View>
+              );
+            })}
+          </View>
+        ) : null}
       </View>
 
+      <Animated.View style={[styles.carpetaGiganteCuerpoCapa, { transform: [{ translateY: desplazamientoRetornoCuerpo }] }]}>
       <RecuadroGlass blur intensity={77} style={styles.carpetaGiganteCuerpo}>
         <View pointerEvents="none" style={styles.carpetaGiganteTinte} />
         <Animated.View
@@ -788,10 +1431,10 @@ function CarpetaGiganteSenderos({ categoriaAbierta, setCategoriaAbierta }: { cat
         <View style={styles.carpetaGiganteCabecera}>
           <View style={styles.carpetaGiganteTituloBloque}>
             <Texto style={styles.carpetaGiganteTitulo}>
-              {categoriaEnfocada ? categoriaEnfocada.titulo : 'Biblioteca de senderos'}
+              {subcategoriaEnfocada ? `${categoriaEnfocada?.titulo} / ${subcategoriaEnfocada.titulo}` : categoriaEnfocada ? categoriaEnfocada.titulo : 'Biblioteca de senderos'}
             </Texto>
             <Texto style={styles.carpetaGiganteSubtitulo}>
-              {categoriaEnfocada ? categoriaEnfocada.descripcion : 'Abre una categoria y desliza sus caminos'}
+              {subcategoriaEnfocada?.esCrear ? 'Prepara una nueva division para tus senderos.' : subcategoriaEnfocada ? `Senderos de ${subcategoriaEnfocada.titulo.toLowerCase()}.` : categoriaEnfocada ? categoriaEnfocada.descripcion : 'Abre una categoria y desliza sus caminos'}
             </Texto>
           </View>
           <View style={styles.carpetaGiganteSello}>
@@ -805,26 +1448,40 @@ function CarpetaGiganteSenderos({ categoriaAbierta, setCategoriaAbierta }: { cat
 
         {categoriaEnfocada ? (
           <Animated.View style={[styles.modoCategoria, { opacity: progresoModo, transform: [{ translateY: desplazamientoModo }] }]}>
-            <Reanimated.View key={'busq-' + categoriaEnfocada.id} entering={FadeInDown.delay(200).duration(400)} style={styles.barraBusquedaCategoria}>
-              <Search color={categoriaEnfocada.acento} size={15} strokeWidth={2.4} />
-              <Texto style={styles.barraBusquedaTexto}>Buscar en {categoriaEnfocada.titulo.toLowerCase()}</Texto>
-            </Reanimated.View>
-
-            <Reanimated.View key={'filt-' + categoriaEnfocada.id} entering={FadeInDown.delay(300).duration(400)} style={styles.filtrosCategoria}>
-              <Texto style={[styles.filtroCategoriaActivo, { backgroundColor: colorConAlpha(categoriaEnfocada.acento, '24'), color: categoriaEnfocada.acento }]}>
-                Todos
-              </Texto>
-              <Texto style={styles.filtroCategoria}>Activos</Texto>
-              <Texto style={styles.filtroCategoria}>Recientes</Texto>
-            </Reanimated.View>
-
-            <View style={styles.listaVerticalSenderos}>
-              {categoriaEnfocada.senderos.map((sendero, idx) => (
-                <Reanimated.View key={sendero.id} entering={FadeInDown.delay(400 + idx * 100).duration(400)}>
-                  <TarjetaSenderoVertical categoria={categoriaEnfocada} sendero={sendero} />
+            {subcategoriaEnfocada && !subcategoriaEnfocada.esCrear ? (
+              <MapaSubcategoria
+                alturaEnfoque={alturaMapaEnfoque}
+                categoria={categoriaEnfocada}
+                color={subcategoriaEnfocada.acento}
+                enfocado={mapaEnfocado}
+                onMedirInicio={onMedirInicioMapa}
+              />
+            ) : !subcategoriaEnfocada ? (
+              <>
+                <Reanimated.View key={'busq-' + categoriaEnfocada.id} entering={FadeInDown.delay(180).duration(300)} style={styles.barraBusquedaCategoria}>
+                  <Search color={categoriaEnfocada.acento} size={15} strokeWidth={2.4} />
+                  <Texto style={styles.barraBusquedaTexto}>Buscar en {categoriaEnfocada.titulo.toLowerCase()}</Texto>
                 </Reanimated.View>
-              ))}
-            </View>
+
+                <Reanimated.View key={'filt-' + categoriaEnfocada.id} entering={FadeInDown.delay(300).duration(400)} style={styles.filtrosCategoria}>
+                  <Texto style={[styles.filtroCategoriaActivo, { backgroundColor: colorConAlpha(categoriaEnfocada.acento, '24'), color: categoriaEnfocada.acento }]}>
+                    Todos
+                  </Texto>
+                  <Texto style={styles.filtroCategoria}>Activos</Texto>
+                  <Texto style={styles.filtroCategoria}>Recientes</Texto>
+                </Reanimated.View>
+              </>
+            ) : null}
+
+            {subcategoriaEnfocada?.esCrear ? (
+              <View style={styles.estadoNuevaSubcategoria}>
+                <Plus color={categoriaEnfocada.acento} size={20} strokeWidth={2.6} />
+                <Texto style={styles.estadoNuevaSubcategoriaTitulo}>Nueva subcategoria</Texto>
+                <Texto style={styles.estadoNuevaSubcategoriaTexto}>Aqui podras ordenar senderos con tu propio nombre y color.</Texto>
+              </View>
+            ) : !subcategoriaEnfocada ? (
+              <ArchivadorSenderos categoria={categoriaEnfocada} senderos={senderosVisibles} onAbrir={onAbrir} />
+            ) : null}
           </Animated.View>
         ) : (
           <Animated.View style={[styles.filasCarpeta, { opacity: progresoModo, transform: [{ translateY: desplazamientoModo }] }]}>
@@ -842,6 +1499,7 @@ function CarpetaGiganteSenderos({ categoriaAbierta, setCategoriaAbierta }: { cat
                   key={categoria.id}
                   abierta={categoriaAbierta === categoria.id}
                   categoria={categoria}
+                  onAbrir={onAbrir}
                   onPress={() => alternarCategoria(categoria.id)}
                 />
               );
@@ -849,12 +1507,14 @@ function CarpetaGiganteSenderos({ categoriaAbierta, setCategoriaAbierta }: { cat
           </Animated.View>
         )}
       </RecuadroGlass>
+      </Animated.View>
     </Animated.View>
   );
 }
 
 export function SenderosPantalla() {
   const { height, width } = useWindowDimensions();
+  const pantallaSenderosVisible = usePathname().includes('/senderos');
   
   useEffect(() => {
     // Optimization 4: Prefetch large illustrations
@@ -878,19 +1538,44 @@ export function SenderosPantalla() {
   const [sharedHeroData, setSharedHeroData] = useState<any>(null);
   const [analisisCategoria, setAnalisisCategoria] = useState<string>('rutinas');
   const [categoriaAbierta, setCategoriaAbierta] = useState('');
+  const [mapaEnfocado, setMapaEnfocado] = useState(false);
+  const [layoutEnfoqueActivo, setLayoutEnfoqueActivo] = useState(false);
+  const [elevacionEnfoqueMapa, setElevacionEnfoqueMapa] = useState(0);
+  const [inicioMapaEnPantalla, setInicioMapaEnPantalla] = useState(0);
+  const [senderoAbierto, setSenderoAbierto] = useState<{ sendero: SenderoMini; color: string } | null>(null);
   const progresoPestana = useRef(new Animated.Value(0)).current;
+  const progresoEnfoqueMapa = useRef(new Animated.Value(0)).current;
   const ultimoTapPestana = useRef(0);
+  const activarMapaEnfocado = useCallback((elevacion: number) => {
+    setElevacionEnfoqueMapa(elevacion);
+    setLayoutEnfoqueActivo(true);
+    setMapaEnfocado(true);
+  }, []);
+  const cerrarMapaEnfocado = useCallback(() => setMapaEnfocado(false), []);
+  const registrarElevacionEnfoque = useCallback((elevacion: number) => {
+    setElevacionEnfoqueMapa((actual) => Math.abs(actual - elevacion) < 1 ? actual : elevacion);
+  }, []);
+  const registrarInicioMapa = useCallback((posicion: number) => {
+    setInicioMapaEnPantalla((actual) => Math.abs(actual - posicion) < 1 ? actual : posicion);
+  }, []);
 
   const handleCambiarPestana = (id: PaginaSenderosId) => {
     const ahora = Date.now();
     if (ahora - ultimoTapPestana.current < 350) return; // Bloqueo Anti-Spam
     ultimoTapPestana.current = ahora;
+    if (id !== 'mis-senderos') cerrarMapaEnfocado();
     if (id === pestanaActiva) return;
     hapticSeleccion();
     setPestanaActiva(id);
   };
   const altoSuperior = height * 0.4;
+  const profundidadEnfoqueSobreIlustracion = altoSuperior * 0.20;
   const altoZonaPestanas = height - altoSuperior + 28;
+  const limiteInferiorMapa = height - insets.bottom - 82;
+  const inicioMapaEnEnfoque = inicioMapaEnPantalla - elevacionEnfoqueMapa;
+  const alturaMapaEnfoque = inicioMapaEnPantalla > 0
+    ? Math.max(260, limiteInferiorMapa - inicioMapaEnEnfoque)
+    : 420;
   const anchoSubtitulo = width * 0.5;
   const anchoTabs = width - espaciado.lg * 2;
   const anchoIndicador = (anchoTabs - paddingPestanas * 2 - gapPestanas * (pestanasSenderos.length - 1)) / pestanasSenderos.length;
@@ -898,6 +1583,18 @@ export function SenderosPantalla() {
   const desplazamientoIndicador = progresoPestana.interpolate({
     inputRange: pestanasSenderos.map((_, indice) => indice),
     outputRange: pestanasSenderos.map((_, indice) => indice * (anchoIndicador + gapPestanas)),
+  });
+  const opacidadPestanasEnfoque = progresoEnfoqueMapa.interpolate({
+    inputRange: [0, 1],
+    outputRange: [1, 0],
+  });
+  const desplazamientoPestanasEnfoque = progresoEnfoqueMapa.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, -18],
+  });
+  const desplazamientoScrollEnfoque = progresoEnfoqueMapa.interpolate({
+    inputRange: [0, 1],
+    outputRange: [elevacionEnfoqueMapa, 0],
   });
   const contenidoActivo = paginasSenderos[pestanaActiva];
 
@@ -966,6 +1663,25 @@ export function SenderosPantalla() {
     }).start();
   }, [indiceActivo, progresoPestana]);
 
+  useEffect(() => {
+    const animacion = Animated.spring(progresoEnfoqueMapa, {
+      damping: 20,
+      mass: 0.7,
+      overshootClamping: true,
+      stiffness: 220,
+      toValue: mapaEnfocado ? 1 : 0,
+      useNativeDriver: true,
+    });
+
+    animacion.start(({ finished }) => {
+      if (finished && !mapaEnfocado) {
+        progresoEnfoqueMapa.setValue(0);
+      }
+    });
+
+    return () => animacion.stop();
+  }, [mapaEnfocado, progresoEnfoqueMapa]);
+
   return (
     <SafeAreaView style={styles.raiz} edges={['left', 'right', 'top', 'bottom']}>
       <View style={[styles.superior, { height: altoSuperior }]}>
@@ -1030,6 +1746,10 @@ export function SenderosPantalla() {
           <FogEffectSkia style={styles.niebla} />
         </View>
 
+        <Animated.View
+          pointerEvents={mapaEnfocado ? 'none' : 'auto'}
+          style={{ opacity: opacidadPestanasEnfoque, transform: [{ translateY: desplazamientoPestanasEnfoque }] }}
+        >
         <RecuadroGlass style={styles.pestanasCorte}>
           <Animated.View
             pointerEvents="none"
@@ -1061,19 +1781,48 @@ export function SenderosPantalla() {
             );
           })}
         </RecuadroGlass>
+        </Animated.View>
 
+        <Animated.View
+          style={[
+            styles.scrollContenidoCapa,
+            { top: altoPestanasInternas - (layoutEnfoqueActivo ? elevacionEnfoqueMapa : 0), transform: [{ translateY: layoutEnfoqueActivo ? desplazamientoScrollEnfoque : 0 }] },
+          ]}
+        >
         <ScrollView
           alwaysBounceVertical={false}
           contentContainerStyle={[styles.contenidoScroll, { paddingBottom: 180 + insets.bottom }]}
           nestedScrollEnabled
           overScrollMode="never"
           removeClippedSubviews={false}
+          scrollEnabled={!mapaEnfocado}
           scrollEventThrottle={16}
           showsVerticalScrollIndicator={false}
           style={styles.scrollContenido}
         >
           {pestanaActiva === 'mis-senderos' ? (
-            <CarpetaGiganteSenderos categoriaAbierta={categoriaAbierta} setCategoriaAbierta={setCategoriaAbierta} />
+            senderoAbierto ? (
+              <Reanimated.View entering={FadeInDown.duration(220)}>
+                <EspacioTrabajoSendero sendero={senderoAbierto.sendero} color={senderoAbierto.color} onCerrar={() => setSenderoAbierto(null)} />
+              </Reanimated.View>
+            ) : (
+              <CarpetaGiganteSenderos
+                alturaMapaEnfoque={alturaMapaEnfoque}
+                alturaObjetivoEnfoque={insets.top + altoSuperior - altoSeparadorVisible - profundidadEnfoqueSobreIlustracion}
+                categoriaAbierta={categoriaAbierta}
+                elevacionEnfoque={elevacionEnfoqueMapa}
+                layoutEnfoqueActivo={layoutEnfoqueActivo}
+                mapaEnfocado={mapaEnfocado}
+                mostrarAccionContextual={pantallaSenderosVisible && pestanaActiva === 'mis-senderos'}
+                onAbrir={(sendero, color) => setSenderoAbierto({ sendero, color })}
+                onActivarMapaEnfocado={activarMapaEnfocado}
+                onDesactivarMapaEnfocado={cerrarMapaEnfocado}
+                onMedirElevacionEnfoque={registrarElevacionEnfoque}
+                onMedirInicioMapa={registrarInicioMapa}
+                progresoEnfoque={progresoEnfoqueMapa}
+                setCategoriaAbierta={setCategoriaAbierta}
+              />
+            )
           ) : pestanaActiva === 'analisis' ? (
             <AnalisisSenderos categoriaActiva={analisisCategoria} onCategoriaChange={setAnalisisCategoria} />
           ) : pestanaActiva === 'compartidos' ? (
@@ -1088,6 +1837,7 @@ export function SenderosPantalla() {
             </RecuadroGlass>
           )}
         </ScrollView>
+        </Animated.View>
       </View>
     </SafeAreaView>
   );
@@ -1238,8 +1988,17 @@ const styles = StyleSheet.create({
     paddingTop: espaciado.md,
   },
   scrollContenido: {
+    elevation: 3,
     flex: 1,
-    zIndex: 2,
+    zIndex: 3,
+  },
+  scrollContenidoCapa: {
+    bottom: 0,
+    elevation: 3,
+    left: 0,
+    position: 'absolute',
+    right: 0,
+    zIndex: 3,
   },
   contenidoPestana: {
     borderRadius: 18,
@@ -1253,6 +2012,10 @@ const styles = StyleSheet.create({
   carpetaGiganteActiva: {
     paddingTop: 38,
   },
+  carpetaGiganteEnfocada: {
+    elevation: 9,
+    zIndex: 9,
+  },
   pestanasColorCarpeta: {
     alignItems: 'flex-end',
     flexDirection: 'row',
@@ -1261,7 +2024,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     position: 'relative',
     top: 0,
-    zIndex: 1,
+    elevation: 0,
+    zIndex: 0,
+  },
+  pestanasColorCarpetaActiva: {
+    marginTop: 38,
+  },
+  subcategoriasOverlay: {
+    bottom: 0,
+    left: 0,
+    position: 'absolute',
+    right: 0,
+    top: 0,
+    zIndex: 3,
+  },
+  subcategoriaPosicion: {
+    bottom: 0,
+    position: 'absolute',
   },
   separadorCarpetaHitbox: {
     height: altoSeparadorVisible,
@@ -1284,6 +2063,16 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     top: 0,
     width: 36,
+  },
+  pestanaColorBordeSeleccionado: {
+    borderColor: 'rgba(255, 255, 255, 0.88)',
+    borderRadius: 9,
+    borderWidth: 1,
+    bottom: 0,
+    left: 0,
+    position: 'absolute',
+    right: 0,
+    top: 0,
   },
   pestanaColorActivaBrillo: {
     backgroundColor: 'rgba(255, 255, 255, 0.26)',
@@ -1332,6 +2121,11 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.12,
     shadowRadius: 20,
     zIndex: 2,
+  },
+  carpetaGiganteCuerpoCapa: {
+    elevation: 3,
+    position: 'relative',
+    zIndex: 3,
   },
   carpetaGiganteTinte: {
     backgroundColor: 'rgba(255, 250, 239, 0.64)',
@@ -1391,6 +2185,56 @@ const styles = StyleSheet.create({
   modoCategoria: {
     gap: 10,
   },
+  mapaSubcategoria: {
+    borderRadius: 20,
+    overflow: 'hidden',
+  },
+  mapaSubcategoriaContenido: {
+    flexGrow: 1,
+  },
+  particulasEnfoque: {
+    bottom: 0,
+    left: 0,
+    position: 'absolute',
+    right: 0,
+    top: 0,
+  },
+  particulaEnfoque: {
+    borderRadius: 999,
+    height: 6,
+    position: 'absolute',
+    top: '55%',
+    width: 6,
+  },
+  estadoNuevaSubcategoria: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.5)',
+    borderColor: 'rgba(255, 255, 255, 0.7)',
+    borderRadius: 18,
+    borderWidth: 0.6,
+    gap: 5,
+    paddingHorizontal: 24,
+    paddingVertical: 24,
+  },
+  estadoNuevaSubcategoriaTitulo: {
+    color: colores.texto,
+    fontFamily: 'MontserratAlternates-Bold',
+    fontSize: 13,
+  },
+  estadoNuevaSubcategoriaTexto: {
+    color: colores.textoSecundario,
+    fontFamily: 'MontserratAlternates-SemiBold',
+    fontSize: 10,
+    lineHeight: 14,
+    textAlign: 'center',
+  },
+  subcategoriaVacia: {
+    color: colores.textoSecundario,
+    fontFamily: 'MontserratAlternates-SemiBold',
+    fontSize: 11,
+    paddingVertical: 12,
+    textAlign: 'center',
+  },
   barraBusquedaCategoria: {
     alignItems: 'center',
     backgroundColor: 'rgba(255, 255, 255, 0.54)',
@@ -1432,6 +2276,146 @@ const styles = StyleSheet.create({
   },
   listaVerticalSenderos: {
     gap: 9,
+    paddingBottom: 4,
+  },
+  listaVerticalSenderosScroll: {
+    flexGrow: 0,
+  },
+  archivadorRaiz: {
+    gap: 8,
+  },
+  archivadorCabecera: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 3,
+  },
+  archivadorEtiqueta: {
+    fontFamily: 'MontserratAlternates-Bold',
+    fontSize: 8,
+    letterSpacing: 1.1,
+  },
+  archivadorContador: {
+    color: colores.textoSecundario,
+    fontFamily: 'MontserratAlternates-Bold',
+    fontSize: 9,
+  },
+  archivadorPaginador: {
+    height: 168,
+  },
+  archivadorPagina: {
+    height: 168,
+    position: 'relative',
+  },
+  fichaArchivadorPosicion: {
+    bottom: 32,
+    left: 0,
+    position: 'absolute',
+    right: 0,
+    top: 0,
+  },
+  fichaArchivadorPresionable: {
+    flex: 1,
+  },
+  fichaArchivadorPresionada: {
+    opacity: 0.9,
+    transform: [{ scale: 0.985 }],
+  },
+  fichaArchivador: {
+    backgroundColor: 'rgba(255, 253, 247, 0.91)',
+    borderRadius: 21,
+    borderWidth: 0.7,
+    flex: 1,
+    overflow: 'hidden',
+    shadowColor: '#4D4132',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.13,
+    shadowRadius: 15,
+  },
+  fichaArchivadorLomo: {
+    bottom: 0,
+    left: 0,
+    position: 'absolute',
+    top: 0,
+    width: 7,
+  },
+  fichaArchivadorContenido: {
+    alignItems: 'center',
+    flex: 1,
+    flexDirection: 'row',
+    gap: 10,
+    paddingHorizontal: 14,
+    paddingLeft: 18,
+    paddingVertical: 10,
+  },
+  fichaArchivadorTexto: {
+    flex: 1,
+    gap: 2,
+  },
+  fichaArchivadorCabecera: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  fichaArchivadorTitulo: {
+    color: colores.texto,
+    fontFamily: 'MontserratAlternates-Bold',
+    fontSize: 14,
+    lineHeight: 18,
+    marginTop: 1,
+  },
+  fichaArchivadorMeta: {
+    color: colores.textoSecundario,
+    fontFamily: 'MontserratAlternates-SemiBold',
+    fontSize: 9,
+    lineHeight: 13,
+  },
+  fichaArchivadorPestana: {
+    backgroundColor: 'rgba(255, 255, 255, 0.26)',
+    borderRadius: 999,
+    bottom: 8,
+    height: 3,
+    left: 20,
+    position: 'absolute',
+    width: 42,
+  },
+  lomosArchivador: {
+    bottom: 0,
+    gap: 4,
+    left: 0,
+    position: 'absolute',
+    right: 0,
+  },
+  lomoArchivador: {
+    alignItems: 'center',
+    borderColor: 'rgba(255, 255, 255, 0.76)',
+    borderRadius: 11,
+    borderWidth: 0.6,
+    flexDirection: 'row',
+    gap: 8,
+    height: 28,
+    paddingHorizontal: 11,
+  },
+  lomoArchivadorPresionado: {
+    opacity: 0.76,
+    transform: [{ scale: 0.985 }],
+  },
+  lomoArchivadorTitulo: {
+    color: colores.texto,
+    flex: 1,
+    fontFamily: 'MontserratAlternates-Bold',
+    fontSize: 9,
+  },
+  archivadorPuntos: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 5,
+    justifyContent: 'center',
+  },
+  archivadorPunto: {
+    borderRadius: 999,
+    height: 5,
+    width: 5,
   },
   filaCategoria: {
     backgroundColor: 'rgba(255, 255, 255, 0.46)',

@@ -1,0 +1,23 @@
+<svg viewBox="0 0 64 64" width="80" height="80" xmlns="http://www.w3.org/2000/svg">
+  <!-- Edificio Base -->
+  <rect x="14" y="28" width="36" height="32" fill="#FFE0B2" />
+  <rect x="14" y="28" width="36" height="4" fill="#FFCC80" /> <!-- Sombra bajo toldo -->
+  <!-- Puerta -->
+  <rect x="26" y="40" width="12" height="20" fill="#795548" />
+  <rect x="28" y="42" width="8" height="8" fill="#5D4037" /> <!-- Panel superior puerta -->
+  <circle cx="35" cy="52" r="1.5" fill="#FFC107" /> <!-- Perilla -->
+  <!-- Ventanas -->
+  <rect x="16" y="38" width="8" height="12" fill="#81D4FA" stroke="#E1F5FE" stroke-width="1" />
+  <rect x="40" y="38" width="8" height="12" fill="#81D4FA" stroke="#E1F5FE" stroke-width="1" />
+  <!-- Toldo Rayas -->
+  <polygon points="10,28 54,28 48,16 16,16" fill="#F44336" />
+  <polygon points="20,16 28,16 30,28 18,28" fill="#FFFFFF" />
+  <polygon points="36,16 44,16 46,28 34,28" fill="#FFFFFF" />
+  <!-- Borde Toldo Ondulado -->
+  <circle cx="14" cy="28" r="4" fill="#F44336" />
+  <circle cx="22" cy="28" r="4" fill="#FFFFFF" />
+  <circle cx="30" cy="28" r="4" fill="#F44336" />
+  <circle cx="38" cy="28" r="4" fill="#FFFFFF" />
+  <circle cx="46" cy="28" r="4" fill="#F44336" />
+  <circle cx="50" cy="28" r="4" fill="#F44336" /> <!-- Ajuste borde -->
+</svg>
