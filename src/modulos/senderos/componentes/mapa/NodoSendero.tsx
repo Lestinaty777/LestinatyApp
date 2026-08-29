@@ -1,6 +1,6 @@
 import type { LucideIcon } from 'lucide-react-native';
 import React, { useEffect, useRef } from 'react';
-import { Animated, Pressable, StyleSheet, View } from 'react-native';
+import { Animated, Easing, Pressable, StyleSheet, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 
 import type { EstadoNodoMapa } from '../../datos/mapaEjercicio.mock';
@@ -24,7 +24,6 @@ function oscurecer(color: string, factor = 0.58) {
 }
 
 export function NodoSendero({ Icono, asentado, color, estado, onCompletar, onPress, escalaEscena = 1, seleccionado }: NodoSenderoProps) {
-  const presion = useRef(new Animated.Value(0)).current;
   const halo = useRef(new Animated.Value(0)).current;
   const asentamiento = useRef(new Animated.Value(asentado ? 1 : 0)).current;
   const inspeccion = useRef(new Animated.Value(0)).current;
@@ -44,16 +43,15 @@ export function NodoSendero({ Icono, asentado, color, estado, onCompletar, onPre
   useEffect(() => () => pulsoInspeccion.stopAnimation(), [pulsoInspeccion]);
 
   useEffect(() => {
-    Animated.spring(asentamiento, {
-      damping: 18,
-      mass: 0.65,
-      stiffness: 260,
+    Animated.timing(asentamiento, {
+      duration: asentado ? 260 : 430,
+      easing: Easing.out(Easing.cubic),
       toValue: asentado ? 1 : 0,
       useNativeDriver: true,
     }).start();
   }, [asentado, asentamiento]);
 
-  const profundidad = asentado ? asentamiento : presion;
+  const profundidad = asentamiento;
   const escala = profundidad.interpolate({ inputRange: [0, 1], outputRange: [1, 0.985] });
   const descensoBase = profundidad.interpolate({ inputRange: [0, 1], outputRange: [0, 8] });
   const descensoInspeccion = inspeccion.interpolate({ inputRange: [0, 1], outputRange: [0, 4] });
@@ -104,13 +102,9 @@ export function NodoSendero({ Icono, asentado, color, estado, onCompletar, onPre
           ])).start();
           hapticSeguro('seleccion');
         }}
-        onPressIn={() => Animated.spring(presion, { damping: 18, stiffness: 190, toValue: 1, useNativeDriver: true }).start()}
         onPressOut={() => {
           pulsoInspeccion.stopAnimation();
-          Animated.parallel([
-            Animated.spring(presion, { damping: 20, stiffness: 180, toValue: 0, useNativeDriver: true }),
-            Animated.timing(inspeccion, { duration: 160, toValue: 0, useNativeDriver: true }),
-          ]).start();
+          Animated.timing(inspeccion, { duration: 160, toValue: 0, useNativeDriver: true }).start();
         }}
         style={styles.botonNodo}
       >

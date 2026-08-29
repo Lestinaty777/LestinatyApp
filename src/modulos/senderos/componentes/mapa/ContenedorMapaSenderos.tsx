@@ -26,8 +26,8 @@ export function ContenedorMapaSenderos({ altura, color, enfocado, subcategoriaId
   const ultimoCompletadoInicial = Math.max(-1, nodos.reduce((ultimo, nodo, indice) => nodo.estado === 'completado' ? indice : ultimo, -1));
   const [ultimoCompletado, setUltimoCompletado] = useState(ultimoCompletadoInicial);
   const indiceNodoActual = Math.min(nodos.length - 1, ultimoCompletado + 1);
-  const nodoActivo = nodos[indiceNodoActual]?.id ?? '';
-  const [seleccionado, setSeleccionado] = useState(nodoActivo);
+  const idNodoActual = nodos[indiceNodoActual]?.id ?? '';
+  const [seleccionado, setSeleccionado] = useState(idNodoActual);
   const [conexionEnCurso, setConexionEnCurso] = useState<number | null>(null);
   const progresoConexion = useRef(new Animated.Value(0)).current;
   const altoContenido = Math.max(altura, margenSuperior + margenInferior + Math.max(0, nodos.length - 1) * separacionVertical + 88);
@@ -128,14 +128,15 @@ export function ContenedorMapaSenderos({ altura, color, enfocado, subcategoriaId
 
         {nodos.map((nodo, indice) => {
           const posicion = posiciones[indice];
-          const activo = seleccionado === nodo.id;
-          const estado = indice <= ultimoCompletado ? 'completado' : indice === indiceNodoActual ? 'activo' : 'bloqueado';
-          const asentado = indice < indiceNodoActual - 1;
+          const esNodoActual = indice === indiceNodoActual;
+          const esSeleccionado = seleccionado === nodo.id;
+          const estadoVisual = indice <= ultimoCompletado ? 'completado' : esNodoActual ? 'activo' : 'bloqueado';
+          const asentado = esSeleccionado;
           const escalaEscena = Math.max(0.78, 1.1 - indice * 0.07);
           return (
             <View key={nodo.id} style={[styles.nodoPosicion, { left: posicion.x - 36, top: posicion.y - 36 }]}>
-              <NodoSendero Icono={nodo.icono} asentado={asentado} color={color} escalaEscena={escalaEscena} estado={estado} seleccionado={activo} onCompletar={() => completarNodo(indice)} onPress={() => seleccionarNodo(nodo.id, indice)} />
-              {activo ? (
+              <NodoSendero Icono={nodo.icono} asentado={asentado} color={color} escalaEscena={escalaEscena} estado={estadoVisual} seleccionado={esSeleccionado} onCompletar={() => completarNodo(indice)} onPress={() => seleccionarNodo(nodo.id, indice)} />
+              {esSeleccionado ? (
                 <View style={[styles.etiqueta, { transform: [{ scale: escalaEscena }] }]}>
                   <Texto numberOfLines={1} style={styles.etiquetaTitulo}>{nodo.titulo}</Texto>
                   <Texto style={[styles.etiquetaMeta, { color }]}>{nodo.subtitulo}</Texto>
