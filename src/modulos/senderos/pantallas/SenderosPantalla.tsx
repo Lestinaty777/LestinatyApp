@@ -457,10 +457,10 @@ function colorConAlpha(color: string, alpha: string) {
   return `${color}${alpha}`;
 }
 
-function colorPastel(color: string) {
+function colorPastel(color: string, proporcion = 0.13) {
   const hex = color.replace('#', '');
   const canales = [0, 2, 4].map((inicio) => parseInt(hex.slice(inicio, inicio + 2), 16));
-  const suavizado = canales.map((canal) => Math.round(canal * 0.13 + 255 * 0.87));
+  const suavizado = canales.map((canal) => Math.round(canal * proporcion + 255 * (1 - proporcion)));
   return `#${suavizado.map((canal) => canal.toString(16).padStart(2, '0')).join('')}`;
 }
 
@@ -1135,7 +1135,7 @@ function MapaSubcategoria({ alturaEnfoque, categoria, color, enfocado, onMedirIn
   }
 
   return (
-    <View ref={referenciaMapa} onLayout={medirInicioMapa} style={[styles.mapaSubcategoria, { backgroundColor: colorPastel(categoria.acento), height: alturaEnfoque }]}>
+    <View ref={referenciaMapa} onLayout={medirInicioMapa} style={[styles.mapaSubcategoria, { backgroundColor: colorPastel(color, 0.055), height: alturaEnfoque }]}>
       {categoria.id === 'salud' && subcategoriaId === 'ejercicio' ? (
         <ContenedorMapaSenderos altura={alturaEnfoque} color={color} enfocado={enfocado} subcategoriaId={subcategoriaId} />
       ) : (
