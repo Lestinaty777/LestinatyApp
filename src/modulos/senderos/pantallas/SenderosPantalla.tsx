@@ -35,6 +35,7 @@ import { BarraProgresoLiquida } from '../../../diseno/componentes/BarraProgresoL
 import FogEffectSkia from '../../../diseno/componentes/NieblaUi';
 import { RecuadroGlass, Texto, biomas, colores, espaciado } from '../../../diseno';
 import { hapticSeguro } from '../../../nucleo/dispositivo/haptics';
+import { ContenedorMapaSenderos } from '../componentes/mapa/ContenedorMapaSenderos';
 import { usarAccionBarraSenderos } from '../estado/accionBarraSenderos.estado';
 import { AnalisisSenderos } from '../paginas/AnalisisSenderos';
 import { CompartidosSenderos } from '../paginas/CompartidosSenderos';
@@ -1122,7 +1123,7 @@ function ParticulasEnfoque({ activas, color }: { activas: boolean; color: string
   );
 }
 
-function MapaSubcategoria({ alturaEnfoque, categoria, color, enfocado, onMedirInicio }: { alturaEnfoque: number; categoria: CategoriaCarpeta; color: string; enfocado: boolean; onMedirInicio: (posicion: number) => void }) {
+function MapaSubcategoria({ alturaEnfoque, categoria, color, enfocado, onMedirInicio, subcategoriaId }: { alturaEnfoque: number; categoria: CategoriaCarpeta; color: string; enfocado: boolean; onMedirInicio: (posicion: number) => void; subcategoriaId: string }) {
   const referenciaMapa = useRef<View>(null);
 
   function medirInicioMapa() {
@@ -1135,14 +1136,18 @@ function MapaSubcategoria({ alturaEnfoque, categoria, color, enfocado, onMedirIn
 
   return (
     <View ref={referenciaMapa} onLayout={medirInicioMapa} style={[styles.mapaSubcategoria, { backgroundColor: colorPastel(categoria.acento), height: alturaEnfoque }]}>
-      <ScrollView
-        nestedScrollEnabled
-        scrollEnabled={enfocado}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.mapaSubcategoriaContenido}
-      >
-        <ParticulasEnfoque activas={enfocado} color={color} />
-      </ScrollView>
+      {categoria.id === 'salud' && subcategoriaId === 'ejercicio' ? (
+        <ContenedorMapaSenderos altura={alturaEnfoque} color={color} enfocado={enfocado} subcategoriaId={subcategoriaId} />
+      ) : (
+        <ScrollView
+          nestedScrollEnabled
+          scrollEnabled={enfocado}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.mapaSubcategoriaContenido}
+        >
+          <ParticulasEnfoque activas={enfocado} color={color} />
+        </ScrollView>
+      )}
     </View>
   );
 }
@@ -1455,6 +1460,7 @@ function CarpetaGiganteSenderos({ alturaMapaEnfoque, alturaObjetivoEnfoque, cate
                 color={subcategoriaEnfocada.acento}
                 enfocado={mapaEnfocado}
                 onMedirInicio={onMedirInicioMapa}
+                subcategoriaId={subcategoriaEnfocada.id}
               />
             ) : !subcategoriaEnfocada ? (
               <>
