@@ -74,7 +74,7 @@ export function AnalisisSenderos({ categoriaActiva, onCategoriaChange }: { categ
           const activa = id === categoriaId;
           return (
             <Reanimated.View key={id} entering={ZoomIn.delay(index * 60).springify()} style={{ flex: 1, minWidth: 0, aspectRatio: 1 }}>
-              <Pressable accessibilityLabel={`Analiticas de ${etiqueta}`} onPress={() => seleccionarCategoria(id)} style={({ pressed }) => [styles.botonCategoria, activa && { backgroundColor: acento, borderColor: acento }, pressed && styles.botonCategoriaPresionado, { flex: 1 }]}>
+                <Pressable accessibilityLabel={`Progreso de ${etiqueta}`} onPress={() => seleccionarCategoria(id)} style={({ pressed }) => [styles.botonCategoria, activa && { backgroundColor: acento, borderColor: acento }, pressed && styles.botonCategoriaPresionado, { flex: 1 }]}>
                 <Icono color={activa ? '#FFFFFF' : acento} size={16} strokeWidth={2.5} />
                 {activa && <View style={styles.indicadorCategoriaActivo} />}
               </Pressable>

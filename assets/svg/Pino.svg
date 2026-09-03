@@ -1,0 +1,26 @@
+<svg width="28" height="40" viewBox="0 0 28 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="pinoLuz" x1="5" y1="4" x2="23" y2="31" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#B7E98C"/>
+      <stop offset="1" stop-color="#4E9D58"/>
+    </linearGradient>
+    <linearGradient id="pinoSombra" x1="14" y1="8" x2="25" y2="34" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#397647"/>
+      <stop offset="1" stop-color="#1F4D37"/>
+    </linearGradient>
+  </defs>
+  <g id="Pino">
+    <ellipse cx="14" cy="36" rx="12" ry="3" fill="#6C6258" fill-opacity="0.16"/>
+    <path d="M11.4 29.2L16.4 30.1V37.1L11.4 35.5V29.2Z" fill="#745239"/>
+    <path d="M16.4 30.1L19.2 28.3V35.4L16.4 37.1V30.1Z" fill="#513829"/>
+    <path d="M14.1 2L3.2 17.1L14.1 21.8L24.9 17.1L14.1 2Z" fill="url(#pinoSombra)"/>
+    <path d="M14.1 2V21.8L24.9 17.1L14.1 2Z" fill="url(#pinoLuz)"/>
+    <path d="M14.1 10.1L1.5 25.2L14.1 30.7L26.8 25.2L14.1 10.1Z" fill="url(#pinoSombra)"/>
+    <path d="M14.1 10.1V30.7L26.8 25.2L14.1 10.1Z" fill="url(#pinoLuz)"/>
+    <path d="M14.1 19.1L0.4 33.1L14.1 38.4L27.7 33.1L14.1 19.1Z" fill="#285E43"/>
+    <path d="M14.1 19.1V38.4L27.7 33.1L14.1 19.1Z" fill="#71B96B"/>
+    <path d="M4.1 32.9L14.1 36.8L24 32.9L14.1 38.4L4.1 32.9Z" fill="#1C4A38" fill-opacity="0.48"/>
+    <path d="M9.1 16.4L14.1 18.6L19.2 16.4" stroke="#D5F7B2" stroke-linecap="round" stroke-opacity="0.32" stroke-width="1.2"/>
+    <path d="M7.4 25.2L14.1 28.2L20.9 25.2" stroke="#D5F7B2" stroke-linecap="round" stroke-opacity="0.25" stroke-width="1.2"/>
+  </g>
+</svg>

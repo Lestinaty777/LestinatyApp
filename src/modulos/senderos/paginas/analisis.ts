@@ -1,6 +1,6 @@
 import { PaginaSenderos } from './tipos';
 
 export const paginaAnalisisSenderos: PaginaSenderos = {
-  subtitulo: 'Observa tendencias, ritmo y senales de cada categoria.',
-  titulo: 'Analisis',
+  subtitulo: 'Observa avances, ritmo y senales de cada sendero.',
+  titulo: 'Progreso',
 };

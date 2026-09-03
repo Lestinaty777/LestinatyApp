@@ -52,7 +52,7 @@ const desplazamientoSeparadorActivo = -44;
 
 const pestanasSenderos = [
   { id: 'mis-senderos', etiqueta: 'Mis senderos', Icono: Map },
-  { id: 'analisis', etiqueta: 'Analisis', Icono: TrendingUp },
+  { id: 'analisis', etiqueta: 'Progreso', Icono: TrendingUp },
   { id: 'compartidos', etiqueta: 'Compartidos', Icono: Users },
   { id: 'explorar', etiqueta: 'Explorar', Icono: Compass },
 ] as const;
@@ -1136,8 +1136,8 @@ function MapaSubcategoria({ alturaEnfoque, categoria, color, enfocado, onMedirIn
 
   return (
     <View ref={referenciaMapa} onLayout={medirInicioMapa} style={[styles.mapaSubcategoria, { backgroundColor: colorPastel(color, 0.055), height: alturaEnfoque }]}>
-      {categoria.id === 'salud' && subcategoriaId === 'ejercicio' ? (
-        <ContenedorMapaSenderos altura={alturaEnfoque} color={color} enfocado={enfocado} subcategoriaId={subcategoriaId} />
+      {(categoria.id === 'salud' && subcategoriaId === 'ejercicio') || (categoria.id === 'rutinas' && subcategoriaId === 'manana') ? (
+        <ContenedorMapaSenderos altura={alturaEnfoque} categoriaId={categoria.id} color={color} enfocado={enfocado} subcategoriaId={subcategoriaId} />
       ) : (
         <ScrollView
           nestedScrollEnabled
@@ -1311,30 +1311,31 @@ function CarpetaGiganteSenderos({ alturaMapaEnfoque, alturaObjetivoEnfoque, cate
   function alternarCategoria(id: string) {
     if (cerrandoSubcategorias) return;
     hapticSeguro('seleccion');
-    setCategoriaAbierta((actual) => {
-      if (actual === id) {
-        setSubcategoriaActiva('');
-        cierreTimeout.current = setTimeout(() => {
-          setCerrandoSubcategorias(true);
-          cierreTimeout.current = setTimeout(() => {
-            setOcultandoCategoria(true);
-            cierreTimeout.current = setTimeout(() => {
-              setRaizOculta(true);
-              setRetornandoCuerpo(true);
-              setSubcategoriasVisibles(false);
-              setCategoriaAbierta('');
-              setBajandoCategoria(false);
-              setCerrandoSubcategorias(false);
-              setOcultandoCategoria(false);
-            }, 300);
-          }, 780);
-        }, 390);
-        setBajandoCategoria(true);
-        return actual;
-      }
+    // Never trigger this component's state updates inside the parent setter.
+    // React may execute that setter while SenderosPantalla is rendering.
+    if (categoriaAbierta === id) {
       setSubcategoriaActiva('');
-      return id;
-    });
+      cierreTimeout.current = setTimeout(() => {
+        setCerrandoSubcategorias(true);
+        cierreTimeout.current = setTimeout(() => {
+          setOcultandoCategoria(true);
+          cierreTimeout.current = setTimeout(() => {
+            setRaizOculta(true);
+            setRetornandoCuerpo(true);
+            setSubcategoriasVisibles(false);
+            setCategoriaAbierta('');
+            setBajandoCategoria(false);
+            setCerrandoSubcategorias(false);
+            setOcultandoCategoria(false);
+          }, 300);
+        }, 780);
+      }, 390);
+      setBajandoCategoria(true);
+      return;
+    }
+
+    setSubcategoriaActiva('');
+    setCategoriaAbierta(id);
   }
 
   function seleccionarSubcategoria(id: string) {
@@ -1754,7 +1755,7 @@ export function SenderosPantalla() {
 
         <Animated.View
           pointerEvents={mapaEnfocado ? 'none' : 'auto'}
-          style={{ opacity: opacidadPestanasEnfoque, transform: [{ translateY: desplazamientoPestanasEnfoque }] }}
+          style={{ opacity: opacidadPestanasEnfoque, transform: [{ translateY: desplazamientoPestanasEnfoque }], zIndex: 2, elevation: 2 }}
         >
         <RecuadroGlass style={styles.pestanasCorte}>
           <Animated.View
@@ -1779,7 +1780,7 @@ export function SenderosPantalla() {
                 onPress={() => handleCambiarPestana(id)}
                 style={({ pressed }) => [styles.pestana, pressed && styles.pestanaPresionada]}
               >
-                <Icono color={activa ? Bioma.MasterColor : colores.textoSecundario} size={18} strokeWidth={2.3} />
+                <Icono color={activa ? Bioma.MasterColor : '#5C5E66'} size={18} strokeWidth={activa ? 2.6 : 2.3} />
                 <Texto style={[styles.pestanaTexto, activa && styles.pestanaTextoActiva]} numberOfLines={1}>
                   {etiqueta}
                 </Texto>
@@ -1980,7 +1981,7 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   pestanaTexto: {
-    color: colores.textoSecundario,
+    color: '#5C5E66',
     fontFamily: 'MontserratAlternates-Bold',
     fontSize: 9,
     lineHeight: 12,

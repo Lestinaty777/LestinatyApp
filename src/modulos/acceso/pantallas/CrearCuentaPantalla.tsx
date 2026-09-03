@@ -267,6 +267,10 @@ export function CrearCuentaPantalla() {
             </Texto>
           ) : null}
 
+          <Texto style={[stylesLegales.aviso, { fontSize: 12 * escala, lineHeight: 17 * escala }]}>
+            Al crear una cuenta, aceptas los Términos de uso, el Aviso de privacidad y las condiciones de uso de Aby.
+          </Texto>
+
           <BotonAcceso
             disabled={isSubmitting}
             height={altoBoton}
@@ -372,6 +376,14 @@ const stylesOtp = StyleSheet.create({
   email: {
     color: colores.textoSecundario,
     fontFamily: 'MontserratAlternates-SemiBold',
+    textAlign: 'center',
+  },
+});
+
+const stylesLegales = StyleSheet.create({
+  aviso: {
+    color: colores.textoSecundario,
+    fontFamily: 'MontserratAlternates-Medium',
     textAlign: 'center',
   },
 });

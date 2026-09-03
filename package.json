@@ -16,6 +16,7 @@
     "expo-linking": "~57.0.7",
     "expo-router": "^57.0.15",
     "expo-status-bar": "~57.0.1",
+    "expo-video": "~57.0.2",
     "graph.js": "^1.21.1",
     "i18next": "^26.4.0",
     "lucide-react-native": "^1.33.0",
@@ -39,12 +40,14 @@
   "devDependencies": {
     "@types/react": "~19.2.2",
     "babel-preset-expo": "^57.0.7",
-    "typescript": "~6.0.3"
+    "typescript": "~6.0.3",
+    "vitest": "^4.1.11"
   },
   "scripts": {
     "start": "expo start",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
+    "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "web": "expo start --web"
   },

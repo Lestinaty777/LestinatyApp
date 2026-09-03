@@ -66,7 +66,7 @@ export default function LayoutPrincipal() {
         options={{
           tabBarButton: (props) => <BotonTiendaContextual {...props} />,
           tabBarIcon: ({ focused }) => <IconoTiendaContextual focused={focused} />,
-          title: 'Tienda',
+          title: 'Aby',
         }}
       />
       <Tabs.Screen

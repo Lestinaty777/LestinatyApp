@@ -1,3 +1,3 @@
-import { TiendaPantalla } from '../../src/modulos/tienda/pantallas/TiendaPantalla';
+import { AgenteAbyPantalla } from '../../src/modulos/aby/pantallas/AgenteAbyPantalla';
 
-export default TiendaPantalla;
+export default AgenteAbyPantalla;

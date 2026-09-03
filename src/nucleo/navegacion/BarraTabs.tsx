@@ -2,12 +2,15 @@ import { useEffect, useRef } from 'react';
 import type { Icon } from 'phosphor-react-native';
 import { CalendarStar, CompassRose, Crosshair, Mountains, Storefront, Target } from 'phosphor-react-native';
 import { Animated, Pressable, StyleSheet, View } from 'react-native';
+import Svg, { Polygon } from 'react-native-svg';
 
 import { biomas, colores } from '../../diseno';
 import { hapticSeguro } from '../dispositivo/haptics';
 import { usarAccionBarraSenderos } from '../../modulos/senderos/estado/accionBarraSenderos.estado';
+import { usarEstadoVisualAby } from '../../modulos/aby/estado/abyVisual.estado';
+import { colorEnvioCategoriaAby } from '../../modulos/aby/datos/categoriasAby';
 
-type NombreIconoTab = 'hoy' | 'metas' | 'ruta' | 'senderos' | 'tienda';
+type NombreIconoTab = 'aby' | 'hoy' | 'metas' | 'ruta' | 'senderos' | 'tienda';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 const colorActivo = biomas.inicio.Paleta.primaryDark;
@@ -16,7 +19,7 @@ const colorInactivo = '#76736D';
 const radioGlassTab = 10;
 const tamanoIconoTab = 26;
 
-function obtenerIcono(nombre: NombreIconoTab): Icon {
+function obtenerIcono(nombre: Exclude<NombreIconoTab, 'aby'>): Icon {
   if (nombre === 'hoy') return CalendarStar;
   if (nombre === 'senderos') return Mountains;
   if (nombre === 'tienda') return Storefront;
@@ -25,7 +28,7 @@ function obtenerIcono(nombre: NombreIconoTab): Icon {
   return CompassRose;
 }
 
-export function IconoTab({ accionContextual, focused, nombre }: { accionContextual?: { color: string } | null; focused: boolean; nombre: NombreIconoTab }) {
+export function IconoTab({ accionContextual, acentoAby = '#141414', focused, nombre }: { accionContextual?: { color: string } | null; acentoAby?: string; focused: boolean; nombre: NombreIconoTab }) {
   const progreso = useRef(new Animated.Value(focused ? 1 : 0)).current;
 
   useEffect(() => {
@@ -57,8 +60,9 @@ export function IconoTab({ accionContextual, focused, nombre }: { accionContextu
     inputRange: [0, 1],
     outputRange: [0.78, 1],
   });
-  const Icono = obtenerIcono(nombre);
-  const mostrarAccionContextual = nombre === 'tienda' && accionContextual;
+  const esAby = nombre === 'aby';
+  const Icono = esAby ? null : obtenerIcono(nombre);
+  const mostrarAccionContextual = nombre === 'aby' && accionContextual;
 
   return (
     <View style={styles.iconoRaiz}>
@@ -87,13 +91,27 @@ export function IconoTab({ accionContextual, focused, nombre }: { accionContextu
           { opacity: opacidad, transform: [{ translateY: desplazamiento }, { scale: escala }] },
         ]}
       >
-        <Icono
+        {esAby ? (
+          <Svg height={tamanoIconoTab} viewBox="0 0 24 24" width={tamanoIconoTab}>
+            <Polygon
+              fill={focused ? acentoAby : 'rgba(118, 115, 109, 0.12)'}
+              points="12,2 19.8,5.7 21.7,14.1 16.3,20.8 7.7,20.8 2.3,14.1 4.2,5.7"
+              stroke={focused ? acentoAby : colorInactivo}
+              strokeWidth="1.7"
+            />
+            <Polygon
+              fill={focused ? '#FFFFFF' : colorInactivo}
+              opacity={focused ? 0.9 : 0.6}
+              points="12,7.1 15.6,8.8 16.5,12.7 14,15.8 10,15.8 7.5,12.7 8.4,8.8"
+            />
+          </Svg>
+        ) : Icono ? <Icono
           color={focused ? colorActivoGlass : colorInactivo}
           duotoneColor={focused ? colores.superficie : colorInactivo}
           duotoneOpacity={focused ? 0.68 : 0.24}
           size={tamanoIconoTab}
           weight={focused ? 'duotone' : 'fill'}
-        />
+        /> : null}
       </Animated.View>
       <Animated.View style={[styles.indicador, { opacity: progreso, transform: [{ scaleX: progreso }] }]} />
     </View>
@@ -140,7 +158,8 @@ export function BotonTab({ accessibilityState, accionContextual, onPress, ref: _
 
 export function IconoTiendaContextual({ focused }: { focused: boolean }) {
   const accion = usarAccionBarraSenderos((estado) => estado.accion);
-  return <IconoTab accionContextual={accion} focused={focused} nombre="tienda" />;
+  const categoriaAby = usarEstadoVisualAby((estado) => estado.categoriaActiva);
+  return <IconoTab accionContextual={accion} acentoAby={colorEnvioCategoriaAby(categoriaAby)} focused={focused} nombre="aby" />;
 }
 
 export function BotonTiendaContextual(props: any) {
@@ -153,7 +172,7 @@ export const iconosTabs: Record<string, NombreIconoTab> = {
   inicio: 'hoy',
   metas: 'metas',
   senderos: 'senderos',
-  tienda: 'tienda',
+  tienda: 'aby',
 };
 
 const styles = StyleSheet.create({

@@ -1,13 +1,19 @@
 import React, { useMemo, useRef, useState } from 'react';
-import { Animated, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { Animated, Image, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 
 import { Texto } from '../../../../diseno';
+import { crearTemaMapa, generarMapaProcedural, type CategoriaMapaId } from '../../algoritmo/mapaProcedural';
+import { obtenerAssetBioma } from '../../algoritmo/registroBiomas';
 import { obtenerNodosMapaMock } from '../../datos/mapaEjercicio.mock';
+import { CaminoHojasSendero } from './CaminoHojasSendero';
+import { LamparaSendero } from './LamparaSendero';
+
 import { NodoSendero } from './NodoSendero';
 
 type ContenedorMapaSenderosProps = {
   altura: number;
+  categoriaId: CategoriaMapaId;
   color: string;
   enfocado: boolean;
   subcategoriaId: string;
@@ -17,8 +23,9 @@ const separacionVertical = 112;
 const margenSuperior = 54;
 const margenInferior = 64;
 const AnimatedPath = Animated.createAnimatedComponent(Path);
+const hojasVisiblesPorNodo = [true, false, true, true];
 
-export function ContenedorMapaSenderos({ altura, color, enfocado, subcategoriaId }: ContenedorMapaSenderosProps) {
+export function ContenedorMapaSenderos({ altura, categoriaId, color, enfocado, subcategoriaId }: ContenedorMapaSenderosProps) {
   const { width } = useWindowDimensions();
   const scrollRef = useRef<ScrollView>(null);
   const [anchoMapa, setAnchoMapa] = useState(0);
@@ -32,14 +39,9 @@ export function ContenedorMapaSenderos({ altura, color, enfocado, subcategoriaId
   const progresoConexion = useRef(new Animated.Value(0)).current;
   const altoContenido = Math.max(altura, margenSuperior + margenInferior + Math.max(0, nodos.length - 1) * separacionVertical + 88);
   const anchoEscena = anchoMapa || width;
-  const centro = anchoEscena / 2;
-  // Los offsets suman cero para que todo el recorrido, no solo el primer nodo, quede centrado.
-  const desviaciones = [6, -44, 44, -36, 30];
-  const posiciones = useMemo(() => nodos.map((nodo, indice) => ({
-    id: nodo.id,
-    x: centro + (desviaciones[indice] ?? 0),
-    y: margenSuperior + indice * separacionVertical,
-  })), [centro, nodos]);
+  const temaMapa = useMemo(() => crearTemaMapa(categoriaId, color, subcategoriaId), [categoriaId, color, subcategoriaId]);
+  const mapa = useMemo(() => generarMapaProcedural({ ancho: anchoEscena, cantidadNodos: nodos.length, tema: temaMapa }), [anchoEscena, nodos.length, temaMapa]);
+  const posiciones = mapa.nodos;
   const conexiones = posiciones.slice(0, -1).map((posicion, indice) => {
     const siguiente = posiciones[indice + 1];
     const controlY = (posicion.y + siguiente.y) / 2;
@@ -91,6 +93,45 @@ export function ContenedorMapaSenderos({ altura, color, enfocado, subcategoriaId
       contentContainerStyle={[styles.contenido, { minHeight: altoContenido }]}
     >
       <View style={[styles.escenaPerspectiva, { height: altoContenido, width: anchoEscena }]}>
+        {mapa.hojas.map((hojas, indice) => {
+          if (categoriaId !== 'rutinas' && !hojasVisiblesPorNodo[indice]) return null;
+          return (
+            <View
+              key={`hojas-${indice}`}
+              pointerEvents="none"
+              style={[
+                styles.hojasCamino,
+                {
+                  left: hojas.x,
+                  top: hojas.y,
+                  transform: [{ scaleX: hojas.lado === 'derecha' ? 1 : -1 }],
+                },
+              ]}
+            >
+              <CaminoHojasSendero color={temaMapa.acento} opacidad={1} tamano={hojas.tamano} />
+            </View>
+          );
+        })}
+
+        {mapa.decoraciones.map((decoracion, indice) => {
+          const asset = obtenerAssetBioma(categoriaId, decoracion.assetId);
+          if (!asset) return null;
+          const tamano = 172 * decoracion.escala;
+          return (
+            <View
+              key={`bioma-${decoracion.assetId}-${indice}`}
+              pointerEvents="none"
+              style={[styles.decoracionBioma, {
+                height: tamano,
+                left: decoracion.x,
+                top: decoracion.y,
+                width: tamano,
+              }]}
+            >
+              <Image resizeMode="contain" source={asset.fuente} style={styles.decoracionBiomaImagen} />
+            </View>
+          );
+        })}
         <Svg height={altoContenido} pointerEvents="none" style={StyleSheet.absoluteFill} width={anchoEscena}>
           {conexiones.map((conexion, indice) => {
             const completa = indice < ultimoCompletado;
@@ -121,10 +162,12 @@ export function ContenedorMapaSenderos({ altura, color, enfocado, subcategoriaId
           })}
         </Svg>
 
-        <DecoracionSendero color={color} izquierda="12%" tamano={34} arriba={104} tipo="arbol" />
-        <DecoracionSendero color={color} izquierda="76%" tamano={23} arriba={178} tipo="lampara" />
-        <DecoracionSendero color={color} izquierda="15%" tamano={24} arriba={304} tipo="lampara" />
-        <DecoracionSendero color={color} izquierda="77%" tamano={39} arriba={382} tipo="arbol" />
+        {/* The snow sits above the routine scenery so it remains visible, but below interactive map elements. */}
+        {/* Snow removed to prevent canvaskit error */}
+
+        {mapa.lamparas.map((lampara, indice) => (
+          <DecoracionSendero key={`lampara-${indice}`} izquierda={lampara.x} tamano={lampara.tamano} arriba={lampara.y} />
+        ))}
 
         {nodos.map((nodo, indice) => {
           const posicion = posiciones[indice];
@@ -152,21 +195,10 @@ export function ContenedorMapaSenderos({ altura, color, enfocado, subcategoriaId
   );
 }
 
-function DecoracionSendero({ arriba, color, izquierda, tamano, tipo }: { arriba: number; color: string; izquierda: `${number}%`; tamano: number; tipo: 'arbol' | 'lampara' }) {
+function DecoracionSendero({ arriba, izquierda, tamano }: { arriba: number; izquierda: number; tamano: number }) {
   return (
     <View pointerEvents="none" style={[styles.decoracion, { left: izquierda, top: arriba, transform: [{ scale: tamano / 34 }] }]}>
-      {tipo === 'arbol' ? (
-        <>
-          <View style={[styles.copaArbol, { backgroundColor: color }]} />
-          <View style={styles.troncoArbol} />
-        </>
-      ) : (
-        <>
-          <View style={[styles.luzLampara, { backgroundColor: color }]} />
-          <View style={styles.posteLampara} />
-          <View style={styles.baseLampara} />
-        </>
-      )}
+      <LamparaSendero retraso={arriba} tamano={34} />
     </View>
   );
 }
@@ -179,44 +211,22 @@ const styles = StyleSheet.create({
     transform: [{ perspective: 900 }, { rotateX: '8deg' }, { scaleY: 0.98 }],
     transformOrigin: 'center bottom',
   },
+  hojasCamino: {
+    position: 'absolute',
+  },
+  decoracionBioma: {
+    opacity: 0.96,
+    position: 'absolute',
+  },
+  decoracionBiomaImagen: {
+    height: '100%',
+    width: '100%',
+  },
   decoracion: {
     alignItems: 'center',
     height: 40,
     position: 'absolute',
     width: 34,
-  },
-  copaArbol: {
-    borderRadius: 16,
-    height: 28,
-    opacity: 0.28,
-    width: 28,
-  },
-  troncoArbol: {
-    backgroundColor: '#847264',
-    borderRadius: 2,
-    height: 15,
-    marginTop: -2,
-    width: 5,
-  },
-  luzLampara: {
-    borderColor: 'rgba(255,255,255,0.82)',
-    borderRadius: 7,
-    borderWidth: 1,
-    height: 13,
-    opacity: 0.65,
-    width: 13,
-  },
-  posteLampara: {
-    backgroundColor: '#71695F',
-    height: 22,
-    marginTop: -1,
-    width: 3,
-  },
-  baseLampara: {
-    backgroundColor: '#71695F',
-    borderRadius: 3,
-    height: 4,
-    width: 13,
   },
   etiqueta: {
     alignItems: 'center',

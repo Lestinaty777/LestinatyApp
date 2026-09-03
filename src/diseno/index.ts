@@ -1,3 +1,4 @@
+export { generarPaleta } from './fundamentos/generadorPaletas';
 export * from './componentes';
 export { colores } from './fundamentos/colores';
 export { biomas } from './tema/biomas';
