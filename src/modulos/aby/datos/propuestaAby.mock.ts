@@ -1,73 +1,34 @@
-import type { ConfiguracionConversacionAby, PreguntaVisualAby, PropuestaSenderoAby, RespuestaAgenteAby } from '../contrato/aby.contrato';
+import type { ConfiguracionEstudioAby, PreguntaVisualAby, PropuestaSenderoAby, RespuestaAgenteAby } from '../contrato/aby.contrato';
 import { validarPropuestaSenderoAby } from '../contrato/aby.contrato';
 
-const preguntas: Record<string, PreguntaVisualAby> = {
-  tipo: {
-    id: 'tipo',
-    opciones: [
-      { etiqueta: 'Rutina recurrente', valor: 'ciclico' },
-      { etiqueta: 'Objetivo con final', valor: 'finito' },
-    ],
-    tipo: 'cards',
-    titulo: 'Como quieres avanzar?',
-  },
-  frecuencia: {
-    id: 'frecuencia',
-    opciones: [],
-    tipo: 'dias',
-    titulo: 'Que dias te encajan mejor?',
-  },
-  duracion: {
-    id: 'duracion',
-    opciones: [
-      { etiqueta: '10 min', valor: '10' },
-      { etiqueta: '25 min', valor: '25' },
-      { etiqueta: '45 min', valor: '45' },
-    ],
-    tipo: 'chips',
-    titulo: 'Cuanto tiempo real tienes por sesion?',
-  },
+const preguntas: Record<PreguntaVisualAby['id'], PreguntaVisualAby> = {
+  'fecha-examen': { id: 'fecha-examen', opciones: [], placeholder: 'Ej. 18/10/2026', tipo: 'texto', titulo: '¿Cuándo es tu examen?' },
+  alcance: { id: 'alcance', opciones: [], placeholder: 'Ej. Capítulos 1 al 4', tipo: 'texto', titulo: '¿Qué temas entran?' },
+  fuente: { id: 'fuente', opciones: [], placeholder: 'Índice, temario o escribe “No tengo material”', tipo: 'texto', titulo: '¿Tienes material para orientarnos? (opcional)' },
+  'disponibilidad-semanal': { id: 'disponibilidad-semanal', opciones: [{ etiqueta: '2 h', valor: '2' }, { etiqueta: '4 h', valor: '4' }, { etiqueta: '6 h', valor: '6' }, { etiqueta: '8 h+', valor: '8' }], tipo: 'chips', titulo: '¿Cuánto tiempo tienes por semana?' },
+  'nivel-inicial': { id: 'nivel-inicial', opciones: [{ etiqueta: 'Estoy empezando', valor: 'inicio' }, { etiqueta: 'Entiendo lo básico', valor: 'basico' }, { etiqueta: 'Ya tengo base', valor: 'intermedio' }], tipo: 'cards', titulo: '¿Cómo te sientes con este tema?' },
 };
 
-function propuestaEjercicio(configuracion: ConfiguracionConversacionAby): PropuestaSenderoAby {
+function propuestaExamen(configuracion: ConfiguracionEstudioAby): PropuestaSenderoAby {
   return validarPropuestaSenderoAby({
-    categoriaId: 'salud',
-    configuracion,
-    descripcion: 'Una ruta breve para construir movimiento constante sin empezar demasiado fuerte.',
+    categoriaId: 'estudio', configuracion,
+    descripcion: `Una ruta de estudio para cubrir ${configuracion.alcance} antes de tu examen.`,
     nodos: [
-      { actionPack: { nodoId: 'preparar', version: 1, widgets: [{ config: { tareas: [{ id: 'ropa', texto: 'Prepara ropa comoda' }] }, id: 'checklist-asistida', rol: 'principal' }] }, descripcion: 'Deja la friccion fuera antes de tu primera sesion.', id: 'preparar', titulo: 'Prepara el inicio' },
-      { actionPack: { nodoId: 'mover', version: 1, widgets: [{ config: { duracionSegundos: (configuracion.duracionMinutos ?? 10) * 60 }, id: 'cronometro', rol: 'principal' }, { config: { meta: 3, unidad: 'rondas' }, id: 'contador', rol: 'apoyo' }] }, descripcion: 'Completa una sesion sostenible y registra tu ritmo.', id: 'mover', titulo: 'Muevete a tu ritmo' },
-      { actionPack: { nodoId: 'registrar', version: 1, widgets: [{ config: { placeholder: 'Como termino tu cuerpo?', tipoEntrada: 'texto' }, id: 'registro', rol: 'principal' }] }, descripcion: 'Guarda una senal breve para ajustar tu proxima sesion.', id: 'registrar', titulo: 'Cierra con una senal' },
-    ],
-    subcategoriaId: 'ejercicio',
-    titulo: 'Movimiento posible',
+      { actionPack: { nodoId: 'comprender-base', version: 1, widgets: [{ config: { tareas: [{ id: 'conceptos', texto: 'Explica los conceptos base con tus palabras' }] }, id: 'checklist-asistida', rol: 'principal' }] }, descripcion: 'Construye una base clara antes de memorizar detalles.', id: 'comprender-base', titulo: 'Comprende la base' },
+      { actionPack: { nodoId: 'practica-activa', version: 1, widgets: [{ config: { duracionSegundos: 1500 }, id: 'cronometro', rol: 'principal' }] }, descripcion: 'Practica recuperación activa sin mirar apuntes.', id: 'practica-activa', titulo: 'Practica sin apuntes' },
+      { actionPack: { nodoId: 'repaso-final', version: 1, widgets: [{ config: { placeholder: '¿Qué tema debes reforzar?', tipoEntrada: 'texto' }, id: 'registro', rol: 'principal' }] }, descripcion: 'Detecta vacíos y prepara un último repaso.', id: 'repaso-final', titulo: 'Repaso antes del examen' },
+    ], subcategoriaId: 'examen', titulo: configuracion.objetivo,
   });
 }
 
-function propuestaRutina(configuracion: ConfiguracionConversacionAby): PropuestaSenderoAby {
-  return validarPropuestaSenderoAby({
-    categoriaId: 'rutinas',
-    configuracion,
-    descripcion: 'Una secuencia corta que convierte tu objetivo en una rutina que cabe en un dia normal.',
-    nodos: [
-      { actionPack: { nodoId: 'preparar', version: 1, widgets: [{ config: { tareas: [{ id: 'espacio', texto: 'Prepara tu espacio' }] }, id: 'checklist-asistida', rol: 'principal' }] }, descripcion: 'Prepara una version facil de repetir.', id: 'preparar', titulo: 'Crea la senal de inicio' },
-      { actionPack: { nodoId: 'hacer', version: 1, widgets: [{ config: { duracionSegundos: (configuracion.duracionMinutos ?? 10) * 60 }, id: 'cronometro', rol: 'principal' }] }, descripcion: 'Dedica tiempo protegido a la accion principal.', id: 'hacer', titulo: 'Haz la accion central' },
-      { actionPack: { nodoId: 'cerrar', version: 1, widgets: [{ config: { placeholder: 'Que tan posible se sintio?', tipoEntrada: 'texto' }, id: 'registro', rol: 'principal' }] }, descripcion: 'Registra una frase para que Aby pueda ajustar el siguiente ciclo.', id: 'cerrar', titulo: 'Cierra y aprende' },
-    ],
-    subcategoriaId: 'manana',
-    titulo: 'Rutina posible',
-  });
-}
-
-export function obtenerSiguienteRespuestaMock(configuracion: ConfiguracionConversacionAby): RespuestaAgenteAby {
-  if (!configuracion.objetivo.trim()) return { mensaje: 'Que quieres construir hoy?', tipo: 'mensaje' };
-  if (!configuracion.tipo) return { mensaje: 'Vamos a darle una forma que puedas sostener.', pregunta: preguntas.tipo, tipo: 'pregunta' };
-  if (configuracion.tipo === 'ciclico' && configuracion.diasSemana.length === 0) return { mensaje: 'Elige los dias que se sienten realistas.', pregunta: preguntas.frecuencia, tipo: 'pregunta' };
-  if (!configuracion.duracionMinutos) return { mensaje: 'Prefiero que empecemos con tiempo real, no ideal.', pregunta: preguntas.duracion, tipo: 'pregunta' };
-
-  const propuesta = /ejercicio|entren|correr|caminar|movimiento/i.test(configuracion.objetivo)
-    ? propuestaEjercicio(configuracion)
-    : propuestaRutina(configuracion);
-
-  return { mensaje: 'Prepare una ruta completa. Puedes ajustarla antes de crearla.', propuesta, tipo: 'propuesta' };
+export function obtenerSiguienteRespuestaMock(configuracion: ConfiguracionEstudioAby): RespuestaAgenteAby {
+  if (!configuracion.intencion) return { mensaje: 'Elige la forma en que quieres avanzar.', tipo: 'mensaje' };
+  if (!configuracion.objetivo) return { mensaje: 'Cuéntame qué necesitas estudiar.', tipo: 'mensaje' };
+  if (configuracion.intencion !== 'examen') return { mensaje: 'Cuéntame tu objetivo y pronto armaremos este flujo especializado.', tipo: 'mensaje' };
+  if (!configuracion.fechaExamen) return { mensaje: 'Vamos a construir un plan que llegue a tiempo.', pregunta: preguntas['fecha-examen'], tipo: 'pregunta' };
+  if (!configuracion.alcance) return { mensaje: 'Primero delimitamos exactamente qué entra.', pregunta: preguntas.alcance, tipo: 'pregunta' };
+  if (!configuracion.fuente) return { mensaje: 'Puedes compartir un índice o temario. También puedes continuar sin material.', pregunta: preguntas.fuente, tipo: 'pregunta' };
+  if (!configuracion.disponibilidadSemanal) return { mensaje: 'Prefiero un ritmo realista que uno ideal.', pregunta: preguntas['disponibilidad-semanal'], tipo: 'pregunta' };
+  if (!configuracion.nivelInicial) return { mensaje: 'Esto me ayuda a decidir por dónde iniciar.', pregunta: preguntas['nivel-inicial'], tipo: 'pregunta' };
+  return { mensaje: 'Preparé un sendero para llegar con claridad al examen.', propuesta: propuestaExamen(configuracion), tipo: 'propuesta' };
 }

@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import type { Icon } from 'phosphor-react-native';
-import { CalendarStar, CompassRose, Crosshair, Mountains, Storefront, Target } from 'phosphor-react-native';
+import { CalendarStar, CompassRose, Crosshair, Mountains, Storefront, Target, BookOpen, Calendar, MagicWand } from 'phosphor-react-native';
 import { Animated, Pressable, StyleSheet, View } from 'react-native';
 import Svg, { Polygon } from 'react-native-svg';
 
@@ -10,7 +10,7 @@ import { usarAccionBarraSenderos } from '../../modulos/senderos/estado/accionBar
 import { usarEstadoVisualAby } from '../../modulos/aby/estado/abyVisual.estado';
 import { colorEnvioCategoriaAby } from '../../modulos/aby/datos/categoriasAby';
 
-type NombreIconoTab = 'aby' | 'hoy' | 'metas' | 'ruta' | 'senderos' | 'tienda';
+type NombreIconoTab = 'aby' | 'hoy' | 'metas' | 'ruta' | 'senderos' | 'tienda' | 'top_book' | 'top_calendar' | 'top_sparkle' | 'top_store';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 const colorActivo = biomas.inicio.Paleta.primaryDark;
@@ -20,6 +20,10 @@ const radioGlassTab = 10;
 const tamanoIconoTab = 26;
 
 function obtenerIcono(nombre: Exclude<NombreIconoTab, 'aby'>): Icon {
+  if (nombre === 'top_book') return BookOpen;
+  if (nombre === 'top_calendar') return Calendar;
+  if (nombre === 'top_sparkle') return MagicWand;
+  if (nombre === 'top_store') return Storefront;
   if (nombre === 'hoy') return CalendarStar;
   if (nombre === 'senderos') return Mountains;
   if (nombre === 'tienda') return Storefront;

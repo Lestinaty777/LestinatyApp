@@ -1,6 +1,7 @@
 import type { LucideIcon } from 'lucide-react-native';
 import { Bike, Check, Clock3, Dumbbell, HeartPulse, Repeat2, StretchHorizontal } from 'lucide-react-native';
 
+
 export type EstadoNodoMapa = 'activo' | 'bloqueado' | 'completado';
 
 export type NodoMapaSendero = {

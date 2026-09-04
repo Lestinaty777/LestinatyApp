@@ -1,11 +1,12 @@
 import React, { useMemo, useRef, useState } from 'react';
-import { Animated, Image, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
-import Svg, { Path } from 'react-native-svg';
+import { Animated, Image, ScrollView, StyleSheet, useWindowDimensions, View, Pressable, TouchableWithoutFeedback } from 'react-native';
+import Svg, { Path, Rect } from 'react-native-svg';
 
 import { Texto } from '../../../../diseno';
 import { crearTemaMapa, generarMapaProcedural, type CategoriaMapaId } from '../../algoritmo/mapaProcedural';
 import { obtenerAssetBioma } from '../../algoritmo/registroBiomas';
 import { obtenerNodosMapaMock } from '../../datos/mapaEjercicio.mock';
+import { PixelartIcon } from '../../../../diseno/iconos/PixelartIcon';
 import { CaminoHojasSendero } from './CaminoHojasSendero';
 import { LamparaSendero } from './LamparaSendero';
 
@@ -20,10 +21,16 @@ type ContenedorMapaSenderosProps = {
 };
 
 const separacionVertical = 112;
-const margenSuperior = 54;
+const margenSuperior = 16;
 const margenInferior = 64;
 const AnimatedPath = Animated.createAnimatedComponent(Path);
 const hojasVisiblesPorNodo = [true, false, true, true];
+
+function oscurecer(color: string, factor = 0.7) {
+  const hex = color.replace('#', '');
+  const canal = (inicio: number) => Math.round(parseInt(hex.slice(inicio, inicio + 2), 16) * factor).toString(16).padStart(2, '0');
+  return `#${canal(0)}${canal(2)}${canal(4)}`;
+}
 
 export function ContenedorMapaSenderos({ altura, categoriaId, color, enfocado, subcategoriaId }: ContenedorMapaSenderosProps) {
   const { width } = useWindowDimensions();
@@ -37,7 +44,7 @@ export function ContenedorMapaSenderos({ altura, categoriaId, color, enfocado, s
   const [seleccionado, setSeleccionado] = useState(idNodoActual);
   const [conexionEnCurso, setConexionEnCurso] = useState<number | null>(null);
   const progresoConexion = useRef(new Animated.Value(0)).current;
-  const altoContenido = Math.max(altura, margenSuperior + margenInferior + Math.max(0, nodos.length - 1) * separacionVertical + 88);
+  const altoContenido = Math.max(altura, margenSuperior + Math.max(0, nodos.length - 1) * separacionVertical + 430);
   const anchoEscena = anchoMapa || width;
   const temaMapa = useMemo(() => crearTemaMapa(categoriaId, color, subcategoriaId), [categoriaId, color, subcategoriaId]);
   const mapa = useMemo(() => generarMapaProcedural({ ancho: anchoEscena, cantidadNodos: nodos.length, tema: temaMapa }), [anchoEscena, nodos.length, temaMapa]);
@@ -88,10 +95,11 @@ export function ContenedorMapaSenderos({ altura, categoriaId, color, enfocado, s
       nestedScrollEnabled
       onLayout={({ nativeEvent }) => medirAnchoMapa(nativeEvent.layout.width)}
       overScrollMode="never"
-      scrollEnabled={enfocado}
+      scrollEnabled={true}
       showsVerticalScrollIndicator={false}
       contentContainerStyle={[styles.contenido, { minHeight: altoContenido }]}
     >
+      <TouchableWithoutFeedback onPress={() => setSeleccionado('')}>
       <View style={[styles.escenaPerspectiva, { height: altoContenido, width: anchoEscena }]}>
         {mapa.hojas.map((hojas, indice) => {
           if (categoriaId !== 'rutinas' && !hojasVisiblesPorNodo[indice]) return null;
@@ -179,16 +187,69 @@ export function ContenedorMapaSenderos({ altura, categoriaId, color, enfocado, s
           return (
             <View key={nodo.id} style={[styles.nodoPosicion, { left: posicion.x - 36, top: posicion.y - 36 }]}>
               <NodoSendero Icono={nodo.icono} asentado={asentado} color={color} escalaEscena={escalaEscena} estado={estadoVisual} seleccionado={esSeleccionado} onCompletar={() => completarNodo(indice)} onPress={() => seleccionarNodo(nodo.id, indice)} />
-              {esSeleccionado ? (
-                <View style={[styles.etiqueta, { transform: [{ scale: escalaEscena }] }]}>
-                  <Texto numberOfLines={1} style={styles.etiquetaTitulo}>{nodo.titulo}</Texto>
-                  <Texto style={[styles.etiquetaMeta, { color }]}>{nodo.subtitulo}</Texto>
+              {esSeleccionado ? (() => {
+                  const xRelativoPantalla = anchoEscena / 2;
+                  const centroNodoRelativo = 36;
+                  const anchoTooltip = 340;
+                  const leftEtiqueta = xRelativoPantalla - posicion.x - (anchoTooltip / 2) + centroNodoRelativo;
+                  const leftFlechita = centroNodoRelativo - leftEtiqueta - 10;
+                  return (
+                <View style={[styles.etiqueta, { left: leftEtiqueta }]}>
+                  <View style={[styles.tooltipFlechita, { backgroundColor: oscurecer(color, 0.75), position: 'absolute', top: -10, left: leftFlechita }]} />
+                  <View style={[styles.tooltipCaja, { backgroundColor: oscurecer(color, 0.75) }]}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                      {nodo.icono && (() => { const IconoNodo = nodo.icono; return <IconoNodo color="#FFFFFF" size={20} />; })()}
+                      <Texto style={[styles.etiquetaTitulo, { width: 'auto' }]}>{nodo.titulo}</Texto>
+                    </View>
+                    <Texto style={styles.etiquetaMeta}>{'Lección clave para poner a prueba tus habilidades y avanzar.'}</Texto>
+                    
+                    
+                    <Pressable 
+                      disabled={estadoVisual === 'bloqueado'} 
+                      onPress={() => completarNodo(indice)}
+                      style={({ pressed }) => [styles.botonComenzarContenedor, { marginTop: 14 }]}
+                    >
+                      {({ pressed }) => {
+                        const hundido = pressed || estadoVisual === 'bloqueado';
+                        return (
+                          <View style={{ width: '100%', alignItems: 'center' }}>
+                            {/* Extrusión (Sombra inferior fija) */}
+                            <View style={[styles.botonComenzar, styles.botonComenzarExtrusion, { 
+                               backgroundColor: oscurecer(color, 0.5),
+                               display: estadoVisual === 'bloqueado' ? 'none' : 'flex'
+                            }]} />
+                            
+                            {/* Superficie del botón */}
+                            <View style={[styles.botonComenzar, { 
+                               backgroundColor: estadoVisual === 'bloqueado' ? 'rgba(0,0,0,0.15)' : color,
+                               transform: [{ translateY: hundido ? 4 : 0 }] 
+                            }]}>
+                               {/* Bisel (Brillo superior) */}
+                               <View style={[styles.botonBisel, estadoVisual === 'bloqueado' && { borderColor: 'rgba(255,255,255,0.1)' }]} />
+                               
+                               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                                 <Texto style={[styles.textoBoton, { color: estadoVisual === 'bloqueado' ? 'rgba(255,255,255,0.4)' : '#FFFFFF' }]}>
+                                   {estadoVisual === 'bloqueado' ? 'Bloqueado' : estadoVisual === 'completado' ? 'Repasar' : 'Comenzar'}
+                                 </Texto>
+                                 {estadoVisual === 'completado' && (
+                                   <PixelartIcon name="chevron-right" size={18} color="#FFFFFF" />
+                                 )}
+                               </View>
+                            </View>
+                          </View>
+                        );
+                      }}
+                    </Pressable>
+
+                    
+                  </View>
                 </View>
-              ) : null}
+              );})() : null}
             </View>
           );
         })}
       </View>
+      </TouchableWithoutFeedback>
 
       {nodoSeleccionado ? <View accessibilityElementsHidden style={styles.lectorOculto}><Texto>{nodoSeleccionado.titulo}</Texto></View> : null}
     </ScrollView>
@@ -228,23 +289,92 @@ const styles = StyleSheet.create({
     position: 'absolute',
     width: 34,
   },
+  tooltipCaja: {
+    borderRadius: 20,
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 20,
+    alignItems: 'flex-start',
+    width: '100%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 10,
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  tooltipFlechita: {
+    width: 24,
+    height: 24,
+    transform: [{ rotate: '45deg' }],
+    zIndex: 1,
+  },
+
+  botonComenzarContenedor: {
+    width: '100%',
+    height: 44, // Fixed height to prevent layout jumps
+    alignItems: 'center',
+    zIndex: 2,
+  },
+  botonComenzar: {
+    width: '100%',
+    height: 40,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'absolute',
+    top: 0,
+  },
+  botonComenzarExtrusion: {
+    top: 4,
+  },
+  botonBisel: {
+    position: 'absolute',
+    top: 2,
+    left: 4,
+    right: 4,
+    bottom: 4,
+    borderRadius: 12,
+    borderTopWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.4)',
+    pointerEvents: 'none',
+  },
+  textoBoton: {
+    fontFamily: 'MontserratAlternates-Bold',
+    fontSize: 13,
+  },
+  tooltipPixelesMarco: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 48,
+    height: 48,
+  },
   etiqueta: {
     alignItems: 'center',
-    left: -50,
     position: 'absolute',
-    top: 66,
-    width: 172,
+    top: 76,
+    width: 340,
+    maxWidth: 400,
+    zIndex: 10,
   },
   etiquetaMeta: {
-    fontFamily: 'MontserratAlternates-Bold',
-    fontSize: 9,
-    marginTop: 2,
+    fontFamily: 'MontserratAlternates-Medium',
+    fontSize: 12,
+    lineHeight: 16,
+    color: 'rgba(255, 255, 255, 0.85)',
+    marginTop: 4,
+    marginBottom: 4,
+    textAlign: 'left',
+    width: '100%',
   },
   etiquetaTitulo: {
-    color: '#34312E',
+    color: '#FFFFFF',
     fontFamily: 'MontserratAlternates-Bold',
-    fontSize: 11,
-    textAlign: 'center',
+    fontSize: 16,
+    textAlign: 'left',
+    width: '100%',
   },
   lectorOculto: {
     height: 0,

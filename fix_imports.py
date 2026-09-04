@@ -1,14 +1,12 @@
 import re
 
-with open('/home/arch-i7/Proyects/app/src/modulos/senderos/paginas/MapaCompartido.tsx', 'r') as f:
+with open('/home/arch-i7/Proyects/app/src/modulos/inicio/pantallas/InicioPantalla.tsx', 'r') as f:
     content = f.read()
 
-# Add missing imports
-if "Animated," not in content:
-    content = content.replace("import { Dimensions, ScrollView, StyleSheet, View } from 'react-native';", "import { Animated, Dimensions, Pressable, ScrollView, StyleSheet, View } from 'react-native';")
+# Find all SVG imports and remove them, then add exactly one at the top
+content = re.sub(r"import Svg, \{ Rect, Defs, Pattern \} from 'react-native-svg';\n", "", content)
+content = "import Svg, { Rect, Defs, Pattern } from 'react-native-svg';\n" + content
 
-if "hapticSeguro" not in content:
-    content = content.replace("import { RecuadroGlass, Texto, colores } from '../../../diseno';", "import { RecuadroGlass, Texto, colores } from '../../../diseno';\nimport { hapticSeguro } from '../../../nucleo/dispositivo/haptics';")
-
-with open('/home/arch-i7/Proyects/app/src/modulos/senderos/paginas/MapaCompartido.tsx', 'w') as f:
+with open('/home/arch-i7/Proyects/app/src/modulos/inicio/pantallas/InicioPantalla.tsx', 'w') as f:
     f.write(content)
+

@@ -20,22 +20,39 @@ type Props = {
 
 export function IntencionesEstudioAby({ intencionActiva, onSeleccionar }: Props) {
   const presiones = useRef(intencionesEstudioAby.map(() => new Animated.Value(1))).current;
+  const elevaciones = useRef(intencionesEstudioAby.map(() => new Animated.Value(0))).current;
+  const entradaContexto = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     const indice = intencionesEstudioAby.findIndex((item) => item.id === intencionActiva);
-    if (indice < 0) return;
-    const animacion = Animated.sequence([
-      Animated.timing(presiones[indice], { duration: 100, easing: Easing.out(Easing.cubic), toValue: 0.965, useNativeDriver: true }),
-      Animated.spring(presiones[indice], { bounciness: 6, speed: 15, toValue: 1, useNativeDriver: true }),
+    if (indice < 0) {
+      elevaciones.forEach((elevacion) => elevacion.setValue(0));
+      entradaContexto.setValue(0);
+      return;
+    }
+    elevaciones.forEach((elevacion, indiceElevacion) => { if (indiceElevacion !== indice) elevacion.setValue(0); });
+    entradaContexto.setValue(0);
+    const animacion = Animated.parallel([
+      Animated.sequence([
+        Animated.timing(presiones[indice], { duration: 100, easing: Easing.out(Easing.cubic), toValue: 0.965, useNativeDriver: true }),
+        Animated.spring(presiones[indice], { bounciness: 6, speed: 15, toValue: 1, useNativeDriver: true }),
+      ]),
+      Animated.sequence([
+        Animated.timing(elevaciones[indice], { duration: 160, easing: Easing.out(Easing.cubic), toValue: -5, useNativeDriver: true }),
+        Animated.timing(elevaciones[indice], { duration: 220, easing: Easing.out(Easing.cubic), toValue: -2, useNativeDriver: true }),
+      ]),
+      Animated.timing(entradaContexto, { delay: 100, duration: 260, easing: Easing.out(Easing.cubic), toValue: 1, useNativeDriver: true }),
     ]);
     animacion.start();
     return () => animacion.stop();
-  }, [intencionActiva, presiones]);
+  }, [elevaciones, entradaContexto, intencionActiva, presiones]);
 
-  return <View accessibilityLabel="Formas de crear un sendero de estudio" style={styles.raiz}>{intencionesEstudioAby.map((intencion, indice) => {
+  const seleccionada = intencionesEstudioAby.find((item) => item.id === intencionActiva);
+
+  return <View accessibilityLabel="Formas de crear un sendero de estudio" style={styles.raiz}><View style={styles.cuadricula}>{intencionesEstudioAby.map((intencion, indice) => {
     const activa = intencion.id === intencionActiva;
     const Icono = iconos[intencion.icono];
-    return <Animated.View key={intencion.id} style={[styles.item, { transform: [{ scale: presiones[indice] }] }]}>
+    return <Animated.View key={intencion.id} style={[styles.item, { transform: [{ scale: presiones[indice] }, { translateY: elevaciones[indice] }] }]}>
       <Pressable accessibilityRole="button" accessibilityState={{ selected: activa }} onPress={() => { hapticSeguro('seleccion'); onSeleccionar(intencion.id); }} style={({ pressed }) => [styles.presionable, pressed && styles.presionada]}>
         <RecuadroGlass blur intensity={20} style={[
           styles.tarjeta,
@@ -47,16 +64,19 @@ export function IntencionesEstudioAby({ intencionActiva, onSeleccionar }: Props)
         </RecuadroGlass>
       </Pressable>
     </Animated.View>;
-  })}</View>;
+  })}</View>{seleccionada ? <Animated.View style={[styles.contexto, { opacity: entradaContexto, transform: [{ translateY: entradaContexto.interpolate({ inputRange: [0, 1], outputRange: [6, 0] }) }] }]}><Texto style={[styles.contextoTexto, { color: seleccionada.color }]}>{seleccionada.contexto}</Texto></Animated.View> : null}</View>;
 }
 
 const styles = StyleSheet.create({
   descripcion: { color: '#697687', fontFamily: 'Montserrat-Medium', fontSize: 10, lineHeight: 14 },
+  contexto: { alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.78)', borderColor: 'rgba(255,255,255,0.92)', borderRadius: 13, borderWidth: 1, marginHorizontal: 4, minHeight: 34, paddingHorizontal: 12, paddingVertical: 7 },
+  contextoTexto: { fontFamily: 'Montserrat-Medium', fontSize: 10, lineHeight: 14, textAlign: 'center' },
+  cuadricula: { flexDirection: 'row', flexWrap: 'wrap', gap: 9, justifyContent: 'space-between' },
   icono: { alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.58)', borderRadius: 11, height: 30, justifyContent: 'center', width: 30 },
   item: { width: '48.5%' },
   presionable: { width: '100%' },
   presionada: { opacity: 0.9 },
-  raiz: { alignSelf: 'center', flexDirection: 'row', flexWrap: 'wrap', gap: 9, justifyContent: 'space-between', width: '84%' },
+  raiz: { alignSelf: 'center', gap: 8, width: '84%' },
   tarjeta: { borderRadius: 20, borderWidth: 1, gap: 6, minHeight: 122, overflow: 'hidden', padding: 12, shadowOffset: { height: 5, width: 0 }, shadowRadius: 12 },
   tarjetaBase: { backgroundColor: 'rgba(255,255,255,0.48)', borderColor: 'rgba(255,255,255,0.7)', shadowColor: '#5A6471', shadowOpacity: 0.07 },
   titulo: { color: '#334153', fontFamily: 'Montserrat-Bold', fontSize: 12, lineHeight: 15, marginTop: 1 },

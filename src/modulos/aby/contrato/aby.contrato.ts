@@ -2,19 +2,24 @@ import { z } from 'zod';
 
 import { IDS_WIDGET_ACCION, type ActionPack } from '../../senderos/motor/sdui/tipos';
 import { validarActionPack } from '../../senderos/motor/sdui/validarActionPack';
+import { INTENCIONES_ESTUDIO_ABY, type IntencionEstudioAbyId } from '../datos/intencionesEstudioAby';
 
 export const CATEGORIAS_ABY = ['rutinas', 'salud', 'tareas', 'habitos', 'relaciones', 'finanzas', 'estudio'] as const;
 export type CategoriaAbyId = typeof CATEGORIAS_ABY[number];
-export type TipoSenderoAby = 'ciclico' | 'finito';
-export type PreguntaIdAby = 'tipo' | 'frecuencia' | 'duracion';
+export type PreguntaIdAby = 'fecha-examen' | 'alcance' | 'fuente' | 'disponibilidad-semanal' | 'nivel-inicial';
 export type PoseAby = 'saludando' | 'pensando' | 'celebrando';
 
-export type ConfiguracionConversacionAby = {
-  diasSemana: number[];
-  duracionMinutos: number | null;
+export type ConfiguracionEstudioAby = {
+  alcance: string;
+  disponibilidadSemanal: '2' | '4' | '6' | '8' | null;
+  fechaExamen: string | null;
+  fuente: string;
+  intencion: IntencionEstudioAbyId | null;
+  nivelInicial: 'inicio' | 'basico' | 'intermedio' | null;
   objetivo: string;
-  tipo: TipoSenderoAby | null;
 };
+
+export type ConfiguracionConversacionAby = ConfiguracionEstudioAby;
 
 export type MensajeAby = {
   id: string;
@@ -23,9 +28,10 @@ export type MensajeAby = {
 };
 
 export type PreguntaVisualAby = {
-  id: string;
+  id: PreguntaIdAby;
   opciones: readonly { etiqueta: string; valor: string }[];
-  tipo: 'cards' | 'chips' | 'dias';
+  placeholder?: string;
+  tipo: 'cards' | 'chips' | 'texto';
   titulo: string;
 };
 
@@ -66,20 +72,26 @@ export type RespuestaAgenteAby = RespuestaAgentePreguntaAby | RespuestaAgentePro
   tipo: 'mensaje' | 'resumen';
 };
 
-export const configuracionConversacionAbySchema = z.object({
-  diasSemana: z.array(z.number().int().min(1).max(7)).max(7),
-  duracionMinutos: z.number().int().min(1).max(180).nullable(),
+export const configuracionEstudioAbySchema = z.object({
+  alcance: z.string().trim().max(500),
+  disponibilidadSemanal: z.enum(['2', '4', '6', '8']).nullable(),
+  fechaExamen: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable(),
+  fuente: z.string().trim().max(500),
+  intencion: z.enum(INTENCIONES_ESTUDIO_ABY).nullable(),
+  nivelInicial: z.enum(['inicio', 'basico', 'intermedio']).nullable(),
   objetivo: z.string().trim().min(1).max(240),
-  tipo: z.enum(['ciclico', 'finito']).nullable(),
 });
 
+export const configuracionConversacionAbySchema = configuracionEstudioAbySchema;
+
 export const preguntaVisualAbySchema = z.object({
-  id: z.string().trim().min(1).max(64),
+  id: z.enum(['fecha-examen', 'alcance', 'fuente', 'disponibilidad-semanal', 'nivel-inicial']),
   opciones: z.array(z.object({
     etiqueta: z.string().trim().min(1).max(80),
     valor: z.string().trim().min(1).max(80),
   })).max(8),
-  tipo: z.enum(['cards', 'chips', 'dias']),
+  placeholder: z.string().trim().min(1).max(120).optional(),
+  tipo: z.enum(['cards', 'chips', 'texto']),
   titulo: z.string().trim().min(1).max(120),
 });
 

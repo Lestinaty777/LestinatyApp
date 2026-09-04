@@ -9,3 +9,5 @@ export { espaciado } from './fundamentos/espaciado';
 export { tipografia } from './fundamentos/tipografia';
 export { bordes } from './fundamentos/bordes';
 export { sombras } from './fundamentos/sombras';
+export * from './iconos/PixelIcon';
+export * from './iconos/PixelartIcon';
