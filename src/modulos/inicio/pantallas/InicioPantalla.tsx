@@ -5,9 +5,9 @@ import { BotonTab, IconoTab } from '../../../nucleo/navegacion/BarraTabs';
 import { BlurView } from 'expo-blur';
 import { PixelartIcon } from '../../../diseno/iconos/PixelartIcon';
 import Animated, { useSharedValue, useAnimatedStyle, useAnimatedProps, withTiming, Easing, withSpring, withRepeat } from 'react-native-reanimated';
-import { Beaker, Users, Activity } from 'lucide-react-native';
+import { Beaker, Users, Activity, Calculator, BookOpen } from 'lucide-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Book, Calendar, Sparkles, Store } from 'lucide-react-native';
+import { Book, Calendar, Sparkles, Store, Flame, Zap } from 'lucide-react-native';
 import { ContenedorMapaSenderos } from '../../senderos/componentes/mapa/ContenedorMapaSenderos';
 import { biomas } from '../../../diseno/tema/biomas';
 import { Texto, colores, RecuadroGlass } from '../../../diseno';
@@ -15,32 +15,55 @@ import { hapticSeguro } from '../../../nucleo/dispositivo/haptics';
 
 export function InicioPantalla() {
 
-  const [menuAbierto, setMenuAbierto] = React.useState(false);
-  const animMenu = useSharedValue(0);
+  const [activeMenu, setActiveMenu] = React.useState<'none' | 'courses' | 'calendar'>('none');
+  const animMenuState = useSharedValue(0);
+  const animExpansionHeight = useSharedValue(0);
+
+  const handleToggleMenu = (menu: 'courses' | 'calendar') => {
+    hapticSeguro('seleccion');
+    if (activeMenu === menu) {
+      setActiveMenu('none');
+    } else {
+      setActiveMenu(menu);
+    }
+  };
   
   const ASIGNATURAS = [
-    { id: '1', titulo: 'Anatomía I', color: biomas.inicio.MasterColor, categoriaId: 'salud' as any, desc: 'Sistema óseo, cráneo y articulaciones superiores.', Icono: () => <Activity color="#FFFFFF" size={24} />, IconoGrande: () => <PixelartIcon name="book-open" size={26} color="#FFFFFF" />, IconoFondo: () => <PixelartIcon name="book-open" size={42} color="#FFFFFF" style={[styles.tarjetaIconoFondo, { opacity: 0.15 }]} /> },
-    { id: '2', titulo: 'Farmacología', color: '#B34A4A', categoriaId: 'habitos' as any, desc: 'Mecanismos de acción y farmacocinética básica.', Icono: () => <Beaker color="#FFFFFF" size={24} />, IconoGrande: () => <PixelartIcon name="book-open" size={26} color="#FFFFFF" />, IconoFondo: () => <PixelartIcon name="book-open" size={42} color="#FFFFFF" style={[styles.tarjetaIconoFondo, { opacity: 0.15 }]} /> },
-    { id: '3', titulo: 'Ciencias Sociales', color: '#4A8BB3', categoriaId: 'rutinas' as any, desc: 'Sociología, psicología y comportamiento humano.', Icono: () => <Users color="#FFFFFF" size={24} />, IconoGrande: () => <PixelartIcon name="book-open" size={26} color="#FFFFFF" />, IconoFondo: () => <PixelartIcon name="book-open" size={42} color="#FFFFFF" style={[styles.tarjetaIconoFondo, { opacity: 0.15 }]} /> },
+    { id: '1', titulo: 'Anatomía I', color: biomas.inicio.MasterColor, categoriaId: 'salud' as any, desc: 'Sistema óseo.', Icono: () => <Activity color="#FFFFFF" size={24} />, IconoGrande: () => <PixelartIcon name="book-open" size={26} color="#FFFFFF" />, IconoFondo: () => <PixelartIcon name="book-open" size={42} color="#FFFFFF" style={[styles.tarjetaIconoFondo, { opacity: 0.15 }]} /> },
+    { id: '2', titulo: 'Farmacología', color: '#B34A4A', categoriaId: 'habitos' as any, desc: 'Fármacos.', Icono: () => <Beaker color="#FFFFFF" size={24} />, IconoGrande: () => <PixelartIcon name="book-open" size={26} color="#FFFFFF" />, IconoFondo: () => <PixelartIcon name="book-open" size={42} color="#FFFFFF" style={[styles.tarjetaIconoFondo, { opacity: 0.15 }]} /> },
+    { id: '3', titulo: 'Ciencias Sociales', color: '#4A8BB3', categoriaId: 'rutinas' as any, desc: 'Sociedad.', Icono: () => <Users color="#FFFFFF" size={24} />, IconoGrande: () => <PixelartIcon name="book-open" size={26} color="#FFFFFF" />, IconoFondo: () => <PixelartIcon name="book-open" size={42} color="#FFFFFF" style={[styles.tarjetaIconoFondo, { opacity: 0.15 }]} /> },
+    { id: '4', titulo: 'Matemáticas', color: '#D4AF37', categoriaId: 'tareas' as any, desc: 'Cálculo.', Icono: () => <Calculator color="#FFFFFF" size={24} />, IconoGrande: () => <PixelartIcon name="book-open" size={26} color="#FFFFFF" />, IconoFondo: () => <PixelartIcon name="book-open" size={42} color="#FFFFFF" style={[styles.tarjetaIconoFondo, { opacity: 0.15 }]} /> },
+    { id: '5', titulo: 'Literatura', color: '#734AB3', categoriaId: 'diario' as any, desc: 'Lectura.', Icono: () => <BookOpen color="#FFFFFF" size={24} />, IconoGrande: () => <PixelartIcon name="book-open" size={26} color="#FFFFFF" />, IconoFondo: () => <PixelartIcon name="book-open" size={42} color="#FFFFFF" style={[styles.tarjetaIconoFondo, { opacity: 0.15 }]} /> },
   ];
+  
+
   const [asignatura, setAsignatura] = React.useState(ASIGNATURAS[0]);
 
   React.useEffect(() => {
-    animMenu.value = withSpring(menuAbierto ? 1 : 0, { damping: 16, stiffness: 100 });
-  }, [menuAbierto]);
+    const isAnyOpen = activeMenu !== 'none';
+    animMenuState.value = withSpring(isAnyOpen ? 1 : 0, { damping: 16, stiffness: 100 });
+    
+    let targetH = 0;
+    if (activeMenu === 'courses') targetH = 115;
+    if (activeMenu === 'calendar') targetH = 390;
+    
+    animExpansionHeight.value = withSpring(targetH, { damping: 16, stiffness: 100 });
+  }, [activeMenu]);
 
   const animNavbarEstilos = useAnimatedStyle(() => ({
-    height: 62 + 140 * animMenu.value,
+    height: 62 + animExpansionHeight.value,
   }));
 
   const animContenidoEstilos = useAnimatedStyle(() => ({
-    opacity: animMenu.value,
+    opacity: animMenuState.value,
     transform: [
-      { translateY: -10 * (1 - animMenu.value) },
-    ],
+      { translateY: -20 * (1 - animMenuState.value) }
+    ]
   }));
 
-  const { height } = useWindowDimensions();
+
+
+  const { height, width: windowWidth } = useWindowDimensions();
   const alturaMapa = height * 0.8;
 
   
@@ -54,19 +77,20 @@ export function InicioPantalla() {
           <Animated.View style={[styles.navbarContenedor, animNavbarEstilos, { overflow: 'hidden' }]}>
             <FondoTabsGlass />
             <View style={styles.navbarFila}>
-              <BotonTab onPress={() => setMenuAbierto(!menuAbierto)}><IconoTab nombre="top_book" focused={menuAbierto} /></BotonTab>
-              <BotonTab><IconoTab nombre="top_calendar" focused={false} /></BotonTab>
+              <BotonTab onPress={() => handleToggleMenu('courses')}><IconoTab nombre="top_book" focused={activeMenu === 'courses'} /></BotonTab>
+              <BotonTab onPress={() => handleToggleMenu('calendar')}><IconoTab nombre="top_calendar" focused={activeMenu === 'calendar'} /></BotonTab>
               <BotonTab><IconoTab nombre="top_sparkle" focused={false} /></BotonTab>
               <BotonTab><IconoTab nombre="top_store" focused={false} /></BotonTab>
             </View>
 
-            <Animated.View pointerEvents={menuAbierto ? 'auto' : 'none'} style={[{ flex: 1 }, animContenidoEstilos]}>
+            <Animated.View pointerEvents={activeMenu !== 'none' ? 'auto' : 'none'} style={[{ flex: 1 }, animContenidoEstilos]}>
+              {activeMenu === 'courses' && (
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.carruselSenderos} style={{ flex: 1 }}>
                                 {ASIGNATURAS.map(asig => {
                   const h = 85;
-                  // Cálculo dinámico del ancho basado en la longitud del texto
+                  // Scroll Mode: Ancho dinámico
                   const bodyWidth = Math.min(220, Math.max(95, 16 + (asig.titulo.length * 8.2) + 10));
-                  const w = bodyWidth + 45; // 45px es el ancho fijo del talón (stub)
+                  const w = bodyWidth + 45;
                   
                   const cutoutStart = bodyWidth;
                   const cutoutEnd = bodyWidth + 16;
@@ -132,6 +156,8 @@ export function InicioPantalla() {
                   );
                 })}
               </ScrollView>
+              )}
+              {activeMenu === 'calendar' && <PanelRacha />}
             </Animated.View>
           </Animated.View>
         </View>
@@ -296,7 +322,7 @@ const styles = StyleSheet.create({
   textoCarruselDesc: {
     fontSize: 8.5,
     fontFamily: 'MontserratAlternates-Medium',
-    color: 'rgba(255,255,255,0.8)',
+    color: '#FFFFFF',
     marginTop: 1,
   },
   navbarFila: {
@@ -389,3 +415,104 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   }
 });
+
+
+function PanelRacha() {
+  const diasRacha = [
+    { dia: 'L', activo: true },
+    { dia: 'M', activo: true },
+    { dia: 'M', activo: false },
+    { dia: 'J', activo: true, hoy: true },
+    { dia: 'V', activo: false },
+    { dia: 'S', activo: false },
+    { dia: 'D', activo: false },
+  ];
+
+  // Calendario mensual realista (ej. empieza en Miércoles, offset = 2)
+  const offset = 2;
+  const mesCeldas = Array.from({ length: 35 }).map((_, i) => {
+    const num = i - offset + 1;
+    const valido = num > 0 && num <= 30; // Mes de 30 días
+    // Días aleatorios activos para simular historial
+    const activo = valido && [1,2,3,5,6,8,9,10,11,15,16,18,19,20,22,23,24,25].includes(num);
+    const esHoy = num === 26;
+    return { num: valido ? num.toString() : '', activo, valido, esHoy };
+  });
+
+  const progresoSemana = (3 / 6) * 100; 
+  const diasSemanales = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
+
+  return (
+    <View style={{ flex: 1, paddingHorizontal: 20, paddingTop: 5, paddingBottom: 25 }}>
+      {/* Background Texture */}
+      <View style={[StyleSheet.absoluteFill, { opacity: 0.1 }]} pointerEvents="none">
+        <TexturaPixelArt />
+      </View>
+      
+      {/* 1. CABECERA */}
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+          <View style={{ width: 42, height: 42, borderRadius: 8, backgroundColor: '#F26D21', borderBottomWidth: 4, borderBottomColor: oscurecer('#F26D21', 0.6), justifyContent: 'center', alignItems: 'center' }}>
+            <Flame color="#FFFFFF" size={24} fill="#FFFFFF" />
+          </View>
+          <View>
+            <Texto style={{ fontSize: 9, color: 'rgba(0,0,0,0.5)', fontFamily: 'Montserrat-Bold', letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 0 }}>VITALIDAD ACTUAL</Texto>
+            <Texto style={{ fontSize: 22, fontFamily: 'Montserrat-Bold', color: '#111111' }}>3 Días</Texto>
+          </View>
+        </View>
+        <View style={{ alignItems: 'flex-end' }}>
+          <Texto style={{ fontSize: 8, color: 'rgba(0,0,0,0.5)', fontFamily: 'Montserrat-Bold', letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 2 }}>XP SEMANAL</Texto>
+          <View style={{ backgroundColor: '#4A8BB3', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, borderBottomWidth: 2, borderBottomColor: oscurecer('#4A8BB3', 0.6) }}>
+            <Texto style={{ fontSize: 13, fontFamily: 'Montserrat-Bold', color: '#FFFFFF' }}>+450</Texto>
+          </View>
+        </View>
+      </View>
+
+      {/* 2. CALENDARIO HIPER DETALLADO (MES) */}
+      <View style={{ marginBottom: 25 }}>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12, borderBottomWidth: 1, borderBottomColor: 'rgba(0,0,0,0.1)', paddingBottom: 8 }}>
+          <Texto style={{ fontSize: 11, color: '#111111', fontFamily: 'Montserrat-Bold', letterSpacing: 1, textTransform: 'uppercase' }}>SEPTIEMBRE</Texto>
+          <Texto style={{ fontSize: 11, color: 'rgba(0,0,0,0.4)', fontFamily: 'Montserrat-Bold', letterSpacing: 1, textTransform: 'uppercase' }}>18/30 LOGRADOS</Texto>
+        </View>
+        
+        {/* Cabecera de días de la semana */}
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
+          {diasSemanales.map((letra, i) => (
+             <View key={i} style={{ width: '13%', alignItems: 'center' }}>
+               <Texto style={{ fontSize: 9, color: 'rgba(0,0,0,0.4)', fontFamily: 'Montserrat-Bold' }}>{letra}</Texto>
+             </View>
+          ))}
+        </View>
+
+        {/* Rejilla 7x5 */}
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: 8 }}>
+          {mesCeldas.map((celda, i) => (
+            <View key={i} style={[{ 
+              width: '13%', 
+              aspectRatio: 1, // Hacemos que sea un cuadrado perfecto
+              borderRadius: 6, 
+              justifyContent: 'center', 
+              alignItems: 'center'
+            }, 
+            celda.valido 
+              ? (celda.activo 
+                  ? { backgroundColor: '#F26D21', borderBottomWidth: 3, borderBottomColor: oscurecer('#F26D21', 0.6) }
+                  : { backgroundColor: 'rgba(0,0,0,0.02)', borderWidth: 1, borderColor: 'rgba(0,0,0,0.1)' }
+                )
+              : { } // Celdas vacías del offset sin estilo
+            ,
+            celda.esHoy && { borderColor: '#111111', borderWidth: 2, borderBottomWidth: 3 }
+            ]}>
+               {celda.valido && (
+                 <Texto style={{ fontSize: 11, color: celda.esHoy ? '#111111' : (celda.activo ? '#FFF' : 'rgba(0,0,0,0.3)'), fontFamily: 'Montserrat-Bold' }}>
+                   {celda.num}
+                 </Texto>
+               )}
+            </View>
+          ))}
+        </View>
+      </View>
+      
+          </View>
+  );
+}
