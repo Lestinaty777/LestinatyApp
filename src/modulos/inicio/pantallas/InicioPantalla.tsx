@@ -1,11 +1,11 @@
-import Svg, { Rect, Defs, Pattern } from 'react-native-svg';
+import Svg, { Rect, Defs, Pattern, Path, Circle } from 'react-native-svg';
 import React from 'react';
 import { StyleSheet, View, useWindowDimensions, Pressable, ScrollView } from 'react-native';
 import { BotonTab, IconoTab } from '../../../nucleo/navegacion/BarraTabs';
 import { BlurView } from 'expo-blur';
 import { PixelartIcon } from '../../../diseno/iconos/PixelartIcon';
-import Animated, { useSharedValue, useAnimatedStyle, withTiming, Easing, withSpring } from 'react-native-reanimated';
-import { Beaker, Users } from 'lucide-react-native';
+import Animated, { useSharedValue, useAnimatedStyle, useAnimatedProps, withTiming, Easing, withSpring, withRepeat } from 'react-native-reanimated';
+import { Beaker, Users, Activity } from 'lucide-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Book, Calendar, Sparkles, Store } from 'lucide-react-native';
 import { ContenedorMapaSenderos } from '../../senderos/componentes/mapa/ContenedorMapaSenderos';
@@ -19,9 +19,9 @@ export function InicioPantalla() {
   const animMenu = useSharedValue(0);
   
   const ASIGNATURAS = [
-    { id: '1', titulo: 'Anatomía I', color: biomas.inicio.MasterColor, categoriaId: 'salud' as any, desc: 'Sistema óseo, cráneo y articulaciones superiores.', Icono: () => <PixelartIcon name="book-open" size={24} color="#FFFFFF" />, IconoGrande: () => <PixelartIcon name="book-open" size={26} color="#FFFFFF" />, IconoFondo: () => <PixelartIcon name="book-open" size={42} color="#FFFFFF" style={[styles.tarjetaIconoFondo, { opacity: 0.15 }]} /> },
-    { id: '2', titulo: 'Farmacología', color: '#B34A4A', categoriaId: 'habitos' as any, desc: 'Mecanismos de acción y farmacocinética básica.', Icono: () => <Beaker color="#FFFFFF" size={24} />, IconoGrande: () => <Beaker color="#FFFFFF" size={26} />, IconoFondo: () => <Beaker color="#FFFFFF" size={42} style={[styles.tarjetaIconoFondo, { opacity: 0.15 }]} /> },
-    { id: '3', titulo: 'Ciencias Sociales', color: '#4A8BB3', categoriaId: 'rutinas' as any, desc: 'Sociología, psicología y comportamiento humano.', Icono: () => <Users color="#FFFFFF" size={24} />, IconoGrande: () => <Users color="#FFFFFF" size={26} />, IconoFondo: () => <Users color="#FFFFFF" size={42} style={[styles.tarjetaIconoFondo, { opacity: 0.15 }]} /> },
+    { id: '1', titulo: 'Anatomía I', color: biomas.inicio.MasterColor, categoriaId: 'salud' as any, desc: 'Sistema óseo, cráneo y articulaciones superiores.', Icono: () => <Activity color="#FFFFFF" size={24} />, IconoGrande: () => <PixelartIcon name="book-open" size={26} color="#FFFFFF" />, IconoFondo: () => <PixelartIcon name="book-open" size={42} color="#FFFFFF" style={[styles.tarjetaIconoFondo, { opacity: 0.15 }]} /> },
+    { id: '2', titulo: 'Farmacología', color: '#B34A4A', categoriaId: 'habitos' as any, desc: 'Mecanismos de acción y farmacocinética básica.', Icono: () => <Beaker color="#FFFFFF" size={24} />, IconoGrande: () => <PixelartIcon name="book-open" size={26} color="#FFFFFF" />, IconoFondo: () => <PixelartIcon name="book-open" size={42} color="#FFFFFF" style={[styles.tarjetaIconoFondo, { opacity: 0.15 }]} /> },
+    { id: '3', titulo: 'Ciencias Sociales', color: '#4A8BB3', categoriaId: 'rutinas' as any, desc: 'Sociología, psicología y comportamiento humano.', Icono: () => <Users color="#FFFFFF" size={24} />, IconoGrande: () => <PixelartIcon name="book-open" size={26} color="#FFFFFF" />, IconoFondo: () => <PixelartIcon name="book-open" size={42} color="#FFFFFF" style={[styles.tarjetaIconoFondo, { opacity: 0.15 }]} /> },
   ];
   const [asignatura, setAsignatura] = React.useState(ASIGNATURAS[0]);
 
@@ -30,7 +30,7 @@ export function InicioPantalla() {
   }, [menuAbierto]);
 
   const animNavbarEstilos = useAnimatedStyle(() => ({
-    height: 62 + 130 * animMenu.value,
+    height: 62 + 140 * animMenu.value,
   }));
 
   const animContenidoEstilos = useAnimatedStyle(() => ({
@@ -63,13 +63,19 @@ export function InicioPantalla() {
             <Animated.View pointerEvents={menuAbierto ? 'auto' : 'none'} style={[{ flex: 1 }, animContenidoEstilos]}>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.carruselSenderos} style={{ flex: 1 }}>
                 {ASIGNATURAS.map(asig => (
-                  <Pressable key={asig.id} style={({pressed}) => [styles.tarjetaCarrusel, pressed && { opacity: 0.8, transform: [{ scale: 0.98 }] }]} onPress={() => { hapticSeguro('seleccion'); setAsignatura(asig); setMenuAbierto(false); }}>
-                    <View style={[styles.iconoCarrusel, { backgroundColor: asig.color }]}>
+                  <Pressable key={asig.id} style={({pressed}) => [styles.tarjetaCarrusel, { overflow: 'hidden', backgroundColor: asig.color, borderColor: 'rgba(255,255,255,0.2)' }, pressed && { opacity: 0.8, transform: [{ scale: 0.98 }] }]} onPress={() => { hapticSeguro('seleccion'); setAsignatura(asig); setMenuAbierto(false); }}>
+                    <TexturaPixelArt />
+                    <View style={styles.tarjetaBrilloCarrusel} />
+                    <View style={{ position: 'absolute', right: -15, bottom: -15, opacity: 0.12, zIndex: 0 }}>
+                       {asig.id === '1' && <Activity size={42} color="#FFFFFF" />}
+                       {asig.id === '2' && <Beaker size={42} color="#FFFFFF" />}
+                       {asig.id === '3' && <Users size={42} color="#FFFFFF" />}
+                    </View>
+                    <View style={[styles.iconoCarrusel, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
                       <asig.Icono />
                     </View>
-                    <View style={{ flex: 1, justifyContent: 'center' }}>
+                    <View style={{ flex: 1, justifyContent: 'flex-end', zIndex: 10 }}>
                       <Texto style={styles.textoCarruselTitulo}>{asig.titulo}</Texto>
-                      <Texto style={styles.textoCarruselDesc} numberOfLines={1}>Cambiar materia</Texto>
                     </View>
                   </Pressable>
                 ))}
@@ -119,6 +125,7 @@ export function InicioPantalla() {
     </View>
   );
 }
+
 
 
 
@@ -210,33 +217,35 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   tarjetaCarrusel: {
-    backgroundColor: 'rgba(255, 255, 255, 0.4)',
+    
     borderRadius: 16,
-    width: 140,
-    height: 100,
-    padding: 10,
+    width: 120,
+    height: 90,
+    padding: 12,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.6)',
-    flexDirection: 'row',
+    flexDirection: 'column',
+    justifyContent: 'space-between',
   },
   iconoCarrusel: {
-    width: 32,
-    height: 32,
-    borderRadius: 10,
+    width: 28,
+    height: 28,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 8,
+    marginBottom: 6,
   },
   textoCarruselTitulo: {
-    fontSize: 12,
+    fontSize: 11,
     fontFamily: 'MontserratAlternates-Bold',
-    color: '#34312E',
+    color: '#FFFFFF',
+    lineHeight: 13,
   },
   textoCarruselDesc: {
-    fontSize: 9,
+    fontSize: 8.5,
     fontFamily: 'MontserratAlternates-Medium',
-    color: '#555',
-    marginTop: 2,
+    color: 'rgba(255,255,255,0.8)',
+    marginTop: 1,
   },
   navbarFila: {
     flexDirection: 'row',
@@ -264,6 +273,15 @@ const styles = StyleSheet.create({
     right: 0,
     height: 100,
     borderRadius: 24,
+  },
+  tarjetaBrilloCarrusel: {
+    position: 'absolute',
+    top: -62,
+    left: -50,
+    height: 280,
+    width: 35,
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+    transform: [{ rotate: '45deg' }],
   },
   tarjetaBrillo: {
     position: 'absolute',

@@ -2,7 +2,7 @@
 
 ## Estado
 
-La primera migracion definida es `migrations/20260903_01_plataforma_privacidad_catalogo.sql`. Este documento describe el contrato esperado despues de ejecutarla; no sustituye una inspeccion real de Supabase ni el Security Advisor.
+Las migraciones `01` a `06` están aplicadas en el proyecto remoto. La migración `06` crea el núcleo de Senderos de Estudio; su documentación específica está en `senderos.md`. Este documento no sustituye una inspección real de Supabase ni el Security Advisor.
 
 ## Separacion de Schemas
 
@@ -40,10 +40,17 @@ privacidad  -> datos sensibles, auditoria y funciones privilegiadas
 | 03 | `20260903_03_conceder_acceso_tablas_publicas.sql` | Privilegios SQL mínimos de la Data API; RLS conserva el control por fila. |
 | 04 | `20260903_04_conceder_operacion_service_role.sql` | Privilegios SQL de servidor para Edge Functions y procesos internos. |
 | 05 | `20260903_05_enriquecer_aceptaciones_legales.sql` | Metadatos del documento en aceptaciones legales para la UI autenticada. |
-| 06 | Pendiente | Caminos, secciones, nodos, fuentes y conceptos. |
+| 06 | `20260905_06_senderos_nucleo_estudio.sql` | Metas, senderos, secciones, nodos, conexiones, cofres y propuestas privadas de Aby. Fuentes y conceptos siguen pendientes. |
 | 07 | Pendiente | Lecciones, intentos, dominio, repaso y evaluaciones. |
 | 08 | Pendiente | Hoy, agenda y cola de notificaciones. |
 | 09 | Pendiente | Aby, plantillas, cofres y entitlements futuros. |
+
+## Estado remoto verificado
+
+- `categorias_producto` existe y `estudio` está activa.
+- Existen `metas`, `senderos`, `sendero_niveles`, `sendero_nodos`, `sendero_conexiones`, `sendero_cofres`, `aby_propuestas` y `aby_generation_locks`.
+- `supabase/tests/03_senderos_nucleo_remoto.mjs` confirma que esas tablas responden mediante la API.
+- El historial interno `supabase_migrations.schema_migrations` no refleja las migraciones locales `01` a `06`, porque fueron aplicadas fuera de Supabase CLI. Debe repararse antes de usar `supabase db push`.
 
 ## Ejecucion Manual
 
@@ -70,4 +77,4 @@ privacidad  -> datos sensibles, auditoria y funciones privilegiadas
 
 ## Proximo Paso
 
-Antes de construir una pantalla de Configuración definitiva, crear un pequeño flujo interno de smoke test autenticado para estas RPCs. Ese flujo valida el contrato real de Supabase y luego se transforma en la UI de privacidad de producto.
+Crear la aceptacion transaccional de una propuesta de Aby. Debe convertir una propuesta validada en meta semilla, sendero, una seccion de cinco lecciones, una evaluacion y su cofre; solo despues de esa transaccion la UI puede presentar el sendero como activo.

@@ -13,7 +13,7 @@ Lestinaty crea caminos guiados para dominar un tema. El primer producto activo e
 - Una `vision` es un horizonte grande y opcional, por ejemplo "Aprobar Medicina en 2027". Agrupa metas; nunca obliga a completar un formulario largo.
 - Una `meta` es un resultado de aprendizaje, por ejemplo "Dominar Anatomia basica". Si la persona crea un solo camino, el servidor crea una meta semilla y la UI puede ocultarla.
 - Un `sendero` conserva el nombre tecnico y visual de camino. Pertenece a una meta y tiene una unica categoria activa: `estudio`.
-- Un `sendero_nivel` se presenta como **seccion**, no como nivel competitivo. En el MVP una seccion tiene exactamente siete nodos de aprendizaje y un nodo final de evaluacion.
+- Un `sendero_nivel` se presenta como **seccion**, no como nivel competitivo. En el MVP una seccion tiene exactamente cinco nodos de aprendizaje y un nodo final de evaluacion.
 - Un `sendero_nodo` representa una leccion, practica, repaso o evaluacion. No es una tarea generica ni puede marcarse completado sin el resultado validado de su leccion.
 
 La categoria se conserva en `senderos` y los recursos de diseno la heredan desde alli. `categorias_producto` contiene `estudio` activa y las futuras categorias con `estado = proximamente`; ningun cliente puede crear un sendero fuera de una categoria activa.
@@ -39,7 +39,7 @@ Un nodo usa de tres a seis bloques y declara concepto, objetivo, dificultad, fue
 
 `conceptos_aprendizaje` y `dominio_concepto_usuario` separan el contenido del dominio de cada usuario. Un resultado aprobado aumenta el dominio; un resultado insuficiente crea de uno a tres nodos de recuperacion o una entrada en `cola_repaso`, nunca castiga con vidas. La cola usa repeticion espaciada y se alimenta desde intentos, no desde una mutacion de UI.
 
-Cada seccion tiene siete nodos de aprendizaje y una evaluacion de seccion. La primera evaluacion cubre su propia seccion. Las posteriores se componen principalmente de la seccion actual y agregan preguntas de conceptos previos con dominio bajo. Un examen fallido abre recuperacion y genera variantes equivalentes, no la misma bateria de preguntas.
+Cada seccion tiene cinco nodos de aprendizaje y una evaluacion de seccion. La primera evaluacion cubre su propia seccion. Las posteriores se componen principalmente de la seccion actual y agregan preguntas de conceptos previos con dominio bajo. Un examen fallido abre recuperacion y genera variantes equivalentes, no la misma bateria de preguntas.
 
 ## Hoy, sesiones y notificaciones
 
@@ -53,7 +53,7 @@ Los avisos del MVP son `hoy_sesion_proxima`, `hoy_sesion_inicio`, `hoy_repaso_pe
 
 Aby genera una propuesta temporal y confirmable de meta, camino, secciones, nodos y `lesson_pack`. Una aceptacion transaccional crea el contenido inmutable activo. Aby puede proponer recuperacion o replanificacion, pero no completar nodos, programar sesiones ni modificar progreso sin confirmacion humana.
 
-Las gemas se obtienen al aprobar una seccion por primera vez: un cofre de diez gemas se vincula a su evaluacion y puede reclamarse una sola vez por usuario. `movimientos_gemas` continua siendo un ledger append-only; ningun cliente modifica saldo. Las gemas no desbloquean lecciones, respuestas correctas ni aprobados.
+Las gemas se obtienen al aprobar una seccion por primera vez: un cofre de diez gemas se vincula a su evaluacion y puede reclamarse una sola vez por usuario. El cofre es una recompensa asociada a la evaluacion, no un nodo de aprendizaje. `movimientos_gemas` continua siendo un ledger append-only; ningun cliente modifica saldo. Las gemas no desbloquean lecciones, respuestas correctas ni aprobados.
 
 El producto gratuito permite crear y completar el primer camino activo. Una futura suscripcion Pro concede multiples caminos activos, generacion o adaptacion adicional, simulacros, mas contexto para Aby y capacidad de fuentes ampliada. Los creditos de gemas solo cubren acciones opcionales como regenerar una seccion o un simulacro adicional. Cualquier venta digital en iOS o Android se valida exclusivamente con StoreKit o Google Play Billing desde servidor.
 

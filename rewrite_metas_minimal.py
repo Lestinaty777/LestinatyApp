@@ -1,4 +1,7 @@
-import React from 'react';
+import os
+
+with open('src/modulos/metas/pantallas/MetasPantalla.tsx', 'w') as f:
+    f.write("""import React from 'react';
 import { View, StyleSheet, ScrollView, Image, Pressable, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Texto } from '../../../diseno';
@@ -90,21 +93,20 @@ const styles = StyleSheet.create({
   
   cabecera: { paddingHorizontal: 24, marginBottom: 40 },
   etiquetaSuperior: { fontSize: 11, fontFamily: 'Montserrat-Bold', color: '#888', letterSpacing: 2, marginBottom: 12 },
-  titulo: { fontSize: 40, fontFamily: 'Montserrat-Medium', color: '#111', letterSpacing: -1, marginBottom: 24, lineHeight: 44 },
+  titulo: { fontSize: 48, fontFamily: 'Montserrat-Medium', color: '#111', letterSpacing: -2, marginBottom: 24 },
   lineaDivisoria: { height: 1, backgroundColor: '#E5E5E5', width: '100%' },
   
   // Exhibición (Hero)
   exhibicionContenedor: { paddingHorizontal: 24, marginBottom: 48 },
   lienzo: { 
-    height: 260, 
+    height: 280, 
     backgroundColor: '#F0EFEA', 
     justifyContent: 'center', 
     alignItems: 'center',
     marginBottom: 24,
-    borderRadius: 8,
-    overflow: 'hidden'
+    borderRadius: 2
   },
-  heroArbol: { width: '80%', height: '80%', zIndex: 2 },
+  heroArbol: { width: 220, height: 220, zIndex: 2 },
   pedestalLinea: { 
     position: 'absolute', 
     bottom: 40, 
@@ -142,7 +144,7 @@ const styles = StyleSheet.create({
   
   columnaInfo: { flex: 1, justifyContent: 'center' },
   filaTitulo: { fontSize: 16, fontFamily: 'Montserrat-Bold', color: '#111', marginBottom: 6 },
-  filaSubtitulo: { fontSize: 13, fontFamily: 'Montserrat-Medium', color: '#888', flexWrap: 'wrap' },
+  filaSubtitulo: { fontSize: 13, fontFamily: 'Montserrat-Medium', color: '#888' },
   
   columnaAcento: { width: 40, alignItems: 'flex-end', justifyContent: 'center' },
   indicadorEstado: { width: 12, height: 12, borderRadius: 6 },
@@ -150,9 +152,9 @@ const styles = StyleSheet.create({
   // FAB
   fab: { 
     position: 'absolute', 
-    right: 20, 
-    width: 60, 
-    height: 60, 
+    right: 24, 
+    width: 64, 
+    height: 64, 
     backgroundColor: '#111', 
     borderRadius: 32, 
     justifyContent: 'center', 
@@ -164,3 +166,4 @@ const styles = StyleSheet.create({
     elevation: 10
   },
 });
+""")

@@ -1,0 +1,10 @@
+<svg width="300" height="300" viewBox="0 0 300 300" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <pattern id="pat15" width="60" height="60" patternUnits="userSpaceOnUse">
+      <circle cx="30" cy="30" r="8" fill="none" stroke="#ffffff" stroke-width="2.2" opacity="0.7"/>
+      <circle cx="30" cy="30" r="16" fill="none" stroke="#ffffff" stroke-width="2.2" opacity="0.4"/>
+    </pattern>
+  </defs>
+  <rect x="0" y="0" width="300" height="300" fill="#D6407A"/>
+  <rect x="0" y="0" width="300" height="300" fill="url(#pat15)"/>
+</svg>

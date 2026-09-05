@@ -14,6 +14,15 @@
 | `responsables_privacidad` | Contacto público de privacidad. | Lectura de filas activas. |
 | `catalogo_notificaciones` | Tipos seguros de avisos permitidos. | Lectura de filas activas. |
 | `preferencias_notificacion_usuario` | Preferencias por aviso, anticipación y ventana silenciosa. | Leer y actualizar solo las propias filas. |
+| `metas` | Resultado de aprendizaje privado que agrupa uno o más senderos. | La persona administra solo sus propias metas. |
+| `senderos` | Camino de estudio persistente, creado desde una propuesta confirmada. | Lectura solo si pertenece a una meta propia. |
+| `sendero_niveles` | Secciones ordenadas de un sendero. | Lectura por la cadena sendero -> meta propia. |
+| `sendero_nodos` | Cinco lecciones y una evaluación por sección activa. | Lectura por la cadena sección -> sendero -> meta propia. |
+| `sendero_conexiones` | Relaciones dirigidas entre nodos del mismo sendero. | Lectura solo dentro de senderos propios. |
+| `sendero_cofres` | Cofre de recompensa asociado a la evaluación de cada sección. | Lectura solo dentro de senderos propios. |
+| `aby_propuestas` | Propuestas privadas y confirmables generadas por Aby. | Lectura solo de propuestas propias. |
+
+La estructura, invariantes y flujo de creación de estas tablas se documentan en `supabase/senderos.md`.
 
 ## RPCs Públicas
 
@@ -33,4 +42,5 @@
 - Las RPCs públicas usan `security invoker`; no poseen privilegios elevados.
 - No crear funciones `security definer` nuevas en `public`.
 - Las nuevas tablas de camino, lección y progreso solo se exponen en `public` si la UI necesita consultarlas directamente y tienen RLS revisado.
+- El cliente no inserta ni activa senderos, secciones, nodos, conexiones, cofres ni propuestas. Esas mutaciones se harán desde una Edge Function o RPC transaccional de servidor.
 - La app nunca usa `service_role`.

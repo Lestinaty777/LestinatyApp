@@ -1,0 +1,10 @@
+<svg width="300" height="300" viewBox="0 0 300 300" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <pattern id="pat10" width="56" height="34" patternUnits="userSpaceOnUse">
+      <path d="M0,10 L28,26 L56,10" fill="none" stroke="#ffffff" stroke-width="2.4" opacity="0.75"/>
+      <path d="M0,26 L28,42 L56,26" fill="none" stroke="#ffffff" stroke-width="2.4" opacity="0.4"/>
+    </pattern>
+  </defs>
+  <rect x="0" y="0" width="300" height="300" fill="#D6407A"/>
+  <rect x="0" y="0" width="300" height="300" fill="url(#pat10)"/>
+</svg>

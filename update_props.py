@@ -1,21 +1,12 @@
 import re
 
-with open('/home/arch-i7/Proyects/app/src/modulos/senderos/paginas/analisis/rutinas/RutinasAnalisis.tsx', 'r') as f:
-    rcode = f.read()
+with open('/home/arch-i7/Proyects/app/src/modulos/senderos/componentes/lecciones/registroLecciones.tsx', 'r') as f:
+    content = f.read()
 
-props_type = """
-export type RutinasAnalisisProps = {
-  datos: any;
-  acento: string;
-  itemsCargados: number;
-  senderoFiltro: any;
-};
+content = content.replace(
+    "export type WidgetLeccionProps<T = any> = {\n  paso: PasoLeccion<T>;\n  onCompletado: (exito: boolean) => void;\n};",
+    "export type WidgetLeccionProps<T = any> = {\n  paso: PasoLeccion<T>;\n  onCompletado: (exito: boolean) => void;\n  color: string;\n};"
+)
 
-export function RutinasAnalisis({ acento }: RutinasAnalisisProps) {
-"""
-
-rcode = rcode.replace("export function RutinasAnalisis() {\n  const acento = '#00B4D8';", props_type)
-
-with open('/home/arch-i7/Proyects/app/src/modulos/senderos/paginas/analisis/rutinas/RutinasAnalisis.tsx', 'w') as f:
-    f.write(rcode)
-
+with open('/home/arch-i7/Proyects/app/src/modulos/senderos/componentes/lecciones/registroLecciones.tsx', 'w') as f:
+    f.write(content)

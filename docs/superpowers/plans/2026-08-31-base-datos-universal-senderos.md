@@ -14,7 +14,7 @@
 
 - `estudio` es la unica categoria activa; futuras categorias existen solo como catalogo `proximamente`.
 - Cada sendero tiene una meta de aprendizaje. El servidor crea una meta semilla cuando la persona no desea configurar una vision.
-- Una seccion contiene siete nodos de aprendizaje y una evaluacion final; cada cofre de seccion paga diez gemas una sola vez tras aprobarla.
+- Una seccion contiene cinco nodos de aprendizaje y una evaluacion final; cada cofre de seccion paga diez gemas una sola vez tras aprobarla.
 - `lesson_pack` es versionado, validado y renderizado mediante bloques permitidos; Expo nunca interpreta instrucciones libres de IA.
 - Ningun resultado de leccion, dominio, cofre, gemas o programacion se modifica directamente desde Expo.
 - Las fuentes son privadas, requieren declaracion de derecho de uso y no se reutilizan para plantillas ni contenido publico.
@@ -54,11 +54,11 @@ Aplicar RLS a toda tabla personal y no agregar `privacidad` a schemas expuestos.
 
 - [ ] **Step 1: Escribir prueba de jerarquia y categoria activa**
 
-Crear una prueba Zod que rechace un camino sin `metaId`, una seccion sin siete nodos de aprendizaje mas evaluacion y un camino creado con categoria `proximamente`.
+Crear una prueba Zod que rechace un camino sin `metaId`, una seccion sin cinco nodos de aprendizaje mas evaluacion y un camino creado con categoria `proximamente`.
 
 - [ ] **Step 2: Crear el nucleo de aprendizaje**
 
-Crear `visiones`, `metas`, `senderos`, `sendero_niveles`, `sendero_nodos`, `sendero_conexiones`, `usuario_nodo_progreso` y `sendero_eventos`. `metas.vision_id` es nullable; `senderos.meta_id` no lo es. `senderos.categoria_codigo` referencia `categorias_producto` y un trigger exige `estado = activa`. `sendero_niveles` usa `tipo = seccion` y numero unico por sendero. Un trigger exige siete nodos de tipo aprendizaje y uno de tipo evaluacion antes de activar una seccion; activar contenido lo vuelve inmutable.
+Crear `visiones`, `metas`, `senderos`, `sendero_niveles`, `sendero_nodos`, `sendero_conexiones`, `usuario_nodo_progreso` y `sendero_eventos`. `metas.vision_id` es nullable; `senderos.meta_id` no lo es. `senderos.categoria_codigo` referencia `categorias_producto` y un trigger exige `estado = activa`. `sendero_niveles` usa `tipo = seccion` y numero unico por sendero. Un trigger exige cinco nodos de tipo aprendizaje y uno de tipo evaluacion antes de activar una seccion; activar contenido lo vuelve inmutable.
 
 - [ ] **Step 3: Crear fuentes y conceptos**
 

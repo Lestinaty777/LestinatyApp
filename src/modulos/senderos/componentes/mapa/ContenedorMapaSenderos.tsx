@@ -1,5 +1,6 @@
 import React, { useMemo, useRef, useState } from 'react';
 import { Animated, Image, ScrollView, StyleSheet, useWindowDimensions, View, Pressable, TouchableWithoutFeedback } from 'react-native';
+import { useRouter } from 'expo-router';
 import Svg, { Path, Rect, Defs, Pattern } from 'react-native-svg';
 
 import { Texto } from '../../../../diseno';
@@ -52,6 +53,7 @@ const MosaicoTooltip = () => (
 
 export function ContenedorMapaSenderos({ altura, categoriaId, color, enfocado, subcategoriaId }: ContenedorMapaSenderosProps) {
   const { width } = useWindowDimensions();
+  const router = useRouter();
   const scrollRef = useRef<ScrollView>(null);
   const [anchoMapa, setAnchoMapa] = useState(0);
   const nodos = obtenerNodosMapaMock(subcategoriaId);
@@ -89,6 +91,10 @@ export function ContenedorMapaSenderos({ altura, categoriaId, color, enfocado, s
   }
 
   function completarNodo(indice: number) {
+    // MOCKUP: Al darle comenzar, navegamos a la pantalla de lección para ver el SDUI
+    router.push({ pathname: '/senderos/leccion', params: { color } });
+    return;
+
     if (indice !== indiceNodoActual || indice >= nodos.length - 1) return;
 
     setUltimoCompletado(indice);
