@@ -3,125 +3,156 @@ import re
 with open('/home/arch-i7/Proyects/app/src/modulos/inicio/pantallas/InicioPantalla.tsx', 'r') as f:
     content = f.read()
 
-# Modify BotonAccion
-boton_old = """  const BotonAccion = ({ Icono, etiqueta }: { Icono: any, etiqueta: string }) => (
-    <Pressable 
-      style={({ pressed }) => [styles.botonAccion, pressed && styles.botonAccionPresionado]}
-      onPress={() => hapticSeguro('seleccion')}
-    >
-      <View style={styles.iconoContenedor}>
-        <Icono color={biomas.inicio.MasterColor} size={24} strokeWidth={2.5} />
-      </View>
-      <Texto style={styles.etiquetaBoton}>{etiqueta}</Texto>
-    </Pressable>
-  );"""
-boton_new = """  const BotonAccion = ({ Icono }: { Icono: any }) => (
-    <Pressable 
-      style={({ pressed }) => [styles.botonAccion, pressed && styles.botonAccionPresionado]}
-      onPress={() => hapticSeguro('seleccion')}
-    >
-      <Icono color={colores.textoSecundario} size={24} strokeWidth={2.5} />
-    </Pressable>
-  );"""
-content = content.replace(boton_old, boton_new)
+# 1. Update the state and animation logic
+old_logic = """  const [menuAbierto, setMenuAbierto] = React.useState(false);
+  const animMenu = useSharedValue(0);
+  
+  const ASIGNATURAS = ["""
 
-# Modify layout
-layout_old = """        {/* Espacio superior libre (20%) con los accesos directos */}
-        <View style={styles.espacioSuperior}>
-          <View style={styles.barraAcciones}>
-            <BotonAccion Icono={Book} etiqueta="Apuntes" />
-            <BotonAccion Icono={Calendar} etiqueta="Agenda" />
-            <BotonAccion Icono={Sparkles} etiqueta="Repaso IA" />
-            <BotonAccion Icono={Store} etiqueta="Tienda" />
+new_logic = """  const [menuAbierto, setMenuAbierto] = React.useState(false);
+  const animMenu = useSharedValue(0);
+  
+  const ASIGNATURAS = ["""
+# wait, actually let's just replace animMenu logic
+old_anim = """  React.useEffect(() => {
+    animMenu.value = withSpring(menuAbierto ? 1 : 0, { damping: 15, stiffness: 120 });
+  }, [menuAbierto]);
+
+  const animMenuEstilos = useAnimatedStyle(() => ({
+    opacity: animMenu.value,
+    transform: [
+      { translateY: -20 * (1 - animMenu.value) },
+      { scale: 0.95 + 0.05 * animMenu.value }
+    ],
+  }));"""
+
+new_anim = """  React.useEffect(() => {
+    animMenu.value = withSpring(menuAbierto ? 1 : 0, { damping: 16, stiffness: 100 });
+  }, [menuAbierto]);
+
+  const animNavbarEstilos = useAnimatedStyle(() => ({
+    height: 62 + 130 * animMenu.value,
+  }));
+
+  const animContenidoEstilos = useAnimatedStyle(() => ({
+    opacity: animMenu.value,
+    transform: [
+      { translateY: -10 * (1 - animMenu.value) },
+    ],
+  }));"""
+content = content.replace(old_anim, new_anim)
+
+# 2. Update the JSX for the navbar
+old_jsx = """        <View style={{ zIndex: 10 }}>
+          <View style={styles.navbarContenedor}>
+            <FondoTabsGlass />
+            <View style={styles.navbarFila}>
+              <BotonTab onPress={() => setMenuAbierto(!menuAbierto)}><IconoTab nombre="top_book" focused={menuAbierto} /></BotonTab>
+              <BotonTab><IconoTab nombre="top_calendar" focused={false} /></BotonTab>
+              <BotonTab><IconoTab nombre="top_sparkle" focused={false} /></BotonTab>
+              <BotonTab><IconoTab nombre="top_store" focused={false} /></BotonTab>
+            </View>
           </View>
+
+          {/* Menú Desplegable de Asignaturas */}
+          <Animated.View pointerEvents={menuAbierto ? 'auto' : 'none'} style={[styles.menuDesplegable, animMenuEstilos]}>
+            <RecuadroGlass blur intensity={60} style={styles.menuDesplegableInterior}>
+              {ASIGNATURAS.map(asig => (
+                <Pressable key={asig.id} style={styles.opcionMenu} onPress={() => { hapticSeguro('seleccion'); setAsignatura(asig); setMenuAbierto(false); }}>
+                  <View style={[styles.iconoOpcionMenu, { backgroundColor: asig.color }]}>
+                    <asig.Icono />
+                  </View>
+                  <Texto style={styles.textoOpcionMenu}>{asig.titulo}</Texto>
+                </Pressable>
+              ))}
+            </RecuadroGlass>
+          </Animated.View>
         </View>"""
-layout_new = """        {/* Barra de Navegación Superior */}
-        <View style={styles.navbarSuperior}>
-          <BotonAccion Icono={Book} />
-          <BotonAccion Icono={Calendar} />
-          <BotonAccion Icono={Sparkles} />
-          <BotonAccion Icono={Store} />
-        </View>
-        
-        {/* Espacio que empuja el mapa hacia abajo para respetar el 80% */}
-        <View style={styles.espacioFlexible} />"""
-content = content.replace(layout_old, layout_new)
 
-# Modify styles
-styles_old = """  espacioSuperior: {
-    flex: 0.2, 
-    justifyContent: 'center',
-    paddingHorizontal: 20,
-  },
-  barraAcciones: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  botonAccion: {
-    alignItems: 'center',
-    gap: 6,
-  },
-  botonAccionPresionado: {
-    opacity: 0.7,
-    transform: [{ scale: 0.95 }],
-  },
-  iconoContenedor: {
-    backgroundColor: '#FFFFFF',
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 4, // Para Android
-  },
-  etiquetaBoton: {
-    fontFamily: 'MontserratAlternates-SemiBold',
-    fontSize: 10,
-    color: colores.textoSecundario,
+new_jsx = """        <View style={{ zIndex: 10 }}>
+          <Animated.View style={[styles.navbarContenedor, animNavbarEstilos, { overflow: 'hidden' }]}>
+            <FondoTabsGlass />
+            <View style={styles.navbarFila}>
+              <BotonTab onPress={() => setMenuAbierto(!menuAbierto)}><IconoTab nombre="top_book" focused={menuAbierto} /></BotonTab>
+              <BotonTab><IconoTab nombre="top_calendar" focused={false} /></BotonTab>
+              <BotonTab><IconoTab nombre="top_sparkle" focused={false} /></BotonTab>
+              <BotonTab><IconoTab nombre="top_store" focused={false} /></BotonTab>
+            </View>
+
+            <Animated.View pointerEvents={menuAbierto ? 'auto' : 'none'} style={[{ flex: 1 }, animContenidoEstilos]}>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.carruselSenderos} style={{ flex: 1 }}>
+                {ASIGNATURAS.map(asig => (
+                  <Pressable key={asig.id} style={({pressed}) => [styles.tarjetaCarrusel, pressed && { opacity: 0.8, transform: [{ scale: 0.98 }] }]} onPress={() => { hapticSeguro('seleccion'); setAsignatura(asig); setMenuAbierto(false); }}>
+                    <View style={[styles.iconoCarrusel, { backgroundColor: asig.color }]}>
+                      <asig.Icono />
+                    </View>
+                    <View style={{ flex: 1, justifyContent: 'center' }}>
+                      <Texto style={styles.textoCarruselTitulo}>{asig.titulo}</Texto>
+                      <Texto style={styles.textoCarruselDesc} numberOfLines={1}>Cambiar materia</Texto>
+                    </View>
+                  </Pressable>
+                ))}
+              </ScrollView>
+            </Animated.View>
+          </Animated.View>
+        </View>"""
+content = content.replace(old_jsx, new_jsx)
+
+# 3. Add styles
+old_styles = """  navbarContenedor: {
+    height: 62,
+    marginHorizontal: 20,
+    marginTop: 10,
+    marginBottom: 5,
   },"""
-styles_new = """  navbarSuperior: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    backgroundColor: '#FFFFFF',
-    marginHorizontal: 16,
-    marginTop: 8,
+new_styles = """  navbarContenedor: {
+    marginHorizontal: 20,
+    marginTop: 10,
+    marginBottom: 5,
     borderRadius: 20,
-    // Sombra sutil para que resalte del gris claro
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
-    elevation: 2,
   },
-  espacioFlexible: {
-    flex: 1, // Toma todo el espacio restante hasta empujar la capaMapa
+  carruselSenderos: {
+    paddingHorizontal: 15,
+    gap: 12,
+    alignItems: 'center',
   },
-  botonAccion: {
-    padding: 8, // Aumenta el area táctil
+  tarjetaCarrusel: {
+    backgroundColor: 'rgba(255, 255, 255, 0.4)',
+    borderRadius: 16,
+    width: 140,
+    height: 100,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.6)',
   },
-  botonAccionPresionado: {
-    opacity: 0.5,
-    transform: [{ scale: 0.9 }],
+  iconoCarrusel: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+  textoCarruselTitulo: {
+    fontSize: 12,
+    fontFamily: 'MontserratAlternates-Bold',
+    color: '#34312E',
+  },
+  textoCarruselDesc: {
+    fontSize: 9,
+    fontFamily: 'MontserratAlternates-Medium',
+    color: '#555',
+    marginTop: 2,
   },"""
-content = content.replace(styles_old, styles_new)
 
-# Replace flex: 0.8 in capaMapa to just be fixed height since we are using flex: 1 for the space
-content = content.replace("""  capaMapa: {
-    flex: 0.8, 
-    overflow: 'hidden',
-  }""", """  capaMapa: {
-    height: '80%', // Forzamos el 80% de altura estricto
-    overflow: 'hidden',
-  }""")
+content = content.replace(old_styles, new_styles)
 
+# Remove old menuDesplegable styles
+content = re.sub(r'  menuDesplegable: \{.*?\},\n', '', content, flags=re.DOTALL)
+content = re.sub(r'  menuDesplegableInterior: \{.*?\},\n', '', content, flags=re.DOTALL)
+content = re.sub(r'  opcionMenu: \{.*?\},\n', '', content, flags=re.DOTALL)
+content = re.sub(r'  iconoOpcionMenu: \{.*?\},\n', '', content, flags=re.DOTALL)
+content = re.sub(r'  textoOpcionMenu: \{.*?\},\n', '', content, flags=re.DOTALL)
 
 with open('/home/arch-i7/Proyects/app/src/modulos/inicio/pantallas/InicioPantalla.tsx', 'w') as f:
     f.write(content)

@@ -17,18 +17,11 @@ type Props = {
 
 export function PreguntaVisualAby({ acento = '#141414', categoria = null, pregunta, seleccionado, onSeleccionar }: Props) {
   const colorActivo = { backgroundColor: acento, borderColor: acento };
-  if (pregunta.tipo === 'dias') {
-    const seleccionados = Array.isArray(seleccionado) ? seleccionado : [];
+  if (pregunta.tipo === 'texto') {
     return (
-      <View style={styles.raiz}><ArbolLateralTurnoAby categoria={categoria} />
+      <View style={styles.raiz}>
+        <ArbolLateralTurnoAby categoria={categoria} />
         <Texto style={styles.titulo}>{pregunta.titulo}</Texto>
-        <View style={styles.dias}>
-          {dias.map((dia, indice) => {
-            const valor = String(indice + 1);
-            const activo = seleccionados.includes(valor);
-            return <Pressable accessibilityLabel={`Dia ${dia}`} accessibilityRole="button" accessibilityState={{ selected: activo }} key={dia} onPress={() => { hapticSeguro('seleccion'); onSeleccionar(activo ? seleccionados.filter((item) => item !== valor) : [...seleccionados, valor]); }} style={[styles.dia, activo && colorActivo]}><Texto style={[styles.diaTexto, activo && styles.diaTextoActivo]}>{dia}</Texto></Pressable>;
-          })}
-        </View>
       </View>
     );
   }

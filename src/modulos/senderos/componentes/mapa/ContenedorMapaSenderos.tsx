@@ -1,10 +1,10 @@
 import React, { useMemo, useRef, useState } from 'react';
 import { Animated, Image, ScrollView, StyleSheet, useWindowDimensions, View, Pressable, TouchableWithoutFeedback } from 'react-native';
-import Svg, { Path, Rect } from 'react-native-svg';
+import Svg, { Path, Rect, Defs, Pattern } from 'react-native-svg';
 
 import { Texto } from '../../../../diseno';
 import { crearTemaMapa, generarMapaProcedural, type CategoriaMapaId } from '../../algoritmo/mapaProcedural';
-import { obtenerAssetBioma } from '../../algoritmo/registroBiomas';
+import { obtenerAssetBioma, registroBiomas } from '../../algoritmo/registroBiomas';
 import { obtenerNodosMapaMock } from '../../datos/mapaEjercicio.mock';
 import { PixelartIcon } from '../../../../diseno/iconos/PixelartIcon';
 import { CaminoHojasSendero } from './CaminoHojasSendero';
@@ -31,6 +31,24 @@ function oscurecer(color: string, factor = 0.7) {
   const canal = (inicio: number) => Math.round(parseInt(hex.slice(inicio, inicio + 2), 16) * factor).toString(16).padStart(2, '0');
   return `#${canal(0)}${canal(2)}${canal(4)}`;
 }
+
+
+const MosaicoTooltip = () => (
+  <View style={StyleSheet.absoluteFill} pointerEvents="none">
+    <Svg width="100%" height="100%">
+      <Defs>
+        <Pattern id="ditherMosaico" patternUnits="userSpaceOnUse" width="8" height="8">
+          <Rect x="4" y="0" width="4" height="4" fill="#000000" opacity="0.04" />
+          <Rect x="0" y="4" width="4" height="4" fill="#000000" opacity="0.04" />
+          <Rect x="0" y="0" width="4" height="4" fill="#FFFFFF" opacity="0.05" />
+          <Rect x="4" y="4" width="4" height="4" fill="#FFFFFF" opacity="0.05" />
+        </Pattern>
+      </Defs>
+      {/* Triángulo/Degradado podría ser complejo, pero un rectángulo simple cortado por un radio funciona */}
+      <Rect width="100%" height="100%" fill="url(#ditherMosaico)" />
+    </Svg>
+  </View>
+);
 
 export function ContenedorMapaSenderos({ altura, categoriaId, color, enfocado, subcategoriaId }: ContenedorMapaSenderosProps) {
   const { width } = useWindowDimensions();
@@ -100,7 +118,29 @@ export function ContenedorMapaSenderos({ altura, categoriaId, color, enfocado, s
       contentContainerStyle={[styles.contenido, { minHeight: altoContenido }]}
     >
       <TouchableWithoutFeedback onPress={() => setSeleccionado('')}>
-      <View style={[styles.escenaPerspectiva, { height: altoContenido, width: anchoEscena }]}>
+      <View style={{ height: altoContenido, width: anchoEscena }}>
+        
+        {/* Bases Isométricas decorativas a los lados (FUERA de la perspectiva 3D para evitar aplastamiento) */}
+        {(() => {
+           const assetBase = obtenerAssetBioma(categoriaId, 'base');
+           if (!assetBase) return null;
+           return (
+             <View pointerEvents="none" style={[StyleSheet.absoluteFill, { zIndex: 0 }]}>
+               {/* Bases grandes en la parte superior, más separadas */}
+               <Image source={assetBase.fuente} style={{ position: 'absolute', top: -60, left: -50, width: 240, height: 240, opacity: 0.9, resizeMode: 'contain' }} />
+               <Image source={assetBase.fuente} style={{ position: 'absolute', top: -30, right: -60, width: 260, height: 260, opacity: 0.9, resizeMode: 'contain', transform: [{ scaleX: -1 }] }} />
+               
+               {/* Bases laterales controladas */}
+               <Image source={assetBase.fuente} style={{ position: 'absolute', top: 90, left: -100, width: 200, height: 200, opacity: 0.9, resizeMode: 'contain' }} />
+               <Image source={assetBase.fuente} style={{ position: 'absolute', top: 220, right: -100, width: 220, height: 220, opacity: 0.9, resizeMode: 'contain', transform: [{ scaleX: -1 }] }} />
+               <Image source={assetBase.fuente} style={{ position: 'absolute', top: 400, left: -120, width: 240, height: 240, opacity: 0.9, resizeMode: 'contain' }} />
+               <Image source={assetBase.fuente} style={{ position: 'absolute', top: 650, right: -120, width: 220, height: 220, opacity: 0.9, resizeMode: 'contain', transform: [{ scaleX: -1 }] }} />
+               <Image source={assetBase.fuente} style={{ position: 'absolute', top: 850, left: -100, width: 200, height: 200, opacity: 0.9, resizeMode: 'contain' }} />
+             </View>
+           );
+        })()}
+
+        <View style={[styles.escenaPerspectiva, StyleSheet.absoluteFill, { zIndex: 1 }]}>
         {mapa.hojas.map((hojas, indice) => {
           if (categoriaId !== 'rutinas' && !hojasVisiblesPorNodo[indice]) return null;
           return (
@@ -196,8 +236,11 @@ export function ContenedorMapaSenderos({ altura, categoriaId, color, enfocado, s
                   return (
                 <View style={[styles.etiqueta, { left: leftEtiqueta }]}>
                   <View style={[styles.tooltipFlechita, { backgroundColor: oscurecer(color, 0.75), position: 'absolute', top: -10, left: leftFlechita }]} />
-                  <View style={[styles.tooltipCaja, { backgroundColor: oscurecer(color, 0.75) }]}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <View style={{ width: '100%' }}>
+                    <View style={[styles.tooltipCaja, { position: 'absolute', top: 6, left: 0, right: 0, bottom: -6, backgroundColor: oscurecer(color, 0.4), shadowColor: 'transparent' }]} />
+                    <View style={[styles.tooltipCaja, { backgroundColor: oscurecer(color, 0.75), overflow: 'hidden' }]}>
+                      <MosaicoTooltip />
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                       {nodo.icono && (() => { const IconoNodo = nodo.icono; return <IconoNodo color="#FFFFFF" size={20} />; })()}
                       <Texto style={[styles.etiquetaTitulo, { width: 'auto' }]}>{nodo.titulo}</Texto>
                     </View>
@@ -242,6 +285,7 @@ export function ContenedorMapaSenderos({ altura, categoriaId, color, enfocado, s
                     </Pressable>
 
                     
+                    </View>
                   </View>
                 </View>
               );})() : null}
@@ -249,7 +293,7 @@ export function ContenedorMapaSenderos({ altura, categoriaId, color, enfocado, s
           );
         })}
       </View>
-      </TouchableWithoutFeedback>
+      </View></TouchableWithoutFeedback>
 
       {nodoSeleccionado ? <View accessibilityElementsHidden style={styles.lectorOculto}><Texto>{nodoSeleccionado.titulo}</Texto></View> : null}
     </ScrollView>
@@ -296,10 +340,6 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
     alignItems: 'flex-start',
     width: '100%',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
     elevation: 10,
     position: 'relative',
     overflow: 'hidden',

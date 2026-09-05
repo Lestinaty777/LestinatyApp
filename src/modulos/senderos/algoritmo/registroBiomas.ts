@@ -18,27 +18,27 @@ const guiaIsometrica = 'isometric mobile-game scenery, isolated transparent PNG,
 
 export const registroBiomas: Record<CategoriaMapaId, ReglaBioma> = {
   rutinas: {
-    assets: [{ id: 'pino-nevado-01', fuente: require('../../../../assets/ilustraciones/senderos/biomas/arboles/pino-nevado-01.png'), nombre: 'Pino nevado' }],
+    assets: [{ id: 'base', fuente: require('../../../../assets/ilustraciones/senderos/biomas/arboles/base-rutinas.png'), nombre: 'Base Rutinas' }, { id: 'pino-nevado-01', fuente: require('../../../../assets/ilustraciones/senderos/biomas/arboles/pino-nevado-01.png'), nombre: 'Pino nevado' }],
     densidadDecoracion: 0.72,
     promptBase: `${guiaIsometrica}, cold winter biome, snow-covered pine tree, icy blue palette, cozy but calm`,
   },
   salud: {
-    assets: [{ id: 'selva-01', fuente: require('../../../../assets/ilustraciones/senderos/biomas/arboles/selva-01.png'), nombre: 'Selva profunda' }],
+    assets: [{ id: 'base', fuente: require('../../../../assets/ilustraciones/senderos/biomas/arboles/base-salud.png'), nombre: 'Base Salud' }, { id: 'selva-01', fuente: require('../../../../assets/ilustraciones/senderos/biomas/arboles/selva-01.png'), nombre: 'Selva profunda' }],
     densidadDecoracion: 0.82,
     promptBase: `${guiaIsometrica}, lush deep-green forest biome, tropical leaves, moss and natural water`,
   },
   tareas: {
-    assets: [{ id: 'bosque-dorado-01', fuente: require('../../../../assets/ilustraciones/senderos/biomas/arboles/bosque-dorado-01.png'), nombre: 'Bosque dorado' }],
+    assets: [{ id: 'base', fuente: require('../../../../assets/ilustraciones/senderos/biomas/arboles/base-tareas.png'), nombre: 'Base Tareas' }, { id: 'bosque-dorado-01', fuente: require('../../../../assets/ilustraciones/senderos/biomas/arboles/bosque-dorado-01.png'), nombre: 'Bosque dorado' }],
     densidadDecoracion: 0.68,
     promptBase: `${guiaIsometrica}, warm golden-yellow forest biome, autumn foliage, organized trail markers`,
   },
   habitos: {
-    assets: [{ id: 'arce-01', fuente: require('../../../../assets/ilustraciones/senderos/biomas/arboles/arce-01.png'), nombre: 'Arce rojo' }],
+    assets: [{ id: 'base', fuente: require('../../../../assets/ilustraciones/senderos/biomas/arboles/base-habitos.png'), nombre: 'Base Habitos' }, { id: 'arce-01', fuente: require('../../../../assets/ilustraciones/senderos/biomas/arboles/arce-01.png'), nombre: 'Arce rojo' }],
     densidadDecoracion: 0.7,
     promptBase: `${guiaIsometrica}, vivid red maple forest biome, falling leaves, disciplined autumn garden`,
   },
   relaciones: {
-    assets: [
+    assets: [{ id: 'base', fuente: require('../../../../assets/ilustraciones/senderos/biomas/arboles/base-relaciones.png'), nombre: 'Base Relaciones' }, 
       { id: 'cerezo-01', fuente: require('../../../../assets/ilustraciones/senderos/biomas/arboles/cerezo-01.png'), nombre: 'Cerezo japonés' },
       { id: 'cerezo-02', fuente: require('../../../../assets/ilustraciones/senderos/biomas/arboles/cerezo-02.png'), nombre: 'Cerezo japonés alterno' },
     ],
@@ -46,12 +46,12 @@ export const registroBiomas: Record<CategoriaMapaId, ReglaBioma> = {
     promptBase: `${guiaIsometrica}, Japanese cherry blossom biome, soft pink sakura petals, elegant garden path`,
   },
   finanzas: {
-    assets: [{ id: 'bosque-calido-01', fuente: require('../../../../assets/ilustraciones/senderos/biomas/arboles/bosque-calido-01.png'), nombre: 'Bosque cálido' }],
+    assets: [{ id: 'base', fuente: require('../../../../assets/ilustraciones/senderos/biomas/arboles/base-finanzas.png'), nombre: 'Base Finanzas' }, { id: 'bosque-calido-01', fuente: require('../../../../assets/ilustraciones/senderos/biomas/arboles/bosque-calido-01.png'), nombre: 'Bosque cálido' }],
     densidadDecoracion: 0.64,
     promptBase: `${guiaIsometrica}, warm orange woodland biome, amber foliage, subtle wealth and crafted stone details`,
   },
   estudio: {
-    assets: [{ id: 'sauce-ruinas-01', fuente: require('../../../../assets/ilustraciones/senderos/biomas/arboles/sauce-ruinas-01.png'), nombre: 'Sauce y ruinas' }],
+    assets: [{ id: 'base', fuente: require('../../../../assets/ilustraciones/senderos/biomas/arboles/base-estudio.png'), nombre: 'Base Estudio' }, { id: 'sauce-ruinas-01', fuente: require('../../../../assets/ilustraciones/senderos/biomas/arboles/sauce-ruinas-01.png'), nombre: 'Sauce y ruinas' }],
     densidadDecoracion: 0.72,
     promptBase: `${guiaIsometrica}, mystical purple biome, weeping willow, ancient carved stones and subtle ruins`,
   },

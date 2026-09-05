@@ -11,10 +11,13 @@ const corsHeaders = {
 
 const widgetIds = ['checklist-asistida', 'cronometro', 'registro', 'kanban', 'eisenhower', 'foco', 'decision', 'escala', 'contador', 'planificador-semanal'] as const;
 const configuracionSchema = z.object({
-  diasSemana: z.array(z.number().int().min(1).max(7)).max(7),
-  duracionMinutos: z.number().int().min(1).max(180).nullable(),
+  alcance: z.string().trim().max(500),
+  disponibilidadSemanal: z.enum(['2', '4', '6', '8']).nullable(),
+  fechaExamen: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable(),
+  fuente: z.string().trim().max(500),
+  intencion: z.enum(['examen', 'materia', 'habito-estudio', 'rutina-estudio']).nullable(),
+  nivelInicial: z.enum(['inicio', 'basico', 'intermedio']).nullable(),
   objetivo: z.string().trim().min(1).max(240),
-  tipo: z.enum(['ciclico', 'finito']).nullable(),
 });
 const solicitudSchema = z.object({
   configuracion: configuracionSchema,
@@ -34,7 +37,7 @@ const propuestaSchema = z.object({
   subcategoriaId: z.string().min(1).max(80),
   titulo: z.string().min(1).max(80),
 });
-const preguntaSchema = z.object({ id: z.string().min(1).max(64), opciones: z.array(z.object({ etiqueta: z.string().min(1).max(80), valor: z.string().min(1).max(80) })).max(4), tipo: z.enum(['cards', 'chips', 'dias']), titulo: z.string().min(1).max(120) });
+const preguntaSchema = z.object({ id: z.enum(['fecha-examen', 'alcance', 'fuente', 'disponibilidad-semanal', 'nivel-inicial']), opciones: z.array(z.object({ etiqueta: z.string().min(1).max(80), valor: z.string().min(1).max(80) })).max(4), placeholder: z.string().min(1).max(120).optional(), tipo: z.enum(['cards', 'chips', 'texto']), titulo: z.string().min(1).max(120) });
 const respuestaSchema = z.discriminatedUnion('tipo', [z.object({ mensaje: z.string().min(1).max(500), pregunta: preguntaSchema, tipo: z.literal('pregunta') }), z.object({ mensaje: z.string().min(1).max(500), propuesta: propuestaSchema, tipo: z.literal('propuesta') })]);
 
 function responder(status: number, cuerpo: unknown) {
@@ -69,8 +72,9 @@ Deno.serve(async (request) => {
     const timeout = setTimeout(() => abortador.abort(), 20_000);
     const instruccion = [
       'Eres Aby, guia de Lestinaty. Responde exclusivamente JSON valido.',
-      'Si falta contexto, devuelve una sola pregunta visual segura (maximo 4 opciones). Si hay suficiente contexto, devuelve una propuesta de sendero practica con 3 a 5 nodos.',
-      'Clasifica solo en rutinas, salud, tareas, habitos, relaciones, finanzas o estudio.',
+      'La intención es de estudio. Para examen, pregunta solo el siguiente dato faltante en orden: fecha ISO, alcance, fuente opcional, disponibilidad semanal y nivel inicial.',
+      'Cuando fecha, alcance, disponibilidad y nivel estén completos, devuelve una propuesta practica de 3 a 5 nodos en la categoría estudio.',
+      'No afirmes haber leído un libro ni reproduzcas texto protegido. Genera explicaciones y práctica originales.',
       'Cada actionPack debe tener exactamente un widget principal y maximo dos apoyos.',
       `Configuracion confirmada: ${JSON.stringify(solicitud.data.configuracion)}`,
       `Conversacion reciente: ${JSON.stringify(solicitud.data.historial)}`,

@@ -1,6 +1,6 @@
 import Svg, { Rect, Defs, Pattern } from 'react-native-svg';
 import React from 'react';
-import { StyleSheet, View, useWindowDimensions, Pressable } from 'react-native';
+import { StyleSheet, View, useWindowDimensions, Pressable, ScrollView } from 'react-native';
 import { BotonTab, IconoTab } from '../../../nucleo/navegacion/BarraTabs';
 import { BlurView } from 'expo-blur';
 import { PixelartIcon } from '../../../diseno/iconos/PixelartIcon';
@@ -26,14 +26,17 @@ export function InicioPantalla() {
   const [asignatura, setAsignatura] = React.useState(ASIGNATURAS[0]);
 
   React.useEffect(() => {
-    animMenu.value = withSpring(menuAbierto ? 1 : 0, { damping: 15, stiffness: 120 });
+    animMenu.value = withSpring(menuAbierto ? 1 : 0, { damping: 16, stiffness: 100 });
   }, [menuAbierto]);
 
-  const animMenuEstilos = useAnimatedStyle(() => ({
+  const animNavbarEstilos = useAnimatedStyle(() => ({
+    height: 62 + 130 * animMenu.value,
+  }));
+
+  const animContenidoEstilos = useAnimatedStyle(() => ({
     opacity: animMenu.value,
     transform: [
-      { translateY: -20 * (1 - animMenu.value) },
-      { scale: 0.95 + 0.05 * animMenu.value }
+      { translateY: -10 * (1 - animMenu.value) },
     ],
   }));
 
@@ -48,7 +51,7 @@ export function InicioPantalla() {
         
         {/* Barra de Navegación Superior */}
         <View style={{ zIndex: 10 }}>
-          <View style={styles.navbarContenedor}>
+          <Animated.View style={[styles.navbarContenedor, animNavbarEstilos, { overflow: 'hidden' }]}>
             <FondoTabsGlass />
             <View style={styles.navbarFila}>
               <BotonTab onPress={() => setMenuAbierto(!menuAbierto)}><IconoTab nombre="top_book" focused={menuAbierto} /></BotonTab>
@@ -56,20 +59,22 @@ export function InicioPantalla() {
               <BotonTab><IconoTab nombre="top_sparkle" focused={false} /></BotonTab>
               <BotonTab><IconoTab nombre="top_store" focused={false} /></BotonTab>
             </View>
-          </View>
 
-          {/* Menú Desplegable de Asignaturas */}
-          <Animated.View pointerEvents={menuAbierto ? 'auto' : 'none'} style={[styles.menuDesplegable, animMenuEstilos]}>
-            <RecuadroGlass blur intensity={60} style={styles.menuDesplegableInterior}>
-              {ASIGNATURAS.map(asig => (
-                <Pressable key={asig.id} style={styles.opcionMenu} onPress={() => { hapticSeguro('seleccion'); setAsignatura(asig); setMenuAbierto(false); }}>
-                  <View style={[styles.iconoOpcionMenu, { backgroundColor: asig.color }]}>
-                    <asig.Icono />
-                  </View>
-                  <Texto style={styles.textoOpcionMenu}>{asig.titulo}</Texto>
-                </Pressable>
-              ))}
-            </RecuadroGlass>
+            <Animated.View pointerEvents={menuAbierto ? 'auto' : 'none'} style={[{ flex: 1 }, animContenidoEstilos]}>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.carruselSenderos} style={{ flex: 1 }}>
+                {ASIGNATURAS.map(asig => (
+                  <Pressable key={asig.id} style={({pressed}) => [styles.tarjetaCarrusel, pressed && { opacity: 0.8, transform: [{ scale: 0.98 }] }]} onPress={() => { hapticSeguro('seleccion'); setAsignatura(asig); setMenuAbierto(false); }}>
+                    <View style={[styles.iconoCarrusel, { backgroundColor: asig.color }]}>
+                      <asig.Icono />
+                    </View>
+                    <View style={{ flex: 1, justifyContent: 'center' }}>
+                      <Texto style={styles.textoCarruselTitulo}>{asig.titulo}</Texto>
+                      <Texto style={styles.textoCarruselDesc} numberOfLines={1}>Cambiar materia</Texto>
+                    </View>
+                  </Pressable>
+                ))}
+              </ScrollView>
+            </Animated.View>
           </Animated.View>
         </View>
         
@@ -194,51 +199,48 @@ const styles = StyleSheet.create({
     top: 0,
   },
   navbarContenedor: {
-    height: 62,
     marginHorizontal: 20,
     marginTop: 10,
-    marginBottom: 20,
+    marginBottom: 10,
+    borderRadius: 20,
+  },
+  carruselSenderos: {
+    paddingHorizontal: 15,
+    gap: 12,
+    alignItems: 'center',
+  },
+  tarjetaCarrusel: {
+    backgroundColor: 'rgba(255, 255, 255, 0.4)',
+    borderRadius: 16,
+    width: 140,
+    height: 100,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.6)',
+    flexDirection: 'row',
+  },
+  iconoCarrusel: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 8,
+  },
+  textoCarruselTitulo: {
+    fontSize: 12,
+    fontFamily: 'MontserratAlternates-Bold',
+    color: '#34312E',
+  },
+  textoCarruselDesc: {
+    fontSize: 9,
+    fontFamily: 'MontserratAlternates-Medium',
+    color: '#555',
+    marginTop: 2,
   },
   navbarFila: {
     flexDirection: 'row',
-    height: '100%',
-  },
-  menuDesplegable: {
-    position: 'absolute',
-    top: 80,
-    left: 20,
-    right: 20,
-    zIndex: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.1,
-    shadowRadius: 15,
-    elevation: 5,
-  },
-  menuDesplegableInterior: {
-    borderRadius: 18,
-    padding: 12,
-    gap: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.7)',
-  },
-  opcionMenu: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 10,
-    borderRadius: 14,
-    backgroundColor: 'rgba(255, 255, 255, 0.5)',
-  },
-  iconoOpcionMenu: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  textoOpcionMenu: {
-    fontSize: 16,
-    fontFamily: 'MontserratAlternates-SemiBold',
-    color: '#34312E',
+    height: 62,
   },
   navbarSuperior: {
     flexDirection: 'row',

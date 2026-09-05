@@ -3,26 +3,56 @@ import re
 with open('/home/arch-i7/Proyects/app/src/modulos/inicio/pantallas/InicioPantalla.tsx', 'r') as f:
     content = f.read()
 
-# completely replace tarjetaAsignatura block
-pattern = re.compile(r'  tarjetaAsignatura: \{.*?\},\n', re.DOTALL)
-new_style = """  tarjetaAsignatura: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
+# Replace everything from `navbarContenedor:` to `capaMapa:`
+styles_start = content.find('  navbarContenedor: {')
+styles_end = content.find('  navbarSuperior: {')
+if styles_start != -1 and styles_end != -1:
+    new_styles = """  navbarContenedor: {
+    marginHorizontal: 20,
+    marginTop: 10,
+    marginBottom: 10,
+    borderRadius: 20,
+  },
+  carruselSenderos: {
+    paddingHorizontal: 15,
+    gap: 12,
+    alignItems: 'center',
+  },
+  tarjetaCarrusel: {
+    backgroundColor: 'rgba(255, 255, 255, 0.4)',
+    borderRadius: 16,
+    width: 140,
     height: 100,
-    padding: 20,
-    borderRadius: 24,
-    overflow: 'hidden',
+    padding: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.6)',
+    flexDirection: 'row',
+  },
+  iconoCarrusel: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    alignItems: 'center',
     justifyContent: 'center',
-    borderTopWidth: 1.5,
-    borderTopColor: 'rgba(255, 255, 255, 0.35)',
-    borderLeftWidth: 1,
-    borderLeftColor: 'rgba(255, 255, 255, 0.2)',
+    marginRight: 8,
+  },
+  textoCarruselTitulo: {
+    fontSize: 12,
+    fontFamily: 'MontserratAlternates-Bold',
+    color: '#34312E',
+  },
+  textoCarruselDesc: {
+    fontSize: 9,
+    fontFamily: 'MontserratAlternates-Medium',
+    color: '#555',
+    marginTop: 2,
+  },
+  navbarFila: {
+    flexDirection: 'row',
+    height: 62,
   },
 """
-content = pattern.sub(new_style, content)
+    content = content[:styles_start] + new_styles + content[styles_end:]
 
 with open('/home/arch-i7/Proyects/app/src/modulos/inicio/pantallas/InicioPantalla.tsx', 'w') as f:
     f.write(content)
-

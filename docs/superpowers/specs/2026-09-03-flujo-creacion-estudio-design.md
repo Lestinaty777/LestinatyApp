@@ -63,6 +63,49 @@ Antes de proponer un sendero, Aby obtiene progresivamente estos cinco datos:
 No se presenta un formulario largo. Aby pregunta solamente el dato faltante más
 relevante para la intención elegida y conserva las respuestas durante el flujo.
 
+## Creador de examen
+
+Al seleccionar `Tengo un examen`, Lestinaty deja de mostrar un chat abierto.
+Las cuatro tarjetas iniciales se retiran con una transición corta de opacidad y
+desplazamiento; aparece un creador centrado con encabezado `TU PLAN DE EXAMEN`
+y progreso `1 / 5`.
+
+Cada paso ocupa una sola pantalla y avanza inmediatamente después de una
+respuesta válida. Solo el nombre del examen y el alcance pueden escribirse; las
+demás decisiones usan controles visuales.
+
+1. Examen: campo breve para materia o evaluación.
+2. Fecha: accesos `Esta semana`, `En 2 semanas`, `En un mes` y calendario.
+3. Alcance y fuente: `Tengo temario`, `Foto del índice`, `Escribir temas` o
+   `No estoy seguro`.
+4. Disponibilidad: tarjetas `2 h`, `4 h`, `6 h` y `8 h+` por semana.
+5. Nivel: tarjetas `Estoy empezando`, `Entiendo lo básico` y `Ya tengo base`.
+
+La pantalla nunca renderiza historial de mensajes estilo chat. Aby aparece solo
+como texto de apoyo o estado de construcción entre pasos. Al completar el quinto
+paso, se muestra `Aby está construyendo tu sendero` y se solicita la propuesta
+estructurada a Gemini.
+
+## OCR local del índice
+
+El paso de alcance ofrece `Tomar foto del índice` y `Elegir de galería`. Ambas
+rutas obtienen una imagen temporal y la procesan localmente con OCR nativo:
+Google ML Kit en Android y el equivalente compatible en iOS. Expo Go no soporta
+este módulo; la función se prueba mediante development build/EAS Build.
+
+La imagen no se carga, persiste ni se envía a Aby. Tras extraer texto, se libera
+de memoria. La UI presenta capítulos detectados como lista editable y
+seleccionable; la persona puede corregir, borrar y elegir cuáles entran. Solo el
+texto confirmado llega al campo `alcance` del creador de examen.
+
+No existe fallback, proxy ni procesamiento OCR de imágenes en servidor. Esta
+restricción aplica a producción, desarrollo y errores: si el OCR local falla, el
+único fallback es repetir la captura, elegir otra imagen o escribir manualmente.
+
+Si OCR falla, se muestra `No pudimos leer el índice` con acciones para repetir la
+foto, elegir otra imagen o escribir temas manualmente. Si cámara o galería no
+tienen permiso, la persona conserva el flujo manual sin bloqueo.
+
 ## Flujos
 
 ### Tengo un examen

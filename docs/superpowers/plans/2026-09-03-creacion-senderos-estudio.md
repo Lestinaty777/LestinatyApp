@@ -2,9 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Reemplazar la entrada de categorías generales de Aby por cuatro intenciones de estudio y entregar un flujo de `Tengo un examen` que termina en una propuesta de sendero estructurada.
+**Goal:** Reemplazar la entrada de categorías generales de Aby por cuatro intenciones de estudio y entregar un creador visual cerrado de `Tengo un examen` que termina en una propuesta de sendero estructurada.
 
-**Architecture:** Un catálogo puro describe las cuatro intenciones y alimenta un componente de tarjetas glass. El reducer y contrato de Aby pasan de la configuración genérica de hábitos a una configuración de estudio tipada; el cliente y la Edge Function validan el mismo payload. El caso de examen se ejecuta completo, mientras que las otras tarjetas solo recogen su objetivo inicial hasta contar con contratos propios.
+**Architecture:** Un catálogo puro describe las cuatro intenciones y alimenta un componente de tarjetas glass. Al elegir examen, un creador guiado propio controla cinco pasos, sin historial ni burbujas de chat. El reducer y contrato de Aby almacenan respuestas tipadas; la Edge Function usa Gemini solamente después del quinto paso para devolver una propuesta validada.
 
 **Tech Stack:** Expo Router 57, React Native 0.86, TypeScript, Vitest 4, Zod 4, Supabase Edge Functions/Deno, Gemini 2.5 Flash, `lucide-react-native`.
 
