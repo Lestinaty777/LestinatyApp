@@ -1,6 +1,6 @@
-import Svg, { Rect, Defs, Pattern, Path, Circle } from 'react-native-svg';
+import Svg, { Rect, Defs, Pattern, Path, Circle, Line } from 'react-native-svg';
 import React from 'react';
-import { StyleSheet, View, useWindowDimensions, Pressable, ScrollView } from 'react-native';
+import { StyleSheet, View, useWindowDimensions, Pressable, ScrollView, Text as TextoRN } from 'react-native';
 import { BotonTab, IconoTab } from '../../../nucleo/navegacion/BarraTabs';
 import { BlurView } from 'expo-blur';
 import { PixelartIcon } from '../../../diseno/iconos/PixelartIcon';
@@ -62,23 +62,75 @@ export function InicioPantalla() {
 
             <Animated.View pointerEvents={menuAbierto ? 'auto' : 'none'} style={[{ flex: 1 }, animContenidoEstilos]}>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.carruselSenderos} style={{ flex: 1 }}>
-                {ASIGNATURAS.map(asig => (
-                  <Pressable key={asig.id} style={({pressed}) => [styles.tarjetaCarrusel, { overflow: 'hidden', backgroundColor: asig.color, borderColor: 'rgba(255,255,255,0.2)' }, pressed && { opacity: 0.8, transform: [{ scale: 0.98 }] }]} onPress={() => { hapticSeguro('seleccion'); setAsignatura(asig); setMenuAbierto(false); }}>
-                    <TexturaPixelArt />
-                    <View style={styles.tarjetaBrilloCarrusel} />
-                    <View style={{ position: 'absolute', right: -15, bottom: -15, opacity: 0.12, zIndex: 0 }}>
-                       {asig.id === '1' && <Activity size={42} color="#FFFFFF" />}
-                       {asig.id === '2' && <Beaker size={42} color="#FFFFFF" />}
-                       {asig.id === '3' && <Users size={42} color="#FFFFFF" />}
-                    </View>
-                    <View style={[styles.iconoCarrusel, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
-                      <asig.Icono />
-                    </View>
-                    <View style={{ flex: 1, justifyContent: 'flex-end', zIndex: 10 }}>
-                      <Texto style={styles.textoCarruselTitulo}>{asig.titulo}</Texto>
-                    </View>
-                  </Pressable>
-                ))}
+                                {ASIGNATURAS.map(asig => {
+                  const h = 85;
+                  // Cálculo dinámico del ancho basado en la longitud del texto
+                  const bodyWidth = Math.min(220, Math.max(95, 16 + (asig.titulo.length * 8.2) + 10));
+                  const w = bodyWidth + 45; // 45px es el ancho fijo del talón (stub)
+                  
+                  const cutoutStart = bodyWidth;
+                  const cutoutEnd = bodyWidth + 16;
+                  const dashX = bodyWidth + 8;
+                  
+                  const path = `M 0,0 L ${cutoutStart},0 A 8,8 0 0,0 ${cutoutEnd},0 L ${w},0 L ${w},${h} L ${cutoutEnd},${h} A 8,8 0 0,0 ${cutoutStart},${h} L 0,${h} Z`;
+                  
+                  return (
+                    <Pressable key={asig.id} style={[{ width: w, height: h + 4 }]} onPress={() => { hapticSeguro('seleccion'); setAsignatura(asig); setMenuAbierto(false); }}>
+                      {({ pressed }) => (
+                        <>
+                          {/* Capa Base: Sombra 3D Sólida */}
+                          <View style={StyleSheet.absoluteFill} pointerEvents="none">
+                            <Svg width="100%" height="100%" viewBox={`0 0 ${w} ${h + 4}`}>
+                              <Path d={path} fill={oscurecer(asig.color, 0.6)} transform="translate(0, 4)" />
+                            </Svg>
+                          </View>
+
+                          {/* Capa Principal: Se hunde 4px cuando está presionada */}
+                          <View style={[StyleSheet.absoluteFill, { transform: [{ translateY: pressed ? 4 : 0 }] }]}>
+                            
+                            <View style={StyleSheet.absoluteFill} pointerEvents="none">
+                              <Svg width="100%" height="100%" viewBox={`0 0 ${w} ${h + 4}`}>
+                                {/* Cuerpo del Boleto */}
+                                <Path d={path} fill={asig.color} />
+                                
+                                {/* Línea punteada de desgarre */}
+                                <Line x1={dashX} y1="12" x2={dashX} y2={h - 12} stroke="rgba(255,255,255,0.4)" strokeWidth="1.5" strokeDasharray="3 3" />
+                                
+                                {/* Simulación de Código de Barras en el Stub (Derecha) */}
+                                <Rect x={dashX + 15} y="25" width="2" height="35" fill="rgba(255,255,255,0.6)" />
+                                <Rect x={dashX + 19} y="25" width="4" height="35" fill="rgba(255,255,255,0.6)" />
+                                <Rect x={dashX + 25} y="25" width="1" height="35" fill="rgba(255,255,255,0.6)" />
+                                <Rect x={dashX + 28} y="25" width="3" height="35" fill="rgba(255,255,255,0.6)" />
+                              </Svg>
+                              {/* Pequeño texto en el stub inferior derecho */}
+                              <TextoRN style={{ position: 'absolute', right: 8, bottom: 8, fontSize: 7, color: 'rgba(255,255,255,0.6)', fontFamily: 'Montserrat-Bold' }}>Nº 0{asig.id}</TextoRN>
+                            </View>
+                            
+                            {/* Textura pixel art enmascarada */}
+                            <View style={{ position: 'absolute', left: 0, top: 0, width: dashX, height: h, overflow: 'hidden', opacity: 0.3 }} pointerEvents="none">
+                              <TexturaPixelArt />
+                            </View>
+
+                            {/* Brillo diagonal rasante (Infinito) */}
+                            <View style={[styles.tarjetaBrilloCarrusel, { top: -50, left: -40, height: 350, width: 25, backgroundColor: 'rgba(255,255,255,0.08)' }]} pointerEvents="none" />
+
+                            {/* Icono Principal (Arriba Izquierda) */}
+                            <View style={{ position: 'absolute', top: 12, left: 12 }}>
+                              <asig.Icono />
+                            </View>
+                            
+                            {/* Título y Label (Abajo Izquierda) */}
+                            <View style={{ position: 'absolute', bottom: 12, left: 12, right: 45 }}>
+                              <Texto style={{ fontSize: 6, color: 'rgba(255,255,255,0.6)', fontFamily: 'Montserrat-Bold', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 2 }} numberOfLines={1}>PASE DE ACCESO</Texto>
+                              <Texto style={[styles.textoCarruselTitulo, { fontSize: 13, lineHeight: 14 }]} numberOfLines={1}>{asig.titulo}</Texto>
+                            </View>
+
+                          </View>
+                        </>
+                      )}
+                    </Pressable>
+                  );
+                })}
               </ScrollView>
             </Animated.View>
           </Animated.View>
