@@ -46,6 +46,15 @@ describe('generarMapaProcedural', () => {
     expect(mapa.manchasHojas.length).toBeGreaterThanOrEqual(6);
     expect(mapa.manchasHojas.length).toBeLessThanOrEqual(8);
     expect(mapa.manchasHojas.filter((mancha) => mancha.zona === 'superior')).toHaveLength(2);
+    expect(mapa.piedras.length).toBeGreaterThanOrEqual(4);
+    expect(mapa.piedras.length).toBeLessThanOrEqual(6);
+    for (const piedras of mapa.piedras) {
+      const centroPiedras = { x: piedras.x + piedras.tamano / 2, y: piedras.y + piedras.tamano * 0.3 };
+      const lamparaAsociada = mapa.lamparas[piedras.lamparaIndice];
+      expect(Math.hypot(centroPiedras.x - lamparaAsociada.x, centroPiedras.y - lamparaAsociada.y)).toBeLessThanOrEqual(62);
+    }
+    expect(mapa.piedras.every((piedras) => Number.isFinite(piedras.desplazamientoX) && Number.isFinite(piedras.desplazamientoY))).toBe(true);
+    expect(mapa.piedras.some((piedras) => piedras.desplazamientoX !== 0 || piedras.desplazamientoY !== 0)).toBe(true);
     const hojasDeTramo = mapa.manchasHojas.filter((mancha) => mancha.zona === 'tramo');
     for (let indice = 1; indice < hojasDeTramo.length; indice += 1) {
       expect(Math.abs(hojasDeTramo[indice].y - hojasDeTramo[indice - 1].y)).toBeGreaterThanOrEqual(80);

@@ -17,6 +17,7 @@ export type NodoProcedural = { id: string; x: number; y: number };
 export type LamparaProcedural = { lado: LadoMapa; tamano: number; x: number; y: number };
 export type HojasProcedurales = { lado: LadoMapa; tamano: number; x: number; y: number };
 export type ManchaHojasProcedural = HojasProcedurales & { espejoHorizontal: -1 | 1; zona: 'superior' | 'tramo' };
+export type PiedrasProcedurales = { espejoHorizontal: -1 | 1; lamparaIndice: number; tamano: number; x: number; y: number };
 export type DecoracionProcedural = {
   assetId: string;
   capa: CapaDecoracion;
@@ -33,6 +34,7 @@ export type MapaProcedural = {
   lamparas: LamparaProcedural[];
   manchasHojas: ManchaHojasProcedural[];
   nodos: NodoProcedural[];
+  piedras: PiedrasProcedurales[];
 };
 
 type CajaColision = { x: number; y: number; w: number; h: number };
@@ -79,6 +81,7 @@ export function generarMapaProcedural({ ancho, cantidadNodos, tema }: { ancho: n
   const lamparas: LamparaProcedural[] = [];
   const hojas: HojasProcedurales[] = [];
   const manchasHojas: ManchaHojasProcedural[] = [];
+  const piedras: PiedrasProcedurales[] = [];
   const decoraciones: DecoracionProcedural[] = [];
   const cajasProtegidas: CajaColision[] = [{ x: 0, y: -80, w: ancho, h: 80 }];
   const cajasDecoracion: CajaColision[] = [];
@@ -137,6 +140,21 @@ export function generarMapaProcedural({ ancho, cantidadNodos, tema }: { ancho: n
       y: -34 + Math.round(aleatorio() * 18),
       espejoHorizontal: lado === 'derecha' ? 1 : -1,
       zona: 'superior',
+    });
+  }
+
+  const cantidadPiedras = Math.min(6, Math.max(4, Math.ceil((nodos.length - 1) * 0.8)));
+  for (let indice = 0; indice < cantidadPiedras; indice += 1) {
+    const indiceNodo = Math.min(nodos.length - 1, Math.max(1, Math.floor((indice + 1) * nodos.length / (cantidadPiedras + 1))));
+    const lamparaIndice = Math.max(0, indiceNodo - 1);
+    const lamparaAsociada = lamparas[lamparaIndice];
+    const tamano = 42 + Math.round(aleatorio() * 12);
+    piedras.push({
+      espejoHorizontal: lamparaAsociada.lado === 'izquierda' ? -1 : 1,
+      lamparaIndice,
+      tamano,
+      x: lamparaAsociada.x - tamano * (lamparaAsociada.lado === 'izquierda' ? 0.25 : 0.75),
+      y: lamparaAsociada.y + 32 + Math.round(aleatorio() * 10),
     });
   }
 
@@ -243,5 +261,5 @@ export function generarMapaProcedural({ ancho, cantidadNodos, tema }: { ancho: n
     }
   }
 
-  return { decoraciones, hojas, lamparas, manchasHojas, nodos };
+  return { decoraciones, hojas, lamparas, manchasHojas, nodos, piedras };
 }

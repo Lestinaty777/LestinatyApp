@@ -10,6 +10,7 @@ import { obtenerNodosMapaMock } from '../../datos/mapaEjercicio.mock';
 import { PixelartIcon } from '../../../../diseno/iconos/PixelartIcon';
 import { CaminoHojasSendero } from './CaminoHojasSendero';
 import { LamparaSendero } from './LamparaSendero';
+import { PiedrasSendero } from './PiedrasSendero';
 
 import { NodoSendero } from './NodoSendero';
 
@@ -157,6 +158,22 @@ export function ContenedorMapaSenderos({ altura, categoriaId, color, enfocado, s
             ]}
           >
             <CaminoHojasSendero color={temaMapa.acento} opacidad={mancha.zona === 'superior' ? 0.32 : 0.22} tamano={mancha.tamano} />
+          </View>
+        ))}
+        {mapa.piedras.map((piedras, indice) => (
+          <View
+            key={`piedras-${indice}`}
+            pointerEvents="none"
+            style={[
+              styles.piedras,
+              {
+                left: piedras.x,
+                top: piedras.y,
+                transform: [{ scaleX: piedras.espejoHorizontal }],
+              },
+            ]}
+          >
+            <PiedrasSendero tamano={piedras.tamano} />
           </View>
         ))}
         {mapa.hojas.map((hojas, indice) => {
@@ -347,6 +364,10 @@ const styles = StyleSheet.create({
     opacity: 0.9,
     position: 'absolute',
     zIndex: 1,
+  },
+  piedras: {
+    position: 'absolute',
+    zIndex: 2,
   },
   decoracionBioma: {
     opacity: 0.96,
