@@ -5,24 +5,45 @@ import { StyleProp, StyleSheet, View, ViewStyle } from 'react-native';
 type RecuadroGlassProps = PropsWithChildren<{
   blur?: boolean;
   intensity?: number;
+  modo?: 'light' | 'dark';
   style?: StyleProp<ViewStyle>;
   tint?: BlurViewProps['tint'];
 }>;
 
-export function RecuadroGlass({ blur = false, children, intensity = 24, style, tint = 'light' }: RecuadroGlassProps) {
+export function RecuadroGlass({
+  blur = false,
+  children,
+  intensity,
+  modo = 'light',
+  style,
+  tint,
+}: RecuadroGlassProps) {
+  const esDark = modo === 'dark';
+
+  // Valores por defecto según modo
+  const intensidadFinal = intensity ?? (esDark ? 18 : 24);
+  const tintFinal = tint ?? (esDark ? 'dark' : 'light');
+  const estilosModo = esDark ? styles.baseDark : styles.baseLight;
+  const tinteColor = esDark
+    ? 'rgba(10, 12, 28, 0.55)'
+    : 'rgba(255, 255, 255, 0.18)';
+  const brilloColor = esDark
+    ? 'rgba(255, 255, 255, 0.07)'
+    : 'rgba(255, 255, 255, 0.5)';
+
   if (blur) {
     return (
-      <BlurView intensity={intensity} tint={tint} style={[styles.base, style]}>
-        <View pointerEvents="none" style={styles.tinteBlur} />
-        <View pointerEvents="none" style={styles.sombraInterna} />
+      <BlurView intensity={intensidadFinal} tint={tintFinal} style={[styles.base, estilosModo, style]}>
+        <View pointerEvents="none" style={[styles.tinteBlur, { backgroundColor: tinteColor }]} />
+        <View pointerEvents="none" style={[styles.sombraInterna, { borderColor: brilloColor }]} />
         {children}
       </BlurView>
     );
   }
 
   return (
-    <View style={[styles.base, style]}>
-      <View pointerEvents="none" style={styles.sombraInterna} />
+    <View style={[styles.base, estilosModo, style]}>
+      <View pointerEvents="none" style={[styles.sombraInterna, { borderColor: brilloColor }]} />
       {children}
     </View>
   );
@@ -30,12 +51,20 @@ export function RecuadroGlass({ blur = false, children, intensity = 24, style, t
 
 const styles = StyleSheet.create({
   base: {
-    backgroundColor: 'rgba(255, 255, 255, 0.35)',
     borderRadius: 4,
     overflow: 'hidden',
   },
+  // Light: fondo blanco translúcido
+  baseLight: {
+    backgroundColor: 'rgba(255, 255, 255, 0.35)',
+  },
+  // Dark: fondo azul noche muy translúcido con saturación mínima
+  baseDark: {
+    backgroundColor: 'rgba(21, 24, 41, 0.72)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.07)',
+  },
   tinteBlur: {
-    backgroundColor: 'rgba(255, 255, 255, 0.18)',
     bottom: 0,
     left: 0,
     position: 'absolute',
@@ -43,8 +72,7 @@ const styles = StyleSheet.create({
     top: 0,
   },
   sombraInterna: {
-    borderColor: 'rgba(255, 255, 255, 0.5)',
-    borderTopWidth: 0.5,
+    borderTopWidth: 0.8,
     bottom: 0,
     left: 0,
     position: 'absolute',
