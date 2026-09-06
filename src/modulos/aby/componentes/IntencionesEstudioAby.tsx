@@ -19,12 +19,13 @@ type Props = {
 };
 
 export function IntencionesEstudioAby({ intencionActiva, onSeleccionar }: Props) {
-  const presiones = useRef(intencionesEstudioAby.map(() => new Animated.Value(1))).current;
-  const elevaciones = useRef(intencionesEstudioAby.map(() => new Animated.Value(0))).current;
+  const intencionesMvp = intencionesEstudioAby.filter((item) => item.id === 'examen' || item.id === 'materia');
+  const presiones = useRef(intencionesMvp.map(() => new Animated.Value(1))).current;
+  const elevaciones = useRef(intencionesMvp.map(() => new Animated.Value(0))).current;
   const entradaContexto = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    const indice = intencionesEstudioAby.findIndex((item) => item.id === intencionActiva);
+    const indice = intencionesMvp.findIndex((item) => item.id === intencionActiva);
     if (indice < 0) {
       elevaciones.forEach((elevacion) => elevacion.setValue(0));
       entradaContexto.setValue(0);
@@ -47,9 +48,9 @@ export function IntencionesEstudioAby({ intencionActiva, onSeleccionar }: Props)
     return () => animacion.stop();
   }, [elevaciones, entradaContexto, intencionActiva, presiones]);
 
-  const seleccionada = intencionesEstudioAby.find((item) => item.id === intencionActiva);
+  const seleccionada = intencionesMvp.find((item) => item.id === intencionActiva);
 
-  return <View accessibilityLabel="Formas de crear un sendero de estudio" style={styles.raiz}><View style={styles.cuadricula}>{intencionesEstudioAby.map((intencion, indice) => {
+  return <View accessibilityLabel="Formas de crear un sendero de estudio" style={styles.raiz}><View style={styles.cuadricula}>{intencionesMvp.map((intencion, indice) => {
     const activa = intencion.id === intencionActiva;
     const Icono = iconos[intencion.icono];
     return <Animated.View key={intencion.id} style={[styles.item, { transform: [{ scale: presiones[indice] }, { translateY: elevaciones[indice] }] }]}>

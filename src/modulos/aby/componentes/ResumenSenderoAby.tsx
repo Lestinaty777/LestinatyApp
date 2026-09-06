@@ -8,13 +8,14 @@ import type { ConfiguracionConversacionAby, PreguntaIdAby } from '../contrato/ab
 const nombreDias = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
 
 export function ResumenSenderoAby({ configuracion, onEditar }: { configuracion: ConfiguracionConversacionAby; onEditar: (id: PreguntaIdAby) => void }) {
-  const filas: { etiqueta: string; texto: string; id: PreguntaIdAby }[] = [
+  const filasBase: { etiqueta: string; texto: string; id: PreguntaIdAby }[] = [
     { etiqueta: 'Fecha', texto: configuracion.fechaExamen || 'No definida', id: 'fecha-examen' },
     { etiqueta: 'Alcance', texto: configuracion.alcance || 'Sin definir', id: 'alcance' },
     { etiqueta: 'Fuente', texto: configuracion.fuente || 'General', id: 'fuente' },
     { etiqueta: 'Disponibilidad', texto: configuracion.disponibilidadSemanal ? `${configuracion.disponibilidadSemanal} horas` : 'No definida', id: 'disponibilidad-semanal' },
     { etiqueta: 'Nivel', texto: configuracion.nivelInicial || 'No definido', id: 'nivel-inicial' },
-  ].filter((f) => f.texto !== 'No definida' && f.texto !== 'Sin definir');
+  ];
+  const filas = filasBase.filter((f) => f.texto !== 'No definida' && f.texto !== 'Sin definir');
   return <RecuadroGlass blur intensity={20} style={styles.raiz}><Texto style={styles.sobrelinea}>TU PUNTO DE PARTIDA</Texto><Texto style={styles.objetivo}>{configuracion.objetivo}</Texto>{filas.map((fila) => <View key={fila.id} style={styles.fila}><View><Texto style={styles.etiqueta}>{fila.etiqueta}</Texto><Texto style={styles.valor}>{fila.texto}</Texto></View><Pressable accessibilityLabel={`Editar ${fila.etiqueta}`} accessibilityRole="button" onPress={() => { hapticSeguro('seleccion'); onEditar(fila.id); }} style={styles.editar}><PencilSimple color="#5B2E91" size={15} weight="bold" /></Pressable></View>)}</RecuadroGlass>;
 }
 
@@ -27,4 +28,3 @@ const styles = StyleSheet.create({
   sobrelinea: { color: '#76539C', fontFamily: 'MontserratAlternates-Bold', fontSize: 10, letterSpacing: 1 },
   valor: { color: '#4D3D57', fontFamily: 'MontserratAlternates-Medium', fontSize: 12, marginTop: 1 },
 });
-

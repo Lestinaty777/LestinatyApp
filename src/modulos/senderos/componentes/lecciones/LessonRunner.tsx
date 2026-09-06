@@ -8,41 +8,30 @@ import { REGISTRO_LECCIONES } from './registroLecciones';
 type LessonRunnerProps = {
   leccion: LeccionPack;
   color: string;
-  onTerminar: (exito: boolean) => void;
+  onTerminar: (resultado: ResultadoLeccion) => void;
 };
+
+export type ResultadoLeccion = { aprobado: boolean; duracionMs: number; respuestas: readonly { correcto: boolean | null; pasoId: string }[] };
 
 export function LessonRunner({ leccion, color, onTerminar }: LessonRunnerProps) {
   const insets = useSafeAreaInsets();
   const [pasoActual, setPasoActual] = useState(0);
-  const [vidas, setVidas] = useState(3);
   const [estadoFeedback, setEstadoFeedback] = useState<'correcto' | 'incorrecto' | null>(null);
+  const [respuestas, setRespuestas] = useState<ResultadoLeccion['respuestas']>([]);
+  const [inicio] = useState(() => Date.now());
 
   const paso = leccion.pasos[pasoActual];
   const WidgetComponent = REGISTRO_LECCIONES[paso.tipo];
 
   const avanzarPaso = () => {
     const exito = estadoFeedback === 'correcto';
+    const siguientes = [...respuestas, { correcto: exito, pasoId: paso.id }];
+    setRespuestas(siguientes);
     setEstadoFeedback(null);
-    
-    if (exito) {
-      if (pasoActual + 1 < leccion.pasos.length) {
-        setPasoActual(prev => prev + 1);
-      } else {
-        onTerminar(true);
-      }
+    if (pasoActual + 1 < leccion.pasos.length) {
+      setPasoActual(prev => prev + 1);
     } else {
-      setVidas(prev => prev - 1);
-      if (vidas - 1 <= 0) {
-        onTerminar(false);
-      } else {
-        // En Duolingo a veces avanzas de todos modos, o a veces repites. 
-        // Por ahora avancemos para ver el resto.
-        if (pasoActual + 1 < leccion.pasos.length) {
-          setPasoActual(prev => prev + 1);
-        } else {
-          onTerminar(true);
-        }
-      }
+      onTerminar({ aprobado: siguientes.every((respuesta) => respuesta.correcto !== false), duracionMs: Date.now() - inicio, respuestas: siguientes });
     }
   };
 
@@ -54,9 +43,6 @@ export function LessonRunner({ leccion, color, onTerminar }: LessonRunnerProps) 
       <View style={styles.cabecera}>
         <View style={styles.barraFondo}>
           <View style={[styles.barraProgreso, { width: `${progresoPorcentaje}%`, backgroundColor: color }]} />
-        </View>
-        <View style={styles.vidasContenedor}>
-          <Texto style={styles.textoVidas}>❤️ {vidas}</Texto>
         </View>
       </View>
 
@@ -97,8 +83,6 @@ const styles = StyleSheet.create({
   cabecera: { flexDirection: 'row', padding: 20, alignItems: 'center', gap: 16 },
   barraFondo: { flex: 1, height: 16, backgroundColor: '#E5E7EB', borderRadius: 8, overflow: 'hidden' },
   barraProgreso: { height: '100%', borderRadius: 8 },
-  vidasContenedor: { paddingHorizontal: 12, paddingVertical: 6, backgroundColor: '#FEE2E2', borderRadius: 16 },
-  textoVidas: { color: '#EF4444', fontWeight: 'bold' },
   cuerpo: { flex: 1 },
   errorContenedor: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   feedbackContenedor: {

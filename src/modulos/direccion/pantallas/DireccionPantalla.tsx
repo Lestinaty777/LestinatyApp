@@ -143,11 +143,11 @@ export function DireccionPantalla() {
 
 const styles = StyleSheet.create({
   raiz: {
-    backgroundColor: biomas.inicio.Paleta.background,
+    backgroundColor: biomas.inicio.Paleta.primarySoft,
     flex: 1,
   },
   fondoNiebla: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     opacity: 0.6,
     zIndex: 0,
   },
@@ -205,7 +205,7 @@ const styles = StyleSheet.create({
     padding: espaciado.lg,
   },
   tinteVision: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
   },
   visionCabecera: {
     alignItems: 'center',

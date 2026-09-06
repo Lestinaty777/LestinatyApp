@@ -264,7 +264,8 @@ function FilaToggle({ descripcion, disabled, onValueChange, titulo, valor }: { d
 
 function AccionDatos({ icono: Icono, onPress, peligro = false, solicitud, titulo }: { icono: Icono; onPress: () => void; peligro?: boolean; solicitud: ConfiguracionUsuario['solicitudes'][number] | undefined; titulo: string }) {
   const estado = etiquetaSolicitudActiva(solicitud);
-  return <Pressable disabled={Boolean(solicitud)} onPress={() => { hapticSeguro('accion'); onPress(); }} style={({ pressed }) => [styles.fila, solicitud && styles.deshabilitado, pressed && styles.presionado]}><Icono color={peligro ? colores.error : colores.textoSecundario} size={19} /><View style={styles.textosFila}><Texto style={[styles.tituloFila, peligro && styles.peligro]}>{titulo}</Texto><Texto style={estado ? styles.estadoSolicitud : styles.subtituloFila}>{estado ? `${estado} · ${formatearFechaConfiguracion(solicitud.solicitadaAt)}` : 'Solicitar desde la app'}</Texto></View><ChevronRight color={peligro ? colores.error : colores.textoSecundario} size={19} /></Pressable>;
+  const fechaSolicitud = solicitud ? formatearFechaConfiguracion(solicitud.solicitadaAt) : null;
+  return <Pressable disabled={Boolean(solicitud)} onPress={() => { hapticSeguro('accion'); onPress(); }} style={({ pressed }) => [styles.fila, solicitud && styles.deshabilitado, pressed && styles.presionado]}><Icono color={peligro ? colores.error : colores.textoSecundario} size={19} /><View style={styles.textosFila}><Texto style={[styles.tituloFila, peligro && styles.peligro]}>{titulo}</Texto><Texto style={estado ? styles.estadoSolicitud : styles.subtituloFila}>{estado && fechaSolicitud ? `${estado} · ${fechaSolicitud}` : 'Solicitar desde la app'}</Texto></View><ChevronRight color={peligro ? colores.error : colores.textoSecundario} size={19} /></Pressable>;
 }
 
 const styles = StyleSheet.create({

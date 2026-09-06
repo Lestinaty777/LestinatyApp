@@ -36,6 +36,8 @@ import FogEffectSkia from '../../../diseno/componentes/NieblaUi';
 import { RecuadroGlass, Texto, biomas, colores, espaciado } from '../../../diseno';
 import { hapticSeguro } from '../../../nucleo/dispositivo/haptics';
 import { ContenedorMapaSenderos } from '../componentes/mapa/ContenedorMapaSenderos';
+import { listarSenderosActivos } from '../senderos.servicio';
+import type { SenderoResumen } from '../tipos';
 import { usarAccionBarraSenderos } from '../estado/accionBarraSenderos.estado';
 import { AnalisisSenderos } from '../paginas/AnalisisSenderos';
 import { CompartidosSenderos } from '../paginas/CompartidosSenderos';
@@ -1152,7 +1154,7 @@ function MapaSubcategoria({ alturaEnfoque, categoria, color, enfocado, onMedirIn
   );
 }
 
-function CarpetaGiganteSenderos({ alturaMapaEnfoque, alturaObjetivoEnfoque, categoriaAbierta, elevacionEnfoque, layoutEnfoqueActivo, mapaEnfocado, mostrarAccionContextual, onAbrir, onActivarMapaEnfocado, onDesactivarMapaEnfocado, onMedirElevacionEnfoque, onMedirInicioMapa, progresoEnfoque, setCategoriaAbierta }: { alturaMapaEnfoque: number; alturaObjetivoEnfoque: number; categoriaAbierta: string; elevacionEnfoque: number; layoutEnfoqueActivo: boolean; mapaEnfocado: boolean; mostrarAccionContextual: boolean; onAbrir: (sendero: SenderoMini, color: string) => void; onActivarMapaEnfocado: (elevacion: number) => void; onDesactivarMapaEnfocado: () => void; onMedirElevacionEnfoque: (elevacion: number) => void; onMedirInicioMapa: (posicion: number) => void; progresoEnfoque: Animated.Value; setCategoriaAbierta: React.Dispatch<React.SetStateAction<string>> }) {
+function CarpetaGiganteSenderos({ alturaMapaEnfoque, alturaObjetivoEnfoque, categoriaAbierta, categorias, elevacionEnfoque, layoutEnfoqueActivo, mapaEnfocado, mostrarAccionContextual, onAbrir, onActivarMapaEnfocado, onDesactivarMapaEnfocado, onMedirElevacionEnfoque, onMedirInicioMapa, progresoEnfoque, setCategoriaAbierta }: { alturaMapaEnfoque: number; alturaObjetivoEnfoque: number; categoriaAbierta: string; categorias: CategoriaCarpeta[]; elevacionEnfoque: number; layoutEnfoqueActivo: boolean; mapaEnfocado: boolean; mostrarAccionContextual: boolean; onAbrir: (sendero: SenderoMini, color: string) => void; onActivarMapaEnfocado: (elevacion: number) => void; onDesactivarMapaEnfocado: () => void; onMedirElevacionEnfoque: (elevacion: number) => void; onMedirInicioMapa: (posicion: number) => void; progresoEnfoque: Animated.Value; setCategoriaAbierta: React.Dispatch<React.SetStateAction<string>> }) {
   const [itemsCargados, setItemsCargados] = useState(0);
   const [subcategoriaActiva, setSubcategoriaActiva] = useState('');
   const [subcategoriasVisibles, setSubcategoriasVisibles] = useState(false);
@@ -1169,7 +1171,7 @@ function CarpetaGiganteSenderos({ alturaMapaEnfoque, alturaObjetivoEnfoque, cate
 
   useEffect(() => {
     let timeout: any;
-    if (itemsCargados < categoriasCarpeta.length) {
+    if (itemsCargados < categorias.length) {
       timeout = setTimeout(() => {
         setItemsCargados(prev => prev + 1);
       }, 55); // A bit faster for tabs so it feels snappy
@@ -1181,7 +1183,7 @@ function CarpetaGiganteSenderos({ alturaMapaEnfoque, alturaObjetivoEnfoque, cate
   const progresoModo = useRef(new Animated.Value(1)).current;
   const brilloCarpeta = useRef(new Animated.Value(0)).current;
   const retornoCuerpoCarpeta = useRef(new Animated.Value(0)).current;
-  const categoriaEnfocada = categoriasCarpeta.find((categoria) => categoria.id === categoriaAbierta) ?? null;
+  const categoriaEnfocada = categorias.find((categoria) => categoria.id === categoriaAbierta) ?? null;
   const IconoCategoriaEnfocada = categoriaEnfocada?.Icono;
   const subcategorias = categoriaEnfocada ? subcategoriasPorCategoria[categoriaEnfocada.id] : [];
   const subcategoriaEnfocada = subcategorias.find((subcategoria) => subcategoria.id === subcategoriaActiva) ?? null;
@@ -1372,7 +1374,7 @@ function CarpetaGiganteSenderos({ alturaMapaEnfoque, alturaObjetivoEnfoque, cate
       ]}
     >
       <View ref={referenciaSeparadores} onLayout={medirElevacionEnfoque} style={[styles.pestanasColorCarpeta, categoriaEnfocada && styles.pestanasColorCarpetaActiva]}>
-        {categoriasCarpeta.map((item, index) => {
+        {categorias.map((item, index) => {
           if (index >= itemsCargados) {
             return (
               <View 
@@ -1397,7 +1399,7 @@ function CarpetaGiganteSenderos({ alturaMapaEnfoque, alturaObjetivoEnfoque, cate
         {categoriaEnfocada && subcategoriasVisibles ? (
           <View pointerEvents="box-none" style={styles.subcategoriasOverlay}>
             {subcategorias.map((subcategoria, index) => {
-              const indiceRaiz = categoriasCarpeta.findIndex((categoria) => categoria.id === categoriaEnfocada.id);
+              const indiceRaiz = categorias.findIndex((categoria) => categoria.id === categoriaEnfocada.id);
               const indiceVisual = index >= indiceRaiz ? index + 1 : index;
               return (
                 <View
@@ -1492,7 +1494,7 @@ function CarpetaGiganteSenderos({ alturaMapaEnfoque, alturaObjetivoEnfoque, cate
           </Animated.View>
         ) : (
           <Animated.View style={[styles.filasCarpeta, { opacity: progresoModo, transform: [{ translateY: desplazamientoModo }] }]}>
-            {categoriasCarpeta.map((categoria, index) => {
+            {categorias.map((categoria, index) => {
               if (index >= itemsCargados) {
                 return (
                   <View 
@@ -1550,6 +1552,7 @@ export function SenderosPantalla() {
   const [elevacionEnfoqueMapa, setElevacionEnfoqueMapa] = useState(0);
   const [inicioMapaEnPantalla, setInicioMapaEnPantalla] = useState(0);
   const [senderoAbierto, setSenderoAbierto] = useState<{ sendero: SenderoMini; color: string } | null>(null);
+  const [senderosRemotos, setSenderosRemotos] = useState<SenderoResumen[]>([]);
   const progresoPestana = useRef(new Animated.Value(0)).current;
   const progresoEnfoqueMapa = useRef(new Animated.Value(0)).current;
   const ultimoTapPestana = useRef(0);
@@ -1604,6 +1607,12 @@ export function SenderosPantalla() {
     outputRange: [elevacionEnfoqueMapa, 0],
   });
   const contenidoActivo = paginasSenderos[pestanaActiva];
+  const categoriasReales = categoriasCarpeta.map((categoria) => categoria.id !== 'estudio' ? { ...categoria, senderos: [] } : {
+    ...categoria,
+    senderos: senderosRemotos.map((sendero): SenderoEstudio => ({ analiticas: { horas: 0, sesiones: 0 }, categoria: 'estudio', configuracion: { duracionSesionMinutos: 20, metodo: 'practica', nivel: 'basico' }, descripcion: sendero.descripcion ?? 'Sendero de estudio generado por Aby.', estado: 'activo', id: sendero.id, metadata: [`${sendero.nodosTotales} nodos`, sendero.nivelTitulo ?? 'Nivel 1'], titulo: sendero.titulo })),
+  });
+
+  useEffect(() => { listarSenderosActivos().then(setSenderosRemotos).catch(() => setSenderosRemotos([])); }, []);
 
   let headerImg = require('../../../../assets/ilustraciones/senderos.png');
   let headerTitle = '{headerTitle}';
@@ -1612,7 +1621,7 @@ export function SenderosPantalla() {
   let EmptyIcon = Sprout;
   let emptyIconColor = Bioma.MasterColor;
   const catActiva = pestanaActiva === 'mis-senderos' ? categoriaAbierta : pestanaActiva === 'analisis' ? analisisCategoria : null;
-  const catInfo = categoriasCarpeta.find(c => c.id === catActiva);
+  const catInfo = categoriasReales.find(c => c.id === catActiva);
   if (catInfo) {
     EmptyIcon = catInfo.Icono;
     emptyIconColor = catInfo.acento;
@@ -1814,6 +1823,7 @@ export function SenderosPantalla() {
               </Reanimated.View>
             ) : (
               <CarpetaGiganteSenderos
+                categorias={categoriasReales}
                 alturaMapaEnfoque={alturaMapaEnfoque}
                 alturaObjetivoEnfoque={insets.top + altoSuperior - altoSeparadorVisible - profundidadEnfoqueSobreIlustracion}
                 categoriaAbierta={categoriaAbierta}

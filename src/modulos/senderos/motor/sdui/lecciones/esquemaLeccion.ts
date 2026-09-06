@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { IDS_WIDGET_LECCION } from './tiposLeccion';
+import { IDS_WIDGET_LECCION, IDS_WIDGET_LECCION_MVP } from './tiposLeccion';
 
 const configTeoriaCortaSchema = z.object({
   texto: z.string().min(1),
@@ -74,6 +74,18 @@ export const leccionPackSchema = z.object({
   id: z.string(),
   titulo: z.string().min(1),
   pasos: z.array(pasoLeccionSchema).min(1).max(15),
+});
+
+export const leccionPackMvpSchema = leccionPackSchema.superRefine((leccion, contexto) => {
+  for (const paso of leccion.pasos) {
+    if (!IDS_WIDGET_LECCION_MVP.includes(paso.tipo as typeof IDS_WIDGET_LECCION_MVP[number])) {
+      contexto.addIssue({
+        code: 'custom',
+        message: `El widget ${paso.tipo} no esta disponible en el MVP.`,
+        path: ['pasos'],
+      });
+    }
+  }
 });
 
 export function validarLeccionPack(data: unknown) {

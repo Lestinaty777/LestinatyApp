@@ -12,7 +12,6 @@ export default function ConfiguracionLayout() {
         headerTitleStyle: {
           fontFamily: 'MontserratAlternates-Bold',
         },
-        headerBackTitleVisible: false,
         headerShadowVisible: false,
       }}
     >

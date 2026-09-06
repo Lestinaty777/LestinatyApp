@@ -26,6 +26,7 @@ const margenSuperior = 16;
 const margenInferior = 64;
 const AnimatedPath = Animated.createAnimatedComponent(Path);
 const hojasVisiblesPorNodo = [true, false, true, true];
+const zIndexPorCapa = { fondo: 1, medio: 3, frente: 4 } as const;
 
 function oscurecer(color: string, factor = 0.7) {
   const hex = color.replace('#', '');
@@ -136,17 +137,28 @@ export function ContenedorMapaSenderos({ altura, categoriaId, color, enfocado, s
                <Image source={assetBase.fuente} style={{ position: 'absolute', top: -60, left: -50, width: 240, height: 240, opacity: 0.9, resizeMode: 'contain' }} />
                <Image source={assetBase.fuente} style={{ position: 'absolute', top: -30, right: -60, width: 260, height: 260, opacity: 0.9, resizeMode: 'contain', transform: [{ scaleX: -1 }] }} />
                
-               {/* Bases laterales controladas */}
-               <Image source={assetBase.fuente} style={{ position: 'absolute', top: 90, left: -100, width: 200, height: 200, opacity: 0.9, resizeMode: 'contain' }} />
-               <Image source={assetBase.fuente} style={{ position: 'absolute', top: 220, right: -100, width: 220, height: 220, opacity: 0.9, resizeMode: 'contain', transform: [{ scaleX: -1 }] }} />
-               <Image source={assetBase.fuente} style={{ position: 'absolute', top: 400, left: -120, width: 240, height: 240, opacity: 0.9, resizeMode: 'contain' }} />
-               <Image source={assetBase.fuente} style={{ position: 'absolute', top: 650, right: -120, width: 220, height: 220, opacity: 0.9, resizeMode: 'contain', transform: [{ scaleX: -1 }] }} />
-               <Image source={assetBase.fuente} style={{ position: 'absolute', top: 850, left: -100, width: 200, height: 200, opacity: 0.9, resizeMode: 'contain' }} />
+               
              </View>
            );
         })()}
 
         <View style={[styles.escenaPerspectiva, StyleSheet.absoluteFill, { zIndex: 1 }]}>
+        {mapa.manchasHojas.map((mancha, indice) => (
+          <View
+            key={`mancha-hojas-${indice}`}
+            pointerEvents="none"
+            style={[
+              styles.manchasHojas,
+              {
+                left: mancha.x,
+                top: mancha.y,
+                transform: [{ scaleX: mancha.lado === 'derecha' ? 1 : -1 }],
+              },
+            ]}
+          >
+            <CaminoHojasSendero color={temaMapa.acento} opacidad={0.22} tamano={mancha.tamano} />
+          </View>
+        ))}
         {mapa.hojas.map((hojas, indice) => {
           if (categoriaId !== 'rutinas' && !hojasVisiblesPorNodo[indice]) return null;
           return (
@@ -158,6 +170,7 @@ export function ContenedorMapaSenderos({ altura, categoriaId, color, enfocado, s
                 {
                   left: hojas.x,
                   top: hojas.y,
+                  zIndex: 2,
                   transform: [{ scaleX: hojas.lado === 'derecha' ? 1 : -1 }],
                 },
               ]}
@@ -180,13 +193,18 @@ export function ContenedorMapaSenderos({ altura, categoriaId, color, enfocado, s
                 left: decoracion.x,
                 top: decoracion.y,
                 width: tamano,
+                zIndex: zIndexPorCapa[decoracion.capa],
               }]}
             >
-              <Image resizeMode="contain" source={asset.fuente} style={styles.decoracionBiomaImagen} />
+              <Image
+                resizeMode="contain"
+                source={asset.fuente}
+                style={[styles.decoracionBiomaImagen, { transform: [{ scaleX: decoracion.volteado ? -1 : 1 }] }]}
+              />
             </View>
           );
         })}
-        <Svg height={altoContenido} pointerEvents="none" style={StyleSheet.absoluteFill} width={anchoEscena}>
+        <Svg height={altoContenido} pointerEvents="none" style={[StyleSheet.absoluteFill, { zIndex: 2 }]} width={anchoEscena}>
           {conexiones.map((conexion, indice) => {
             const completa = indice < ultimoCompletado;
             const animando = conexionEnCurso === indice;
@@ -231,7 +249,7 @@ export function ContenedorMapaSenderos({ altura, categoriaId, color, enfocado, s
           const asentado = esSeleccionado;
           const escalaEscena = Math.max(0.78, 1.1 - indice * 0.07);
           return (
-            <View key={nodo.id} style={[styles.nodoPosicion, { left: posicion.x - 36, top: posicion.y - 36 }]}>
+            <View key={nodo.id} style={[styles.nodoPosicion, { left: posicion.x - 36, top: posicion.y - 36, zIndex: 20 }]}>
               <NodoSendero Icono={nodo.icono} asentado={asentado} color={color} escalaEscena={escalaEscena} estado={estadoVisual} seleccionado={esSeleccionado} onCompletar={() => completarNodo(indice)} onPress={() => seleccionarNodo(nodo.id, indice)} />
               {esSeleccionado ? (() => {
                   const xRelativoPantalla = anchoEscena / 2;
@@ -308,7 +326,7 @@ export function ContenedorMapaSenderos({ altura, categoriaId, color, enfocado, s
 
 function DecoracionSendero({ arriba, izquierda, tamano }: { arriba: number; izquierda: number; tamano: number }) {
   return (
-    <View pointerEvents="none" style={[styles.decoracion, { left: izquierda, top: arriba, transform: [{ scale: tamano / 34 }] }]}>
+    <View pointerEvents="none" style={[styles.decoracion, { left: izquierda, top: arriba, transform: [{ scale: tamano / 34 }], zIndex: 10 }]}>
       <LamparaSendero retraso={arriba} tamano={34} />
     </View>
   );
@@ -324,6 +342,11 @@ const styles = StyleSheet.create({
   },
   hojasCamino: {
     position: 'absolute',
+  },
+  manchasHojas: {
+    opacity: 0.9,
+    position: 'absolute',
+    zIndex: 1,
   },
   decoracionBioma: {
     opacity: 0.96,

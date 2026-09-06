@@ -15,6 +15,16 @@ export const IDS_WIDGET_LECCION = [
 
 export type WidgetLeccionId = typeof IDS_WIDGET_LECCION[number];
 
+// El MVP solo permite widgets que ya funcionan sin assets ni estado adicional.
+export const IDS_WIDGET_LECCION_MVP = [
+  'teoria-corta',
+  'opcion-multiple',
+  'rellenar-huecos',
+  'verdadero-falso',
+  'ordenar-lista',
+  'flashcard',
+] as const satisfies readonly WidgetLeccionId[];
+
 // Configuración específica de cada widget (Tipos base)
 export type ConfigTeoriaCorta = {
   texto: string;
@@ -85,4 +95,3 @@ export type LeccionPack = {
   titulo: string;
   pasos: PasoLeccion[];
 };
-
