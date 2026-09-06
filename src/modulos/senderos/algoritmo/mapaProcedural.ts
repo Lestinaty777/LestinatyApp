@@ -16,6 +16,7 @@ export type TemaMapaProcedural = {
 export type NodoProcedural = { id: string; x: number; y: number };
 export type LamparaProcedural = { lado: LadoMapa; tamano: number; x: number; y: number };
 export type HojasProcedurales = { lado: LadoMapa; tamano: number; x: number; y: number };
+export type ManchaHojasProcedural = HojasProcedurales & { espejoHorizontal: -1 | 1; zona: 'superior' | 'tramo' };
 export type DecoracionProcedural = {
   assetId: string;
   capa: CapaDecoracion;
@@ -30,7 +31,7 @@ export type MapaProcedural = {
   decoraciones: DecoracionProcedural[];
   hojas: HojasProcedurales[];
   lamparas: LamparaProcedural[];
-  manchasHojas: HojasProcedurales[];
+  manchasHojas: ManchaHojasProcedural[];
   nodos: NodoProcedural[];
 };
 
@@ -77,7 +78,7 @@ export function generarMapaProcedural({ ancho, cantidadNodos, tema }: { ancho: n
   const nodos: NodoProcedural[] = [];
   const lamparas: LamparaProcedural[] = [];
   const hojas: HojasProcedurales[] = [];
-  const manchasHojas: HojasProcedurales[] = [];
+  const manchasHojas: ManchaHojasProcedural[] = [];
   const decoraciones: DecoracionProcedural[] = [];
   const cajasProtegidas: CajaColision[] = [{ x: 0, y: -80, w: ancho, h: 80 }];
   const cajasDecoracion: CajaColision[] = [];
@@ -110,9 +111,10 @@ export function generarMapaProcedural({ ancho, cantidadNodos, tema }: { ancho: n
     cajasProtegidas.push({ x: lamparaX - 14, y: lamparaY - 14, w: 58, h: 62 });
   }
 
-  const cantidadManchasHojas = Math.min(6, Math.max(4, Math.ceil((nodos.length - 1) * 0.75)));
+  const cantidadManchasHojas = Math.min(nodos.length, Math.min(6, Math.max(4, Math.ceil((nodos.length - 1) * 0.75))));
+  const espejoInicial = hashCadena(tema.id) % 2 === 0 ? -1 : 1;
   for (let indice = 0; indice < cantidadManchasHojas; indice += 1) {
-    const indiceNodo = Math.min(nodos.length - 1, Math.max(0, Math.round((indice + 1) * (nodos.length - 1) / (cantidadManchasHojas + 1))));
+    const indiceNodo = Math.min(nodos.length - 1, Math.max(0, Math.floor((indice + 1) * nodos.length / (cantidadManchasHojas + 1))));
     const nodoReferencia = nodos[indiceNodo];
     const lado: LadoMapa = indice % 2 === 0 ? 'izquierda' : 'derecha';
     const tamano = 58 + Math.round(aleatorio() * 20);
@@ -121,6 +123,20 @@ export function generarMapaProcedural({ ancho, cantidadNodos, tema }: { ancho: n
       tamano,
       x: lado === 'izquierda' ? 8 + Math.round(aleatorio() * 24) : ancho - tamano - 8 - Math.round(aleatorio() * 24),
       y: nodoReferencia.y - tamano * 0.42,
+      espejoHorizontal: indice % 2 === 0 ? espejoInicial : (espejoInicial * -1) as -1 | 1,
+      zona: 'tramo',
+    });
+  }
+
+  for (const lado of ['izquierda', 'derecha'] as const) {
+    const tamano = 72 + Math.round(aleatorio() * 16);
+    manchasHojas.push({
+      lado,
+      tamano,
+      x: lado === 'izquierda' ? -12 : ancho - tamano + 12,
+      y: -34 + Math.round(aleatorio() * 18),
+      espejoHorizontal: lado === 'derecha' ? 1 : -1,
+      zona: 'superior',
     });
   }
 

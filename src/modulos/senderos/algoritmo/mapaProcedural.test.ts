@@ -43,7 +43,13 @@ describe('generarMapaProcedural', () => {
 
     expect(mapa.decoraciones.filter((decoracion) => decoracion.assetId.endsWith('-04')).length).toBeGreaterThanOrEqual(2);
     expect(mapa.decoraciones.some((decoracion) => decoracion.assetId.endsWith('-07'))).toBe(true);
-    expect(mapa.manchasHojas.length).toBeGreaterThanOrEqual(4);
-    expect(mapa.manchasHojas.length).toBeLessThanOrEqual(6);
+    expect(mapa.manchasHojas.length).toBeGreaterThanOrEqual(6);
+    expect(mapa.manchasHojas.length).toBeLessThanOrEqual(8);
+    expect(mapa.manchasHojas.filter((mancha) => mancha.zona === 'superior')).toHaveLength(2);
+    const hojasDeTramo = mapa.manchasHojas.filter((mancha) => mancha.zona === 'tramo');
+    for (let indice = 1; indice < hojasDeTramo.length; indice += 1) {
+      expect(Math.abs(hojasDeTramo[indice].y - hojasDeTramo[indice - 1].y)).toBeGreaterThanOrEqual(80);
+      expect(hojasDeTramo[indice].espejoHorizontal).toBe(-hojasDeTramo[indice - 1].espejoHorizontal);
+    }
   });
 });

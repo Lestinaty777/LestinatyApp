@@ -152,11 +152,11 @@ export function ContenedorMapaSenderos({ altura, categoriaId, color, enfocado, s
               {
                 left: mancha.x,
                 top: mancha.y,
-                transform: [{ scaleX: mancha.lado === 'derecha' ? 1 : -1 }],
+                transform: [{ scaleX: mancha.espejoHorizontal }],
               },
             ]}
           >
-            <CaminoHojasSendero color={temaMapa.acento} opacidad={0.22} tamano={mancha.tamano} />
+            <CaminoHojasSendero color={temaMapa.acento} opacidad={mancha.zona === 'superior' ? 0.32 : 0.22} tamano={mancha.tamano} />
           </View>
         ))}
         {mapa.hojas.map((hojas, indice) => {
