@@ -17,7 +17,15 @@ export type NodoProcedural = { id: string; x: number; y: number };
 export type LamparaProcedural = { lado: LadoMapa; tamano: number; x: number; y: number };
 export type HojasProcedurales = { lado: LadoMapa; tamano: number; x: number; y: number };
 export type ManchaHojasProcedural = HojasProcedurales & { espejoHorizontal: -1 | 1; zona: 'superior' | 'tramo' };
-export type PiedrasProcedurales = { espejoHorizontal: -1 | 1; lamparaIndice: number; tamano: number; x: number; y: number };
+export type PiedrasProcedurales = {
+  desplazamientoX: number;
+  desplazamientoY: number;
+  espejoHorizontal: -1 | 1;
+  lamparaIndice: number;
+  tamano: number;
+  x: number;
+  y: number;
+};
 export type DecoracionProcedural = {
   assetId: string;
   capa: CapaDecoracion;
@@ -149,12 +157,16 @@ export function generarMapaProcedural({ ancho, cantidadNodos, tema }: { ancho: n
     const lamparaIndice = Math.max(0, indiceNodo - 1);
     const lamparaAsociada = lamparas[lamparaIndice];
     const tamano = 42 + Math.round(aleatorio() * 12);
+    const desplazamientoX = -8 + Math.round(aleatorio() * 16);
+    const desplazamientoY = -5 + Math.round(aleatorio() * 10);
     piedras.push({
+      desplazamientoX,
+      desplazamientoY,
       espejoHorizontal: lamparaAsociada.lado === 'izquierda' ? -1 : 1,
       lamparaIndice,
       tamano,
-      x: lamparaAsociada.x - tamano * (lamparaAsociada.lado === 'izquierda' ? 0.25 : 0.75),
-      y: lamparaAsociada.y + 32 + Math.round(aleatorio() * 10),
+      x: lamparaAsociada.x - tamano * (lamparaAsociada.lado === 'izquierda' ? 0.25 : 0.75) + desplazamientoX,
+      y: lamparaAsociada.y + 36 + desplazamientoY,
     });
   }
 

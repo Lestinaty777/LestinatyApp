@@ -20,8 +20,6 @@ import {
 } from 'lucide-react-native';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { useRouter } from 'expo-router';
-import { Canvas, Circle, Blur } from '@shopify/react-native-skia';
-import { useSharedValue, useDerivedValue, withRepeat, withTiming, Easing } from 'react-native-reanimated';
 
 import { RecuadroGlass, Texto, PixelartIcon } from '../../../diseno';
 import { hapticSeguro } from '../../../nucleo/dispositivo/haptics';
@@ -55,15 +53,15 @@ function obtenerSaludo(): string {
 function GradienteOverlay() {
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="none">
-      <Svg style={StyleSheet.absoluteFill}>
+      <Svg width="100%" height="100%" style={StyleSheet.absoluteFill}>
         <Defs>
           <LinearGradient id="gradTop" x1="0" y1="0" x2="0" y2="1">
-            <Stop offset="0"   stopColor={D.fondo} stopOpacity="1" />
-            <Stop offset="0.3" stopColor={D.fondo} stopOpacity="0" />
+            <Stop offset="0"     stopColor={D.fondo} stopOpacity="1" />
+            <Stop offset="0.05"  stopColor={D.fondo} stopOpacity="0" />
           </LinearGradient>
           <LinearGradient id="gradBot" x1="0" y1="0" x2="0" y2="1">
-            <Stop offset="0.5" stopColor={D.fondo} stopOpacity="0" />
-            <Stop offset="1"   stopColor={D.fondo} stopOpacity="1" />
+            <Stop offset="0.85"  stopColor={D.fondo} stopOpacity="0" />
+            <Stop offset="1"     stopColor={D.fondo} stopOpacity="1" />
           </LinearGradient>
         </Defs>
         <Rect width="100%" height="100%" fill="url(#gradTop)" />
@@ -73,51 +71,55 @@ function GradienteOverlay() {
   );
 }
 
-// ─── Header ───────────────────────────────────────────────────────────────────
-function HeaderHoy() {
-  return (
-    <View style={s.header}>
-      <View style={s.avatarContenedor}>
-        <RecuadroGlass modo="dark" style={s.avatarGlass}>
-          <Texto style={s.avatarEmoji}>🧙</Texto>
-        </RecuadroGlass>
-      </View>
+// ─── Calendario Mini ────────────────────────────────────────────────────────────
+function CalendarioMini() {
+  const hoy = new Date();
+  const dias = [];
+  const nombres = ['D', 'L', 'M', 'M', 'J', 'V', 'S'];
+  
+  for (let i = -3; i <= 3; i++) {
+    const d = new Date();
+    d.setDate(hoy.getDate() + i);
+    dias.push({
+      letra: nombres[d.getDay()],
+      numero: d.getDate(),
+      esHoy: i === 0
+    });
+  }
 
-      <View style={s.headerStats}>
-        <RecuadroGlass modo="dark" style={s.statPill}>
-          <Gem color={D.gema} size={14} fill={D.gema} />
-          <Texto style={[s.statTexto, { color: D.gema }]}>235</Texto>
-        </RecuadroGlass>
-        <RecuadroGlass modo="dark" style={s.statPill}>
-          <Flame color={D.racha} size={14} fill={D.racha} />
-          <Texto style={[s.statTexto, { color: D.racha }]}>3</Texto>
-        </RecuadroGlass>
-      </View>
-    </View>
+  return (
+    <RecuadroGlass modo="dark" blur style={s.calendarioMiniContainer}>
+      {dias.map((d, i) => (
+        <View key={i} style={[s.calendarioMiniDia, d.esHoy && s.calendarioMiniDiaHoy]}>
+          <Texto style={[s.calendarioMiniLetra, d.esHoy && s.textoOscuro]}>
+            {d.letra}
+          </Texto>
+          <Texto style={[s.calendarioMiniNumero, d.esHoy && s.textoOscuro]}>
+            {d.numero}
+          </Texto>
+        </View>
+      ))}
+    </RecuadroGlass>
   );
 }
 
-// ─── Saludo ───────────────────────────────────────────────────────────────────
-function SaludoHoy() {
+// ─── Panel Principal (Usuario, Saludo) ─────────────────────────────────────────
+function PanelPrincipal() {
   return (
-    <View style={s.saludoContenedor}>
-      <Texto style={s.saludoTitulo}>{obtenerSaludo()}, Alejandro</Texto>
-      <Texto style={s.saludoSubtitulo}>Aún puedes lograr algo hoy.</Texto>
-    </View>
-  );
-}
-
-// ─── Hero ─────────────────────────────────────────────────────────────────────
-function HeroIlustracion({ ancho }: { ancho: number }) {
-  const alto = ancho * 0.72;
-  return (
-    <View style={[s.heroContenedor, { height: alto }]}>
-      {/* Placeholder — reemplazar con <Image> cuando el asset esté listo */}
-      <View style={s.heroPlaceholder}>
-        <Texto style={s.heroEmoji}>🏯</Texto>
-        <Texto style={s.heroPlaceholderTexto}>Asset isométrico próximamente</Texto>
-      </View>
-      <GradienteOverlay />
+    <View style={s.panelWrapper}>
+      <RecuadroGlass modo="dark" blur style={s.panelGlass}>
+        
+        {/* Textos Principales */}
+        <View style={s.panelTextos}>
+          <Texto style={s.panelTitulo} numberOfLines={1} adjustsFontSizeToFit>
+            {obtenerSaludo()}, Alejandro
+          </Texto>
+          <Texto style={s.panelSubtitulo} numberOfLines={1} adjustsFontSizeToFit>
+            Aún puedes lograr algo hoy.
+          </Texto>
+        </View>
+        
+      </RecuadroGlass>
     </View>
   );
 }
@@ -169,39 +171,6 @@ const CATEGORIAS: DatoCategoria[] = [
   { id: 'metas',   label: 'Metas',   progreso: '0/1', color: D.morado,  colorOscuro: D.moradoOscuro,  icono: require('../../../../assets/ilustraciones/hoy/icons/metas.png'), ruta: '/metas-lista' },
 ];
 
-function EfectoAurora({ color }: { color: string }) {
-  const progreso = useSharedValue(0);
-
-  useEffect(() => {
-    // Velocidad ligeramente aleatoria para que cada card se vea distinto
-    const duration = 4000 + Math.random() * 2000;
-    progreso.value = withRepeat(
-      withTiming(2 * Math.PI, { duration, easing: Easing.linear }),
-      -1,
-      false
-    );
-  }, []);
-
-  const cx1 = useDerivedValue(() => 60 + Math.cos(progreso.value) * 40);
-  const cy1 = useDerivedValue(() => 60 + Math.sin(progreso.value) * 20);
-
-  const cx2 = useDerivedValue(() => 100 + Math.sin(progreso.value * 0.8) * 50);
-  const cy2 = useDerivedValue(() => 70 + Math.cos(progreso.value * 0.8) * 20);
-
-  return (
-    <View style={StyleSheet.absoluteFill} pointerEvents="none">
-      <Canvas style={{ flex: 1 }}>
-        <Circle cx={cx1} cy={cy1} r={45} color={color} opacity={0.35}>
-          <Blur blur={25} />
-        </Circle>
-        <Circle cx={cx2} cy={cy2} r={55} color={color} opacity={0.25}>
-          <Blur blur={30} />
-        </Circle>
-      </Canvas>
-    </View>
-  );
-}
-
 function CardCategoria({ dato }: { dato: DatoCategoria }) {
   const router = useRouter();
   
@@ -214,9 +183,6 @@ function CardCategoria({ dato }: { dato: DatoCategoria }) {
       ]}
     >
       <RecuadroGlass modo="dark" blur style={s.cardCategoria}>
-        {/* Efecto animado tipo Aurora boreal */}
-        <EfectoAurora color={dato.color} />
-
         <View style={s.cardCategoriaIconoWrap}>
           <Image source={dato.icono} style={{ width: 52, height: 52 }} resizeMode="contain" />
         </View>
@@ -270,19 +236,48 @@ export function HoyPantalla() {
 
   return (
     <View style={s.raiz}>
+      {/* Fondo fijo de pantalla completa */}
+      <Image 
+        source={require('../../../../assets/ilustraciones/hoy/fondos/fondo.png')}
+        style={StyleSheet.absoluteFill}
+        resizeMode="cover"
+      />
+      <View style={StyleSheet.absoluteFill} pointerEvents="none">
+        <GradienteOverlay />
+      </View>
+
       <ScrollView
         contentContainerStyle={{
-          paddingTop: insets.top + 12,
           paddingBottom: insets.bottom + 100,
         }}
         showsVerticalScrollIndicator={false}
       >
-        <HeaderHoy />
-        <SaludoHoy />
-        <HeroIlustracion ancho={width} />
-        <CardSenderoActivo />
-        <GridCategorias />
-        <FraseMotivacional />
+        {/* Textos y Panel Principal */}
+        <View style={{ paddingTop: insets.top + 12 }}>
+          <PanelPrincipal />
+          
+          {/* Estadísticas flotantes fuera del panel principal */}
+          <View style={s.statsFlotantesContenedor}>
+            <CalendarioMini />
+            <View style={{ gap: 8 }}>
+              <RecuadroGlass modo="dark" blur style={s.statFlotante}>
+                <Gem color={D.gema} size={14} fill={D.gema} />
+                <Texto style={[s.statFlotanteTexto, { color: D.gema }]}>235 Gemas</Texto>
+              </RecuadroGlass>
+              <RecuadroGlass modo="dark" blur style={s.statFlotante}>
+                <Flame color={D.racha} size={14} fill={D.racha} />
+                <Texto style={[s.statFlotanteTexto, { color: D.racha }]}>3 Días</Texto>
+              </RecuadroGlass>
+            </View>
+          </View>
+        </View>
+
+        {/* Contenido inferior */}
+        <View style={{ marginTop: 24 }}>
+          <CardSenderoActivo />
+          <GridCategorias />
+          <FraseMotivacional />
+        </View>
       </ScrollView>
     </View>
   );
@@ -295,60 +290,78 @@ const s = StyleSheet.create({
     backgroundColor: D.fondo,
   },
 
-  // Header
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    marginBottom: 16,
-  },
-  avatarContenedor: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  avatarGlass: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarEmoji: { fontSize: 20 },
-  headerStats: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  statPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    borderRadius: 20,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-  },
-  statTexto: {
-    fontFamily: 'Montserrat-Bold',
-    fontSize: 13,
-  },
-
-  // Saludo
-  saludoContenedor: {
+  // ─── Panel Principal ──────────────────────────────────────────────────────────
+  panelWrapper: {
     paddingHorizontal: 20,
     marginBottom: 4,
+    zIndex: 10,
   },
-  saludoTitulo: {
+  panelGlass: {
+    padding: 18,
+    borderRadius: 24,
+  },
+  panelTextos: {
+    width: '100%',
+  },
+  panelTitulo: {
     fontFamily: 'MontserratAlternates-Bold',
-    fontSize: 26,
+    fontSize: 24,
     color: D.texto,
-    lineHeight: 32,
-    letterSpacing: -0.5,
+    marginBottom: 4,
   },
-  saludoSubtitulo: {
+  panelSubtitulo: {
     fontFamily: 'Montserrat-Medium',
     fontSize: 14,
     color: D.textoSuave,
-    marginTop: 4,
+  },
+  statsFlotantesContenedor: {
+    paddingHorizontal: 20,
+    marginTop: 8,
+    alignItems: 'flex-start',
+    gap: 8,
+  },
+  statFlotante: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+  },
+  statFlotanteTexto: {
+    fontFamily: 'Montserrat-Bold',
+    fontSize: 12,
+  },
+  calendarioMiniContainer: {
+    flexDirection: 'row',
+    gap: 4,
+    padding: 8,
+    borderRadius: 16,
+    marginBottom: 8,
+  },
+  calendarioMiniDia: {
+    alignItems: 'center',
+    paddingVertical: 6,
+    paddingHorizontal: 4,
+    borderRadius: 10,
+    minWidth: 26,
+  },
+  calendarioMiniDiaHoy: {
+    backgroundColor: '#FFFFFF',
+  },
+  calendarioMiniLetra: {
+    fontFamily: 'Montserrat-Medium',
+    fontSize: 9,
+    color: D.textoSuave,
+    marginBottom: 2,
+  },
+  calendarioMiniNumero: {
+    fontFamily: 'Montserrat-Bold',
+    fontSize: 12,
+    color: D.texto,
+  },
+  textoOscuro: {
+    color: '#0D0F1A',
   },
 
   // Hero
@@ -357,21 +370,9 @@ const s = StyleSheet.create({
     overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'center',
+    marginTop: -80,
     marginBottom: -16,
-  },
-  heroPlaceholder: {
-    flex: 1,
-    width: '100%',
-    backgroundColor: '#0F1220',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-  },
-  heroEmoji: { fontSize: 72 },
-  heroPlaceholderTexto: {
-    fontFamily: 'Montserrat-Medium',
-    fontSize: 12,
-    color: D.textoSuave,
+    zIndex: 1,
   },
 
   // Card Sendero
