@@ -30,6 +30,7 @@ import {
 
 import { RecuadroGlass, Texto } from '../../../diseno';
 import { hapticSeguro } from '../../../nucleo/dispositivo/haptics';
+import { AuroraBoreal } from '../componentes/AuroraBoreal';
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // Paleta de colores del mockup (tema lila / morado claro)
@@ -535,6 +536,7 @@ export function HoyPantalla() {
 
   return (
     <View style={s.raiz}>
+      <AuroraBoreal />
       <ScrollView
         contentContainerStyle={{ paddingBottom: insets.bottom + 100 }}
         showsVerticalScrollIndicator={false}
@@ -591,7 +593,7 @@ const s = StyleSheet.create({
   headerSaludo: {
     fontFamily: 'MontserratAlternates-Medium',
     fontSize: 14,
-    color: C.textoSecundario,
+    color: '#4B4B4B', // Gris carbón no tan oscuro
   },
   headerNombre: {
     fontFamily: 'Montserrat-Bold',
@@ -602,7 +604,7 @@ const s = StyleSheet.create({
   headerFrase: {
     fontFamily: 'MontserratAlternates-Medium',
     fontSize: 8, // Mucho más pequeño
-    color: C.textoTenue,
+    color: '#5A5A5A', // Gris carbón (un pelín más suave para jerarquía)
     marginTop: 4,
     lineHeight: 12,
   },
