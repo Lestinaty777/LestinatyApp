@@ -129,7 +129,13 @@ function HeaderHoy() {
     <View style={s.header}>
       <View style={s.headerIzq}>
         <Texto style={s.headerSaludo}>Hola,</Texto>
-        <Texto style={s.headerNombre}>Alejandro</Texto>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+          <Texto style={s.headerNombre}>Alejandro</Texto>
+          <Image 
+            source={require('../../../../assets/ilustraciones/hoy/icons/saludo.png')}
+            style={{ width: 28, height: 28, resizeMode: 'contain' }}
+          />
+        </View>
         <Texto style={s.headerFrase}>Disciplina hoy, libertad mañana.</Texto>
       </View>
 
@@ -782,7 +788,7 @@ const s = StyleSheet.create({
     paddingBottom: 4,
     marginBottom: 16,
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    alignItems: 'flex-end', // Esto ancla la tarjeta 'Más' abajo junto con las demás
   },
   categoriaCard: {
     width: '15.8%',
@@ -801,7 +807,7 @@ const s = StyleSheet.create({
     height: 40,
     borderRadius: 7,
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'flex-end', // Alinea los assets a la par en la parte inferior
     marginBottom: 1,
   },
   categoriaLabel: {
