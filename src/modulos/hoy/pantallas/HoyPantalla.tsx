@@ -159,75 +159,70 @@ function HeaderHoy() {
   );
 }
 
-// ─── Widget Racha + Ilustración ──────────────────────────────────────────────
-function WidgetRachaIlustracion() {
+// ─── Hero Section (Racha, Nivel, Ilustración) ────────────────────────────────
+function HeroSection() {
   return (
-    <View style={s.rachaIlustracionRow}>
-      {/* Widget racha */}
-      <RecuadroGlass style={s.rachaCard}>
-        <View style={s.rachaTop}>
-          <View style={s.rachaIcono}>
+    <View style={s.heroRow}>
+      {/* Columna Izquierda: Racha y Nivel */}
+      <View style={s.heroColIzq}>
+        <RecuadroGlass style={s.rachaCard}>
+          <View style={s.rachaTop}>
+            <View style={s.rachaIcono}>
+              <Image 
+                source={require('../../../../assets/ilustraciones/hoy/icons/racha.png')}
+                style={{ width: 44, height: 44, resizeMode: 'contain' }}
+              />
+            </View>
+            <View>
+              <Texto style={s.rachaLabel}>Racha actual</Texto>
+              <Texto style={s.rachaDias}>3 Días</Texto>
+            </View>
+          </View>
+          <View style={s.rachaSemana}>
+            {DIAS_SEMANA.map((dia, i) => (
+              <View key={i} style={s.rachaDiaCol}>
+                <Texto style={[s.rachaDiaLetra, i === 3 && s.rachaDiaActivo]}>{dia}</Texto>
+                {RACHA_CHECKS[i] ? (
+                  <View style={s.rachaCheck}>
+                    <Check color="#FFFFFF" size={10} strokeWidth={3} />
+                  </View>
+                ) : (
+                  <View style={s.rachaEmpty} />
+                )}
+              </View>
+            ))}
+          </View>
+        </RecuadroGlass>
+
+        <RecuadroGlass style={s.nivelCard}>
+          <View style={s.nivelIcono}>
             <Image 
-              source={require('../../../../assets/ilustraciones/hoy/icons/racha.png')}
+              source={require('../../../../assets/ilustraciones/hoy/icons/insignia.png')}
               style={{ width: 44, height: 44, resizeMode: 'contain' }}
             />
           </View>
-          <View>
-            <Texto style={s.rachaLabel}>Racha actual</Texto>
-            <Texto style={s.rachaDias}>3 días</Texto>
-          </View>
-        </View>
-        <View style={s.rachaSemana}>
-          {DIAS_SEMANA.map((dia, i) => (
-            <View key={i} style={s.rachaDiaCol}>
-              <Texto style={[s.rachaDiaLetra, i === 3 && s.rachaDiaActivo]}>{dia}</Texto>
-              {RACHA_CHECKS[i] ? (
-                <View style={s.rachaCheck}>
-                  <Check color="#FFFFFF" size={10} strokeWidth={3} />
-                </View>
-              ) : (
-                <View style={s.rachaEmpty} />
-              )}
+          <View style={s.nivelInfo}>
+            <View style={s.nivelTextoRow}>
+              <Texto style={s.nivelLabel}>Nivel 4</Texto>
+              <Texto style={s.nivelXP}>95/120 XP</Texto>
             </View>
-          ))}
-        </View>
-      </RecuadroGlass>
-
-      {/* Ilustración principal */}
-      <View style={s.ilustracionContenedor}>
-        {/* TODO: reemplazar con asset isométrico (árbol de wisteria) */}
-        <Image
-          source={require('../../../../assets/ilustraciones/hoy/fondos/fondo.png')}
-          style={StyleSheet.absoluteFill}
-          resizeMode="cover"
-        />
+            <View style={s.nivelBarraFondo}>
+              <View style={[s.nivelBarraRelleno, { width: '79%' }]} />
+            </View>
+          </View>
+        </RecuadroGlass>
       </View>
-    </View>
-  );
-}
 
-// ─── Barra de Nivel / XP ────────────────────────────────────────────────────
-function BarraNivel() {
-  return (
-    <View style={{ paddingHorizontal: 20 }}>
-      <RecuadroGlass style={s.nivelCard}>
-        {/* Usando asset insignia.png */}
-        <View style={s.nivelIcono}>
-          <Image 
-            source={require('../../../../assets/ilustraciones/hoy/icons/insignia.png')}
-            style={{ width: 44, height: 44, resizeMode: 'contain' }}
+      {/* Columna Derecha: Ilustración cuadrada */}
+      <View style={s.heroColDer}>
+        <View style={s.ilustracionContenedor}>
+          <Image
+            source={require('../../../../assets/ilustraciones/hoy/fondos/fondo.png')}
+            style={{ width: '100%', height: '100%' }}
+            resizeMode="cover"
           />
         </View>
-        <View style={s.nivelInfo}>
-          <View style={s.nivelTextoRow}>
-            <Texto style={s.nivelLabel}>Nivel 4</Texto>
-            <Texto style={s.nivelXP}>95/120 XP</Texto>
-          </View>
-          <View style={s.nivelBarraFondo}>
-            <View style={[s.nivelBarraRelleno, { width: '79%' }]} />
-          </View>
-        </View>
-      </RecuadroGlass>
+      </View>
     </View>
   );
 }
@@ -546,8 +541,7 @@ export function HoyPantalla() {
       >
         <View style={{ paddingTop: insets.top + 32 }}>
           <HeaderHoy />
-          <WidgetRachaIlustracion />
-          <BarraNivel />
+          <HeroSection />
           <GridCategorias />
           <CardSendero />
 
@@ -651,16 +645,26 @@ const s = StyleSheet.create({
     justifyContent: 'center',
   },
 
-  // ─── Racha + Ilustración ────────────────────────────
-  rachaIlustracionRow: {
+  // ─── Hero Section ────────────────────────────
+  heroRow: {
     flexDirection: 'row',
     paddingHorizontal: PH,
     gap: 12,
-    marginBottom: 12,
-    height: 110,
+    marginBottom: 16,
+  },
+  heroColIzq: {
+    width: '45%', // Mantiene el 45% original
+    gap: 12,
+  },
+  heroColDer: {
+    position: 'absolute',
+    right: PH,
+    top: 0,
+    width: '50%',
+    zIndex: -1, // Se asegura de que la imagen quede por debajo de otros elementos interactivos
   },
   rachaCard: {
-    width: '45%',
+    width: '100%',
     backgroundColor: C.glass,
     borderRadius: RADIO,
     padding: 10,
@@ -725,11 +729,12 @@ const s = StyleSheet.create({
     borderColor: '#c8c8c8',
   },
 
-  // ─── Ilustración ────────────────────────────────────
   ilustracionContenedor: {
-    flex: 1,
+    width: '135%', // La hace un 35% más grande que su columna
+    aspectRatio: 1, 
     borderRadius: RADIO,
     overflow: 'hidden',
+    transform: [{ translateX: 15 }], // La empuja hacia la derecha para que se corte con el borde
   },
 
   // ─── Barra Nivel ───────────────────────────────────
@@ -741,8 +746,7 @@ const s = StyleSheet.create({
     borderRadius: 16,
     borderWidth: 1,
     borderColor: C.glassBorde,
-    marginBottom: 16,
-    width: '45%',
+    width: '100%',
   },
   nivelIcono: {
     width: 28,
