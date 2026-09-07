@@ -166,7 +166,7 @@ type DatoCategoria = {
 
 const CATEGORIAS: DatoCategoria[] = [
   { id: 'habitos', label: 'Hábitos', progreso: '1/3', color: D.verde,  colorOscuro: D.verdeOscuro,   icono: require('../../../../assets/ilustraciones/hoy/icons/habitos.png'), ruta: '/habitos'     },
-  { id: 'tareas',  label: 'Tareas',  progreso: '2/4', color: D.naranja, colorOscuro: D.naranjaOscuro, icono: require('../../../../assets/ilustraciones/hoy/icons/taeras.png'), ruta: '/tareas'      },
+  { id: 'tareas',  label: 'Tareas',  progreso: '2/4', color: D.naranja, colorOscuro: D.naranjaOscuro, icono: require('../../../../assets/ilustraciones/hoy/icons/tareas.png'), ruta: '/tareas'      },
   { id: 'rutinas', label: 'Rutinas', progreso: '1/2', color: D.rojo,   colorOscuro: D.rojoOscuro,    icono: require('../../../../assets/ilustraciones/hoy/icons/rutinas.png'), ruta: '/rutinas'     },
   { id: 'metas',   label: 'Metas',   progreso: '0/1', color: D.morado,  colorOscuro: D.moradoOscuro,  icono: require('../../../../assets/ilustraciones/hoy/icons/metas.png'), ruta: '/metas-lista' },
 ];
@@ -230,7 +230,7 @@ function FraseMotivacional() {
 }
 
 // ─── Pantalla ─────────────────────────────────────────────────────────────────
-export function HoyPantalla() {
+export function PanelMetasPantalla() {
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
 

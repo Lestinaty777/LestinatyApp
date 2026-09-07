@@ -1,6 +1,6 @@
 import React from 'react';
-import { HoyPantalla } from './HoyPantalla';
+import { PanelMetasPantalla } from './PanelMetasPantalla';
 
 export function MetasPantalla() {
-  return <HoyPantalla />;
+  return <PanelMetasPantalla />;
 }

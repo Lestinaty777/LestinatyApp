@@ -7,6 +7,7 @@ import { Texto } from '../../../../diseno';
 import { crearTemaMapa, generarMapaProcedural, type CategoriaMapaId } from '../../algoritmo/mapaProcedural';
 import { obtenerAssetBioma, registroBiomas } from '../../algoritmo/registroBiomas';
 import { obtenerNodosMapaMock } from '../../datos/mapaEjercicio.mock';
+import type { EstadoNodoMapa, NodoMapaSendero } from '../../datos/mapaEjercicio.mock';
 import { PixelartIcon } from '../../../../diseno/iconos/PixelartIcon';
 import { CaminoHojasSendero } from './CaminoHojasSendero';
 import { LamparaSendero } from './LamparaSendero';
@@ -81,6 +82,15 @@ export function ContenedorMapaSenderos({ altura, categoriaId, color, enfocado, s
     };
   });
   const nodoSeleccionado = nodos.find((nodo) => nodo.id === seleccionado);
+  const indiceNodoSeleccionado = nodos.findIndex((nodo) => nodo.id === seleccionado);
+  const posicionNodoSeleccionado = indiceNodoSeleccionado >= 0 ? posiciones[indiceNodoSeleccionado] : null;
+  const estadoNodoSeleccionado: EstadoNodoMapa | null = indiceNodoSeleccionado < 0
+    ? null
+    : indiceNodoSeleccionado <= ultimoCompletado
+      ? 'completado'
+      : indiceNodoSeleccionado === indiceNodoActual
+        ? 'activo'
+        : 'bloqueado';
   const desplazamientoTrazo = progresoConexion.interpolate({ inputRange: [0, 1], outputRange: [176, 0] });
 
   if (nodos.length === 0) return null;
@@ -268,76 +278,74 @@ export function ContenedorMapaSenderos({ altura, categoriaId, color, enfocado, s
           return (
             <View key={nodo.id} style={[styles.nodoPosicion, { left: posicion.x - 36, top: posicion.y - 36, zIndex: 20 }]}>
               <NodoSendero Icono={nodo.icono} asentado={asentado} color={color} escalaEscena={escalaEscena} estado={estadoVisual} seleccionado={esSeleccionado} onCompletar={() => completarNodo(indice)} onPress={() => seleccionarNodo(nodo.id, indice)} />
-              {esSeleccionado ? (() => {
-                  const xRelativoPantalla = anchoEscena / 2;
-                  const centroNodoRelativo = 36;
-                  const anchoTooltip = 340;
-                  const leftEtiqueta = xRelativoPantalla - posicion.x - (anchoTooltip / 2) + centroNodoRelativo;
-                  const leftFlechita = centroNodoRelativo - leftEtiqueta - 10;
-                  return (
-                <View style={[styles.etiqueta, { left: leftEtiqueta }]}>
-                  <View style={[styles.tooltipFlechita, { backgroundColor: oscurecer(color, 0.75), position: 'absolute', top: -10, left: leftFlechita }]} />
-                  <View style={{ width: '100%' }}>
-                    <View style={[styles.tooltipCaja, { position: 'absolute', top: 6, left: 0, right: 0, bottom: -6, backgroundColor: oscurecer(color, 0.4), shadowColor: 'transparent' }]} />
-                    <View style={[styles.tooltipCaja, { backgroundColor: oscurecer(color, 0.75), overflow: 'hidden' }]}>
-                      <MosaicoTooltip />
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                      {nodo.icono && (() => { const IconoNodo = nodo.icono; return <IconoNodo color="#FFFFFF" size={20} />; })()}
-                      <Texto style={[styles.etiquetaTitulo, { width: 'auto' }]}>{nodo.titulo}</Texto>
-                    </View>
-                    <Texto style={styles.etiquetaMeta}>{'Lección clave para poner a prueba tus habilidades y avanzar.'}</Texto>
-                    
-                    
-                    <Pressable 
-                      disabled={estadoVisual === 'bloqueado'} 
-                      onPress={() => completarNodo(indice)}
-                      style={({ pressed }) => [styles.botonComenzarContenedor, { marginTop: 14 }]}
-                    >
-                      {({ pressed }) => {
-                        const hundido = pressed || estadoVisual === 'bloqueado';
-                        return (
-                          <View style={{ width: '100%', alignItems: 'center' }}>
-                            {/* Extrusión (Sombra inferior fija) */}
-                            <View style={[styles.botonComenzar, styles.botonComenzarExtrusion, { 
-                               backgroundColor: oscurecer(color, 0.5),
-                               display: estadoVisual === 'bloqueado' ? 'none' : 'flex'
-                            }]} />
-                            
-                            {/* Superficie del botón */}
-                            <View style={[styles.botonComenzar, { 
-                               backgroundColor: estadoVisual === 'bloqueado' ? 'rgba(0,0,0,0.15)' : color,
-                               transform: [{ translateY: hundido ? 4 : 0 }] 
-                            }]}>
-                               {/* Bisel (Brillo superior) */}
-                               <View style={[styles.botonBisel, estadoVisual === 'bloqueado' && { borderColor: 'rgba(255,255,255,0.1)' }]} />
-                               
-                               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                                 <Texto style={[styles.textoBoton, { color: estadoVisual === 'bloqueado' ? 'rgba(255,255,255,0.4)' : '#FFFFFF' }]}>
-                                   {estadoVisual === 'bloqueado' ? 'Bloqueado' : estadoVisual === 'completado' ? 'Repasar' : 'Comenzar'}
-                                 </Texto>
-                                 {estadoVisual === 'completado' && (
-                                   <PixelartIcon name="chevron-right" size={18} color="#FFFFFF" />
-                                 )}
-                               </View>
-                            </View>
-                          </View>
-                        );
-                      }}
-                    </Pressable>
-
-                    
-                    </View>
-                  </View>
-                </View>
-              );})() : null}
             </View>
           );
         })}
+        {nodoSeleccionado && posicionNodoSeleccionado && estadoNodoSeleccionado ? (
+          <TooltipNodoSeleccionado
+            anchoEscena={anchoEscena}
+            color={color}
+            estado={estadoNodoSeleccionado}
+            nodo={nodoSeleccionado}
+            posicion={posicionNodoSeleccionado}
+            onCompletar={() => completarNodo(indiceNodoSeleccionado)}
+          />
+        ) : null}
       </View>
       </View></TouchableWithoutFeedback>
 
       {nodoSeleccionado ? <View accessibilityElementsHidden style={styles.lectorOculto}><Texto>{nodoSeleccionado.titulo}</Texto></View> : null}
     </ScrollView>
+  );
+}
+
+function TooltipNodoSeleccionado({ anchoEscena, color, estado, nodo, posicion, onCompletar }: {
+  anchoEscena: number;
+  color: string;
+  estado: EstadoNodoMapa;
+  nodo: NodoMapaSendero;
+  posicion: { x: number; y: number };
+  onCompletar: () => void;
+}) {
+  const anchoTooltip = 340;
+  const izquierdaTooltip = anchoEscena / 2 - anchoTooltip / 2;
+  const izquierdaFlecha = posicion.x - izquierdaTooltip - 10;
+  const IconoNodo = nodo.icono;
+
+  return (
+    <View pointerEvents="box-none" style={[styles.etiqueta, { left: izquierdaTooltip, top: posicion.y + 40 }]}>
+      <View style={[styles.tooltipFlechita, { backgroundColor: oscurecer(color, 0.75), left: izquierdaFlecha, position: 'absolute', top: -10 }]} />
+      <View style={{ width: '100%' }}>
+        <View style={[styles.tooltipCaja, { backgroundColor: oscurecer(color, 0.4), bottom: -6, left: 0, position: 'absolute', right: 0, shadowColor: 'transparent', top: 6 }]} />
+        <View style={[styles.tooltipCaja, { backgroundColor: oscurecer(color, 0.75), overflow: 'hidden' }]}>
+          <MosaicoTooltip />
+          <View style={{ alignItems: 'center', flexDirection: 'row', gap: 8 }}>
+            <IconoNodo color="#FFFFFF" size={20} />
+            <Texto style={[styles.etiquetaTitulo, { width: 'auto' }]}>{nodo.titulo}</Texto>
+          </View>
+          <Texto style={styles.etiquetaMeta}>Lección clave para poner a prueba tus habilidades y avanzar.</Texto>
+          <Pressable disabled={estado === 'bloqueado'} onPress={onCompletar} style={[styles.botonComenzarContenedor, { marginTop: 14 }]}>
+            {({ pressed }) => {
+              const hundido = pressed || estado === 'bloqueado';
+              return (
+                <View style={{ alignItems: 'center', width: '100%' }}>
+                  <View style={[styles.botonComenzar, styles.botonComenzarExtrusion, { backgroundColor: oscurecer(color, 0.5), display: estado === 'bloqueado' ? 'none' : 'flex' }]} />
+                  <View style={[styles.botonComenzar, { backgroundColor: estado === 'bloqueado' ? 'rgba(0,0,0,0.15)' : color, transform: [{ translateY: hundido ? 4 : 0 }] }]}>
+                    <View style={[styles.botonBisel, estado === 'bloqueado' && { borderColor: 'rgba(255,255,255,0.1)' }]} />
+                    <View style={{ alignItems: 'center', flexDirection: 'row', gap: 6 }}>
+                      <Texto style={[styles.textoBoton, { color: estado === 'bloqueado' ? 'rgba(255,255,255,0.4)' : '#FFFFFF' }]}>
+                        {estado === 'bloqueado' ? 'Bloqueado' : estado === 'completado' ? 'Repasar' : 'Comenzar'}
+                      </Texto>
+                      {estado === 'completado' ? <PixelartIcon color="#FFFFFF" name="chevron-right" size={18} /> : null}
+                    </View>
+                  </View>
+                </View>
+              );
+            }}
+          </Pressable>
+        </View>
+      </View>
+    </View>
   );
 }
 
@@ -443,11 +451,12 @@ const styles = StyleSheet.create({
   },
   etiqueta: {
     alignItems: 'center',
+    elevation: 30,
     position: 'absolute',
     top: 76,
     width: 340,
     maxWidth: 400,
-    zIndex: 10,
+    zIndex: 1000,
   },
   etiquetaMeta: {
     fontFamily: 'MontserratAlternates-Medium',

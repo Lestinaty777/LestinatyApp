@@ -1314,7 +1314,7 @@ function CarpetaGiganteSenderos({ alturaMapaEnfoque, alturaObjetivoEnfoque, cate
     if (cerrandoSubcategorias) return;
     hapticSeguro('seleccion');
     // Never trigger this component's state updates inside the parent setter.
-    // React may execute that setter while SenderosPantalla is rendering.
+    // React may execute that setter while BibliotecaSenderosPantalla is rendering.
     if (categoriaAbierta === id) {
       setSubcategoriaActiva('');
       cierreTimeout.current = setTimeout(() => {
@@ -1521,7 +1521,7 @@ function CarpetaGiganteSenderos({ alturaMapaEnfoque, alturaObjetivoEnfoque, cate
   );
 }
 
-export function SenderosPantalla() {
+export function BibliotecaSenderosPantalla() {
   const { height, width } = useWindowDimensions();
   const pantallaSenderosVisible = usePathname().includes('/senderos');
   

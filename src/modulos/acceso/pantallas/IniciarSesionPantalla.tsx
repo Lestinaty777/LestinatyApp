@@ -66,7 +66,7 @@ export function IniciarSesionPantalla() {
     try {
       const usuario = await iniciarSesionConEmail(resultado.data);
       definirUsuario(usuario);
-      router.replace('/(principal)/inicio');
+      router.replace('/(principal)/hoy');
     } catch (error) {
       setError('root', {
         message: error instanceof Error ? error.message : t('validation.invalidCredentials'),

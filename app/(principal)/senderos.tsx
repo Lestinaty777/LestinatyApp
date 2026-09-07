@@ -1,3 +1,3 @@
-import { SenderosPantalla } from '../../src/modulos/senderos/pantallas/SenderosPantalla';
+import { MapaSenderosPantalla } from '../../src/modulos/senderos/pantallas/MapaSenderosPantalla';
 
-export default SenderosPantalla;
+export default MapaSenderosPantalla;

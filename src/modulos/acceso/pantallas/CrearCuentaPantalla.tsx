@@ -121,7 +121,7 @@ export function CrearCuentaPantalla() {
       }
 
       definirUsuario(usuario);
-      router.replace('/(principal)/inicio');
+      router.replace('/(principal)/hoy');
     } catch (error) {
       if (esErrorEmailSinConfirmar(error)) {
         setEmailPendiente(resultado.data.email);
@@ -167,7 +167,7 @@ export function CrearCuentaPantalla() {
     try {
       const usuario = await verificarRegistroConOtp(emailPendiente, resultado.data.token);
       definirUsuario(usuario);
-      router.replace('/(principal)/inicio');
+      router.replace('/(principal)/hoy');
     } catch (error) {
       setErrorOtp('root', {
         message: error instanceof Error ? error.message : t('validation.invalidEmailCode'),

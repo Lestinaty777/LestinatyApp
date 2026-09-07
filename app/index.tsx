@@ -14,5 +14,5 @@ export default function Entrada() {
     return <Redirect href="/(publico)/iniciar-sesion" />;
   }
 
-  return <Redirect href="/(principal)/inicio" />;
+  return <Redirect href="/(principal)/hoy" />;
 }

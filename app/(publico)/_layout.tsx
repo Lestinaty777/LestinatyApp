@@ -11,7 +11,7 @@ export default function LayoutPublico() {
   }
 
   if (usuario) {
-    return <Redirect href="/(principal)/inicio" />;
+    return <Redirect href="/(principal)/hoy" />;
   }
 
   return (

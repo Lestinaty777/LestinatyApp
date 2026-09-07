@@ -1,5 +1,5 @@
 export const rutas = {
-  inicio: '/(principal)/inicio',
+  hoy: '/(principal)/hoy',
   senderos: '/(principal)/senderos',
   tienda: '/(principal)/tienda',
   metas: '/(principal)/metas',

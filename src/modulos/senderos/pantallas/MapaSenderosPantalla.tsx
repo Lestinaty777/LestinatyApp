@@ -30,7 +30,7 @@ const GemaMorada = ({ focused, size = 20 }: { focused: boolean, size?: number })
   </Svg>
 );
 
-export function InicioPantalla() {
+export function MapaSenderosPantalla() {
 
   const [activeMenu, setActiveMenu] = React.useState<'none' | 'courses' | 'calendar' | 'sparkle' | 'store'>('none');
   const animMenuState = useSharedValue(0);

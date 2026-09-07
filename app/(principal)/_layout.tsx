@@ -48,9 +48,9 @@ export default function LayoutPrincipal() {
       }}
     >
       <Tabs.Screen
-        name="inicio"
+        name="hoy"
         options={{
-          tabBarIcon: ({ focused }) => <IconoTab focused={focused} nombre={iconosTabs.inicio} />,
+          tabBarIcon: ({ focused }) => <IconoTab focused={focused} nombre={iconosTabs.hoy} />,
           title: 'Hoy',
         }}
       />

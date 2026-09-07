@@ -173,7 +173,7 @@ export function BotonTiendaContextual(props: any) {
 
 export const iconosTabs: Record<string, NombreIconoTab> = {
   direccion: 'ruta',
-  inicio: 'hoy',
+  hoy: 'hoy',
   metas: 'metas',
   senderos: 'senderos',
   tienda: 'aby',
