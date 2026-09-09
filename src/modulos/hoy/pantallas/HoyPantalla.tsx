@@ -149,11 +149,12 @@ function HeaderHoy() {
           <Texto style={[s.statTexto, { color: '#6D28D9' }]}>235</Texto>
         </View>
 
-        {/* TODO: reemplazar con avatar del usuario */}
-        <View style={s.avatar}>
-          <View style={s.avatarPlaceholder}>
-            <Texto style={{ fontSize: 22 }}>🧙</Texto>
-          </View>
+        {/* Notificaciones */}
+        <View style={[s.statPill, { paddingHorizontal: 10, paddingVertical: 10, borderRadius: 22 }]}>
+          <Image 
+            source={require('../../../../assets/ilustraciones/hoy/icons/notificaciones.png')}
+            style={{ width: 30, height: 30, resizeMode: 'contain' }}
+          />
         </View>
       </View>
     </View>
@@ -294,8 +295,8 @@ function CardSendero() {
         {/* Usando el asset de estudio.png en lugar del ícono genérico */}
         <View style={s.senderoIcono}>
           <Image 
-            source={require('../../../../assets/ilustraciones/hoy/icons/estudio.png')} 
-            style={{ width: 64, height: 64, resizeMode: 'contain' }} 
+            source={require('../../../../assets/ilustraciones/Aby/aby.png')} 
+            style={{ width: 90, height: 90, resizeMode: 'contain' }} 
           />
         </View>
         <View style={s.senderoInfo}>
@@ -492,12 +493,14 @@ function CardQuote() {
   return (
     <RecuadroGlass style={s.quoteCard}>
       <View style={s.quoteAvatar}>
-        {/* TODO: reemplazar con avatar */}
-        <Smile color={C.morado} size={16} />
+        <Image 
+          source={require('../../../../assets/ilustraciones/Aby/aby.png')}
+          style={{ width: '100%', height: '100%', resizeMode: 'cover' }}
+        />
       </View>
       <View style={s.quoteTextoContainer}>
         <Texto style={s.quoteTexto}>
-          "La motivación te hace empezar, el hábito te mantiene en marcha."
+          "¡Sigue adelante, tú puedes!"
         </Texto>
       </View>
     </RecuadroGlass>
@@ -536,12 +539,12 @@ export function HoyPantalla() {
 
   return (
     <View style={s.raiz}>
-      <AuroraBoreal />
       <ScrollView
         contentContainerStyle={{ paddingBottom: insets.bottom + 100 }}
         showsVerticalScrollIndicator={false}
       >
-        <View style={{ paddingTop: insets.top + 32 }}>
+        <View style={{ paddingTop: insets.top + 32, flex: 1 }}>
+          <AuroraBoreal />
           <HeaderHoy />
           <HeroSection />
           <GridCategorias />
@@ -895,7 +898,7 @@ const s = StyleSheet.create({
   senderoBarraRelleno: {
     height: 4,
     borderRadius: 2,
-    backgroundColor: C.naranja,
+    backgroundColor: '#9333EA', // Morado saturado
   },
   senderoPlay: {
     width: 44,
@@ -1114,6 +1117,7 @@ const s = StyleSheet.create({
     backgroundColor: C.moradoSuave,
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden',
   },
   quoteTextoContainer: {
     flex: 1,

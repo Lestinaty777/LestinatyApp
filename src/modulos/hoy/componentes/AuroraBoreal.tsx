@@ -16,7 +16,13 @@ import {
   useDerivedValue,
 } from 'react-native-reanimated';
 
-export function AuroraBoreal() {
+export type TemaAurora = 'morado' | 'amarillo' | 'verde';
+
+interface Props {
+  tema?: TemaAurora;
+}
+
+export function AuroraBoreal({ tema = 'morado' }: Props) {
   const p1 = useSharedValue(0);
   const p2 = useSharedValue(0);
   const p3 = useSharedValue(0);
@@ -60,6 +66,24 @@ export function AuroraBoreal() {
   const path2 = "M -50 40 Q 50 180, 200 120 T 350 250";
   const path3 = "M -30 100 Q 100 240, 280 150 T 420 300";
 
+  const colores = tema === 'amarillo'
+    ? {
+        l1: ['rgba(245, 158, 11, 0.8)', 'rgba(252, 211, 77, 0.2)'],
+        l2: ['rgba(251, 191, 36, 0.7)', 'rgba(253, 230, 138, 0.1)'],
+        l3: ['rgba(217, 119, 6, 0.6)', 'rgba(245, 158, 11, 0)'],
+      }
+    : tema === 'verde'
+      ? {
+          l1: ['rgba(34, 197, 94, 0.8)', 'rgba(134, 239, 172, 0.2)'],
+          l2: ['rgba(74, 222, 128, 0.7)', 'rgba(187, 247, 208, 0.1)'],
+          l3: ['rgba(21, 128, 61, 0.6)', 'rgba(74, 222, 128, 0)'],
+        }
+      : {
+        l1: ['rgba(124, 58, 237, 0.8)', 'rgba(192, 132, 252, 0.2)'],
+        l2: ['rgba(167, 139, 250, 0.7)', 'rgba(216, 180, 254, 0.1)'],
+        l3: ['rgba(109, 40, 217, 0.6)', 'rgba(139, 92, 246, 0)'],
+      };
+
   return (
     <Canvas style={StyleSheet.absoluteFill} pointerEvents="none">
       <Group>
@@ -76,7 +100,7 @@ export function AuroraBoreal() {
             <LinearGradient
               start={vec(0, 0)}
               end={vec(300, 200)}
-              colors={['rgba(124, 58, 237, 0.8)', 'rgba(192, 132, 252, 0.2)']}
+              colors={colores.l1}
             />
           </Path>
         </Group>
@@ -92,7 +116,7 @@ export function AuroraBoreal() {
             <LinearGradient
               start={vec(0, 50)}
               end={vec(250, 250)}
-              colors={['rgba(167, 139, 250, 0.7)', 'rgba(216, 180, 254, 0.1)']}
+              colors={colores.l2}
             />
           </Path>
         </Group>
@@ -108,7 +132,8 @@ export function AuroraBoreal() {
             <LinearGradient
               start={vec(0, 100)}
               end={vec(350, 300)}
-              colors={['rgba(109, 40, 217, 0.6)', 'rgba(139, 92, 246, 0)']}
+              colors={colores.l3}
+
             />
           </Path>
         </Group>

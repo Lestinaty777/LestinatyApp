@@ -1,130 +1,57 @@
-import React, { useState } from 'react';
-import { View, ScrollView, TouchableOpacity, StyleSheet, Pressable } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
-import { ChevronLeft, Droplets, Sun, Leaf, Check } from 'lucide-react-native';
+import { Check, ChevronLeft, Leaf, Plus, Sparkles } from 'lucide-react-native';
+import { Image, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useState } from 'react';
+
 import { RecuadroGlass, Texto } from '../../../diseno';
 import { hapticSeguro } from '../../../nucleo/dispositivo/haptics';
+import { AuroraBoreal } from '../../hoy/componentes/AuroraBoreal';
+import { crearHabito, obtenerPanelHabitos } from '../habitos.servicio';
+import { CrearHabitoModal } from '../componentes/CrearHabitoModal';
+import { crearModeloFilaHoy } from '../presentacion';
+import { CategoriaHabitosId, HabitoResumen } from '../tipos';
 
-const D = {
-  fondo:       '#0D0F1A',
-  texto:       '#F0F2FF',
-  textoSuave:  '#8A90B4',
-  verde:       '#4ADE80',
-  verdeOscuro: '#166534',
-} as const;
-
-type Filtro = 'hoy' | 'semana' | 'todos';
-const FILTROS: { key: Filtro; label: string }[] = [
-  { key: 'hoy',    label: 'Hoy'    },
-  { key: 'semana', label: 'Semana' },
-  { key: 'todos',  label: 'Todos'  },
-];
-
-const HABITOS = [
-  { id: '1', Icono: Droplets, colorIcono: '#60A5FA', titulo: 'Beber agua',    sub: '1/1 · ¡Listo!', completado: true  },
-  { id: '2', Icono: Sun,      colorIcono: '#FCD34D', titulo: 'Planear el día', sub: '0/1',           completado: false },
-  { id: '3', Icono: Leaf,     colorIcono: D.verde,   titulo: 'Meditación',     sub: '0/1',           completado: false },
+const C = { fondo: '#F3EEFA', texto: '#1A1335', tenue: '#7B7494', verde: '#22C55E', morado: '#7C3AED', barra: '#E7E1F1', glass: 'rgba(255,255,255,0.72)', glassBorde: 'rgba(255,255,255,0.85)' };
+const categoriasInicio: { id: CategoriaHabitosId; etiqueta: string; color: string; icono: number }[] = [
+  { id: 'hoy', etiqueta: 'Hoy', color: '#22C55E', icono: require('../../../../assets/ilustraciones/hoy/icons/habitos.png') },
+  { id: 'patrones', etiqueta: 'Patrones', color: '#8B5CF6', icono: require('../../../../assets/ilustraciones/hoy/icons/patrones.png') },
+  { id: 'conexiones', etiqueta: 'Conexiones', color: '#3B82F6', icono: require('../../../../assets/ilustraciones/hoy/icons/conexiones.png') },
+  { id: 'riesgo', etiqueta: 'Riesgo', color: '#EF4444', icono: require('../../../../assets/ilustraciones/hoy/icons/riesgo.png') },
+  { id: 'impacto', etiqueta: 'Impacto', color: '#EC4899', icono: require('../../../../assets/ilustraciones/hoy/icons/impacto.png') },
 ];
 
 export function HabitosPantalla() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const [filtro, setFiltro] = useState<Filtro>('hoy');
+  const cliente = useQueryClient();
+  const [crearAbierto, setCrearAbierto] = useState(false);
+  const consulta = useQuery({ queryKey: ['habitos', 'panel'], queryFn: () => obtenerPanelHabitos() });
+  const crear = useMutation({ mutationFn: crearHabito, onSuccess: () => { setCrearAbierto(false); cliente.invalidateQueries({ queryKey: ['habitos', 'panel'] }); } });
+  const habitos = consulta.data?.hoy.datos ?? [];
+  const completados = habitos.filter((habito) => habito.completado).length;
+  const porcentaje = habitos.length ? Math.round(completados * 100 / habitos.length) : 0;
 
-  return (
-    <View style={[s.raiz, { paddingTop: insets.top }]}>
-      {/* Header */}
-      <View style={s.header}>
-        <Pressable onPress={() => { hapticSeguro('seleccion'); router.back(); }} hitSlop={12} style={s.backBtn}>
-          <ChevronLeft size={26} color={D.texto} />
-        </Pressable>
-        <View style={s.headerCentro}>
-          <Texto style={s.titulo}>Hábitos</Texto>
-          <Texto style={s.subtitulo}>Pequeñas acciones, grandes cambios.</Texto>
-        </View>
-        <View style={s.backBtn} />
-      </View>
-
-      <ScrollView contentContainerStyle={[s.scroll, { paddingBottom: insets.bottom + 100 }]} showsVerticalScrollIndicator={false}>
-        {/* Hero */}
-        <View style={[s.hero, { backgroundColor: '#0A1A0F' }]}>
-          <Texto style={s.heroEmoji}>🌿</Texto>
-          <Texto style={s.heroLabel}>Asset isométrico — Hábitos</Texto>
-        </View>
-
-        {/* Filtros */}
-        <View style={s.filtrosRow}>
-          {FILTROS.map(({ key, label }) => (
-            <TouchableOpacity key={key} onPress={() => { hapticSeguro('seleccion'); setFiltro(key); }} activeOpacity={0.8} style={{ flex: 1 }}>
-              <RecuadroGlass modo="dark" blur style={[s.pill, filtro === key && { backgroundColor: D.verde }]}>
-                <Texto style={[s.pillTexto, { color: filtro === key ? D.fondo : D.textoSuave }]}>{label}</Texto>
-              </RecuadroGlass>
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        {/* Progreso */}
-        <Texto style={s.progresoLabel}>1/3 completados</Texto>
-        <View style={s.barraFondo}>
-          <View style={[s.barraRelleno, { width: '33%', backgroundColor: D.verde }]} />
-        </View>
-
-        {/* Lista */}
-        <View style={s.lista}>
-          {HABITOS.map(({ id, Icono, colorIcono, titulo, sub, completado }) => (
-            <TouchableOpacity key={id} onPress={() => hapticSeguro('seleccion')} activeOpacity={0.8}>
-              <RecuadroGlass modo="dark" blur style={s.itemCard}>
-                <View style={[s.itemIconoBg, { backgroundColor: `${colorIcono}26` }]}>
-                  <Icono size={22} color={colorIcono} />
-                </View>
-                <View style={s.itemTextos}>
-                  <Texto style={s.itemTitulo}>{titulo}</Texto>
-                  <Texto style={s.itemSub}>{sub}</Texto>
-                </View>
-                <View style={[s.estadoCirculo, completado && s.estadoCompleto]}>
-                  {completado && <Check size={13} color="#FFF" strokeWidth={3} />}
-                </View>
-              </RecuadroGlass>
-            </TouchableOpacity>
-          ))}
-        </View>
-      </ScrollView>
-
-      {/* FAB */}
-      <TouchableOpacity onPress={() => hapticSeguro('accion')} activeOpacity={0.85}
-        style={[s.fab, { bottom: insets.bottom + 24 }]}>
-        <Texto style={[s.fabTexto, { color: D.verde }]}>+ Añadir hábito</Texto>
-      </TouchableOpacity>
+  return <View style={s.raiz}><ScrollView contentContainerStyle={[s.contenido, { paddingBottom: insets.bottom + 100 }]} showsVerticalScrollIndicator={false}>
+    <View style={[s.superiorInicio, { paddingTop: insets.top + 32 }]}>
+      <AuroraBoreal tema="verde" />
+      <View style={s.headerInicio}><View style={s.headerTitulo}><RecuadroGlass style={s.volverGlass}><Pressable accessibilityLabel="Volver a Inicio" hitSlop={12} onPress={() => router.replace('/hoy')} style={s.chevronInicio}><ChevronLeft color={C.texto} size={25} strokeWidth={2.7} /></Pressable></RecuadroGlass><View style={s.headerIzq}><View style={s.nombreFila}><Image source={require('../../../../assets/ilustraciones/hoy/icons/habitos.png')} style={s.saludoIcono} /><Texto style={s.headerNombre}>Hábitos</Texto></View><Texto style={s.headerFrase}>Pequeñas acciones, grandes cambios.</Texto></View></View><View style={s.headerDer}><RecuadroGlass style={s.statPill}><Image source={require('../../../../assets/ilustraciones/hoy/icons/gemas.png')} style={s.gemaIcono} /><Texto style={s.statTexto}>235</Texto></RecuadroGlass><RecuadroGlass style={s.notificacion}><Image source={require('../../../../assets/ilustraciones/hoy/icons/notificaciones.png')} style={s.notificacionIcono} /></RecuadroGlass></View></View>
+      <View style={s.heroInicio}><View style={s.heroColIzq}><RecuadroGlass style={s.rachaCard}><View style={s.rachaTop}><Image source={require('../../../../assets/ilustraciones/hoy/icons/racha.png')} style={s.rachaIcono} /><View><Texto style={s.rachaLabel}>Racha actual</Texto><Texto style={s.rachaDias}>{completados ? `${completados} días` : '—'}</Texto></View></View><View style={s.semanaChecks}>{['L','M','M','J','V','S','D'].map((dia, indice) => <View key={`${dia}-${indice}`} style={s.diaCol}><Texto style={s.diaLetra}>{dia}</Texto><View style={[s.diaCheck, indice < completados && s.diaCheckListo]}>{indice < completados && <Check color="#FFFFFF" size={9} strokeWidth={3} />}</View></View>)}</View></RecuadroGlass><RecuadroGlass style={s.nivelCard}><Image source={require('../../../../assets/ilustraciones/hoy/icons/insignia.png')} style={s.insignia} /><View style={s.nivelInfo}><View style={s.nivelTexto}><Texto style={s.nivelLabel}>Hábitos hoy</Texto><Texto style={s.nivelXP}>{completados}/{habitos.length}</Texto></View><Progreso porcentaje={porcentaje} color={C.morado} /></View></RecuadroGlass></View><View accessibilityLabel="Espacio reservado para ilustración de hábitos" style={s.ilustracionInicio} /></View>
+      <View style={s.categoriasInicio}>{categoriasInicio.map((categoria) => <Pressable key={categoria.id} onPress={() => { hapticSeguro('seleccion'); router.push(`/habitos/categoria/${categoria.id}`); }} style={s.categoriaCard}><RecuadroGlass style={[s.categoriaGlass, categoria.id === 'hoy' && s.categoriaActiva]}><View style={s.categoriaIcono}><Image source={categoria.icono} style={s.categoriaAsset} /></View><Texto style={s.categoriaLabel}>{categoria.etiqueta}</Texto>{categoria.id === 'hoy' && <View style={[s.lineaTabActiva, { backgroundColor: categoria.color }]} />}</RecuadroGlass></Pressable>)}</View>
     </View>
-  );
+    <RecuadroGlass style={s.panel}><View style={s.tituloFila}><View style={s.tituloConIcono}><Leaf color={C.verde} size={21} /><Texto style={s.titulo}>Hoy</Texto></View><Texto style={s.contador}>{completados}/{habitos.length} completados</Texto></View>
+      {consulta.isLoading && <Texto style={s.estado}>Cargando tus hábitos…</Texto>}
+      {consulta.isError && <Pressable onPress={() => consulta.refetch()}><Texto style={s.error}>No pudimos cargar tus hábitos. Toca para reintentar.</Texto></Pressable>}
+      {!consulta.isLoading && !consulta.isError && habitos.length === 0 && <Texto style={s.estado}>Crea tu primer hábito para comenzar.</Texto>}
+      {habitos.map((habito) => <FilaHabito habito={habito} key={habito.id} onPress={() => router.push(`/habitos/${habito.id}`)} />)}
+      <Pressable onPress={() => { hapticSeguro('seleccion'); setCrearAbierto(true); }} style={s.nuevo}><Plus color="#FFFFFF" size={23} /><Texto style={s.nuevoTexto}>Nuevo hábito</Texto></Pressable>
+    </RecuadroGlass>
+    <CrearHabitoModal guardando={crear.isPending} onCerrar={() => setCrearAbierto(false)} onCrear={(input) => crear.mutate(input)} visible={crearAbierto} />
+  </ScrollView></View>;
 }
 
-const s = StyleSheet.create({
-  raiz:          { flex: 1, backgroundColor: D.fondo },
-  header:        { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12 },
-  backBtn:       { width: 40, alignItems: 'flex-start' },
-  headerCentro:  { flex: 1, alignItems: 'center' },
-  titulo:        { fontFamily: 'MontserratAlternates-Bold', fontSize: 22, color: D.texto },
-  subtitulo:     { fontFamily: 'Montserrat-Medium', fontSize: 13, color: D.textoSuave, marginTop: 2 },
-  scroll:        { paddingHorizontal: 16, paddingTop: 8 },
-  hero:          { height: 200, borderRadius: 16, alignItems: 'center', justifyContent: 'center', marginBottom: 20, gap: 8 },
-  heroEmoji:     { fontSize: 72 },
-  heroLabel:     { fontFamily: 'Montserrat-Medium', fontSize: 13, color: D.textoSuave },
-  filtrosRow:    { flexDirection: 'row', gap: 10, marginBottom: 20 },
-  pill:          { paddingHorizontal: 18, paddingVertical: 8, borderRadius: 50, alignItems: 'center' },
-  pillTexto:     { fontFamily: 'Montserrat-Bold', fontSize: 13 },
-  progresoLabel: { fontFamily: 'Montserrat-Medium', fontSize: 13, color: D.textoSuave, marginBottom: 8 },
-  barraFondo:    { height: 4, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.1)', overflow: 'hidden', marginBottom: 20 },
-  barraRelleno:  { height: 4, borderRadius: 2 },
-  lista:         { gap: 12 },
-  itemCard:      { flexDirection: 'row', alignItems: 'center', padding: 16, borderRadius: 16, gap: 14 },
-  itemIconoBg:   { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  itemTextos:    { flex: 1 },
-  itemTitulo:    { fontFamily: 'Montserrat-Bold', fontSize: 15, color: D.texto },
-  itemSub:       { fontFamily: 'Montserrat-Medium', fontSize: 12, color: D.textoSuave, marginTop: 2 },
-  estadoCirculo: { width: 28, height: 28, borderRadius: 14, borderWidth: 2, borderColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' },
-  estadoCompleto:{ backgroundColor: D.verde, borderColor: D.verde },
-  fab:           { position: 'absolute', left: 20, right: 20, height: 52, borderRadius: 16, backgroundColor: D.verdeOscuro, borderWidth: 1, borderColor: 'rgba(74,222,128,0.4)', alignItems: 'center', justifyContent: 'center' },
-  fabTexto:      { fontFamily: 'MontserratAlternates-Bold', fontSize: 15 },
-});
+function Progreso({ porcentaje, color }: { porcentaje: number; color: string }) { return <View style={s.barraFondo}><View style={[s.barra, { width: `${porcentaje}%`, backgroundColor: color }]} /></View>; }
+function FilaHabito({ habito, onPress }: { habito: HabitoResumen; onPress: () => void }) { const modelo = crearModeloFilaHoy(habito); return <Pressable onPress={onPress} style={s.habito}><View style={[s.icono, { backgroundColor: `${habito.color}18` }]}><Sparkles color={habito.color} size={23} /></View><View style={s.info}><Texto style={s.nombreHabito}>{habito.titulo}</Texto><Texto style={s.meta}>{modelo.texto}</Texto><Progreso porcentaje={modelo.progreso} color={habito.color} /></View><View style={[s.check, habito.completado && s.checkListo]} /></Pressable>; }
+
+const s = StyleSheet.create({ raiz: { flex: 1, backgroundColor: C.fondo }, contenido: { gap: 16, paddingBottom: 0 }, superiorInicio: { gap: 0 }, volverGlass: { backgroundColor: C.glass, borderColor: C.glassBorde, borderRadius: 18, borderWidth: 1, marginRight: 5 }, chevronInicio: { alignItems: 'center', height: 34, justifyContent: 'center', width: 34 }, headerInicio: { alignItems: 'flex-start', flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16, paddingHorizontal: 20 }, headerTitulo: { alignItems: 'center', flexDirection: 'row', width: '50%' }, headerIzq: { flex: 1 }, headerSaludo: { color: '#4B4B4B', fontFamily: 'MontserratAlternates-Medium', fontSize: 14 }, nombreFila: { alignItems: 'center', flexDirection: 'row', gap: 6 }, headerNombre: { color: C.texto, fontFamily: 'Montserrat-Bold', fontSize: 22, lineHeight: 26 }, saludoIcono: { height: 28, resizeMode: 'contain', width: 28 }, headerFrase: { color: '#5A5A5A', fontFamily: 'MontserratAlternates-Medium', fontSize: 8, lineHeight: 12, marginTop: 4 }, headerDer: { alignItems: 'center', flexDirection: 'row', gap: 8, marginTop: -16 }, statPill: { alignItems: 'center', borderColor: 'rgba(255,255,255,.85)', borderRadius: 20, borderWidth: 1, flexDirection: 'row', gap: 4, paddingHorizontal: 10, paddingVertical: 6 }, gemaIcono: { height: 22, resizeMode: 'contain', width: 22 }, statTexto: { color: '#6D28D9', fontFamily: 'Montserrat-Bold', fontSize: 14 }, notificacion: { borderRadius: 22, paddingHorizontal: 10, paddingVertical: 10 }, notificacionIcono: { height: 30, resizeMode: 'contain', width: 30 }, heroInicio: { flexDirection: 'row', gap: 12, marginBottom: 16, paddingHorizontal: 20 }, heroColIzq: { gap: 12, width: '45%' }, rachaCard: { backgroundColor: C.glass, borderColor: C.glassBorde, borderRadius: 20, borderWidth: 1, justifyContent: 'space-between', padding: 10 }, rachaTop: { alignItems: 'center', flexDirection: 'row', gap: 8 }, rachaIcono: { height: 44, resizeMode: 'contain', width: 44 }, rachaLabel: { color: C.tenue, fontFamily: 'MontserratAlternates-Medium', fontSize: 10 }, rachaDias: { color: '#1A1A1A', fontFamily: 'Montserrat-Bold', fontSize: 20, marginTop: -2 }, semanaChecks: { alignItems: 'flex-end', flexDirection: 'row', justifyContent: 'space-between' }, diaCol: { alignItems: 'center', gap: 4 }, diaLetra: { color: C.tenue, fontFamily: 'MontserratAlternates-Medium', fontSize: 8 }, diaCheck: { backgroundColor: '#FFFFFF', borderColor: '#C8C8C8', borderRadius: 7, borderWidth: 1.5, height: 14, width: 14 }, diaCheckListo: { alignItems: 'center', backgroundColor: '#F97316', borderColor: '#F97316', justifyContent: 'center' }, nivelCard: { alignItems: 'center', borderColor: 'rgba(255,255,255,.85)', borderRadius: 16, borderWidth: 1, flexDirection: 'row', padding: 10 }, insignia: { height: 28, marginRight: 10, resizeMode: 'contain', width: 28 }, nivelInfo: { flex: 1 }, nivelTexto: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' }, nivelLabel: { color: C.texto, fontFamily: 'Montserrat-Bold', fontSize: 11 }, nivelXP: { color: C.tenue, fontFamily: 'MontserratAlternates-Medium', fontSize: 9 }, ilustracionInicio: { flex: 1, marginLeft: 12 }, categoriasInicio: { alignItems: 'flex-end', flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16, paddingHorizontal: 20 }, categoriaCard: { width: '18.7%' }, categoriaGlass: { alignItems: 'center', borderColor: 'rgba(255,255,255,.85)', borderRadius: 12, borderWidth: 1, paddingHorizontal: 2, paddingVertical: 6 }, categoriaActiva: { borderColor: C.verde, borderWidth: 1.5 }, categoriaIcono: { alignItems: 'center', height: 40, justifyContent: 'flex-end', marginBottom: 1, width: 40 }, categoriaAsset: { height: 38, resizeMode: 'contain', width: 38 }, categoriaLabel: { color: C.texto, fontFamily: 'Montserrat-Bold', fontSize: 8, lineHeight: 10, textAlign: 'center' }, lineaTabActiva: { borderRadius: 99, height: 3, marginTop: 5, width: '52%' }, barraFondo: { backgroundColor: C.barra, borderRadius: 9, height: 6, marginTop: 7, overflow: 'hidden' }, barra: { borderRadius: 9, height: '100%' }, panel: { borderRadius: 22, marginHorizontal: 16, padding: 15 }, tituloFila: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }, tituloConIcono: { alignItems: 'center', flexDirection: 'row', gap: 7 }, titulo: { color: C.texto, fontFamily: 'Montserrat-Bold', fontSize: 22 }, contador: { color: C.tenue, fontFamily: 'Montserrat-Bold', fontSize: 12 }, estado: { color: C.tenue, paddingVertical: 18, textAlign: 'center' }, error: { color: '#DC2626', paddingVertical: 18, textAlign: 'center' }, habito: { alignItems: 'center', borderBottomColor: 'rgba(124,58,237,.12)', borderBottomWidth: StyleSheet.hairlineWidth, flexDirection: 'row', gap: 10, paddingVertical: 11 }, icono: { alignItems: 'center', borderRadius: 13, height: 44, justifyContent: 'center', width: 44 }, info: { flex: 1 }, nombreHabito: { color: C.texto, fontFamily: 'Montserrat-Bold', fontSize: 15 }, meta: { color: C.tenue, fontSize: 12 }, check: { borderColor: '#B7B0C9', borderRadius: 14, borderWidth: 2, height: 27, width: 27 }, checkListo: { backgroundColor: C.verde, borderColor: C.verde }, nuevo: { alignItems: 'center', backgroundColor: C.morado, borderRadius: 17, flexDirection: 'row', gap: 8, justifyContent: 'center', marginTop: 14, paddingVertical: 14 }, nuevoTexto: { color: '#FFFFFF', fontFamily: 'Montserrat-Bold', fontSize: 16 } });

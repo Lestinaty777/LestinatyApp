@@ -21,6 +21,12 @@
 | `sendero_conexiones` | Relaciones dirigidas entre nodos del mismo sendero. | Lectura solo dentro de senderos propios. |
 | `sendero_cofres` | Cofre de recompensa asociado a la evaluación de cada sección. | Lectura solo dentro de senderos propios. |
 | `aby_propuestas` | Propuestas privadas y confirmables generadas por Aby. | Lectura solo de propuestas propias. |
+| `habitos_items` | Hábito configurable de una persona. | Administración únicamente de la propia fila. |
+| `habitos_planes` | Meta y frecuencia versionadas de un hábito. | Administración por la cadena hábito propio. |
+| `habitos_registros` | Acumulado diario de progreso. | Administración únicamente de la propia fila. |
+| `habitos_contextos` | Contextos personales opcionales para detectar patrones. | Administración únicamente de la propia fila. |
+| `habitos_registro_contextos` | Contextos asociados a un registro. | Administración por la cadena registro propio. |
+| `habitos_conexiones` | Relación dirigida entre hábitos propios. | Administración únicamente de la propia fila. |
 
 La estructura, invariantes y flujo de creación de estas tablas se documentan en `supabase/senderos.md`.
 
@@ -36,6 +42,10 @@ La estructura, invariantes y flujo de creación de estas tablas se documentan en
 | `crear_solicitud_privacidad(...)` | Solicitud creada o activa existente. | Idempotente por usuario y tipo activo. |
 | `registrar_dispositivo_notificacion(...)` | Dispositivo registrado o transferido. | Transferencia atómica por suscripción OneSignal. |
 | `desvincular_dispositivo_notificacion(...)` | `true` solo si el dispositivo aún era propio. | Un logout tardío no afecta al nuevo usuario. |
+| `crear_habito(...)` | Hábito y primer plan creados atómicamente. | Deriva la persona desde `auth.uid()`. |
+| `registrar_progreso_habito(...)` | Registro diario creado o actualizado. | Idempotente por hábito y fecha local. |
+| `actualizar_plan_habito(...)` | Cierra el plan vigente y crea la nueva versión. | Conserva las métricas históricas. |
+| `obtener_panel_habitos(...)` | Panel de Hoy, Patrones, Conexiones, Riesgo e Impacto. | Devuelve estados reales o de observación. |
 
 ## Reglas
 

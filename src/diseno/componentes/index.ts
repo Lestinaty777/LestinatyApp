@@ -12,3 +12,4 @@ export { Texto } from './Texto';
 export * from './Nodo';
 
 export * from './BarraProgresoLiquida';
+export { TabChanger } from './TabChanger';

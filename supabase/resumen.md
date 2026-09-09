@@ -44,6 +44,7 @@ privacidad  -> datos sensibles, auditoria y funciones privilegiadas
 | 07 | Pendiente | Lecciones, intentos, dominio, repaso y evaluaciones. |
 | 08 | Pendiente | Hoy, agenda y cola de notificaciones. |
 | 09 | Pendiente | Aby, plantillas, cofres y entitlements futuros. |
+| 07 | `20260909_07_habitos_nucleo.sql` | Hábitos, planes versionados, registros, contextos, conexiones y RPC analítica. |
 
 ## Estado remoto verificado
 
