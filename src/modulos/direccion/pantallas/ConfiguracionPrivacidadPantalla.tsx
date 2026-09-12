@@ -1,18 +1,27 @@
 import { router } from 'expo-router';
 import { Bell, CheckCircle2, ChevronRight, Download, FileText, KeyRound, LogOut, PencilLine, RefreshCw, Settings2, ShieldCheck, Trash2, UserRound } from 'lucide-react-native';
 import { ComponentType, ReactNode, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Animated, KeyboardAvoidingView, Linking, Platform, Pressable, ScrollView, StyleSheet, Switch, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { ActivityIndicator, Alert, Animated, Image, KeyboardAvoidingView, Linking, Platform, Pressable, ScrollView, StyleSheet, Switch, View } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Boton, CampoTexto, RecuadroGlass, Texto, colores, espaciado } from '../../../diseno';
-import { cerrarSesion, recuperarAcceso } from '../../acceso/acceso.servicio';
+import { cerrarSesion, limpiarSesionLocal, recuperarAcceso } from '../../acceso/acceso.servicio';
 import { actualizarPerfil, actualizarPermisosDatos, actualizarPreferenciaNotificacion, cargarConfiguracion, crearSolicitudPrivacidad } from '../../configuracion/configuracion.servicio';
 import { etiquetaSolicitudActiva, formatearFechaConfiguracion, nombreDocumentoLegal } from '../../configuracion/configuracion.presentacion';
 import { ConfiguracionUsuario, PermisosDatos, TipoSolicitudPrivacidad } from '../../configuracion/configuracion.tipos';
 import { hapticSeguro } from '../../../nucleo/dispositivo/haptics';
+import { AuroraBoreal } from '../../hoy/componentes/AuroraBoreal';
 
 type LlavePermiso = keyof PermisosDatos;
 type Icono = ComponentType<{ color?: string; size?: number; strokeWidth?: number }>;
+type CategoriaConfiguracion = 'cuenta' | 'avisos' | 'privacidad' | 'seguridad';
+
+const categoriasConfiguracion: Array<{ id: CategoriaConfiguracion; icono: number; titulo: string }> = [
+  { id: 'cuenta', icono: require('../../../../assets/ilustraciones/configuracion/iconos/cuenta-grafito.png'), titulo: 'Cuenta' },
+  { id: 'avisos', icono: require('../../../../assets/ilustraciones/configuracion/iconos/avisos-grafito.png'), titulo: 'Avisos' },
+  { id: 'privacidad', icono: require('../../../../assets/ilustraciones/configuracion/iconos/privacidad-grafito.png'), titulo: 'Privacidad' },
+  { id: 'seguridad', icono: require('../../../../assets/ilustraciones/configuracion/iconos/ajustes-grafito.png'), titulo: 'Seguridad' },
+];
 
 const permisosVisuales: Array<{ descripcion: string; llave: LlavePermiso; titulo: string }> = [
   { descripcion: 'Aby usa tu avance y dificultades para proponerte ayuda más útil.', llave: 'permiteContextoAby', titulo: 'Contexto de aprendizaje' },
@@ -43,6 +52,7 @@ export function ConfiguracionPrivacidadPantalla() {
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [mutaciones, setMutaciones] = useState<Record<string, boolean>>({});
+  const [categoriaActiva, setCategoriaActiva] = useState<CategoriaConfiguracion>('cuenta');
   const entrada = useRef(new Animated.Value(0)).current;
 
   const cargar = async () => {
@@ -166,24 +176,36 @@ export function ConfiguracionPrivacidadPantalla() {
     })() },
   ]);
 
+  const iniciarDeNuevo = async () => {
+    try {
+      await limpiarSesionLocal();
+    } finally {
+      router.replace('/(publico)/iniciar-sesion');
+    }
+  };
+
   if (cargando) return <EstadoCentrado cargando />;
-  if (error || !configuracion) return <EstadoCentrado error={error} onPress={() => void cargar()} />;
+  if (error || !configuracion) return <EstadoCentrado error={error} onIniciarSesion={() => void iniciarDeNuevo()} onPress={() => void cargar()} />;
 
   const aceptadas = new Set(configuracion.aceptaciones.map((aceptacion) => aceptacion.id));
   const estiloEntrada = { opacity: entrada, transform: [{ translateY: entrada.interpolate({ inputRange: [0, 1], outputRange: [14, 0] }) }] };
 
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.raiz}>
+    <SafeAreaView edges={['top']} style={styles.raiz}><KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.contenedorSeguro}>
+      <View pointerEvents="none" style={styles.aurora}><AuroraBoreal tema="grafito" /></View>
       <ScrollView contentContainerStyle={[styles.scroll, { paddingBottom: insets.bottom + 44 }]} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
         <Animated.View style={estiloEntrada}>
           <View style={styles.hero}>
-            <View style={styles.iconoHero}><Settings2 color={colores.primarioTexto} size={23} /></View>
+            <Image source={require('../../../../assets/ilustraciones/configuracion/arbol-geometrico-grafito.png')} style={styles.ilustracionHero} />
+            <View style={styles.iconoHero}><Image source={require('../../../../assets/ilustraciones/configuracion/iconos/ajustes-grafito.png')} style={styles.iconoHeroImagen} /></View>
             <Texto style={styles.sobreTitulo}>ESPACIO PERSONAL</Texto>
             <Texto style={styles.titulo}>Configuración</Texto>
-            <Texto style={styles.descripcion}>Decide cómo aprende Aby contigo, cuándo avisarte y cómo gestionar tus datos.</Texto>
+            <Texto style={styles.descripcion}>Personaliza tu espacio, tus avisos y la forma en que Lestinaty protege tus datos.</Texto>
           </View>
 
-          <Seccion etiqueta="CUENTA">
+          <View style={styles.categoriasConfiguracion}>{categoriasConfiguracion.map((categoria) => <Pressable key={categoria.id} onPress={() => { hapticSeguro('seleccion'); setCategoriaActiva(categoria.id); }} style={styles.categoriaConfiguracion}><RecuadroGlass style={[styles.categoriaGlass, categoriaActiva === categoria.id && styles.categoriaActiva]}><Image source={categoria.icono} style={styles.categoriaIcono} /><Texto style={styles.categoriaTexto}>{categoria.titulo}</Texto>{categoriaActiva === categoria.id && <View style={styles.lineaCategoria} />}</RecuadroGlass></Pressable>)}</View>
+
+          {categoriaActiva === 'cuenta' && <Seccion etiqueta="CUENTA">
             <RecuadroGlass blur intensity={36} style={styles.tarjeta}>
               <Fila icono={<UserRound color={colores.primarioTexto} size={19} />} subtitulo={configuracion.email} titulo="Tu cuenta" />
               <Divisor />
@@ -198,20 +220,11 @@ export function ConfiguracionPrivacidadPantalla() {
               <Divisor />
               <FilaPresionable peligro icono={<LogOut color={colores.error} size={19} />} onPress={cerrar} titulo={ocupado('sesion') ? 'Cerrando sesión...' : 'Cerrar sesión'} />
             </RecuadroGlass>
-          </Seccion>
+          </Seccion>}
 
-          <Seccion ayuda="Puedes cambiar estos permisos cuando quieras. La revocación aplica al uso futuro de tus datos." etiqueta="ABY Y TUS DATOS">
+          {categoriaActiva === 'privacidad' && <><Seccion ayuda="Puedes cambiar estos permisos cuando quieras. La revocación aplica al uso futuro de tus datos." etiqueta="ABY Y TUS DATOS">
             <RecuadroGlass blur intensity={36} style={styles.tarjeta}>
               {permisosVisuales.map((permiso, indice) => <View key={permiso.llave}>{indice > 0 ? <Divisor /> : null}<FilaToggle descripcion={permiso.descripcion} disabled={ocupado(permiso.llave)} onValueChange={(valor) => void alternarPermiso(permiso.llave, valor)} titulo={permiso.titulo} valor={configuracion.permisos[permiso.llave]} /></View>)}
-            </RecuadroGlass>
-          </Seccion>
-
-          <Seccion ayuda="Los permisos del sistema se gestionan desde tu dispositivo." etiqueta="AVISOS">
-            <RecuadroGlass blur intensity={36} style={styles.tarjeta}>
-              <FilaPresionable icono={<Settings2 color={colores.textoSecundario} size={19} />} onPress={() => void Linking.openSettings()} titulo="Ajustes del dispositivo" />
-              <Divisor />
-              {configuracion.preferenciasNotificacion.map((aviso, indice) => <View key={aviso.codigo}>{indice > 0 ? <Divisor /> : null}<FilaToggle descripcion={aviso.descripcion} disabled={ocupado(aviso.codigo)} onValueChange={(valor) => void alternarAviso(aviso.codigo, valor)} titulo={tituloAviso(aviso.codigo)} valor={aviso.habilitada} /></View>)}
-              {configuracion.preferenciasNotificacion.length === 0 ? <Fila icono={<Bell color={colores.textoSecundario} size={19} />} subtitulo="Aparecerán cuando programes tus primeros repasos." titulo="Aún no hay avisos disponibles" /> : null}
             </RecuadroGlass>
           </Seccion>
 
@@ -223,9 +236,20 @@ export function ConfiguracionPrivacidadPantalla() {
               <Divisor />
               <AccionDatos peligro icono={Trash2} onPress={() => confirmarSolicitud('eliminacion')} solicitud={configuracion.solicitudes.find((item) => item.tipo === 'eliminacion')} titulo="Eliminar mi cuenta" />
             </RecuadroGlass>
-          </Seccion>
+          </Seccion></>}
 
-          <Seccion etiqueta="LEGAL">
+          {categoriaActiva === 'avisos' && <Seccion ayuda="Los permisos del sistema se gestionan desde tu dispositivo." etiqueta="AVISOS">
+            <RecuadroGlass blur intensity={36} style={styles.tarjeta}>
+              <FilaPresionable icono={<Settings2 color={colores.textoSecundario} size={19} />} onPress={() => void Linking.openSettings()} titulo="Ajustes del dispositivo" />
+              <Divisor />
+              {configuracion.preferenciasNotificacion.map((aviso, indice) => <View key={aviso.codigo}>{indice > 0 ? <Divisor /> : null}<FilaToggle descripcion={aviso.descripcion} disabled={ocupado(aviso.codigo)} onValueChange={(valor) => void alternarAviso(aviso.codigo, valor)} titulo={tituloAviso(aviso.codigo)} valor={aviso.habilitada} /></View>)}
+              {configuracion.preferenciasNotificacion.length === 0 ? <Fila icono={<Bell color={colores.textoSecundario} size={19} />} subtitulo="Aparecerán cuando programes tus primeros repasos." titulo="Aún no hay avisos disponibles" /> : null}
+            </RecuadroGlass>
+          </Seccion>}
+
+          {categoriaActiva === 'seguridad' && <><Seccion etiqueta="SEGURIDAD">
+            <RecuadroGlass blur intensity={36} style={styles.tarjeta}><FilaPresionable icono={<KeyRound color={colores.textoSecundario} size={19} />} onPress={() => void cambiarContrasena()} titulo="Cambiar contraseña" /><Divisor /><FilaPresionable peligro icono={<LogOut color={colores.error} size={19} />} onPress={cerrar} titulo={ocupado('sesion') ? 'Cerrando sesión...' : 'Cerrar sesión'} /></RecuadroGlass>
+          </Seccion><Seccion etiqueta="LEGAL">
             <RecuadroGlass blur intensity={36} style={styles.tarjeta}>
               {configuracion.documentos.map((documento, indice) => {
                 const aceptacion = configuracion.aceptaciones.find((item) => item.id === documento.id);
@@ -233,15 +257,16 @@ export function ConfiguracionPrivacidadPantalla() {
               })}
               {configuracion.documentos.length === 0 ? <Fila icono={<FileText color={colores.textoSecundario} size={19} />} subtitulo="Aquí aparecerán las versiones vigentes." titulo="Documentos en preparación" /> : null}
             </RecuadroGlass>
-          </Seccion>
+          </Seccion></>}
         </Animated.View>
       </ScrollView>
-    </KeyboardAvoidingView>
+    </KeyboardAvoidingView></SafeAreaView>
   );
 }
 
-function EstadoCentrado({ cargando = false, error, onPress }: { cargando?: boolean; error?: string | null; onPress?: () => void }) {
-  return <View style={[styles.raiz, styles.centrado]}>{cargando ? <ActivityIndicator color={colores.primario} size="large" /> : <ShieldCheck color={colores.error} size={40} />}<Texto style={styles.tituloEstado}>{cargando ? 'Preparando tu configuración' : 'No pudimos abrir configuración'}</Texto>{error ? <Texto style={styles.errorEstado}>{error}</Texto> : null}{onPress ? <Boton iconoIzquierda={RefreshCw} onPress={onPress} variante="secundario">Reintentar</Boton> : null}</View>;
+function EstadoCentrado({ cargando = false, error, onIniciarSesion, onPress }: { cargando?: boolean; error?: string | null; onIniciarSesion?: () => void; onPress?: () => void }) {
+  if (!cargando && onIniciarSesion) return <View style={[styles.raiz, styles.recuperacionRaiz]}><View pointerEvents="none" style={styles.recuperacionAurora}><AuroraBoreal tema="grafito" /></View><View style={styles.recuperacionContenido}><RecuadroGlass blur intensity={38} style={styles.recuperacionGlass}><Image source={require('../../../../assets/ilustraciones/configuracion/iconos/privacidad-grafito.png')} style={styles.recuperacionIcono} /><Texto style={styles.recuperacionSobreTitulo}>SESION SEGURA</Texto><Texto style={styles.recuperacionTitulo}>Tu sesión necesita atención</Texto><Texto style={styles.recuperacionTexto}>Para proteger tu espacio, necesitamos que vuelvas a iniciar sesión. Tus hábitos y datos siguen guardados.</Texto><Boton iconoIzquierda={LogOut} onPress={onIniciarSesion} variante="sendero">Iniciar sesión</Boton><Pressable onPress={onPress} style={styles.recuperacionSecundaria}><RefreshCw color={colores.textoSecundario} size={16} /><Texto style={styles.recuperacionSecundariaTexto}>Intentar de nuevo</Texto></Pressable></RecuadroGlass></View></View>;
+  return <View style={[styles.raiz, styles.centrado]}>{cargando ? <ActivityIndicator color={colores.primario} size="large" /> : <ShieldCheck color={colores.error} size={40} />}<Texto style={styles.tituloEstado}>{cargando ? 'Preparando tu configuración' : 'No pudimos abrir configuración'}</Texto>{error ? <Texto style={styles.errorEstado}>{error}</Texto> : null}{onPress ? <Boton iconoIzquierda={RefreshCw} onPress={onPress} variante="secundario">Reintentar</Boton> : null}{onIniciarSesion ? <Boton iconoIzquierda={LogOut} onPress={onIniciarSesion} variante="sendero">Iniciar sesión</Boton> : null}</View>;
 }
 
 function Seccion({ ayuda, children, etiqueta }: { ayuda?: string; children: ReactNode; etiqueta: string }) {
@@ -269,10 +294,28 @@ function AccionDatos({ icono: Icono, onPress, peligro = false, solicitud, titulo
 }
 
 const styles = StyleSheet.create({
+  categoriasConfiguracion: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 24 },
+  categoriaActiva: { backgroundColor: 'rgba(255,255,255,0.94)' },
+  categoriaConfiguracion: { width: '23.3%' },
+  categoriaGlass: { alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.68)', borderColor: 'rgba(255,255,255,0.88)', borderRadius: 14, borderWidth: 1, minHeight: 82, paddingHorizontal: 3, paddingVertical: 8 },
+  categoriaIcono: { height: 41, resizeMode: 'contain', width: 41 },
+  categoriaTexto: { color: colores.texto, fontFamily: 'Montserrat-Bold', fontSize: 9, marginTop: 2, textAlign: 'center' },
+  aurora: { height: 260, left: 0, opacity: 0.72, position: 'absolute', right: 0, top: 0 },
+  recuperacionAurora: { height: 310, left: 0, opacity: 0.78, position: 'absolute', right: 0, top: 0 },
+  recuperacionContenido: { flex: 1, justifyContent: 'center', paddingHorizontal: 24 },
+  recuperacionGlass: { alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.78)', borderColor: 'rgba(255,255,255,0.94)', borderRadius: 30, borderWidth: 1, padding: 26 },
+  recuperacionIcono: { height: 104, marginBottom: 9, resizeMode: 'contain', width: 104 },
+  recuperacionRaiz: { backgroundColor: '#F3EEFA', flex: 1 },
+  recuperacionSobreTitulo: { color: '#667085', fontFamily: 'MontserratAlternates-Bold', fontSize: 10, letterSpacing: 1.8, marginTop: 4 },
+  recuperacionSecundaria: { alignItems: 'center', flexDirection: 'row', gap: 7, marginTop: 20, padding: 8 },
+  recuperacionSecundariaTexto: { color: colores.textoSecundario, fontFamily: 'Montserrat-Bold', fontSize: 12 },
+  recuperacionTexto: { color: colores.textoSecundario, fontFamily: 'Montserrat-Medium', fontSize: 13, lineHeight: 20, marginBottom: 22, marginTop: 8, textAlign: 'center' },
+  recuperacionTitulo: { color: colores.texto, fontFamily: 'Montserrat-Bold', fontSize: 24, lineHeight: 30, marginTop: 6, textAlign: 'center' },
   ayuda: { color: colores.textoSecundario, fontFamily: 'Montserrat-Medium', fontSize: 12, lineHeight: 18, marginTop: 9, paddingHorizontal: 5 },
   bloquePerfil: { gap: 14, padding: espaciado.lg },
   centrado: { alignItems: 'center', justifyContent: 'center', padding: espaciado.xl },
-  descripcion: { color: colores.textoSecundario, fontFamily: 'Montserrat-Medium', fontSize: 14, lineHeight: 21, marginTop: 9, maxWidth: 330 },
+  contenedorSeguro: { flex: 1 },
+  descripcion: { color: colores.textoSecundario, fontFamily: 'Montserrat-Medium', fontSize: 12, lineHeight: 18, marginTop: 9, maxWidth: '52%' },
   deshabilitado: { opacity: 0.52 },
   divisor: { backgroundColor: 'rgba(40,48,42,0.08)', height: StyleSheet.hairlineWidth, marginHorizontal: espaciado.lg },
   errorEstado: { color: colores.textoSecundario, fontFamily: 'Montserrat-Medium', lineHeight: 20, marginBottom: espaciado.lg, marginTop: 8, textAlign: 'center' },
@@ -280,8 +323,11 @@ const styles = StyleSheet.create({
   etiqueta: { color: colores.textoSecundario, fontFamily: 'MontserratAlternates-Bold', fontSize: 10, letterSpacing: 1.6, marginBottom: 10, marginLeft: 5 },
   fila: { alignItems: 'center', flexDirection: 'row', gap: 12, minHeight: 64, paddingHorizontal: espaciado.lg, paddingVertical: 13 },
   filaToggle: { alignItems: 'center', flexDirection: 'row', gap: 12, minHeight: 78, paddingHorizontal: espaciado.lg, paddingVertical: 14 },
-  hero: { marginBottom: 30, paddingTop: 24 },
-  iconoHero: { alignItems: 'center', backgroundColor: colores.primarioSuave, borderRadius: 14, height: 44, justifyContent: 'center', width: 44 },
+  hero: { marginBottom: 22, minHeight: 222, overflow: 'visible', paddingTop: 24 },
+  iconoHero: { alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.72)', borderRadius: 18, height: 54, justifyContent: 'center', width: 54 },
+  iconoHeroImagen: { height: 43, resizeMode: 'contain', width: 43 },
+  ilustracionHero: { height: 252, opacity: 0.72, position: 'absolute', resizeMode: 'contain', right: -54, top: 0, transform: [{ translateX: 15 }], width: 252 },
+  lineaCategoria: { backgroundColor: '#3E4654', borderRadius: 99, height: 3, marginTop: 6, width: '56%' },
   peligro: { color: colores.error },
   presionado: { opacity: 0.65 },
   raiz: { backgroundColor: colores.fondo, flex: 1 },
@@ -291,7 +337,7 @@ const styles = StyleSheet.create({
   subtituloFila: { color: colores.textoSecundario, fontFamily: 'Montserrat-Medium', fontSize: 12, lineHeight: 17, marginTop: 3 },
   tarjeta: { backgroundColor: 'rgba(255,255,255,0.68)', borderColor: 'rgba(255,255,255,0.8)', borderRadius: 22, borderWidth: 1 },
   textosFila: { flex: 1 },
-  titulo: { color: colores.texto, fontFamily: 'Montserrat-Bold', fontSize: 31, lineHeight: 38, marginTop: 3 },
+  titulo: { color: colores.texto, fontFamily: 'Montserrat-Bold', fontSize: 28, lineHeight: 34, marginTop: 3, maxWidth: '54%' },
   tituloEstado: { color: colores.texto, fontFamily: 'Montserrat-Bold', fontSize: 21, marginTop: 14 },
   tituloFila: { color: colores.texto, fontFamily: 'MontserratAlternates-Bold', fontSize: 14, lineHeight: 19 },
 });

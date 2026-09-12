@@ -1,5 +1,5 @@
 import { ComponentType, PropsWithChildren, ReactNode } from 'react';
-import { Pressable, StyleProp, StyleSheet, Text, TextStyle, ViewStyle } from 'react-native';
+import { Pressable, StyleProp, StyleSheet, Text, TextStyle, View, ViewStyle } from 'react-native';
 
 import { bordes } from '../fundamentos/bordes';
 import { colores } from '../fundamentos/colores';
@@ -12,9 +12,10 @@ type IconoBoton = ComponentType<{
   strokeWidth?: number;
 }>;
 
-type VarianteBoton = 'primario' | 'secundario' | 'ghost' | 'peligro';
+type VarianteBoton = 'primario' | 'secundario' | 'ghost' | 'peligro' | 'sendero';
 
 type BotonProps = PropsWithChildren<{
+  color?: string;
   disabled?: boolean;
   iconoDerecha?: IconoBoton;
   iconoIzquierda?: IconoBoton;
@@ -29,6 +30,7 @@ type BotonProps = PropsWithChildren<{
 
 export function Boton({
   children,
+  color = colores.primario,
   disabled = false,
   iconoDerecha: IconoDerecha,
   iconoIzquierda: IconoIzquierda,
@@ -40,6 +42,9 @@ export function Boton({
   textStyle,
   variante = 'primario',
 }: BotonProps) {
+  if (variante === 'sendero') {
+    return <BotonSendero color={color} disabled={disabled} iconoIzquierda={IconoIzquierda} iconoSize={iconoSize} iconoStrokeWidth={iconoStrokeWidth} onPress={onPress} style={style}>{children}</BotonSendero>;
+  }
   const esPrimario = variante === 'primario' || variante === 'peligro';
   const colorIcono = esPrimario ? colores.superficie : variante === 'ghost' ? colores.acento : colores.texto;
   const desplazamientoPresionado = variante === 'primario' || variante === 'peligro' ? 6 : 3;
@@ -76,6 +81,31 @@ export function Boton({
       {rightSlot ?? (IconoDerecha ? <IconoDerecha color={colorIcono} size={iconoSize} strokeWidth={iconoStrokeWidth} /> : null)}
     </Pressable>
   );
+}
+
+function BotonSendero({ children, color, disabled, iconoIzquierda: IconoIzquierda, iconoSize, iconoStrokeWidth, onPress, style }: Pick<BotonProps, 'children' | 'disabled' | 'iconoIzquierda' | 'iconoSize' | 'iconoStrokeWidth' | 'onPress' | 'style'> & { color: string }) {
+  const manejarPress = () => { hapticSeguro('accion'); onPress?.(); };
+  const colorBase = disabled ? 'rgba(0,0,0,0.15)' : color;
+  return (
+    <Pressable disabled={disabled} onPress={manejarPress} style={[styles.senderoContenedor, style]}>
+      {({ pressed }) => (
+        <View style={styles.senderoAncho}>
+          <View style={[styles.senderoCara, styles.senderoExtrusion, { backgroundColor: oscurecer(color, 0.5), display: disabled ? 'none' : 'flex' }]} />
+          <View style={[styles.senderoCara, { backgroundColor: colorBase, transform: [{ translateY: pressed || disabled ? 4 : 0 }] }]}>
+            <View style={[styles.senderoBisel, disabled && { borderColor: 'rgba(255,255,255,0.1)' }]} />
+            {IconoIzquierda ? <IconoIzquierda color={disabled ? 'rgba(255,255,255,0.4)' : '#FFFFFF'} size={iconoSize} strokeWidth={iconoStrokeWidth} /> : null}
+            <Text style={[styles.textoSendero, { color: disabled ? 'rgba(255,255,255,0.4)' : '#FFFFFF' }]}>{children}</Text>
+          </View>
+        </View>
+      )}
+    </Pressable>
+  );
+}
+
+function oscurecer(color: string, factor: number) {
+  const valores = color.replace('#', '').match(/.{2}/g);
+  if (!valores) return color;
+  return `#${valores.map((valor) => Math.round(parseInt(valor, 16) * factor).toString(16).padStart(2, '0')).join('')}`;
 }
 
 const styles = StyleSheet.create({
@@ -149,5 +179,44 @@ const styles = StyleSheet.create({
   },
   texto_peligro: {
     color: colores.superficie,
+  },
+  senderoContenedor: {
+    alignItems: 'center',
+    height: 44,
+    width: '100%',
+  },
+  senderoAncho: {
+    alignItems: 'center',
+    height: 44,
+    width: '100%',
+  },
+  senderoCara: {
+    alignItems: 'center',
+    borderRadius: 14,
+    flexDirection: 'row',
+    gap: 6,
+    height: 40,
+    justifyContent: 'center',
+    position: 'absolute',
+    top: 0,
+    width: '100%',
+  },
+  senderoExtrusion: {
+    top: 4,
+  },
+  senderoBisel: {
+    borderColor: 'rgba(255,255,255,0.4)',
+    borderRadius: 12,
+    borderTopWidth: 1.5,
+    bottom: 4,
+    left: 4,
+    pointerEvents: 'none',
+    position: 'absolute',
+    right: 4,
+    top: 2,
+  },
+  textoSendero: {
+    fontFamily: 'MontserratAlternates-Bold',
+    fontSize: 13,
   },
 });

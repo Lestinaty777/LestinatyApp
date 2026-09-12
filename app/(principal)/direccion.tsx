@@ -1,3 +1,3 @@
-import { DireccionPantalla } from '../../src/modulos/direccion/pantallas/DireccionPantalla';
+import { ConfiguracionPrivacidadPantalla } from '../../src/modulos/direccion/pantallas/ConfiguracionPrivacidadPantalla';
 
-export default DireccionPantalla;
+export default ConfiguracionPrivacidadPantalla;

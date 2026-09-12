@@ -126,4 +126,13 @@ export async function cerrarSesion() {
   }
 }
 
+export async function limpiarSesionLocal() {
+  const supabase = obtenerClienteSupabase();
+  const { error } = await supabase.auth.signOut({ scope: 'local' });
+
+  if (error) {
+    throw new Error(obtenerMensajeError(error));
+  }
+}
+
 export { mapearUsuarioSesion };

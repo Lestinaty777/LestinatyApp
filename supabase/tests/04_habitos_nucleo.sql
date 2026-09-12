@@ -38,7 +38,10 @@ begin
 end;
 $$;
 
--- Overlapping plans must be rejected.
+-- Migration 15 revoked direct INSERT on habitos_planes for `authenticated` —
+-- all plan writes now go through security definer functions in `privacidad`,
+-- so a raw insert (overlapping or not) is rejected before it ever reaches the
+-- exclusion constraint.
 do $$
 begin
   begin
@@ -47,8 +50,8 @@ begin
     ) values (
       current_setting('app.smoke_habito_a')::uuid, 'diaria', 8, current_date
     );
-    raise exception 'An overlapping plan was accepted' using errcode = 'assert_failure';
-  exception when exclusion_violation then
+    raise exception 'A direct plan insert was accepted' using errcode = 'assert_failure';
+  exception when insufficient_privilege then
     null;
   end;
 end;

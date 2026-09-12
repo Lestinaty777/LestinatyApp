@@ -1,7 +1,7 @@
 import Svg, { Polygon, Rect, Defs, Pattern, Path, Circle, Line } from 'react-native-svg';
 import React from 'react';
-import { StyleSheet, View, useWindowDimensions, Pressable, ScrollView, Text as TextoRN } from 'react-native';
-import { BotonTab, IconoTab } from '../../../nucleo/navegacion/BarraTabs';
+import { StyleSheet, View, useWindowDimensions, Pressable, ScrollView, Text as TextoRN, Image } from 'react-native';
+import { BotonTab } from '../../../nucleo/navegacion/BarraTabs';
 import { BlurView } from 'expo-blur';
 import { PixelartIcon } from '../../../diseno/iconos/PixelartIcon';
 import Animated, { useSharedValue, useAnimatedStyle, useAnimatedProps, withTiming, Easing, withSpring, withRepeat } from 'react-native-reanimated';
@@ -12,6 +12,7 @@ import { ContenedorMapaSenderos } from '../../senderos/componentes/mapa/Contened
 import { biomas } from '../../../diseno/tema/biomas';
 import { Texto, colores, RecuadroGlass } from '../../../diseno';
 import { hapticSeguro } from '../../../nucleo/dispositivo/haptics';
+import { categoriaInicialMapa, coloresSelectorCategoria, modulosPorCategoria, type CategoriaMapaMvp, type IconoModuloMapa } from '../datos/modulosCategorias';
 
 
 const GemaMorada = ({ focused, size = 20 }: { focused: boolean, size?: number }) => (
@@ -30,13 +31,25 @@ const GemaMorada = ({ focused, size = 20 }: { focused: boolean, size?: number })
   </Svg>
 );
 
+const iconosCategoriasMapa: Record<CategoriaMapaMvp, number> = {
+  habitos: require('../../../../assets/icons/hoy/habitos.png'),
+  rutinas: require('../../../../assets/icons/hoy/rutinas.png'),
+  tareas: require('../../../../assets/icons/hoy/tareas.png'),
+};
+
+function IconoModulo({ color, nombre, size = 24 }: { color: string; nombre: IconoModuloMapa; size?: number }) {
+  const Icono = nombre === 'actividad' ? Activity : nombre === 'ciencia' ? Beaker : nombre === 'usuarios' ? Users : nombre === 'libro' ? BookOpen : Calculator;
+  return <Icono color={color} size={size} />;
+}
+
 export function MapaSenderosPantalla() {
 
-  const [activeMenu, setActiveMenu] = React.useState<'none' | 'courses' | 'calendar' | 'sparkle' | 'store'>('none');
+  const [activeMenu, setActiveMenu] = React.useState<'none' | 'categories' | 'courses' | 'calendar' | 'sparkle' | 'store'>('none');
+  const [categoriaActiva, setCategoriaActiva] = React.useState<CategoriaMapaMvp>(categoriaInicialMapa);
   const animMenuState = useSharedValue(0);
   const animExpansionHeight = useSharedValue(0);
 
-  const handleToggleMenu = (menu: 'courses' | 'calendar' | 'sparkle' | 'store') => {
+  const handleToggleMenu = (menu: 'categories' | 'courses' | 'calendar' | 'sparkle' | 'store') => {
     hapticSeguro('seleccion');
     if (activeMenu === menu) {
       setActiveMenu('none');
@@ -45,16 +58,15 @@ export function MapaSenderosPantalla() {
     }
   };
   
-  const ASIGNATURAS = [
-    { id: '1', titulo: 'Anatomía I', color: biomas.inicio.MasterColor, categoriaId: 'salud' as any, desc: 'Sistema óseo.', Icono: () => <Activity color="#FFFFFF" size={24} />, IconoGrande: () => <PixelartIcon name="book-open" size={26} color="#FFFFFF" />, IconoFondo: () => <PixelartIcon name="book-open" size={42} color="#FFFFFF" style={[styles.tarjetaIconoFondo, { opacity: 0.15 }]} /> },
-    { id: '2', titulo: 'Farmacología', color: '#B34A4A', categoriaId: 'habitos' as any, desc: 'Fármacos.', Icono: () => <Beaker color="#FFFFFF" size={24} />, IconoGrande: () => <PixelartIcon name="book-open" size={26} color="#FFFFFF" />, IconoFondo: () => <PixelartIcon name="book-open" size={42} color="#FFFFFF" style={[styles.tarjetaIconoFondo, { opacity: 0.15 }]} /> },
-    { id: '3', titulo: 'Ciencias Sociales', color: '#4A8BB3', categoriaId: 'rutinas' as any, desc: 'Sociedad.', Icono: () => <Users color="#FFFFFF" size={24} />, IconoGrande: () => <PixelartIcon name="book-open" size={26} color="#FFFFFF" />, IconoFondo: () => <PixelartIcon name="book-open" size={42} color="#FFFFFF" style={[styles.tarjetaIconoFondo, { opacity: 0.15 }]} /> },
-    { id: '4', titulo: 'Matemáticas', color: '#D4AF37', categoriaId: 'tareas' as any, desc: 'Cálculo.', Icono: () => <Calculator color="#FFFFFF" size={24} />, IconoGrande: () => <PixelartIcon name="book-open" size={26} color="#FFFFFF" />, IconoFondo: () => <PixelartIcon name="book-open" size={42} color="#FFFFFF" style={[styles.tarjetaIconoFondo, { opacity: 0.15 }]} /> },
-    { id: '5', titulo: 'Literatura', color: '#734AB3', categoriaId: 'diario' as any, desc: 'Lectura.', Icono: () => <BookOpen color="#FFFFFF" size={24} />, IconoGrande: () => <PixelartIcon name="book-open" size={26} color="#FFFFFF" />, IconoFondo: () => <PixelartIcon name="book-open" size={42} color="#FFFFFF" style={[styles.tarjetaIconoFondo, { opacity: 0.15 }]} /> },
-  ];
-  
-
+  const ASIGNATURAS = modulosPorCategoria[categoriaActiva];
   const [asignatura, setAsignatura] = React.useState(ASIGNATURAS[0]);
+
+  const cambiarCategoria = (categoria: CategoriaMapaMvp) => {
+    hapticSeguro('seleccion');
+    setCategoriaActiva(categoria);
+    setAsignatura(modulosPorCategoria[categoria][0]);
+    setActiveMenu('none');
+  };
 
   React.useEffect(() => {
     const isAnyOpen = activeMenu !== 'none';
@@ -62,6 +74,7 @@ export function MapaSenderosPantalla() {
     
     let targetH = 0;
     if (activeMenu === 'courses') targetH = 200;
+    if (activeMenu === 'categories') targetH = 132;
     if (activeMenu === 'calendar') targetH = 390;
     if (activeMenu === 'store') targetH = 260;
     
@@ -95,6 +108,11 @@ export function MapaSenderosPantalla() {
           <Animated.View style={[styles.navbarContenedor, animNavbarEstilos, { overflow: 'hidden' }]}>
             <FondoTabsGlass />
             <View style={styles.navbarFila}>
+              <BotonTab onPress={() => handleToggleMenu('categories')}>
+                <View style={[styles.botonCategoria, { backgroundColor: coloresSelectorCategoria[categoriaActiva] }, activeMenu === 'categories' && styles.botonCategoriaActivo]}>
+                  <Image source={iconosCategoriasMapa[categoriaActiva]} style={styles.iconoCategoriaActivo} tintColor="#FFFFFF" />
+                </View>
+              </BotonTab>
               <BotonTab onPress={() => handleToggleMenu('courses')}>
                 <View style={[{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12, gap: 6 }, activeMenu === 'courses' && { backgroundColor: 'rgba(0,0,0,0.05)' }]}>
                   <BookOpen color={activeMenu === 'courses' ? '#4A8BB3' : '#76736D'} size={20} />
@@ -107,7 +125,6 @@ export function MapaSenderosPantalla() {
                   <Texto style={{ fontSize: 14, fontFamily: 'Montserrat-Bold', color: activeMenu === 'calendar' ? '#F26D21' : '#76736D', marginTop: -2 }}>3</Texto>
                 </View>
               </BotonTab>
-              <BotonTab><IconoTab nombre="top_sparkle" focused={false} /></BotonTab>
               <BotonTab onPress={() => handleToggleMenu('store')}>
                 <View style={[{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12, gap: 6 }, activeMenu === 'store' && { backgroundColor: 'rgba(161, 0, 255, 0.1)' }]}>
                   <GemaMorada focused={activeMenu === 'store'} size={20} />
@@ -117,6 +134,21 @@ export function MapaSenderosPantalla() {
             </View>
 
             <Animated.View pointerEvents={activeMenu !== 'none' ? 'auto' : 'none'} style={[{ flex: 1 }, animContenidoEstilos]}>
+              {activeMenu === 'categories' && (
+                <View style={styles.tooltipCategorias}>
+                  <Texto style={styles.tooltipCategoriasTitulo}>CAMBIAR CATEGORÍA</Texto>
+                  <View style={styles.tooltipCategoriasFila}>
+                    {(Object.keys(iconosCategoriasMapa) as CategoriaMapaMvp[]).map((categoria) => {
+                      const activa = categoria === categoriaActiva;
+                      const etiqueta = categoria === 'habitos' ? 'Hábitos' : categoria === 'rutinas' ? 'Rutinas' : 'Tareas';
+                      return <Pressable key={categoria} accessibilityRole="button" accessibilityState={{ selected: activa }} onPress={() => cambiarCategoria(categoria)} style={({ pressed }) => [styles.tooltipCategoriaOpcion, activa && styles.tooltipCategoriaOpcionActiva, pressed && styles.tooltipCategoriaOpcionPresionada]}>
+                        <Image source={iconosCategoriasMapa[categoria]} style={styles.tooltipCategoriaIcono} />
+                        <Texto style={styles.tooltipCategoriaTexto}>{etiqueta}</Texto>
+                      </Pressable>;
+                    })}
+                  </View>
+                </View>
+              )}
               {activeMenu === 'courses' && (
                 <View style={{ flex: 1, paddingHorizontal: 20, paddingTop: 5, paddingBottom: 5 }}>
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 20 }}>
@@ -195,7 +227,7 @@ export function MapaSenderosPantalla() {
 
                             {/* Icono Principal (Arriba Izquierda) */}
                             <View style={{ position: 'absolute', top: 12, left: 12 }}>
-                              <asig.Icono />
+                              <IconoModulo color="#FFFFFF" nombre={asig.icono} />
                             </View>
                             
                             {/* Título y Label (Abajo Izquierda) */}
@@ -229,13 +261,13 @@ export function MapaSenderosPantalla() {
           <View style={[styles.tarjetaAsignatura, { backgroundColor: asignatura.color }]}>
             <TexturaPixelArt />
             <View style={styles.tarjetaBrillo} />
-            <asignatura.IconoFondo />
+            <View style={[styles.tarjetaIconoFondo, { opacity: 0.15 }]}><IconoModulo color="#FFFFFF" nombre={asignatura.icono} size={42} /></View>
             <View style={{ padding: 20, flex: 1, justifyContent: 'center' }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 4 }}>
-                <asignatura.IconoGrande />
+                <IconoModulo color="#FFFFFF" nombre={asignatura.icono} size={26} />
                 <Texto style={[styles.tituloAsignatura, { marginBottom: 0 }]}>{asignatura.titulo}</Texto>
               </View>
-              <Texto style={styles.descAsignatura}>{asignatura.desc}</Texto>
+              <Texto style={styles.descAsignatura}>{asignatura.descripcion}</Texto>
             </View>
           </View>
         </View>
@@ -249,6 +281,7 @@ export function MapaSenderosPantalla() {
         {/* Contenedor del Mapa (80%) */}
         <View style={styles.capaMapa}>
           <ContenedorMapaSenderos
+            key={asignatura.id}
             altura={alturaMapa}
             categoriaId={asignatura.categoriaId}
             color={asignatura.color}
@@ -345,6 +378,67 @@ const styles = StyleSheet.create({
     marginTop: 10,
     marginBottom: 10,
     borderRadius: 20,
+  },
+  botonCategoria: {
+    alignItems: 'center',
+    borderRadius: 12,
+    height: 44,
+    justifyContent: 'center',
+    marginLeft: 4,
+    marginRight: 2,
+    width: 44,
+  },
+  botonCategoriaActivo: {
+    borderColor: 'rgba(255,255,255,.8)',
+    borderWidth: 1,
+    transform: [{ scale: 0.94 }],
+  },
+  iconoCategoriaActivo: {
+    height: 29,
+    resizeMode: 'contain',
+    width: 29,
+  },
+  tooltipCategorias: {
+    flex: 1,
+    paddingHorizontal: 16,
+    paddingTop: 4,
+  },
+  tooltipCategoriasTitulo: {
+    color: 'rgba(17,17,17,.48)',
+    fontFamily: 'Montserrat-Bold',
+    fontSize: 8,
+    letterSpacing: 1.15,
+    marginBottom: 8,
+  },
+  tooltipCategoriasFila: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  tooltipCategoriaOpcion: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,.62)',
+    borderRadius: 12,
+    flex: 1,
+    gap: 3,
+    minHeight: 70,
+    justifyContent: 'center',
+    paddingVertical: 7,
+  },
+  tooltipCategoriaOpcionActiva: {
+    backgroundColor: 'rgba(17,17,17,.07)',
+  },
+  tooltipCategoriaOpcionPresionada: {
+    opacity: .68,
+  },
+  tooltipCategoriaIcono: {
+    height: 32,
+    resizeMode: 'contain',
+    width: 32,
+  },
+  tooltipCategoriaTexto: {
+    color: '#252525',
+    fontFamily: 'Montserrat-Bold',
+    fontSize: 10,
   },
   carruselSenderos: {
     paddingHorizontal: 15,

@@ -1,5 +1,6 @@
 import type { ImageSourcePropType } from 'react-native';
 
+import { ARBUSTO_SELVA_BASE, obtenerAssetsSelvaPorTono } from '../../habitos/iconosHabitos';
 import type { CategoriaMapaId } from './mapaProcedural';
 
 export type AssetBioma = {
@@ -130,6 +131,31 @@ export const registroBiomas: Record<CategoriaMapaId, ReglaBioma> = {
   },
 };
 
-export function obtenerAssetBioma(categoriaId: CategoriaMapaId, id: string) {
-  return registroBiomas[categoriaId].assets.find((asset) => asset.id === id) ?? null;
+// El bioma de 'habitos' ya no es un set fijo de assets (era 'arce', un mockup
+// que no tenía relación con el sistema de tonos de verde de la selva) — se
+// construye en vivo a partir del nivel real del hábito (1-7), reusando los
+// mismos assets por tono que ya usa CrearHabitoWizard/DetalleHabitoPantalla.
+// El arbusto no tiene arte por tono todavía, así que siempre es el mismo
+// asset base sin oscurecer (a diferencia del wizard, que sí lo oscurece en
+// vivo con MasterChanger) — aquí el mapa ya tiene mucha otra vegetación
+// procedural dando profundidad, así que no hace falta esa variación extra.
+function construirAssetsBiomaHabitos(tono: number): AssetBioma[] {
+  const assets = obtenerAssetsSelvaPorTono(tono);
+  return [
+    { id: 'base', fuente: assets.base, nombre: `Base Selva nivel ${tono}`, rol: 'base' },
+    { id: 'arbol-principal', fuente: assets.arbolPrincipal, nombre: `Árbol Selva 1 nivel ${tono}`, rol: 'arbol-principal' },
+    { id: 'arbol-secundario', fuente: assets.arbolSecundario, nombre: `Árbol Selva 2 nivel ${tono}`, rol: 'arbol-secundario' },
+    { id: 'arbusto', fuente: ARBUSTO_SELVA_BASE, nombre: 'Arbusto Selva', rol: 'arbusto' },
+    { id: 'flor', fuente: assets.flor, nombre: `Flor Selva nivel ${tono}`, rol: 'flor' },
+  ];
+}
+
+/** Assets del bioma para una categoría — 'habitos' se recalcula por tono (nivel real), el resto es fijo. */
+export function obtenerAssetsBioma(categoriaId: CategoriaMapaId, tono?: number): AssetBioma[] {
+  if (categoriaId === 'habitos') return construirAssetsBiomaHabitos(tono ?? 1);
+  return registroBiomas[categoriaId].assets;
+}
+
+export function obtenerAssetBioma(categoriaId: CategoriaMapaId, id: string, tono?: number) {
+  return obtenerAssetsBioma(categoriaId, tono).find((asset) => asset.id === id) ?? null;
 }

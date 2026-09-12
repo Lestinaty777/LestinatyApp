@@ -71,16 +71,20 @@ export default function LayoutPrincipal() {
       />
       <Tabs.Screen
         name="metas"
+        options={{ href: null }}
+      />
+      <Tabs.Screen
+        name="mi-espacio"
         options={{
-          tabBarIcon: ({ focused }) => <IconoTab focused={focused} nombre={iconosTabs.metas} />,
-          title: 'Metas',
+          tabBarIcon: ({ focused }) => <IconoTab focused={focused} nombre={iconosTabs['mi-espacio']} />,
+          title: 'Mi espacio',
         }}
       />
       <Tabs.Screen
         name="direccion"
         options={{
           tabBarIcon: ({ focused }) => <IconoTab focused={focused} nombre={iconosTabs.direccion} />,
-          title: 'Ruta',
+          title: 'Configuración',
         }}
       />
     </Tabs>

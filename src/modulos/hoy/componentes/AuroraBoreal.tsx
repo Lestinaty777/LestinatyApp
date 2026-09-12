@@ -16,7 +16,7 @@ import {
   useDerivedValue,
 } from 'react-native-reanimated';
 
-export type TemaAurora = 'morado' | 'amarillo' | 'verde';
+export type TemaAurora = 'morado' | 'amarillo' | 'verde' | 'grafito' | 'rojo';
 
 interface Props {
   tema?: TemaAurora;
@@ -78,7 +78,19 @@ export function AuroraBoreal({ tema = 'morado' }: Props) {
           l2: ['rgba(74, 222, 128, 0.7)', 'rgba(187, 247, 208, 0.1)'],
           l3: ['rgba(21, 128, 61, 0.6)', 'rgba(74, 222, 128, 0)'],
         }
-      : {
+      : tema === 'grafito'
+        ? {
+            l1: ['rgba(31, 41, 55, 0.72)', 'rgba(107, 114, 128, 0.16)'],
+            l2: ['rgba(55, 65, 81, 0.58)', 'rgba(156, 163, 175, 0.1)'],
+            l3: ['rgba(17, 24, 39, 0.5)', 'rgba(75, 85, 99, 0)'],
+          }
+        : tema === 'rojo'
+          ? {
+              l1: ['rgba(239, 68, 68, 0.8)', 'rgba(252, 165, 165, 0.2)'],
+              l2: ['rgba(248, 113, 113, 0.7)', 'rgba(254, 202, 202, 0.1)'],
+              l3: ['rgba(185, 28, 28, 0.6)', 'rgba(248, 113, 113, 0)'],
+            }
+          : {
         l1: ['rgba(124, 58, 237, 0.8)', 'rgba(192, 132, 252, 0.2)'],
         l2: ['rgba(167, 139, 250, 0.7)', 'rgba(216, 180, 254, 0.1)'],
         l3: ['rgba(109, 40, 217, 0.6)', 'rgba(139, 92, 246, 0)'],

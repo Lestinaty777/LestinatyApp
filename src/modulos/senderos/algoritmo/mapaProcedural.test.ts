@@ -1,11 +1,15 @@
 import { describe, expect, it, vi } from 'vitest';
 
-vi.mock('./registroBiomas', () => ({
-  registroBiomas: {
+vi.mock('./registroBiomas', () => {
+  const registroBiomas = {
     estudio: { biomaId: 'sauce-ruinas', densidadDecoracion: 0.72, presupuestoDecoracion: 13, assets: [{ id: 'base', rol: 'base' }, { id: 'sauce-ruinas-01', rol: 'arbol-principal' }, { id: 'sauce-ruinas-02', rol: 'arbol-secundario' }, { id: 'sauce-ruinas-04', rol: 'arbusto' }, { id: 'sauce-ruinas-07', rol: 'flor' }] },
     rutinas: { biomaId: 'pino-nevado', densidadDecoracion: 0.72, presupuestoDecoracion: 13, assets: [{ id: 'base', rol: 'base' }, { id: 'pino-nevado-01', rol: 'arbol-principal' }, { id: 'pino-nevado-02', rol: 'arbol-secundario' }, { id: 'pino-nevado-04', rol: 'arbusto' }, { id: 'pino-nevado-07', rol: 'flor' }] },
-  },
-}));
+  };
+  return {
+    registroBiomas,
+    obtenerAssetsBioma: (categoriaId: keyof typeof registroBiomas) => registroBiomas[categoriaId].assets,
+  };
+});
 
 import { crearTemaMapa, generarMapaProcedural } from './mapaProcedural';
 

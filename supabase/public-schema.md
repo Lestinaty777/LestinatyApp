@@ -27,6 +27,8 @@
 | `habitos_contextos` | Contextos personales opcionales para detectar patrones. | Administración únicamente de la propia fila. |
 | `habitos_registro_contextos` | Contextos asociados a un registro. | Administración por la cadena registro propio. |
 | `habitos_conexiones` | Relación dirigida entre hábitos propios. | Administración únicamente de la propia fila. |
+| `articulos_tienda` | Catálogo de artículos comprables por gemas (ej. paquete Arcoíris). | Lectura de filas activas. |
+| `compras_tienda` | Artículos que ya desbloqueó la persona. | Lectura solo de las propias filas; nunca se inserta directo, solo vía `comprar_articulo_tienda(...)`. |
 
 La estructura, invariantes y flujo de creación de estas tablas se documentan en `supabase/senderos.md`.
 
@@ -46,6 +48,10 @@ La estructura, invariantes y flujo de creación de estas tablas se documentan en
 | `registrar_progreso_habito(...)` | Registro diario creado o actualizado. | Idempotente por hábito y fecha local. |
 | `actualizar_plan_habito(...)` | Cierra el plan vigente y crea la nueva versión. | Conserva las métricas históricas. |
 | `obtener_panel_habitos(...)` | Panel de Hoy, Patrones, Conexiones, Riesgo e Impacto. | Devuelve estados reales o de observación. |
+| `obtener_saldo_gemas()` | Saldo actual de gemas de la persona. | Deriva la identidad desde `auth.uid()`, nunca acepta un id de otra persona. |
+| `comprar_articulo_tienda(...)` | Compra idempotente: cobra gemas y desbloquea el artículo. | Falla si no hay saldo suficiente; repetir la compra de algo ya poseído no cobra de nuevo. |
+
+`reclamar_recordatorios_habitos(...)` y `finalizar_recordatorio_habito(...)` también viven en `public` como puentes técnicos hacia `privacidad`, pero tienen `EXECUTE` exclusivamente para `service_role`. No aparecen como capacidad de Expo ni de una sesión autenticada normal.
 
 ## Reglas
 

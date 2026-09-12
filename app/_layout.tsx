@@ -1,11 +1,15 @@
 import 'react-native-gesture-handler';
 import '../src/servicios/i18n/i18n';
 
+import { useEffect } from 'react';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import { ProveedoresApp } from '../src/nucleo/proveedor/ProveedoresApp';
+import { inicializarOneSignal } from '../src/nucleo/notificaciones/oneSignal';
+import { inicializarCompras } from '../src/nucleo/compras/revenueCat';
 
 export default function LayoutRaiz() {
+  useEffect(() => { inicializarOneSignal(); inicializarCompras(); }, []);
   const [fuentesCargadas] = useFonts({
     'Montserrat-Bold': require('../assets/fonts/Montserrat/static/Montserrat-Bold.ttf'),
     'Montserrat-Medium': require('../assets/fonts/Montserrat/static/Montserrat-Medium.ttf'),
@@ -32,6 +36,7 @@ export default function LayoutRaiz() {
         <Stack.Screen name="tienda/producto/[id]" />
         <Stack.Screen name="tienda/pago" />
         <Stack.Screen name="metas/[id]" />
+        <Stack.Screen name="habitos/[id]" options={{ animation: 'fade', presentation: 'transparentModal' }} />
       </Stack>
     </ProveedoresApp>
   );

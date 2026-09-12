@@ -1,4 +1,4 @@
-import { registroBiomas, type AssetBioma } from './registroBiomas';
+import { obtenerAssetsBioma, registroBiomas, type AssetBioma } from './registroBiomas';
 
 export type CategoriaMapaId = 'estudio' | 'finanzas' | 'habitos' | 'relaciones' | 'rutinas' | 'salud' | 'tareas';
 export type LadoMapa = 'izquierda' | 'derecha';
@@ -11,6 +11,8 @@ export type TemaMapaProcedural = {
   densidadDecoracion: number;
   id: string;
   presupuestoDecoracion: number;
+  /** Nivel real 1-7 del hábito — solo se usa para la categoría 'habitos', define qué assets de selva se cargan. */
+  tono?: number;
 };
 
 export type NodoProcedural = { id: string; x: number; y: number };
@@ -70,7 +72,7 @@ function crearCaja(x: number, y: number, tamano: number): CajaColision {
   return { x: x + tamano * 0.18, y: y + tamano * 0.22, w: tamano * 0.64, h: tamano * 0.62 };
 }
 
-export function crearTemaMapa(categoriaId: CategoriaMapaId, acento: string, id: string): TemaMapaProcedural {
+export function crearTemaMapa(categoriaId: CategoriaMapaId, acento: string, id: string, tono?: number): TemaMapaProcedural {
   const regla = registroBiomas[categoriaId];
   return {
     acento,
@@ -79,6 +81,7 @@ export function crearTemaMapa(categoriaId: CategoriaMapaId, acento: string, id: 
     densidadDecoracion: regla.densidadDecoracion,
     id,
     presupuestoDecoracion: regla.presupuestoDecoracion,
+    tono,
   };
 }
 
@@ -93,7 +96,7 @@ export function generarMapaProcedural({ ancho, cantidadNodos, tema }: { ancho: n
   const decoraciones: DecoracionProcedural[] = [];
   const cajasProtegidas: CajaColision[] = [{ x: 0, y: -80, w: ancho, h: 80 }];
   const cajasDecoracion: CajaColision[] = [];
-  const assets = registroBiomas[tema.categoriaId].assets
+  const assets = obtenerAssetsBioma(tema.categoriaId, tema.tono)
     .filter((asset): asset is AssetBioma & { rol: RolDecoracion } => asset.rol !== 'base');
   const assetsPorRol = (rol: RolDecoracion) => assets.filter((asset) => asset.rol === rol);
 

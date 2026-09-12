@@ -6,6 +6,6 @@ export const entorno = {
   supabaseAnonKey: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? '',
   posthogKey: '',
   sentryDsn: '',
-  revenueCatAppleKey: '',
-  revenueCatGoogleKey: '',
+  revenueCatAppleKey: process.env.EXPO_PUBLIC_REVENUECAT_APPLE_KEY ?? '',
+  revenueCatGoogleKey: process.env.EXPO_PUBLIC_REVENUECAT_GOOGLE_KEY ?? '',
 };

@@ -89,7 +89,7 @@ export function TareasPantalla() {
                 </Pressable>
                 <View style={{ justifyContent: 'center' }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                    <Image source={require('../../../../assets/ilustraciones/hoy/icons/tareas.png')} style={{ width: 26, height: 26, resizeMode: 'contain' }} />
+                    <Image source={require('../../../../assets/icons/hoy/tareas.png')} style={{ width: 26, height: 26, resizeMode: 'contain' }} />
                     <Texto style={s.headerNombre}>Tareas</Texto>
                   </View>
                   <Texto style={s.headerFrase}>Un paso a la vez.</Texto>
@@ -99,7 +99,7 @@ export function TareasPantalla() {
             <View style={s.headerDer}>
               <View style={[s.statPill, { paddingHorizontal: 10, paddingVertical: 10, borderRadius: 22 }]}>
                 <Image
-                  source={require('../../../../assets/ilustraciones/hoy/icons/notificaciones.png')}
+                  source={require('../../../../assets/icons/hoy/notificaciones.png')}
                   style={{ width: 30, height: 30, resizeMode: 'contain' }}
                 />
               </View>

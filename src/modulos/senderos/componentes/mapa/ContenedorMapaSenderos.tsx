@@ -20,7 +20,11 @@ type ContenedorMapaSenderosProps = {
   categoriaId: CategoriaMapaId;
   color: string;
   enfocado: boolean;
+  /** Nodos reales a mostrar (por ejemplo, los 7 niveles de un hábito). Si se omite, se usan los nodos mock por subcategoriaId. */
+  nodos?: NodoMapaSendero[];
   subcategoriaId: string;
+  /** Nivel real 1-7 — solo aplica a categoriaId 'habitos', define qué assets de selva se cargan. */
+  tono?: number;
 };
 
 const separacionVertical = 112;
@@ -54,12 +58,12 @@ const MosaicoTooltip = () => (
   </View>
 );
 
-export function ContenedorMapaSenderos({ altura, categoriaId, color, enfocado, subcategoriaId }: ContenedorMapaSenderosProps) {
+export function ContenedorMapaSenderos({ altura, categoriaId, color, enfocado, nodos: nodosOverride, subcategoriaId, tono }: ContenedorMapaSenderosProps) {
   const { width } = useWindowDimensions();
   const router = useRouter();
   const scrollRef = useRef<ScrollView>(null);
   const [anchoMapa, setAnchoMapa] = useState(0);
-  const nodos = obtenerNodosMapaMock(subcategoriaId);
+  const nodos = nodosOverride ?? obtenerNodosMapaMock(subcategoriaId);
   const ultimoCompletadoInicial = Math.max(-1, nodos.reduce((ultimo, nodo, indice) => nodo.estado === 'completado' ? indice : ultimo, -1));
   const [ultimoCompletado, setUltimoCompletado] = useState(ultimoCompletadoInicial);
   const indiceNodoActual = Math.min(nodos.length - 1, ultimoCompletado + 1);
@@ -69,7 +73,7 @@ export function ContenedorMapaSenderos({ altura, categoriaId, color, enfocado, s
   const progresoConexion = useRef(new Animated.Value(0)).current;
   const altoContenido = Math.max(altura, margenSuperior + Math.max(0, nodos.length - 1) * separacionVertical + 430);
   const anchoEscena = anchoMapa || width;
-  const temaMapa = useMemo(() => crearTemaMapa(categoriaId, color, subcategoriaId), [categoriaId, color, subcategoriaId]);
+  const temaMapa = useMemo(() => crearTemaMapa(categoriaId, color, subcategoriaId, tono), [categoriaId, color, subcategoriaId, tono]);
   const mapa = useMemo(() => generarMapaProcedural({ ancho: anchoEscena, cantidadNodos: nodos.length, tema: temaMapa }), [anchoEscena, nodos.length, temaMapa]);
   const posiciones = mapa.nodos;
   const conexiones = posiciones.slice(0, -1).map((posicion, indice) => {
@@ -140,7 +144,7 @@ export function ContenedorMapaSenderos({ altura, categoriaId, color, enfocado, s
         
         {/* Bases Isométricas decorativas a los lados (FUERA de la perspectiva 3D para evitar aplastamiento) */}
         {(() => {
-           const assetBase = obtenerAssetBioma(categoriaId, 'base');
+           const assetBase = obtenerAssetBioma(categoriaId, 'base', tono);
            if (!assetBase) return null;
            return (
              <View pointerEvents="none" style={[StyleSheet.absoluteFill, { zIndex: 0 }]}>
@@ -208,7 +212,7 @@ export function ContenedorMapaSenderos({ altura, categoriaId, color, enfocado, s
         })}
 
         {mapa.decoraciones.map((decoracion, indice) => {
-          const asset = obtenerAssetBioma(categoriaId, decoracion.assetId);
+          const asset = obtenerAssetBioma(categoriaId, decoracion.assetId, tono);
           if (!asset) return null;
           const tamano = 172 * decoracion.escala;
           return (

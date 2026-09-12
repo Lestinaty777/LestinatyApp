@@ -1,9 +1,13 @@
+export { AnilloProgreso } from './AnilloProgreso';
 export { Banner } from './Banner';
 export { Boton } from './Boton';
 export { CampoContrasena } from './CampoContrasena';
 export { CampoTexto } from './CampoTexto';
 export { Checkbox } from './Checkbox';
 export { Divisor } from './Divisor';
+export { HojaDeslizante } from './HojaDeslizante';
+export { MasterChanger, useHueDominante } from './MasterChanger';
+export type { ColorMaster } from './MasterChanger';
 export { Pantalla } from './Pantalla';
 export { RecuadroGlass } from './RecuadroGlass';
 export { Tarjeta } from './Tarjeta';

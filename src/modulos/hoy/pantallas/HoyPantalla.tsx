@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { useSaldoGemas } from '../../tienda/useSaldoGemas';
 import {
   Image,
   Pressable,
@@ -93,12 +94,12 @@ type Categoria = {
 };
 
 const CATEGORIAS: Categoria[] = [
-  { id: 'estudio',  label: 'Estudio',  progreso: '2/4', color: C.morado,  colorSuave: C.moradoSuave, icono: require('../../../../assets/ilustraciones/hoy/icons/estudio.png') },
-  { id: 'tareas',   label: 'Tareas',   progreso: '3/5', color: C.naranja, colorSuave: C.naranjaSuave, icono: require('../../../../assets/ilustraciones/hoy/icons/tareas.png') },
-  { id: 'rutinas',  label: 'Rutinas',  progreso: '1/3', color: C.rojo,    colorSuave: C.rojoSuave, icono: require('../../../../assets/ilustraciones/hoy/icons/rutinas.png') },
-  { id: 'habitos',  label: 'Hábitos',  progreso: '2/4', color: C.verde,   colorSuave: C.verdeSuave, icono: require('../../../../assets/ilustraciones/hoy/icons/habitos.png') },
-  { id: 'metas',    label: 'Metas',    progreso: '0/1', color: C.azul,    colorSuave: C.azulSuave, icono: require('../../../../assets/ilustraciones/hoy/icons/metas.png') },
-  { id: 'mas',      label: 'Más',      progreso: '',    color: '#7B7494', colorSuave: '#EDE5FB', icono: require('../../../../assets/ilustraciones/hoy/icons/mas.png') },
+  { id: 'estudio',  label: 'Estudio',  progreso: '2/4', color: C.morado,  colorSuave: C.moradoSuave, icono: require('../../../../assets/icons/hoy/estudio.png') },
+  { id: 'tareas',   label: 'Tareas',   progreso: '3/5', color: C.naranja, colorSuave: C.naranjaSuave, icono: require('../../../../assets/icons/hoy/tareas.png') },
+  { id: 'rutinas',  label: 'Rutinas',  progreso: '1/3', color: C.rojo,    colorSuave: C.rojoSuave, icono: require('../../../../assets/icons/hoy/rutinas.png') },
+  { id: 'habitos',  label: 'Hábitos',  progreso: '2/4', color: C.verde,   colorSuave: C.verdeSuave, icono: require('../../../../assets/icons/hoy/habitos.png') },
+  { id: 'mi-espacio', label: 'Mi espacio', progreso: '', color: C.morado, colorSuave: C.moradoSuave, icono: require('../../../../assets/icons/hoy/metas.png') },
+  { id: 'mas',      label: 'Más',      progreso: '',    color: '#7B7494', colorSuave: '#EDE5FB', icono: require('../../../../assets/icons/hoy/mas.png') },
 ];
 
 type EstadoTarea = 'completado' | 'activo' | 'pendiente';
@@ -126,14 +127,16 @@ const TAREAS_HOY: Tarea[] = [
 
 // ─── Header ──────────────────────────────────────────────────────────────────
 function HeaderHoy() {
+  const router = useRouter();
+  const { data: saldoGemas } = useSaldoGemas();
   return (
     <View style={s.header}>
       <View style={s.headerIzq}>
         <Texto style={s.headerSaludo}>Hola,</Texto>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
           <Texto style={s.headerNombre}>Alejandro</Texto>
-          <Image 
-            source={require('../../../../assets/ilustraciones/hoy/icons/saludo.png')}
+          <Image
+            source={require('../../../../assets/icons/hoy/saludo.png')}
             style={{ width: 28, height: 28, resizeMode: 'contain' }}
           />
         </View>
@@ -141,18 +144,18 @@ function HeaderHoy() {
       </View>
 
       <View style={s.headerDer}>
-        <View style={s.statPill}>
-          <Image 
-            source={require('../../../../assets/ilustraciones/hoy/icons/gemas.png')}
+        <Pressable accessibilityLabel="Comprar gemas" onPress={() => router.push('/tienda')} style={s.statPill}>
+          <Image
+            source={require('../../../../assets/icons/hoy/gemas.png')}
             style={{ width: 22, height: 22, resizeMode: 'contain' }}
           />
-          <Texto style={[s.statTexto, { color: '#6D28D9' }]}>235</Texto>
-        </View>
+          <Texto style={[s.statTexto, { color: '#6D28D9' }]}>{saldoGemas ?? 0}</Texto>
+        </Pressable>
 
         {/* Notificaciones */}
         <View style={[s.statPill, { paddingHorizontal: 10, paddingVertical: 10, borderRadius: 22 }]}>
           <Image 
-            source={require('../../../../assets/ilustraciones/hoy/icons/notificaciones.png')}
+            source={require('../../../../assets/icons/hoy/notificaciones.png')}
             style={{ width: 30, height: 30, resizeMode: 'contain' }}
           />
         </View>
@@ -171,7 +174,7 @@ function HeroSection() {
           <View style={s.rachaTop}>
             <View style={s.rachaIcono}>
               <Image 
-                source={require('../../../../assets/ilustraciones/hoy/icons/racha.png')}
+                source={require('../../../../assets/icons/hoy/racha.png')}
                 style={{ width: 44, height: 44, resizeMode: 'contain' }}
               />
             </View>
@@ -199,7 +202,7 @@ function HeroSection() {
         <RecuadroGlass style={s.nivelCard}>
           <View style={s.nivelIcono}>
             <Image 
-              source={require('../../../../assets/ilustraciones/hoy/icons/insignia.png')}
+              source={require('../../../../assets/icons/hoy/insignia.png')}
               style={{ width: 44, height: 44, resizeMode: 'contain' }}
             />
           </View>
@@ -324,7 +327,7 @@ function TimelineHoy() {
       {/* Header dentro del contenedor glass */}
       <View style={s.timelineHeader}>
         <Image 
-          source={require('../../../../assets/ilustraciones/hoy/icons/hoy.png')}
+          source={require('../../../../assets/icons/hoy/hoy.png')}
           style={{ width: 32, height: 32, resizeMode: 'contain' }}
         />
         <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6, flex: 1, paddingBottom: 2 }}>
@@ -443,7 +446,7 @@ function CalendarioMensual() {
       <View style={s.calendarioHeader}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
           <Image 
-            source={require('../../../../assets/ilustraciones/hoy/icons/calendario.png')}
+            source={require('../../../../assets/icons/hoy/calendario.png')}
             style={{ width: 20, height: 20, resizeMode: 'contain' }}
           />
           <Texto style={s.calendarioMes}>

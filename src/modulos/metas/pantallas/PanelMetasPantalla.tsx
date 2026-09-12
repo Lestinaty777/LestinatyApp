@@ -8,6 +8,7 @@ import {
   Image,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useSaldoGemas } from '../../tienda/useSaldoGemas';
 import {
   BookOpen,
   CheckSquare,
@@ -165,10 +166,10 @@ type DatoCategoria = {
 };
 
 const CATEGORIAS: DatoCategoria[] = [
-  { id: 'habitos', label: 'Hábitos', progreso: '1/3', color: D.verde,  colorOscuro: D.verdeOscuro,   icono: require('../../../../assets/ilustraciones/hoy/icons/habitos.png'), ruta: '/habitos'     },
-  { id: 'tareas',  label: 'Tareas',  progreso: '2/4', color: D.naranja, colorOscuro: D.naranjaOscuro, icono: require('../../../../assets/ilustraciones/hoy/icons/tareas.png'), ruta: '/tareas'      },
-  { id: 'rutinas', label: 'Rutinas', progreso: '1/2', color: D.rojo,   colorOscuro: D.rojoOscuro,    icono: require('../../../../assets/ilustraciones/hoy/icons/rutinas.png'), ruta: '/rutinas'     },
-  { id: 'metas',   label: 'Metas',   progreso: '0/1', color: D.morado,  colorOscuro: D.moradoOscuro,  icono: require('../../../../assets/ilustraciones/hoy/icons/metas.png'), ruta: '/metas-lista' },
+  { id: 'habitos', label: 'Hábitos', progreso: '1/3', color: D.verde,  colorOscuro: D.verdeOscuro,   icono: require('../../../../assets/icons/hoy/habitos.png'), ruta: '/habitos'     },
+  { id: 'tareas',  label: 'Tareas',  progreso: '2/4', color: D.naranja, colorOscuro: D.naranjaOscuro, icono: require('../../../../assets/icons/hoy/tareas.png'), ruta: '/tareas'      },
+  { id: 'rutinas', label: 'Rutinas', progreso: '1/2', color: D.rojo,   colorOscuro: D.rojoOscuro,    icono: require('../../../../assets/icons/hoy/rutinas.png'), ruta: '/rutinas'     },
+  { id: 'metas',   label: 'Metas',   progreso: '0/1', color: D.morado,  colorOscuro: D.moradoOscuro,  icono: require('../../../../assets/icons/hoy/metas.png'), ruta: '/metas-lista' },
 ];
 
 function CardCategoria({ dato }: { dato: DatoCategoria }) {
@@ -233,6 +234,7 @@ function FraseMotivacional() {
 export function PanelMetasPantalla() {
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
+  const { data: saldoGemas } = useSaldoGemas();
 
   return (
     <View style={s.raiz}>
@@ -262,7 +264,7 @@ export function PanelMetasPantalla() {
             <View style={{ gap: 8 }}>
               <RecuadroGlass modo="dark" blur style={s.statFlotante}>
                 <Gem color={D.gema} size={14} fill={D.gema} />
-                <Texto style={[s.statFlotanteTexto, { color: D.gema }]}>235 Gemas</Texto>
+                <Texto style={[s.statFlotanteTexto, { color: D.gema }]}>{saldoGemas ?? 0} Gemas</Texto>
               </RecuadroGlass>
               <RecuadroGlass modo="dark" blur style={s.statFlotante}>
                 <Flame color={D.racha} size={14} fill={D.racha} />

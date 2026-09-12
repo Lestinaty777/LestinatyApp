@@ -34,3 +34,53 @@ export type PanelHabitos = {
   riesgo: SeccionPanelHabitos<RiesgoHabito[]>;
   impacto: SeccionPanelHabitos<ImpactoHabito[]>;
 };
+
+export type DetalleHabito = {
+  habito: HabitoResumen;
+  nivel: number;
+  semana: { completados: number; programados: number; porcentaje: number };
+  rachaActual: number;
+  totalAcumulado: number;
+  mejorDia: string | null;
+  progresoSemana: { fecha: string; etiqueta: string; progreso: number; valor: number; meta: number }[];
+};
+
+export type PlanHabitoResumen = {
+  color: string;
+  horaRecordatorio: string | null;
+  id: string;
+  iconoLucide: string;
+  nivel: number;
+  recordatorioActivo: boolean;
+  titulo: string;
+};
+
+export type ProximoNivelHabito = {
+  color: string;
+  iconoLucide: string;
+  id: string;
+  nivel: number;
+  porcentajeVentana1: number;
+  porcentajeVentana2: number;
+  titulo: string;
+};
+
+export type MejorRachaHabito = {
+  color: string;
+  historial28: boolean[];
+  iconoLucide: string;
+  id: string;
+  racha: number;
+  titulo: string;
+};
+
+export type ResultadoRegistroHabito = {
+  fechaLocal: string;
+  gemasGanadas: number;
+  habitoId: string;
+  id: string;
+  nivel: number;
+  nota: string | null;
+  subioNivel: boolean;
+  valor: number;
+};
