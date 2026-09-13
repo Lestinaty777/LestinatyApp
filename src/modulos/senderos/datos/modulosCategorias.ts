@@ -9,7 +9,7 @@ export type ModuloCategoriaMapa = {
   descripcion: string;
   icono: IconoModuloMapa;
   id: string;
-  subcategoriaId: 'ejercicio' | 'manana';
+  subcategoriaId: string;
   titulo: string;
 };
 

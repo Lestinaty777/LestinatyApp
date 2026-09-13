@@ -7,25 +7,11 @@ import { registroIconos, buscarIcono } from '../../diseno/iconos/registroIconos'
 export { registroIconos as iconosHabitos, buscarIcono as buscarIconoHabito };
 export type { IconoRegistrado as IconoHabito } from '../../diseno/iconos/registroIconos';
 
-export type ColorHabito = {
-  id: 'azul' | 'verde' | 'amarillo' | 'naranja' | 'rojo' | 'rosa' | 'morado';
-  etiqueta: string;
-  valor: string;
-  bioma: string;
-  arbol: ImageSourcePropType;
-  arbusto: ImageSourcePropType;
-  decoracion: ImageSourcePropType;
-};
-
-export const coloresHabitos: ColorHabito[] = [
-  { id: 'azul', etiqueta: 'Azul', valor: '#3B82F6', bioma: 'Pinos nevados', arbol: require('../../../assets/ilustraciones/senderos/biomas/arboles/pino-nevado-01.png'), arbusto: require('../../../assets/ilustraciones/senderos/biomas/arboles/pino-nevado-04.png'), decoracion: require('../../../assets/ilustraciones/senderos/biomas/arboles/pino-nevado-03.png') },
-  { id: 'verde', etiqueta: 'Verde', valor: '#22C55E', bioma: 'Selva viva', arbol: require('../../../assets/ilustraciones/senderos/biomas/arboles/selva-01.png'), arbusto: require('../../../assets/ilustraciones/senderos/biomas/arboles/selva-04.png'), decoracion: require('../../../assets/ilustraciones/senderos/biomas/arboles/selva-03.png') },
-  { id: 'amarillo', etiqueta: 'Amarillo', valor: '#EAB308', bioma: 'Bosque dorado', arbol: require('../../../assets/ilustraciones/senderos/biomas/arboles/bosque-dorado-01.png'), arbusto: require('../../../assets/ilustraciones/senderos/biomas/arboles/bosque-dorado-04.png'), decoracion: require('../../../assets/ilustraciones/senderos/biomas/arboles/bosque-dorado-03.png') },
-  { id: 'naranja', etiqueta: 'Naranja', valor: '#F97316', bioma: 'Bosque cálido', arbol: require('../../../assets/ilustraciones/senderos/biomas/arboles/bosque-calido-01.png'), arbusto: require('../../../assets/ilustraciones/senderos/biomas/arboles/bosque-calido-04.png'), decoracion: require('../../../assets/ilustraciones/senderos/biomas/arboles/bosque-calido-03.png') },
-  { id: 'rojo', etiqueta: 'Rojo', valor: '#EF4444', bioma: 'Arces', arbol: require('../../../assets/ilustraciones/senderos/biomas/arboles/arce-01.png'), arbusto: require('../../../assets/ilustraciones/senderos/biomas/arboles/arce-04.png'), decoracion: require('../../../assets/ilustraciones/senderos/biomas/arboles/arce-03.png') },
-  { id: 'rosa', etiqueta: 'Rosa', valor: '#EC4899', bioma: 'Cerezos', arbol: require('../../../assets/ilustraciones/senderos/biomas/arboles/cerezo-01.png'), arbusto: require('../../../assets/ilustraciones/senderos/biomas/arboles/cerezo-04.png'), decoracion: require('../../../assets/ilustraciones/senderos/biomas/arboles/cerezo-03.png') },
-  { id: 'morado', etiqueta: 'Morado', valor: '#8B5CF6', bioma: 'Sauces antiguos', arbol: require('../../../assets/ilustraciones/senderos/biomas/arboles/sauce-ruinas-01.png'), arbusto: require('../../../assets/ilustraciones/senderos/biomas/arboles/sauce-ruinas-04.png'), decoracion: require('../../../assets/ilustraciones/senderos/biomas/arboles/sauce-ruinas-03.png') },
-];
+// Días acumulados (no consecutivos, no se resetea) para llegar a cada nivel —
+// mismos números que ya mostraba el paso 6 del wizard como texto decorativo,
+// ahora también la regla real en privacidad.registrar_progreso_habito()
+// (migración 21). Única fuente de verdad: úsalo en vez de repetir el array.
+export const DIAS_REQUERIDOS_POR_NIVEL: Record<number, number> = { 2: 3, 3: 7, 4: 14, 5: 30, 6: 60, 7: 90 };
 
 // Hábitos ya no elige color libre: todos son verde, y el tono se oscurece
 // conforme subes de nivel (1 = más claro, 7 = más oscuro) — el color visualiza

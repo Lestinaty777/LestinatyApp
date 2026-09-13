@@ -20,8 +20,10 @@ type ContenedorMapaSenderosProps = {
   categoriaId: CategoriaMapaId;
   color: string;
   enfocado: boolean;
-  /** Nodos reales a mostrar (por ejemplo, los 7 niveles de un hábito). Si se omite, se usan los nodos mock por subcategoriaId. */
+  /** Nodos reales a mostrar (por ejemplo, los días hacia el próximo nivel de un hábito). Si se omite, se usan los nodos mock por subcategoriaId. */
   nodos?: NodoMapaSendero[];
+  /** Si se pasa, reemplaza la navegación mock de "Comenzar" del tooltip — para contextos con una acción real (ej. registrar progreso de un hábito). */
+  onCompletarNodo?: (nodo: NodoMapaSendero, indice: number) => void;
   subcategoriaId: string;
   /** Nivel real 1-7 — solo aplica a categoriaId 'habitos', define qué assets de selva se cargan. */
   tono?: number;
@@ -58,7 +60,7 @@ const MosaicoTooltip = () => (
   </View>
 );
 
-export function ContenedorMapaSenderos({ altura, categoriaId, color, enfocado, nodos: nodosOverride, subcategoriaId, tono }: ContenedorMapaSenderosProps) {
+export function ContenedorMapaSenderos({ altura, categoriaId, color, enfocado, nodos: nodosOverride, onCompletarNodo, subcategoriaId, tono }: ContenedorMapaSenderosProps) {
   const { width } = useWindowDimensions();
   const router = useRouter();
   const scrollRef = useRef<ScrollView>(null);
@@ -107,6 +109,8 @@ export function ContenedorMapaSenderos({ altura, categoriaId, color, enfocado, n
   }
 
   function completarNodo(indice: number) {
+    if (onCompletarNodo) { onCompletarNodo(nodos[indice], indice); return; }
+
     // MOCKUP: Al darle comenzar, navegamos a la pantalla de lección para ver el SDUI
     router.push({ pathname: '/senderos/leccion', params: { color } });
     return;

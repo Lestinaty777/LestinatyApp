@@ -1,5 +1,6 @@
 import { obtenerClienteSupabase } from '../../servicios/base-datos/supabase';
 import { mapearPanelHabitos } from './habitos.mapper';
+import { DIAS_REQUERIDOS_POR_NIVEL } from './iconosHabitos';
 import { DetalleHabito, MejorRachaHabito, PanelHabitos, PlanHabitoResumen, ProximoNivelHabito, ResultadoRegistroHabito, TipoMetaHabito } from './tipos';
 
 export async function obtenerPanelHabitos(fecha?: string): Promise<PanelHabitos> {
@@ -19,12 +20,12 @@ export async function registrarProgresoHabito(input: { habitoId: string; fechaLo
   return { fechaLocal: remoto.fecha_local, gemasGanadas: Number(remoto.gemas_ganadas ?? 0), habitoId: remoto.habito_id, id: remoto.id, nivel: Number(remoto.nivel), nota: remoto.nota, subioNivel: remoto.subio_nivel, valor: Number(remoto.valor) };
 }
 
-export type CrearHabitoInput = { titulo: string; descripcion?: string; meta: number; unidad: string; tipoMeta?: TipoMetaHabito; iconoLucide?: string; color?: string; frecuencia?: 'diaria' | 'dias_semana' | 'veces_semana'; diasSemana?: number[] | null; vecesPorSemana?: number | null; categoria?: string; dificultad?: 'minimo' | 'estandar' | 'reto'; disparador?: string; recompensa?: string; recordatorioActivo?: boolean; horaRecordatorio?: string | null; mostrarNombreNotificacion?: boolean };
+export type CrearHabitoInput = { titulo: string; descripcion?: string; meta: number; unidad: string; tipoMeta?: TipoMetaHabito; iconoLucide?: string; color?: string; frecuencia?: 'diaria' | 'dias_semana' | 'veces_semana'; diasSemana?: number[] | null; vecesPorSemana?: number | null; categoria?: string; dificultad?: 'minimo' | 'estandar' | 'reto'; disparador?: string; recompensa?: string; recordatorioActivo?: boolean; horaRecordatorio?: string | null; mostrarNombreNotificacion?: boolean; nivelInicial?: number };
 
 export async function crearHabito(input: CrearHabitoInput) {
   const { data, error } = await obtenerClienteSupabase().rpc('crear_habito_premium', {
     p_titulo: input.titulo.trim(), p_descripcion: input.descripcion ?? null, p_icono_lucide: input.iconoLucide ?? 'Sparkles', p_color: input.color ?? '#22C55E', p_tipo_meta: input.tipoMeta ?? 'cantidad', p_unidad: input.unidad.trim(), p_categoria: input.categoria ?? null, p_dificultad: input.dificultad ?? 'estandar', p_disparador: input.disparador ?? null, p_recompensa: input.recompensa ?? null,
-    p_frecuencia: input.frecuencia ?? 'diaria', p_dias_semana: input.diasSemana ?? null, p_veces_por_semana: input.vecesPorSemana ?? null, p_objetivo_valor: input.meta, p_recordatorio_activo: input.recordatorioActivo ?? false, p_hora_recordatorio: input.horaRecordatorio ?? null, p_mostrar_nombre_notificacion: input.mostrarNombreNotificacion ?? false, p_desde_fecha: new Date().toISOString().slice(0, 10),
+    p_frecuencia: input.frecuencia ?? 'diaria', p_dias_semana: input.diasSemana ?? null, p_veces_por_semana: input.vecesPorSemana ?? null, p_objetivo_valor: input.meta, p_recordatorio_activo: input.recordatorioActivo ?? false, p_hora_recordatorio: input.horaRecordatorio ?? null, p_mostrar_nombre_notificacion: input.mostrarNombreNotificacion ?? false, p_desde_fecha: new Date().toISOString().slice(0, 10), p_nivel_inicial: input.nivelInicial ?? 1,
   });
   if (error) throw error;
   return data;
@@ -67,6 +68,51 @@ export async function obtenerDetalleHabito(id: string, referencia = new Date()):
   todosRegistros.forEach((registro) => { const dia = new Date(`${registro.fecha_local}T12:00:00`).getDay(); const actual = porDia.get(dia) ?? { suma: 0, cantidad: 0 }; actual.suma += Number(registro.valor); actual.cantidad += 1; porDia.set(dia, actual); });
   const mejor = [...porDia.entries()].sort((a, b) => b[1].suma / b[1].cantidad - a[1].suma / a[1].cantidad)[0];
   return { habito: { id: item.id, titulo: item.titulo, descripcion: item.descripcion, iconoLucide: item.icono_lucide, color: item.color, tipoMeta: tipo, unidad: item.unidad, meta: Number(planHoy.objetivo_valor), valorHoy: porFecha.get(hoy) ?? 0, completado: completo(tipo, porFecha.get(hoy) ?? 0, Number(planHoy.objetivo_valor)) }, nivel: Number(planHoy.nivel ?? 1), semana: { completados, programados: programados.length, porcentaje: programados.length ? Math.round(completados * 100 / programados.length) : 0 }, rachaActual, totalAcumulado: todosRegistros.reduce((total, registro) => total + Number(registro.valor), 0), mejorDia: mejor ? nombresDias[mejor[0]] : null, progresoSemana };
+}
+
+export type ProgresoNivelHabito = { diasCompletados: number; diasRequeridos: number | null; fechasCumplidas: string[]; habito: { color: string; iconoLucide: string; meta: number; tipoMeta: TipoMetaHabito; titulo: string; unidad: string | null; valorHoy: number }; nivel: number };
+
+// Días cumplidos ACUMULADOS (no consecutivos, no se resetea) desde que
+// empezó el plan vigente — misma cuenta que usa privacidad.registrar_progreso_habito()
+// (migración 21) para decidir la subida real. Alimenta el sendero por hábito.
+export async function obtenerProgresoNivelHabito(id: string, referencia = new Date()): Promise<ProgresoNivelHabito> {
+  const supabase = obtenerClienteSupabase();
+  const hoy = fechaLocal(referencia);
+  const [{ data: item, error: errorItem }, { data: planes, error: errorPlanes }] = await Promise.all([
+    supabase.from('habitos_items').select('id,titulo,icono_lucide,color,tipo_meta,unidad').eq('id', id).eq('estado', 'activo').single(),
+    supabase.from('habitos_planes').select('frecuencia,dias_semana,objetivo_valor,desde_fecha,hasta_fecha,nivel').eq('habito_id', id).order('desde_fecha', { ascending: false }),
+  ]);
+  if (errorItem || !item) throw errorItem ?? new Error('Hábito no encontrado.');
+  if (errorPlanes) throw errorPlanes;
+  const todosPlanes = (planes ?? []) as FilaPlan[];
+  const planVigente = planParaFecha(todosPlanes, hoy);
+  if (!planVigente) throw new Error('Este hábito no tiene un plan activo.');
+  const tipo = item.tipo_meta as TipoMetaHabito;
+  const nivel = Number(planVigente.nivel ?? 1);
+  const diasRequeridos = DIAS_REQUERIDOS_POR_NIVEL[nivel + 1] ?? null;
+
+  const { data: registros, error: errorRegistros } = await supabase
+    .from('habitos_registros')
+    .select('fecha_local,valor')
+    .eq('habito_id', id)
+    .gte('fecha_local', planVigente.desde_fecha)
+    .lte('fecha_local', hoy);
+  if (errorRegistros) throw errorRegistros;
+  const todosRegistros = (registros ?? []) as FilaRegistro[];
+
+  const fechasCumplidas = todosRegistros
+    .filter((registro) => programado(planVigente, registro.fecha_local) && completo(tipo, Number(registro.valor), Number(planVigente.objetivo_valor)))
+    .map((registro) => registro.fecha_local)
+    .sort();
+  const valorHoy = todosRegistros.find((registro) => registro.fecha_local === hoy)?.valor ?? 0;
+
+  return {
+    diasCompletados: fechasCumplidas.length,
+    diasRequeridos,
+    fechasCumplidas,
+    habito: { color: item.color, iconoLucide: item.icono_lucide, meta: Number(planVigente.objetivo_valor), tipoMeta: tipo, titulo: item.titulo, unidad: item.unidad, valorHoy: Number(valorHoy) },
+    nivel,
+  };
 }
 
 type FilaPlanVentana = { habito_id: string; nivel: number; objetivo_valor: number; frecuencia: 'diaria' | 'dias_semana' | 'veces_semana'; dias_semana: number[] | null; desde_fecha: string; hasta_fecha: string | null };

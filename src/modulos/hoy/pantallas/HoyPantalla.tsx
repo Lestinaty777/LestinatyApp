@@ -1,4 +1,3 @@
-import { useState, useMemo } from 'react';
 import { useSaldoGemas } from '../../tienda/useSaldoGemas';
 import {
   Image,
@@ -11,22 +10,13 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import {
   Check,
-  ChevronLeft,
-  ChevronRight,
   Droplets,
   Dumbbell,
-  Flame,
-  Gem,
   Leaf,
-  MoreHorizontal,
   Pencil,
   Play,
   FolderOpen,
-  Sparkles,
   BookOpen,
-  Crown,
-  Smile,
-  Target,
 } from 'lucide-react-native';
 
 import { RecuadroGlass, Texto } from '../../../diseno';
@@ -400,140 +390,6 @@ function TimelineHoy() {
   );
 }
 
-// ─── Calendario Mensual (Columna derecha) ────────────────────────────────────
-function CalendarioMensual() {
-  const hoy = new Date();
-  const [mes, setMes] = useState(hoy.getMonth());
-  const [anio, setAnio] = useState(hoy.getFullYear());
-
-  const nombresMeses = [
-    'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
-  ];
-
-  const diasEnMes = useMemo(() => {
-    const primerDia = new Date(anio, mes, 1);
-    const ultimoDia = new Date(anio, mes + 1, 0);
-    const totalDias = ultimoDia.getDate();
-    // getDay(): 0=Dom. Queremos que L=0
-    let inicioSemana = primerDia.getDay() - 1;
-    if (inicioSemana < 0) inicioSemana = 6;
-
-    const celdas: (number | null)[] = [];
-    for (let i = 0; i < inicioSemana; i++) celdas.push(null);
-    for (let d = 1; d <= totalDias; d++) celdas.push(d);
-    return celdas;
-  }, [mes, anio]);
-
-  const esHoy = (dia: number | null) =>
-    dia !== null &&
-    dia === hoy.getDate() &&
-    mes === hoy.getMonth() &&
-    anio === hoy.getFullYear();
-
-  function cambiarMes(delta: number) {
-    let nuevoMes = mes + delta;
-    let nuevoAnio = anio;
-    if (nuevoMes < 0) { nuevoMes = 11; nuevoAnio--; }
-    if (nuevoMes > 11) { nuevoMes = 0; nuevoAnio++; }
-    setMes(nuevoMes);
-    setAnio(nuevoAnio);
-  }
-
-  return (
-    <RecuadroGlass style={s.calendarioCard}>
-      {/* Header mes */}
-      <View style={s.calendarioHeader}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-          <Image 
-            source={require('../../../../assets/icons/hoy/calendario.png')}
-            style={{ width: 20, height: 20, resizeMode: 'contain' }}
-          />
-          <Texto style={s.calendarioMes}>
-            {nombresMeses[mes]}
-          </Texto>
-        </View>
-        <View style={s.calendarioNav}>
-          <Pressable onPress={() => cambiarMes(-1)} hitSlop={10}>
-            <ChevronLeft color={C.textoSecundario} size={16} />
-          </Pressable>
-          <Pressable onPress={() => cambiarMes(1)} hitSlop={10}>
-            <ChevronRight color={C.textoSecundario} size={16} />
-          </Pressable>
-        </View>
-      </View>
-
-      {/* Días semana */}
-      <View style={s.calendarioFilaDias}>
-        {['L', 'M', 'X', 'J', 'V', 'S', 'D'].map((d, i) => (
-          <Texto key={i} style={s.calendarioDiaHeader}>{d}</Texto>
-        ))}
-      </View>
-
-      {/* Grid */}
-      <View style={s.calendarioGrid}>
-        {diasEnMes.map((dia, idx) => {
-          const hoyFlag = esHoy(dia);
-          return (
-            <View key={idx} style={s.calendarioCelda}>
-              {dia !== null && (
-                <View style={[s.calendarioDia, hoyFlag && s.calendarioDiaHoy]}>
-                  <Texto style={[s.calendarioDiaTexto, hoyFlag && s.calendarioDiaTextoHoy]}>
-                    {dia}
-                  </Texto>
-                </View>
-              )}
-            </View>
-          );
-        })}
-      </View>
-    </RecuadroGlass>
-  );
-}
-
-// ─── Card Quote Motivacional ─────────────────────────────────────────────────
-function CardQuote() {
-  return (
-    <RecuadroGlass style={s.quoteCard}>
-      <View style={s.quoteAvatar}>
-        <Image 
-          source={require('../../../../assets/ilustraciones/Aby/aby.png')}
-          style={{ width: '100%', height: '100%', resizeMode: 'cover' }}
-        />
-      </View>
-      <View style={s.quoteTextoContainer}>
-        <Texto style={s.quoteTexto}>
-          "¡Sigue adelante, tú puedes!"
-        </Texto>
-      </View>
-    </RecuadroGlass>
-  );
-}
-
-// ─── Card Próxima Meta ───────────────────────────────────────────────────────
-function CardProximaMeta() {
-  return (
-    <Pressable
-      onPress={() => hapticSeguro('seleccion')}
-      style={({ pressed }) => [
-        pressed && { opacity: 0.9, transform: [{ scale: 0.97 }] },
-      ]}
-    >
-      <RecuadroGlass style={s.metaCard}>
-        {/* TODO: reemplazar con asset de montaña/meta */}
-        <View style={s.metaImagen}>
-          <Texto style={{ fontSize: 36 }}>🏔️</Texto>
-        </View>
-        <View style={s.metaInfo}>
-          <Texto style={s.metaEtiqueta}>Tu próxima meta</Texto>
-          <Texto style={s.metaTitulo}>Aprender dibujo{'\n'}técnico</Texto>
-        </View>
-        <ChevronRight color="#FFFFFF" size={20} />
-      </RecuadroGlass>
-    </Pressable>
-  );
-}
-
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // Pantalla Principal
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -551,21 +407,10 @@ export function HoyPantalla() {
           <HeaderHoy />
           <HeroSection />
           <GridCategorias />
-          <CardSendero />
+          {/* CardSendero oculta a propósito por ahora — se vuelve a mostrar más adelante. */}
 
-          {/* ── Sección inferior: dos columnas ──────────────────────── */}
-          <View style={s.columnasContainer}>
-            {/* Columna Izquierda: Timeline */}
-            <View style={s.columnaIzq}>
-              <TimelineHoy />
-            </View>
-
-            {/* Columna Derecha: Calendario + Quote + Meta */}
-            <View style={s.columnaDer}>
-              <CalendarioMensual />
-              <CardQuote />
-              <CardProximaMeta />
-            </View>
+          <View style={s.timelineContenedor}>
+            <TimelineHoy />
           </View>
         </View>
       </ScrollView>
@@ -913,18 +758,9 @@ const s = StyleSheet.create({
     ...sombra(0.15),
   },
 
-  // ─── Columnas ──────────────────────────────────────
-  columnasContainer: {
-    flexDirection: 'row',
+  // ─── Contenedor de Hoy (100% del ancho) ─────────────
+  timelineContenedor: {
     paddingHorizontal: PH,
-    gap: 12,
-  },
-  columnaIzq: {
-    flex: 1.2,
-  },
-  columnaDer: {
-    flex: 1,
-    gap: 12,
   },
 
   // ─── Timeline ──────────────────────────────────────
@@ -1036,134 +872,6 @@ const s = StyleSheet.create({
   },
   timelineMore: {
     padding: 2,
-  },
-
-  // ─── Calendario ────────────────────────────────────
-  calendarioCard: {
-    backgroundColor: C.glass,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: C.glassBorde,
-    padding: 12,
-  },
-  calendarioHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 6,
-  },
-  calendarioMes: {
-    fontFamily: 'Montserrat-Bold',
-    fontSize: 11,
-    color: C.texto,
-  },
-  calendarioNav: {
-    flexDirection: 'row',
-    gap: 4,
-  },
-  calendarioFilaDias: {
-    flexDirection: 'row',
-    marginBottom: 4,
-  },
-  calendarioDiaHeader: {
-    flex: 1,
-    textAlign: 'center',
-    fontFamily: 'Montserrat-Bold',
-    fontSize: 10,
-    color: C.textoTenue,
-  },
-  calendarioGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-  },
-  calendarioCelda: {
-    width: `${100 / 7}%`,
-    aspectRatio: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  calendarioDia: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  calendarioDiaHoy: {
-    backgroundColor: C.morado,
-  },
-  calendarioDiaTexto: {
-    fontFamily: 'MontserratAlternates-Medium',
-    fontSize: 9,
-    color: C.texto,
-  },
-  calendarioDiaTextoHoy: {
-    color: '#FFFFFF',
-    fontFamily: 'Montserrat-Bold',
-  },
-
-  // ─── Quote ─────────────────────────────────────────
-  quoteCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: C.glass,
-    borderRadius: 16,
-    padding: 10,
-    gap: 8,
-    borderWidth: 1,
-    borderColor: C.glassBorde,
-  },
-  quoteAvatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: C.moradoSuave,
-    alignItems: 'center',
-    justifyContent: 'center',
-    overflow: 'hidden',
-  },
-  quoteTextoContainer: {
-    flex: 1,
-  },
-  quoteTexto: {
-    fontFamily: 'MontserratAlternates-Medium',
-    fontSize: 10,
-    color: C.textoSecundario,
-    fontStyle: 'italic',
-    lineHeight: 14,
-  },
-
-  // ─── Meta Card ─────────────────────────────────────
-  metaCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: C.morado,
-    borderRadius: 16,
-    padding: 10,
-    gap: 8,
-    overflow: 'hidden',
-  },
-  metaImagen: {
-    width: 40,
-    height: 40,
-    borderRadius: 10,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  metaInfo: {
-    flex: 1,
-  },
-  metaEtiqueta: {
-    fontFamily: 'MontserratAlternates-Medium',
-    fontSize: 8,
-    color: 'rgba(255,255,255,0.7)',
-  },
-  metaTitulo: {
-    fontFamily: 'Montserrat-Bold',
-    fontSize: 11,
-    color: '#FFFFFF',
-    lineHeight: 15,
   },
 });
 

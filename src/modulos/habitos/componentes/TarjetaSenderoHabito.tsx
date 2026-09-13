@@ -17,6 +17,7 @@ export type TarjetaSenderoHabitoProps = {
   descripcion?: string;
   diasCompletados?: number[];
   diasProgramados: number[];
+  escalaArbol?: number;
   icono: { fuente: ImageSourcePropType };
   meta: number;
   metaEtiqueta: string;
@@ -32,7 +33,7 @@ export type TarjetaSenderoHabitoProps = {
 // en HabitosPantalla con datos reales — un solo componente, dos contextos.
 export function TarjetaSenderoHabito({
   assets, cargando = false, ctaTexto = 'Comenzar', descripcion = '', diasCompletados = [], diasProgramados,
-  icono, meta, metaEtiqueta, nivel = 1, onPressCta, racha = 0, titulo, valorHoy = 0,
+  escalaArbol = 1, icono, meta, metaEtiqueta, nivel = 1, onPressCta, racha = 0, titulo, valorHoy = 0,
 }: TarjetaSenderoHabitoProps) {
   const fraccionProgreso = Math.max(0.06, meta > 0 ? Math.min(1, valorHoy / meta) : 0.06);
   const offsetAnillo = CIRCUNFERENCIA_ANILLO * (1 - fraccionProgreso);
@@ -40,6 +41,7 @@ export function TarjetaSenderoHabito({
   return (
     <View style={tp.contenedor}>
       <RecuadroGlass blur degradado={{ inicio: '#F4FFF1', fin: '#B8EDB0' }} style={tp.raiz}>
+        <Image source={assets.arbolPrincipal} style={[tp.arbol, { transform: [{ scale: escalaArbol }] }]} />
         <View style={tp.iconoMarco}>
           <Svg pointerEvents="none" style={tp.bordeIcono} height={68} width={68}>
             <Defs><LinearGradient id="bordeIconoHabito" x1="0%" x2="100%" y1="0%" y2="100%"><Stop offset="0" stopColor="#C5F7B6" /><Stop offset="1" stopColor="#539C68" /></LinearGradient></Defs>
@@ -91,7 +93,6 @@ export function TarjetaSenderoHabito({
           {cargando ? 'Guardando…' : ctaTexto}
         </Boton>
       </RecuadroGlass>
-      <Image source={assets.arbolPrincipal} style={tp.arbol} />
     </View>
   );
 }

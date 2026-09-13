@@ -56,7 +56,7 @@ export function DetalleHabitoPantalla({id}:{id:string}){
     d={consulta.data}
     guardando={mutacion.isPending}
     onRegistrar={(valor)=>mutacion.mutate({habitoId:id,fechaLocal:new Date().toISOString().slice(0,10),valor})}
-    onVerSendero={()=>router.push({pathname:'/habitos/sendero',params:{id}})}
+    onVerSendero={()=>router.push({pathname:'/senderos',params:{habitoId:id}})}
     paddingInferior={insets.bottom+28}
    />
   )}

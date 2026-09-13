@@ -2,7 +2,7 @@
 
 ## Estado
 
-Las migraciones `01` a `18` están aplicadas en el proyecto remoto. La migración `06` crea el núcleo de Senderos de Estudio; `07` y `08` incorporan Hábitos, `09` añade su cola privada de recordatorios, `10` y `11` la creación premium y los niveles progresivos, `12` el plan de niveles por IA (sin generador aún), `13`-`15` la tienda de gemas y su endurecimiento, y `16` corrige un bug real de doble subida de nivel encontrado al escribir `supabase/tests/05_comercio_gemas_nivel_habito.sql`. Este documento no sustituye una inspección real de Supabase ni el Security Advisor.
+Las migraciones `01` a `21` están aplicadas en el proyecto remoto. La migración `06` crea el núcleo de Senderos de Estudio; `07` y `08` incorporan Hábitos, `09` añade su cola privada de recordatorios, `10` y `11` la creación premium y los niveles progresivos, `12` el plan de niveles por IA (sin generador aún), `13`-`15` la tienda de gemas y su endurecimiento, y `16` corrige un bug real de doble subida de nivel encontrado al escribir `supabase/tests/05_comercio_gemas_nivel_habito.sql`. Este documento no sustituye una inspección real de Supabase ni el Security Advisor.
 
 ## Separacion de Schemas
 
@@ -54,6 +54,9 @@ comercio    -> billetera de gemas, ledger de movimientos y compras
 | 16 | `20260912_16_fix_doble_subida_nivel.sql` | Corrige un bug de la migración 11: si el umbral de 80%/80% se cumple antes del día 14 (el 80% permite huecos), una segunda llamada el mismo día real reintentaba la subida de nivel y violaba el exclusion constraint de `habitos_planes`, revirtiendo también el registro de progreso de ese día. Encontrado con el smoke test `05`. |
 | 17 | `20260912_17_paquetes_gemas_iap.sql` | Catálogo `public.paquetes_gemas_iap` (product_id de RevenueCat -> cantidad de gemas, placeholders) e idempotencia por `(persona, motivo, referencia)` en `comercio.acreditar_gemas` — necesaria porque los webhooks de RevenueCat se reintentan. |
 | 18 | `20260912_18_wrapper_acreditar_gemas_service.sql` | Wrapper `public.acreditar_gemas` (EXECUTE exclusivo `service_role`) para que la Edge Function pueda llamarlo vía `supabase-js`, ya que `comercio` nunca está en los schemas expuestos de PostgREST. |
+| 19 | `20260913_19_nivel_inicial_habito.sql` | `crear_habito_premium` acepta `p_nivel_inicial` (acotado 1-7) y lo guarda en `habitos_planes.nivel` — el tono elegido en el wizard ya no se pierde, antes todo hábito nuevo arrancaba en nivel 1 sin importar el tono elegido. |
+| 20 | `20260913_20_fix_duplicado_crear_habito_premium.sql` | Borra el overload viejo de `crear_habito_premium` (18 params) que dejó la migración 19 y fuerza recarga del caché de PostgREST — sin esto, crear un hábito fallaba en silencio. |
+| 21 | `20260913_21_regla_nivel_por_dias_acumulados.sql` | Reemplaza la regla de subida de nivel: en vez de 14 días fijos con dos ventanas al 80%, cada nivel pide una cantidad de días cumplidos ACUMULADOS (no se resetea si hay un día perdido) — 3/7/14/30/60/90 para niveles 2-7, los mismos números que ya mostraba el paso 6 del wizard como texto decorativo, ahora conectados a la regla real. |
 
 ## Estado remoto verificado
 

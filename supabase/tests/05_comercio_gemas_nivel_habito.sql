@@ -146,37 +146,35 @@ begin
 end;
 $$;
 
--- ── 4. Nivel real (14 días, 80%/80%) y recompensa en gemas ───────────────────
+-- ── 4. Nivel real (días acumulados, no se resetea) y recompensa en gemas ────
+-- Nivel 1->2 pide 3 días cumplidos acumulados (ver migración 21). Se dejan
+-- huecos a propósito (día -3 y -1 sin registro) para probar que un día
+-- perdido no reinicia el conteo.
 select set_config(
   'app.smoke_habito_b',
   (public.crear_habito_premium(
     'Meditar (smoke)', null, 'Sparkles', '#22C55E', 'cantidad', 'min',
     null, 'estandar', null, null,
-    'diaria', null, null, 10, false, null, false, current_date - 13
+    'diaria', null, null, 10, false, null, false, current_date - 4
   )->>'id'),
   true
 );
 
--- El umbral de 80%/80% puede cumplirse un día antes de completar los 14 (el
--- 80% permite 1-2 días perdidos por ventana), así que la subida puede
--- disparar en cualquier iteración, no necesariamente en la última.
-do $$
-declare v_dia date; declare v_resultado jsonb; declare v_subio boolean := false; declare v_nivel integer; declare v_gemas integer;
-begin
-  for v_dia in select generate_series(current_date - 13, current_date, interval '1 day')::date loop
-    v_resultado := public.registrar_progreso_habito(current_setting('app.smoke_habito_b')::uuid, v_dia, 10, null);
-    if (v_resultado->>'subio_nivel')::boolean then
-      v_subio := true;
-      v_nivel := (v_resultado->>'nivel')::integer;
-      v_gemas := (v_resultado->>'gemas_ganadas')::integer;
-    end if;
-  end loop;
+do $$ begin perform public.registrar_progreso_habito(current_setting('app.smoke_habito_b')::uuid, current_date - 4, 10, null); end $$;
+do $$ begin perform public.registrar_progreso_habito(current_setting('app.smoke_habito_b')::uuid, current_date - 2, 10, null); end $$;
 
-  if not v_subio then
-    raise exception 'nunca se reportó una subida de nivel en las 14 llamadas' using errcode = 'assert_failure';
+do $$
+declare v_resultado jsonb; declare v_nivel integer; declare v_gemas integer;
+begin
+  v_resultado := public.registrar_progreso_habito(current_setting('app.smoke_habito_b')::uuid, current_date, 10, null);
+  v_nivel := (v_resultado->>'nivel')::integer;
+  v_gemas := (v_resultado->>'gemas_ganadas')::integer;
+
+  if not (v_resultado->>'subio_nivel')::boolean then
+    raise exception 'esperaba subir de nivel con 3 días completados (con huecos en medio), no subió' using errcode = 'assert_failure';
   end if;
   if v_nivel <> 2 then
-    raise exception 'nivel esperado 2 tras cumplir la racha, fue %', v_nivel using errcode = 'assert_failure';
+    raise exception 'nivel esperado 2 tras 3 días acumulados, fue %', v_nivel using errcode = 'assert_failure';
   end if;
   if v_gemas <> 10 then
     raise exception 'recompensa esperada 10 gemas (5 * nivel 2), fue %', v_gemas using errcode = 'assert_failure';
