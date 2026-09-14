@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { colores, espaciado } from '../../src/diseno';
 import { usarEstadoAcceso } from '../../src/modulos/acceso/acceso.estado';
-import { BotonTab, BotonTiendaContextual, IconoTab, IconoTiendaContextual, iconosTabs } from '../../src/nucleo/navegacion/BarraTabs';
+import { BotonTab, IconoTab, iconosTabs } from '../../src/nucleo/navegacion/BarraTabs';
 
 const radioGlassNavegacion = 15;
 
@@ -63,11 +63,7 @@ export default function LayoutPrincipal() {
       />
       <Tabs.Screen
         name="tienda"
-        options={{
-          tabBarButton: (props) => <BotonTiendaContextual {...props} />,
-          tabBarIcon: ({ focused }) => <IconoTiendaContextual focused={focused} />,
-          title: 'Aby',
-        }}
+        options={{ href: null }}
       />
       <Tabs.Screen
         name="metas"
@@ -75,10 +71,7 @@ export default function LayoutPrincipal() {
       />
       <Tabs.Screen
         name="mi-espacio"
-        options={{
-          tabBarIcon: ({ focused }) => <IconoTab focused={focused} nombre={iconosTabs['mi-espacio']} />,
-          title: 'Mi espacio',
-        }}
+        options={{ href: null }}
       />
       <Tabs.Screen
         name="direccion"

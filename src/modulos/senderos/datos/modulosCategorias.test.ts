@@ -14,8 +14,8 @@ describe('módulos por categoría del mapa', () => {
 describe('colores del selector de categoría', () => {
   it('usa un fondo saturado diferente para cada categoría', () => {
     expect(coloresSelectorCategoria).toEqual({
-      habitos: '#D94640',
-      rutinas: '#2878D4',
+      habitos: '#22C55E',
+      rutinas: '#D94640',
       tareas: '#E5A900',
     });
   });

@@ -1,5 +1,6 @@
 export { generarPaleta } from './fundamentos/generadorPaletas';
 export * from './componentes';
+export * from './ui';
 export { colores } from './fundamentos/colores';
 export { biomas } from './tema/biomas';
 export type { BiomaVisual } from './tema/biomas';

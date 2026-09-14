@@ -32,8 +32,8 @@ function BotonRebote({ children, deshabilitado, estilo, onPress }: { children: R
 }
 
 // Reemplaza, dentro del mismo recuadro superior de la pestaña Senderos (mismo
-// tamaño y color del hábito), el icono/título/descripción por un control
-// compacto de registro — sin abrir una hoja ni pantalla aparte.
+// glass verde que la tarjeta de hábito), el icono/título/descripción por un
+// control compacto de registro — sin abrir una hoja ni pantalla aparte.
 export function WidgetRegistrarProgreso({ guardando, meta, onCerrar, onGuardar, tipoMeta, titulo, unidad, valorInicial }: WidgetRegistrarProgresoProps) {
   return (
     <View style={s.fila}>
@@ -46,7 +46,7 @@ export function WidgetRegistrarProgreso({ guardando, meta, onCerrar, onGuardar, 
       {tipoMeta === 'check' && <ControlCheck guardando={guardando} onGuardar={onGuardar} valorInicial={valorInicial} />}
       {tipoMeta === 'cantidad' && <ControlContador guardando={guardando} meta={meta} onGuardar={onGuardar} valorInicial={valorInicial} />}
       {tipoMeta === 'duracion' && <ControlCronometro guardando={guardando} onGuardar={onGuardar} valorInicial={valorInicial} />}
-      <Pressable accessibilityLabel="Cerrar registro" hitSlop={10} onPress={onCerrar} style={s.cerrar}><X color="#FFFFFF" size={16} /></Pressable>
+      <Pressable accessibilityLabel="Cerrar registro" hitSlop={10} onPress={onCerrar} style={s.cerrar}><X color="#145C37" size={16} /></Pressable>
     </View>
   );
 }
@@ -55,7 +55,7 @@ function ControlCheck({ guardando, onGuardar, valorInicial }: { guardando: boole
   const hecho = valorInicial > 0;
   return (
     <BotonRebote deshabilitado={guardando} estilo={[s.botonRedondo, hecho && s.botonRedondoHecho]} onPress={() => onGuardar(1)}>
-      <Check color={hecho ? 'rgba(255,255,255,.75)' : '#FFFFFF'} size={22} strokeWidth={3} />
+      <Check color={hecho ? 'rgba(20,92,55,.4)' : '#FFFFFF'} size={22} strokeWidth={3} />
     </BotonRebote>
   );
 }
@@ -65,7 +65,7 @@ function ControlContador({ guardando, meta, onGuardar, valorInicial }: { guardan
   const cambiar = (delta: number) => { const siguiente = Math.max(0, valor + delta); setValor(siguiente); onGuardar(siguiente); };
   return (
     <View style={s.filaControl}>
-      <BotonRebote deshabilitado={guardando || valor <= 0} estilo={s.botonPequeno} onPress={() => cambiar(-1)}><Minus color="#FFFFFF" size={16} /></BotonRebote>
+      <BotonRebote deshabilitado={guardando || valor <= 0} estilo={s.botonPequeno} onPress={() => cambiar(-1)}><Minus color="#145C37" size={16} /></BotonRebote>
       <Texto style={s.valorControl}>{valor}/{meta}</Texto>
       <BotonRebote deshabilitado={guardando} estilo={[s.botonPequeno, s.botonPequenoLleno]} onPress={() => cambiar(1)}><Plus color="#FFFFFF" size={16} /></BotonRebote>
     </View>
@@ -90,7 +90,7 @@ function ControlCronometro({ guardando, onGuardar, valorInicial }: { guardando: 
     <View style={s.filaControl}>
       <Texto style={s.valorControl}>{String(minutos).padStart(2, '0')}:{String(restoSegundos).padStart(2, '0')}</Texto>
       <BotonRebote estilo={s.botonPequeno} onPress={() => setCorriendo((valorActual) => !valorActual)}>
-        {corriendo ? <Pause color="#FFFFFF" fill="#FFFFFF" size={14} /> : <Play color="#FFFFFF" fill="#FFFFFF" size={14} />}
+        {corriendo ? <Pause color="#145C37" fill="#145C37" size={14} /> : <Play color="#145C37" fill="#145C37" size={14} />}
       </BotonRebote>
       <BotonRebote deshabilitado={guardando || segundos === 0} estilo={[s.botonPequeno, s.botonPequenoLleno]} onPress={() => { setCorriendo(false); onGuardar(Math.max(1, Math.round(segundos / 60))); }}>
         <Check color="#FFFFFF" size={16} strokeWidth={3} />
@@ -102,13 +102,13 @@ function ControlCronometro({ guardando, onGuardar, valorInicial }: { guardando: 
 const s = StyleSheet.create({
   fila: { alignItems: 'center', flex: 1, flexDirection: 'row', gap: 10 },
   textos: { flex: 1 },
-  titulo: { color: '#FFFFFF', fontFamily: 'MontserratAlternates-Bold', fontSize: 16 },
-  sub: { color: 'rgba(255,255,255,.78)', fontFamily: 'Montserrat-Medium', fontSize: 11, marginTop: 2 },
-  cerrar: { alignItems: 'center', backgroundColor: 'rgba(0,0,0,.18)', borderRadius: 14, height: 28, justifyContent: 'center', width: 28 },
-  botonRedondo: { alignItems: 'center', backgroundColor: 'rgba(255,255,255,.28)', borderRadius: 24, height: 48, justifyContent: 'center', width: 48 },
-  botonRedondoHecho: { backgroundColor: 'rgba(255,255,255,.14)' },
+  titulo: { color: '#145C37', fontFamily: 'MontserratAlternates-Bold', fontSize: 16 },
+  sub: { color: '#4A7F5D', fontFamily: 'Montserrat-Medium', fontSize: 11, marginTop: 2 },
+  cerrar: { alignItems: 'center', backgroundColor: 'rgba(20,92,55,.12)', borderRadius: 14, height: 28, justifyContent: 'center', width: 28 },
+  botonRedondo: { alignItems: 'center', backgroundColor: '#25884C', borderRadius: 24, height: 48, justifyContent: 'center', width: 48 },
+  botonRedondoHecho: { backgroundColor: 'rgba(20,92,55,.14)' },
   filaControl: { alignItems: 'center', flexDirection: 'row', gap: 8 },
-  botonPequeno: { alignItems: 'center', backgroundColor: 'rgba(255,255,255,.24)', borderRadius: 16, height: 32, justifyContent: 'center', width: 32 },
-  botonPequenoLleno: { backgroundColor: 'rgba(255,255,255,.4)' },
-  valorControl: { color: '#FFFFFF', fontFamily: 'MontserratAlternates-Bold', fontSize: 14, minWidth: 44, textAlign: 'center' },
+  botonPequeno: { alignItems: 'center', backgroundColor: 'rgba(20,92,55,.12)', borderRadius: 16, height: 32, justifyContent: 'center', width: 32 },
+  botonPequenoLleno: { backgroundColor: '#25884C' },
+  valorControl: { color: '#145C37', fontFamily: 'MontserratAlternates-Bold', fontSize: 14, minWidth: 44, textAlign: 'center' },
 });

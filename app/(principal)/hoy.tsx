@@ -1,3 +1,3 @@
-import { HoyPantalla } from '../../src/modulos/hoy/pantallas/HoyPantalla';
+import { HabitosPantalla } from '../../src/modulos/habitos/pantallas/HabitosPantalla';
 
-export default HoyPantalla;
+export default HabitosPantalla;

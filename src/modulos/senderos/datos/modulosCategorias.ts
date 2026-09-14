@@ -16,8 +16,8 @@ export type ModuloCategoriaMapa = {
 export const categoriaInicialMapa: CategoriaMapaMvp = 'habitos';
 
 export const coloresSelectorCategoria: Record<CategoriaMapaMvp, string> = {
-  habitos: '#D94640',
-  rutinas: '#2878D4',
+  habitos: '#22C55E',
+  rutinas: '#D94640',
   tareas: '#E5A900',
 };
 

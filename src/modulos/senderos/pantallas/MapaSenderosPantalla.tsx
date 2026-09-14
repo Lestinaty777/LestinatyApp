@@ -4,15 +4,13 @@ import { useQuery } from '@tanstack/react-query';
 import { useLocalSearchParams } from 'expo-router';
 import { StyleSheet, View, useWindowDimensions, Pressable, ScrollView, Text as TextoRN, Image } from 'react-native';
 import { BotonTab } from '../../../nucleo/navegacion/BarraTabs';
-import { BlurView } from 'expo-blur';
 import { PixelartIcon } from '../../../diseno/iconos/PixelartIcon';
 import Animated, { useSharedValue, useAnimatedStyle, useAnimatedProps, withTiming, Easing, withSpring, withRepeat } from 'react-native-reanimated';
 import { Beaker, Users, Activity, Calculator, BookOpen } from 'lucide-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Book, Calendar, Sparkles, Store, Flame, Zap, Shield, Terminal, Hexagon, Trophy } from 'lucide-react-native';
+import { Shield, Terminal, Hexagon, Trophy, Leaf, Sun, Moon } from 'lucide-react-native';
 import { ContenedorMapaSenderos } from '../../senderos/componentes/mapa/ContenedorMapaSenderos';
-import { biomas } from '../../../diseno/tema/biomas';
-import { Texto, colores, RecuadroGlass } from '../../../diseno';
+import { MasterChip, MasterGlass, MasterIconBg, Texto, colores, RecuadroGlass } from '../../../diseno';
 import { hapticSeguro } from '../../../nucleo/dispositivo/haptics';
 import { TarjetaHabitoCompacta } from '../../habitos/componentes/TarjetaHabitoCompacta';
 import { WidgetRegistrarProgreso } from '../../habitos/componentes/WidgetRegistrarProgreso';
@@ -23,6 +21,21 @@ import type { HabitoResumen } from '../../habitos/tipos';
 import { categoriaInicialMapa, coloresSelectorCategoria, modulosPorCategoria, type CategoriaMapaMvp, type IconoModuloMapa, type ModuloCategoriaMapa } from '../datos/modulosCategorias';
 
 const DIAS_SEMANA_COMPLETA = [1, 2, 3, 4, 5, 6, 7];
+const TAMANO_ICONO_CATEGORIA = 64;
+const ALTURA_NAVBAR_BASE = 88;
+const PEEK_SIGUIENTE_TARJETA = 32;
+
+const TITULOS_CATEGORIA: Record<CategoriaMapaMvp, string> = {
+  habitos: 'Hábitos',
+  rutinas: 'Rutinas',
+  tareas: 'Tareas',
+};
+// Rutinas/Tareas aún son mock — texto provisional hasta que tengan datos reales.
+const SUBTITULOS_CATEGORIA: Record<CategoriaMapaMvp, string> = {
+  habitos: 'Pequeños pasos, grandes cambios.',
+  rutinas: 'Secuencias simples, todos los días.',
+  tareas: 'Proyectos grandes, pasos concretos.',
+};
 
 type AsignaturaVisible = ModuloCategoriaMapa & { habitoReal?: HabitoResumen };
 
@@ -64,16 +77,30 @@ function IconoAsignatura({ asignatura, color, size = 24 }: { asignatura: Asignat
   return <IconoModulo color={color} nombre={asignatura.icono} size={size} />;
 }
 
+
+// Panel "tus hábitos" del menú del libro — réplica del mockup de referencia.
+const cp = StyleSheet.create({
+  headerGlass: { alignItems: 'center', borderRadius: 22, flexDirection: 'row', justifyContent: 'space-between', marginBottom: 18, padding: 16 },
+  // habitos.png ya incluye su propio fondo verde — solo se dimensiona, sin View/color detrás.
+  iconoLibro: { height: 64, width: 64 },
+  etiqueta: { color: '#4A7F5D', fontFamily: 'Montserrat-Bold', fontSize: 10, letterSpacing: 1.4 },
+  contador: { color: '#12331F', fontFamily: 'MontserratAlternates-Bold', fontSize: 24, marginTop: 1 },
+  pendientes: { color: '#4A7F5D', fontFamily: 'Montserrat-Medium', fontSize: 12, marginTop: 1 },
+  etiquetaHoy: { color: '#4A7F5D', fontFamily: 'Montserrat-Bold', fontSize: 10, letterSpacing: 1.2, marginBottom: 4 },
+  textoHoy: { color: '#12331F', fontFamily: 'MontserratAlternates-Bold', fontSize: 14 },
+});
+
 export function MapaSenderosPantalla() {
   const parametros = useLocalSearchParams<{ habitoId?: string | string[] }>();
   const habitoIdParametro = Array.isArray(parametros.habitoId) ? parametros.habitoId[0] : parametros.habitoId;
 
-  const [activeMenu, setActiveMenu] = React.useState<'none' | 'categories' | 'courses' | 'calendar' | 'sparkle' | 'store'>('none');
+  const [activeMenu, setActiveMenu] = React.useState<'none' | 'categories' | 'courses' | 'store'>('none');
   const [categoriaActiva, setCategoriaActiva] = React.useState<CategoriaMapaMvp>(categoriaInicialMapa);
+  const [filtroMomento, setFiltroMomento] = React.useState<'manana' | 'noche' | 'tarde' | 'todos'>('todos');
   const animMenuState = useSharedValue(0);
   const animExpansionHeight = useSharedValue(0);
 
-  const handleToggleMenu = (menu: 'categories' | 'courses' | 'calendar' | 'sparkle' | 'store') => {
+  const handleToggleMenu = (menu: 'categories' | 'courses' | 'store') => {
     hapticSeguro('seleccion');
     if (activeMenu === menu) {
       setActiveMenu('none');
@@ -125,16 +152,15 @@ export function MapaSenderosPantalla() {
     animMenuState.value = withSpring(isAnyOpen ? 1 : 0, { damping: 16, stiffness: 100 });
     
     let targetH = 0;
-    if (activeMenu === 'courses') targetH = 200;
+    if (activeMenu === 'courses') targetH = categoriaActiva === 'habitos' ? 326 : 200;
     if (activeMenu === 'categories') targetH = 132;
-    if (activeMenu === 'calendar') targetH = 390;
     if (activeMenu === 'store') targetH = 260;
-    
+
     animExpansionHeight.value = withSpring(targetH, { damping: 16, stiffness: 100 });
-  }, [activeMenu]);
+  }, [activeMenu, categoriaActiva]);
 
   const animNavbarEstilos = useAnimatedStyle(() => ({
-    height: 62 + animExpansionHeight.value,
+    height: ALTURA_NAVBAR_BASE + animExpansionHeight.value,
   }));
 
   const animContenidoEstilos = useAnimatedStyle(() => ({
@@ -157,32 +183,32 @@ export function MapaSenderosPantalla() {
         
         {/* Barra de Navegación Superior */}
         <View style={{ zIndex: 10 }}>
-          <Animated.View style={[styles.navbarContenedor, animNavbarEstilos, { overflow: 'hidden' }]}>
-            <FondoTabsGlass />
+          <Animated.View style={[styles.navbarContenedor, animNavbarEstilos]}>
+            <MasterGlass blur style={styles.navbarGlass}>
             <View style={styles.navbarFila}>
-              <BotonTab onPress={() => handleToggleMenu('categories')}>
-                <View style={[styles.botonCategoria, { backgroundColor: coloresSelectorCategoria[categoriaActiva] }, activeMenu === 'categories' && styles.botonCategoriaActivo]}>
-                  <Image source={iconosCategoriasMapa[categoriaActiva]} style={styles.iconoCategoriaActivo} tintColor="#FFFFFF" />
+              <Pressable onPress={() => handleToggleMenu('categories')}>
+                <View style={activeMenu === 'categories' ? styles.badgeCategoriaActivo : undefined}>
+                  <MasterIconBg fuente={iconosCategoriasMapa[categoriaActiva]} size={TAMANO_ICONO_CATEGORIA} />
                 </View>
-              </BotonTab>
-              <BotonTab onPress={() => handleToggleMenu('courses')}>
-                <View style={[{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12, gap: 6 }, activeMenu === 'courses' && { backgroundColor: 'rgba(0,0,0,0.05)' }]}>
-                  <BookOpen color={activeMenu === 'courses' ? '#4A8BB3' : '#76736D'} size={20} />
-                  <Texto style={{ fontSize: 14, fontFamily: 'Montserrat-Bold', color: activeMenu === 'courses' ? '#111111' : '#76736D', marginTop: -2 }}>{ASIGNATURAS.length}</Texto>
+              </Pressable>
+
+              <View style={styles.navInfo}>
+                <Texto numberOfLines={1} style={[styles.tituloAsignatura, { color: oscurecer(coloresSelectorCategoria[categoriaActiva], 0.4) }]}>{TITULOS_CATEGORIA[categoriaActiva]}</Texto>
+                <Texto numberOfLines={2} style={[styles.descAsignatura, { color: oscurecer(coloresSelectorCategoria[categoriaActiva], 0.6) }]}>{SUBTITULOS_CATEGORIA[categoriaActiva]}</Texto>
+              </View>
+
+              <Pressable onPress={() => handleToggleMenu('courses')}>
+                <View style={[styles.botonPildora, activeMenu === 'courses' && { backgroundColor: aclarar(coloresSelectorCategoria[categoriaActiva], 0.84) }]}>
+                  <Image resizeMode="contain" source={require('../../../../assets/icons/habitos.png')} style={{ height: 19, width: 19 }} />
+                  <Texto style={{ fontSize: 13, fontFamily: 'Montserrat-Bold', color: activeMenu === 'courses' ? oscurecer(coloresSelectorCategoria[categoriaActiva], 0.4) : '#76736D', marginTop: -2 }}>{ASIGNATURAS.length}</Texto>
                 </View>
-              </BotonTab>
-              <BotonTab onPress={() => handleToggleMenu('calendar')}>
-                <View style={[{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12, gap: 6 }, activeMenu === 'calendar' && { backgroundColor: 'rgba(242, 109, 33, 0.1)' }]}>
-                  <Flame color={activeMenu === 'calendar' ? '#F26D21' : '#76736D'} size={20} fill={activeMenu === 'calendar' ? '#F26D21' : 'transparent'} />
-                  <Texto style={{ fontSize: 14, fontFamily: 'Montserrat-Bold', color: activeMenu === 'calendar' ? '#F26D21' : '#76736D', marginTop: -2 }}>3</Texto>
+              </Pressable>
+              <Pressable onPress={() => handleToggleMenu('store')}>
+                <View style={[styles.botonPildora, activeMenu === 'store' && { backgroundColor: aclarar('#A100FF', 0.86) }]}>
+                  <GemaMorada focused={activeMenu === 'store'} size={17} />
+                  <Texto style={{ fontSize: 13, fontFamily: 'Montserrat-Bold', color: activeMenu === 'store' ? '#A100FF' : '#76736D', marginTop: -2 }}>1,250</Texto>
                 </View>
-              </BotonTab>
-              <BotonTab onPress={() => handleToggleMenu('store')}>
-                <View style={[{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12, gap: 6 }, activeMenu === 'store' && { backgroundColor: 'rgba(161, 0, 255, 0.1)' }]}>
-                  <GemaMorada focused={activeMenu === 'store'} size={20} />
-                  <Texto style={{ fontSize: 14, fontFamily: 'Montserrat-Bold', color: activeMenu === 'store' ? '#A100FF' : '#76736D', marginTop: -2 }}>1,250</Texto>
-                </View>
-              </BotonTab>
+              </Pressable>
             </View>
 
             <Animated.View pointerEvents={activeMenu !== 'none' ? 'auto' : 'none'} style={[{ flex: 1 }, animContenidoEstilos]}>
@@ -201,7 +227,84 @@ export function MapaSenderosPantalla() {
                   </View>
                 </View>
               )}
-              {activeMenu === 'courses' && (
+              {activeMenu === 'courses' && categoriaActiva === 'habitos' && (() => {
+                const habitosPendientesHoy = Math.max(0, habitosReales.length - habitosCompletadosHoy);
+                const fraccionHoy = habitosReales.length > 0 ? habitosCompletadosHoy / habitosReales.length : 0;
+                const anchoCarta = Math.min(340, windowWidth - 40 - PEEK_SIGUIENTE_TARJETA);
+                return (
+                  <View style={{ flex: 1, paddingHorizontal: 20, paddingTop: 5, paddingBottom: 5 }}>
+                    <MasterGlass blur style={cp.headerGlass}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+                        <Image resizeMode="contain" source={require('../../../../assets/icons/habitos.png')} style={cp.iconoLibro} />
+                        <View>
+                          <Texto style={cp.etiqueta}>TUS HÁBITOS</Texto>
+                          <Texto style={cp.contador}>{ASIGNATURAS.length} {ASIGNATURAS.length === 1 ? 'hábito' : 'hábitos'}</Texto>
+                          <Texto style={cp.pendientes}>{habitosPendientesHoy} pendientes hoy</Texto>
+                        </View>
+                      </View>
+                      <View style={{ alignItems: 'center' }}>
+                        <Texto style={cp.etiquetaHoy}>HOY</Texto>
+                        <View style={{ alignItems: 'center', height: 56, justifyContent: 'center', width: 56 }}>
+                          <Svg height={56} style={{ position: 'absolute' }} width={56}>
+                            <Circle cx="28" cy="28" fill="none" r={22} stroke="rgba(20,92,55,.15)" strokeWidth={5} />
+                            <Circle cx="28" cy="28" fill="none" r={22} rotation="-90" stroke="#145C37" strokeDasharray={`${2 * Math.PI * 22} ${2 * Math.PI * 22}`} strokeDashoffset={2 * Math.PI * 22 * (1 - fraccionHoy)} strokeLinecap="round" strokeWidth={5} origin="28,28" />
+                          </Svg>
+                          <Texto style={cp.textoHoy}>{habitosCompletadosHoy}/{habitosReales.length}</Texto>
+                        </View>
+                      </View>
+                    </MasterGlass>
+
+                    <ScrollView
+                      contentContainerStyle={{ gap: 14, paddingBottom: 6 }}
+                      decelerationRate="fast"
+                      horizontal
+                      showsHorizontalScrollIndicator={false}
+                    >
+                      {asignaturasHabitos.map((asig) => {
+                        const detalle = detallesPorHabito.get(asig.habitoReal!.id);
+                        const icono = buscarIconoHabito(asig.habitoReal!.iconoLucide);
+                        return (
+                          <TarjetaHabitoCompacta
+                            alto={104}
+                            ancho={anchoCarta}
+                            diasCompletados={detalle?.diasCompletadosSemana ?? []}
+                            diasProgramados={detalle?.diasProgramados ?? DIAS_SEMANA_COMPLETA}
+                            icono={icono ?? { fuente: require('../../../../assets/icons/ui/idea.png') }}
+                            key={asig.id}
+                            meta={asig.habitoReal!.meta}
+                            nivel={detalle?.nivel ?? 1}
+                            onPress={() => { hapticSeguro('seleccion'); setAsignaturaId(asig.id); setActiveMenu('none'); }}
+                            racha={detalle?.racha ?? 0}
+                            titulo={asig.titulo}
+                            valorHoy={asig.habitoReal!.valorHoy}
+                          />
+                        );
+                      })}
+                    </ScrollView>
+
+                    <View style={{ flexDirection: 'row', gap: 8, marginTop: 16 }}>
+                      {([
+                        { Icono: Leaf, etiqueta: 'Todos', valor: 'todos' as const },
+                        { Icono: Sun, etiqueta: 'Mañana', valor: 'manana' as const },
+                        { Icono: Sun, etiqueta: 'Tarde', valor: 'tarde' as const },
+                        { Icono: Moon, etiqueta: 'Noche', valor: 'noche' as const },
+                      ]).map(({ Icono, etiqueta, valor }) => {
+                        const activo = filtroMomento === valor;
+                        return (
+                          <MasterChip
+                            activo={activo}
+                            icono={<Icono color={activo ? '#FFFFFF' : '#145C37'} fill={Icono === Leaf ? (activo ? '#FFFFFF' : '#145C37') : 'none'} size={14} />}
+                            key={valor}
+                            onPress={() => { hapticSeguro('seleccion'); setFiltroMomento(valor); }}
+                            texto={etiqueta}
+                          />
+                        );
+                      })}
+                    </View>
+                  </View>
+                );
+              })()}
+              {activeMenu === 'courses' && categoriaActiva !== 'habitos' && (
                 <View style={{ flex: 1, paddingHorizontal: 20, paddingTop: 5, paddingBottom: 5 }}>
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 20 }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
@@ -212,41 +315,18 @@ export function MapaSenderosPantalla() {
                         </View>
                       </View>
                       <View>
-                        <Texto style={{ fontSize: 9, color: 'rgba(0,0,0,0.5)', fontFamily: 'Montserrat-Bold', letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 0 }}>{categoriaActiva === 'habitos' ? 'TUS HÁBITOS' : 'INVENTARIO ACTIVO'}</Texto>
-                        <Texto style={{ fontSize: 22, fontFamily: 'Montserrat-Bold', color: '#111111' }}>{ASIGNATURAS.length} {categoriaActiva === 'habitos' ? (ASIGNATURAS.length === 1 ? 'hábito' : 'hábitos') : 'Módulos'}</Texto>
+                        <Texto style={{ fontSize: 9, color: 'rgba(0,0,0,0.5)', fontFamily: 'Montserrat-Bold', letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 0 }}>INVENTARIO ACTIVO</Texto>
+                        <Texto style={{ fontSize: 22, fontFamily: 'Montserrat-Bold', color: '#111111' }}>{ASIGNATURAS.length} Módulos</Texto>
                       </View>
                     </View>
                     <View style={{ alignItems: 'flex-end' }}>
-                      <Texto style={{ fontSize: 8, color: 'rgba(0,0,0,0.5)', fontFamily: 'Montserrat-Bold', letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 2 }}>{categoriaActiva === 'habitos' ? 'HOY' : 'PROGRESO GLOBAL'}</Texto>
+                      <Texto style={{ fontSize: 8, color: 'rgba(0,0,0,0.5)', fontFamily: 'Montserrat-Bold', letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 2 }}>PROGRESO GLOBAL</Texto>
                       <View style={{ backgroundColor: '#111111', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, borderBottomWidth: 2, borderBottomColor: '#000000' }}>
-                        <Texto style={{ fontSize: 13, fontFamily: 'Montserrat-Bold', color: '#FFFFFF' }}>{categoriaActiva === 'habitos' ? `${habitosCompletadosHoy}/${habitosReales.length}` : '12%'}</Texto>
+                        <Texto style={{ fontSize: 13, fontFamily: 'Montserrat-Bold', color: '#FFFFFF' }}>12%</Texto>
                       </View>
                     </View>
                   </View>
 
-                  {categoriaActiva === 'habitos' ? (
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 14, paddingBottom: 15 }} style={{ flex: 1, overflow: 'visible' }}>
-                      {asignaturasHabitos.map((asig) => {
-                        const detalle = detallesPorHabito.get(asig.habitoReal!.id);
-                        const icono = buscarIconoHabito(asig.habitoReal!.iconoLucide);
-                        return (
-                          <TarjetaHabitoCompacta
-                            diasCompletados={detalle?.diasCompletadosSemana ?? []}
-                            diasProgramados={detalle?.diasProgramados ?? DIAS_SEMANA_COMPLETA}
-                            icono={icono ?? { fuente: require('../../../../assets/icons/ui/idea.png') }}
-                            key={asig.id}
-                            meta={asig.habitoReal!.meta}
-                            nivel={detalle?.nivel ?? 1}
-                            onPress={() => { hapticSeguro('seleccion'); setAsignaturaId(asig.id); setActiveMenu('none'); }}
-                            racha={detalle?.racha ?? 0}
-                            seleccionada={asig.id === asignaturaId}
-                            titulo={asig.titulo}
-                            valorHoy={asig.habitoReal!.valorHoy}
-                          />
-                        );
-                      })}
-                    </ScrollView>
-                  ) : (
                   <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 15, paddingBottom: 15 }} style={{ flex: 1, overflow: 'visible' }}>
                                 {ASIGNATURAS.map(asig => {
                   const h = 85;
@@ -318,61 +398,56 @@ export function MapaSenderosPantalla() {
                   );
                 })}
               </ScrollView>
-                  )}
                 </View>
               )}
-              {activeMenu === 'calendar' && <PanelRacha />}
               {activeMenu === 'store' && <PanelTienda />}
             </Animated.View>
+            </MasterGlass>
           </Animated.View>
         </View>
-        
-        {/* Tarjeta de Asignatura (3D Node Style) — se convierte temporalmente en el control de registro o en la celebración de nivel cuando el hábito activo es real */}
-        {asignatura && (
-          <View style={styles.tarjetaContenedor}>
-            <View style={[styles.tarjetaAsignaturaBase, { backgroundColor: oscurecer(asignatura.color, 0.6) }]}>
-              <View style={{...StyleSheet.absoluteFill as any, overflow: 'hidden', borderRadius: 24}}>
-                 <TexturaPixelArt />
-              </View>
-            </View>
-            <View style={[styles.tarjetaAsignatura, { backgroundColor: asignatura.color }]}>
-              <TexturaPixelArt />
-              <View style={styles.tarjetaBrillo} />
-              <View style={[styles.tarjetaIconoFondo, { opacity: 0.15 }]}><IconoAsignatura asignatura={asignatura} color="#FFFFFF" size={42} /></View>
-              <View style={{ padding: 20, flex: 1, justifyContent: 'center' }}>
-                {sendero.celebracion ? (
-                  <View style={{ alignItems: 'center', flexDirection: 'row', gap: 10 }}>
-                    <Trophy color="#FFFFFF" size={26} />
-                    <Texto style={[styles.tituloAsignatura, { marginBottom: 0 }]}>¡Nivel {sendero.celebracion.nivel}!{sendero.celebracion.gemas > 0 ? ` +${sendero.celebracion.gemas} gemas` : ''}</Texto>
+
+        {/* Barra del hábito seleccionado — info normal, o se convierte en el widget de registro / celebración de nivel */}
+        {asignatura && (() => {
+          const colorTexto = oscurecer(asignatura.color, 0.5);
+          const colorSub = oscurecer(asignatura.color, 0.62);
+          return (
+            <View style={styles.tarjetaContenedor}>
+              <RecuadroGlass blur degradado={{ inicio: aclarar(asignatura.color, 0.86), fin: aclarar(asignatura.color, 0.5) }} style={styles.tarjetaAsignatura}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, padding: 16, flex: 1 }}>
+                  {!sendero.celebracion && !sendero.registrando && <IconoAsignatura asignatura={asignatura} color={colorTexto} size={30} />}
+                  <View style={{ flex: 1 }}>
+                    {sendero.celebracion ? (
+                      <View style={{ alignItems: 'center', flexDirection: 'row', gap: 8 }}>
+                        <Trophy color="#145C37" size={22} />
+                        <Texto numberOfLines={1} style={{ color: '#145C37', fontFamily: 'MontserratAlternates-Bold', fontSize: 16 }}>¡Nivel {sendero.celebracion.nivel}!{sendero.celebracion.gemas > 0 ? ` +${sendero.celebracion.gemas} gemas` : ''}</Texto>
+                      </View>
+                    ) : sendero.registrando && asignatura.habitoReal && sendero.consulta.data ? (
+                      <WidgetRegistrarProgreso
+                        guardando={sendero.registrar.isPending}
+                        meta={sendero.consulta.data.habito.meta}
+                        onCerrar={() => sendero.setRegistrando(false)}
+                        onGuardar={(valor) => sendero.registrar.mutate({ habitoId: asignatura.habitoReal!.id, fechaLocal: new Date().toISOString().slice(0, 10), valor })}
+                        tipoMeta={sendero.consulta.data.habito.tipoMeta}
+                        titulo={sendero.consulta.data.habito.titulo}
+                        unidad={sendero.consulta.data.habito.unidad}
+                        valorInicial={sendero.consulta.data.habito.valorHoy}
+                      />
+                    ) : (
+                      <>
+                        <Texto numberOfLines={1} style={{ color: colorTexto, fontFamily: 'MontserratAlternates-Bold', fontSize: 16 }}>{asignatura.titulo}</Texto>
+                        <Texto numberOfLines={1} style={{ color: colorSub, fontFamily: 'Montserrat-Medium', fontSize: 12, marginTop: 1 }}>
+                          {asignatura.habitoReal && sendero.consulta.data
+                            ? (sendero.esNivelMaximo ? `Nivel máximo (${sendero.consulta.data.nivel})` : `Nivel ${sendero.consulta.data.nivel} · ${sendero.consulta.data.diasCompletados}/${sendero.consulta.data.diasRequeridos} días para subir`)
+                            : asignatura.descripcion}
+                        </Texto>
+                      </>
+                    )}
                   </View>
-                ) : sendero.registrando && asignatura.habitoReal && sendero.consulta.data ? (
-                  <WidgetRegistrarProgreso
-                    guardando={sendero.registrar.isPending}
-                    meta={sendero.consulta.data.habito.meta}
-                    onCerrar={() => sendero.setRegistrando(false)}
-                    onGuardar={(valor) => sendero.registrar.mutate({ habitoId: asignatura.habitoReal!.id, fechaLocal: new Date().toISOString().slice(0, 10), valor })}
-                    tipoMeta={sendero.consulta.data.habito.tipoMeta}
-                    titulo={sendero.consulta.data.habito.titulo}
-                    unidad={sendero.consulta.data.habito.unidad}
-                    valorInicial={sendero.consulta.data.habito.valorHoy}
-                  />
-                ) : (
-                  <>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 4 }}>
-                      <IconoAsignatura asignatura={asignatura} color="#FFFFFF" size={26} />
-                      <Texto numberOfLines={1} style={[styles.tituloAsignatura, { marginBottom: 0 }]}>{asignatura.titulo}</Texto>
-                    </View>
-                    <Texto numberOfLines={2} style={styles.descAsignatura}>
-                      {asignatura.habitoReal && sendero.consulta.data
-                        ? (sendero.esNivelMaximo ? `Nivel máximo (${sendero.consulta.data.nivel})` : `Nivel ${sendero.consulta.data.nivel} · ${sendero.consulta.data.diasCompletados}/${sendero.consulta.data.diasRequeridos} días para subir`)
-                        : asignatura.descripcion}
-                    </Texto>
-                  </>
-                )}
-              </View>
+                </View>
+              </RecuadroGlass>
             </View>
-          </View>
-        )}
+          );
+        })()}
 
         {/* Contenedor del Mapa (80%) */}
         <View style={styles.capaMapa}>
@@ -430,14 +505,11 @@ function oscurecer(color: string, factor = 0.7) {
   return `#${canal(0)}${canal(2)}${canal(4)}`;
 }
 
-function FondoTabsGlass() {
-  return (
-    <BlurView intensity={24} tint="light" style={styles.fondoTabs}>
-      <View style={styles.fondoTabsTinte} />
-      <View pointerEvents="none" style={styles.fondoTabsBrilloLateral} />
-      <View pointerEvents="none" style={styles.fondoTabsBorde} />
-    </BlurView>
-  );
+// Mezcla hacia blanco — genera el mismo tipo de degradado pastel-a-medio que ya usan las tarjetas de hábito, a partir de cualquier color de categoría.
+function aclarar(color: string, factor = 0.7) {
+  const hex = color.replace('#', '');
+  const canal = (inicio: number) => { const valor = parseInt(hex.slice(inicio, inicio + 2), 16); return Math.round(valor + (255 - valor) * factor).toString(16).padStart(2, '0'); };
+  return `#${canal(0)}${canal(2)}${canal(4)}`;
 }
 
 const styles = StyleSheet.create({
@@ -449,67 +521,26 @@ const styles = StyleSheet.create({
   contenedorPrincipal: {
     flex: 1,
   },
-  fondoTabs: {
-    borderRadius: 15,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
-    right: 0,
-    top: 0,
-    overflow: 'hidden',
-  },
-  fondoTabsTinte: {
-    backgroundColor: 'rgba(255, 255, 255, 0.90)',
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
-    right: 0,
-    top: 0,
-  },
-  fondoTabsBrilloLateral: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderRadius: 999,
-    bottom: 12,
-    left: 8,
-    position: 'absolute',
-    top: 12,
-    width: 3,
-  },
-  fondoTabsBorde: {
-    borderColor: 'rgba(255, 255, 255, 0.62)',
-    borderRadius: 15,
-    borderTopWidth: 0.8,
-    borderWidth: 0.45,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
-    right: 0,
-    top: 0,
-  },
   navbarContenedor: {
     marginHorizontal: 20,
     marginTop: 10,
     marginBottom: 10,
-    borderRadius: 20,
   },
-  botonCategoria: {
-    alignItems: 'center',
-    borderRadius: 12,
-    height: 44,
-    justifyContent: 'center',
-    marginLeft: 4,
-    marginRight: 2,
-    width: 44,
-  },
-  botonCategoriaActivo: {
-    borderColor: 'rgba(255,255,255,.8)',
-    borderWidth: 1,
+  navbarGlass: { flex: 1 },
+  badgeCategoriaActivo: {
     transform: [{ scale: 0.94 }],
   },
-  iconoCategoriaActivo: {
-    height: 29,
-    resizeMode: 'contain',
-    width: 29,
+  navInfo: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  botonPildora: {
+    alignItems: 'center',
+    borderRadius: 15,
+    flexDirection: 'row',
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
   },
   tooltipCategorias: {
     flex: 1,
@@ -590,8 +621,11 @@ const styles = StyleSheet.create({
     marginTop: 1,
   },
   navbarFila: {
+    alignItems: 'center',
     flexDirection: 'row',
-    height: 62,
+    gap: 10,
+    height: ALTURA_NAVBAR_BASE,
+    paddingHorizontal: 14,
   },
   navbarSuperior: {
     flexDirection: 'row',
@@ -604,17 +638,17 @@ const styles = StyleSheet.create({
   },
   tarjetaContenedor: {
     marginHorizontal: 20,
-    marginTop: 5,
-    position: 'relative',
-    height: 100,
+    marginTop: 12,
+    height: 72,
+    shadowColor: '#0D3D22',
+    shadowOffset: { height: 4, width: 0 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 2,
   },
-  tarjetaAsignaturaBase: {
-    position: 'absolute',
-    top: 6,
-    left: 0,
-    right: 0,
-    height: 100,
-    borderRadius: 24,
+  tarjetaAsignatura: {
+    borderRadius: 22,
+    height: 72,
   },
   tarjetaBrilloCarrusel: {
     position: 'absolute',
@@ -625,44 +659,18 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.12)',
     transform: [{ rotate: '45deg' }],
   },
-  tarjetaBrillo: {
-    position: 'absolute',
-    top: -30,
-    left: -50,
-    right: 0,
-    height: 150,
-    width: 80,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    transform: [{ rotate: '45deg' }],
-  },
-  tarjetaIconoFondo: {
-    position: 'absolute',
-    right: -10,
-    bottom: -10,
-  },
-  tarjetaAsignatura: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 100,
-    borderRadius: 24,
-    overflow: 'hidden',
-    borderTopWidth: 1.5,
-    borderTopColor: 'rgba(255, 255, 255, 0.35)',
-    borderLeftWidth: 1,
-    borderLeftColor: 'rgba(255, 255, 255, 0.2)',
-  },
   tituloAsignatura: {
     fontFamily: 'MontserratAlternates-Bold',
-    fontSize: 22,
-    color: '#FFFFFF',
-    marginBottom: 4,
+    fontSize: 14,
+    color: '#145C37',
+    lineHeight: 15,
+    marginBottom: 0,
   },
   descAsignatura: {
     fontFamily: 'MontserratAlternates-Medium',
-    fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.85)',
+    fontSize: 8,
+    color: '#4A7F5D',
+    lineHeight: 9,
   },
   espacioFlexible: {
     flex: 1, // Toma todo el espacio restante hasta empujar la capaMapa
@@ -697,114 +705,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
   },
 });
-
-
-function PanelRacha() {
-  const diasRacha = [
-    { dia: 'L', activo: true },
-    { dia: 'M', activo: true },
-    { dia: 'M', activo: false },
-    { dia: 'J', activo: true, hoy: true },
-    { dia: 'V', activo: false },
-    { dia: 'S', activo: false },
-    { dia: 'D', activo: false },
-  ];
-
-  // Calendario mensual realista (ej. empieza en Miércoles, offset = 2)
-  const offset = 2;
-  const mesCeldas = Array.from({ length: 35 }).map((_, i) => {
-    const num = i - offset + 1;
-    const valido = num > 0 && num <= 30; // Mes de 30 días
-    // Días aleatorios activos para simular historial
-    const activo = valido && [1,2,3,5,6,8,9,10,11,15,16,18,19,20,22,23,24,25].includes(num);
-    const esHoy = num === 26;
-    return { num: valido ? num.toString() : '', activo, valido, esHoy };
-  });
-
-  const progresoSemana = (3 / 6) * 100; 
-  const diasSemanales = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
-
-  return (
-    <View style={{ flex: 1, paddingHorizontal: 20, paddingTop: 5, paddingBottom: 25 }}>
-      {/* Background Texture */}
-      <View style={[StyleSheet.absoluteFill, { opacity: 0.1 }]} pointerEvents="none">
-        <TexturaPixelArt />
-      </View>
-      
-      {/* 1. CABECERA */}
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-          <View style={{ width: 42, height: 42 }}>
-            <View style={{ position: 'absolute', top: 4, left: 0, right: 0, bottom: -4, backgroundColor: oscurecer('#F26D21', 0.6), borderRadius: 8 }} />
-            <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: '#F26D21', borderRadius: 8, justifyContent: 'center', alignItems: 'center' }}>
-              <Flame color="#FFFFFF" size={24} fill="#FFFFFF" />
-            </View>
-          </View>
-          <View>
-            <Texto style={{ fontSize: 9, color: 'rgba(0,0,0,0.5)', fontFamily: 'Montserrat-Bold', letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 0 }}>VITALIDAD ACTUAL</Texto>
-            <Texto style={{ fontSize: 22, fontFamily: 'Montserrat-Bold', color: '#111111' }}>3 Días</Texto>
-          </View>
-        </View>
-        <View style={{ alignItems: 'flex-end' }}>
-          <Texto style={{ fontSize: 8, color: 'rgba(0,0,0,0.5)', fontFamily: 'Montserrat-Bold', letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 2 }}>XP SEMANAL</Texto>
-          <View style={{ backgroundColor: '#4A8BB3', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, borderBottomWidth: 2, borderBottomColor: oscurecer('#4A8BB3', 0.6) }}>
-            <Texto style={{ fontSize: 13, fontFamily: 'Montserrat-Bold', color: '#FFFFFF' }}>+450</Texto>
-          </View>
-        </View>
-      </View>
-
-      {/* 2. CALENDARIO HIPER DETALLADO (MES) */}
-      <View style={{ marginBottom: 25 }}>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12, borderBottomWidth: 1, borderBottomColor: 'rgba(0,0,0,0.1)', paddingBottom: 8 }}>
-          <Texto style={{ fontSize: 11, color: '#111111', fontFamily: 'Montserrat-Bold', letterSpacing: 1, textTransform: 'uppercase' }}>SEPTIEMBRE</Texto>
-          <Texto style={{ fontSize: 11, color: 'rgba(0,0,0,0.4)', fontFamily: 'Montserrat-Bold', letterSpacing: 1, textTransform: 'uppercase' }}>18/30 LOGRADOS</Texto>
-        </View>
-        
-        {/* Cabecera de días de la semana */}
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
-          {diasSemanales.map((letra, i) => (
-             <View key={i} style={{ width: '13%', alignItems: 'center' }}>
-               <Texto style={{ fontSize: 9, color: 'rgba(0,0,0,0.4)', fontFamily: 'Montserrat-Bold' }}>{letra}</Texto>
-             </View>
-          ))}
-        </View>
-
-        {/* Rejilla 7x5 */}
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'space-between' }}>
-          {mesCeldas.map((celda, i) => (
-            <View key={i} style={{ width: 36, height: 36 }}>
-               {/* Sombra 3D (Solo para activos o el día de hoy) */}
-               {celda.valido && (celda.activo || celda.esHoy) && (
-                 <View style={{ position: 'absolute', top: 3, left: 0, right: 0, bottom: -3, backgroundColor: celda.esHoy ? '#111111' : oscurecer('#F26D21', 0.6), borderRadius: 6 }} />
-               )}
-               
-               {/* Cara frontal */}
-               <View style={[{
-                  position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-                  borderRadius: 6, justifyContent: 'center', alignItems: 'center'
-               },
-               celda.valido 
-                  ? (celda.activo 
-                      ? { backgroundColor: '#F26D21' }
-                      : { backgroundColor: 'rgba(0,0,0,0.02)', borderWidth: 1, borderColor: 'rgba(0,0,0,0.1)' }
-                    )
-                  : {},
-               celda.esHoy && { borderColor: '#111111', borderWidth: 2, backgroundColor: celda.activo ? '#F26D21' : '#FFFFFF' }
-               ]}>
-                 {celda.valido && (
-                   <Texto style={{ fontSize: 11, color: celda.esHoy ? '#111111' : (celda.activo ? '#FFF' : 'rgba(0,0,0,0.3)'), fontFamily: 'Montserrat-Bold' }}>
-                     {celda.num}
-                   </Texto>
-                 )}
-               </View>
-            </View>
-          ))}
-        </View>
-      </View>
-      
-          </View>
-  );
-}
 
 
 function PanelTienda() {

@@ -1,9 +1,9 @@
 import type { ImageSourcePropType } from 'react-native';
 import { Image, StyleSheet, View } from 'react-native';
 import { Play } from 'lucide-react-native';
-import Svg, { Circle, Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
+import Svg, { Circle } from 'react-native-svg';
 
-import { Boton, MasterIcon, RecuadroGlass, Texto } from '../../../diseno';
+import { Boton, MasterIcon, MasterIconBg, RecuadroGlass, Texto } from '../../../diseno';
 import type { AssetsSelvaTono } from '../iconosHabitos';
 
 const DIAS_SEMANA_ETIQUETA = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
@@ -42,13 +42,7 @@ export function TarjetaSenderoHabito({
     <View style={tp.contenedor}>
       <RecuadroGlass blur degradado={{ inicio: '#F4FFF1', fin: '#B8EDB0' }} style={tp.raiz}>
         <Image source={assets.arbolPrincipal} style={[tp.arbol, { transform: [{ scale: escalaArbol }] }]} />
-        <View style={tp.iconoMarco}>
-          <Svg pointerEvents="none" style={tp.bordeIcono} height={68} width={68}>
-            <Defs><LinearGradient id="bordeIconoHabito" x1="0%" x2="100%" y1="0%" y2="100%"><Stop offset="0" stopColor="#C5F7B6" /><Stop offset="1" stopColor="#539C68" /></LinearGradient></Defs>
-            <Rect fill="url(#bordeIconoHabito)" height={68} rx={18} ry={18} width={68} />
-          </Svg>
-          <RecuadroGlass blur degradado={{ inicio: '#F4FFF1', fin: '#B8EDB0' }} style={tp.iconoGlass}><Image source={icono.fuente} style={tp.icono} /></RecuadroGlass>
-        </View>
+        <MasterIconBg fuente={icono.fuente} style={tp.iconoMarco} />
         <View style={tp.texto}>
           <Texto style={tp.titulo}>{titulo || 'Mi hábito'}</Texto>
           <View style={tp.metaObjetivo}>
@@ -101,10 +95,7 @@ const tp = StyleSheet.create({
   contenedor: { marginTop: 12, position: 'relative' },
   raiz: { borderRadius: 28, minHeight: 390, overflow: 'hidden', padding: 20, position: 'relative', zIndex: 1 },
   arbol: { height: 298, opacity: .92, position: 'absolute', resizeMode: 'contain', right: -45, top: -5, width: 262, zIndex: 1 },
-  iconoMarco: { alignSelf: 'flex-start', borderRadius: 18, elevation: 3, height: 68, marginTop: 3, padding: 2, position: 'relative', shadowColor: '#176836', shadowOffset: { height: 4, width: 3 }, shadowOpacity: .16, shadowRadius: 7, width: 68, zIndex: 2 },
-  bordeIcono: { left: 0, position: 'absolute', top: 0 },
-  iconoGlass: { alignItems: 'center', borderRadius: 16, flex: 1, justifyContent: 'center' },
-  icono: { height: 48, resizeMode: 'contain', width: 48 },
+  iconoMarco: { marginTop: 3, zIndex: 2 },
   texto: { marginTop: 14, maxWidth: '60%', zIndex: 2 },
   titulo: { color: '#145C37', fontFamily: 'MontserratAlternates-Bold', fontSize: 29, lineHeight: 34 },
   metaObjetivo: { alignItems: 'center', flexDirection: 'row', gap: 7, marginTop: 8 },

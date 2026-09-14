@@ -2,14 +2,16 @@ import type { ImageSourcePropType } from 'react-native';
 import { Image, Pressable, StyleSheet, View } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 
-import { RecuadroGlass, Texto } from '../../../diseno';
+import { MasterIcon, RecuadroGlass, Texto } from '../../../diseno';
 import { obtenerAssetsSelvaPorTono } from '../iconosHabitos';
 
-const DIAS_SEMANA = 7;
-const RADIO_ANILLO = 14;
+const DIAS_SEMANA_ETIQUETA = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
+const RADIO_ANILLO = 17;
 const CIRCUNFERENCIA_ANILLO = 2 * Math.PI * RADIO_ANILLO;
 
 export type TarjetaHabitoCompactaProps = {
+  alto?: number;
+  ancho?: number;
   diasCompletados?: number[];
   diasProgramados: number[];
   icono: { fuente: ImageSourcePropType };
@@ -17,46 +19,56 @@ export type TarjetaHabitoCompactaProps = {
   nivel?: number;
   onPress: () => void;
   racha?: number;
-  seleccionada?: boolean;
   titulo: string;
   valorHoy?: number;
 };
 
-// Versión horizontal y compacta de TarjetaSenderoHabito, para listas —
-// mismo lenguaje visual (glass verde, árbol real por tono, anillo de meta),
-// pensada para ocupar ~110px de alto en vez de ~440px.
+// Tarjeta rectangular y compacta de carrusel: icono arriba, título/subtítulo
+// pegados, días debajo — árbol grande de fondo (real por tono) y anillo de
+// meta de hoy en la esquina superior derecha.
 export function TarjetaHabitoCompacta({
-  diasCompletados = [], diasProgramados, icono, meta, nivel = 1, onPress, racha = 0, seleccionada = false, titulo, valorHoy = 0,
+  alto = 104, ancho = 320, diasCompletados = [], diasProgramados, icono, meta, nivel = 1, onPress, racha = 0, titulo, valorHoy = 0,
 }: TarjetaHabitoCompactaProps) {
   const assets = obtenerAssetsSelvaPorTono(nivel);
   const fraccionProgreso = Math.max(0.06, meta > 0 ? Math.min(1, valorHoy / meta) : 0.06);
   const offsetAnillo = CIRCUNFERENCIA_ANILLO * (1 - fraccionProgreso);
 
   return (
-    <Pressable onPress={onPress} style={tc.contenedor}>
-      <RecuadroGlass blur degradado={{ inicio: '#F4FFF1', fin: '#B8EDB0' }} style={[tc.raiz, seleccionada && tc.raizSeleccionada]}>
-        <Image source={assets.arbolPrincipal} style={tc.arbol} />
-        <View style={tc.iconoMarco}>
-          <RecuadroGlass blur degradado={{ inicio: '#F4FFF1', fin: '#B8EDB0' }} style={tc.iconoGlass}><Image source={icono.fuente} style={tc.icono} /></RecuadroGlass>
+    <Pressable onPress={onPress} style={{ height: alto, width: ancho }}>
+      <RecuadroGlass blur degradado={{ inicio: '#F4FFF1', fin: '#DDF5CE' }} style={tc.raiz}>
+        <Image resizeMode="contain" source={assets.arbolPrincipal} style={tc.arbol} />
+        <View style={tc.anilloMeta}>
+          <Svg height={40} style={tc.anilloSvg} width={40}>
+            <Circle cx="20" cy="20" fill="none" r={RADIO_ANILLO} stroke="rgba(20,92,55,.17)" strokeWidth={3.2} />
+            <Circle cx="20" cy="20" fill="none" r={RADIO_ANILLO} rotation="-90" stroke="#145C37" strokeDasharray={`${CIRCUNFERENCIA_ANILLO} ${CIRCUNFERENCIA_ANILLO}`} strokeDashoffset={offsetAnillo} strokeLinecap="round" strokeWidth={3.2} origin="20,20" />
+          </Svg>
+          <Texto style={tc.anilloTexto}>{valorHoy}/{meta}</Texto>
         </View>
-        <View style={tc.info}>
-          <Texto numberOfLines={1} style={tc.titulo}>{titulo}</Texto>
-          <Texto style={tc.meta}>Nivel {nivel} · {racha} días de racha</Texto>
+        <View style={tc.contenido}>
+          <View style={tc.filaSuperior}>
+            <View style={tc.iconoMarco}><Image resizeMode="contain" source={icono.fuente} style={tc.icono} /></View>
+            <View>
+              <Texto numberOfLines={1} style={tc.titulo}>{titulo}</Texto>
+              <View style={tc.metaFila}>
+                <Texto style={tc.meta}>Nivel {nivel} · </Texto>
+                <MasterIcon color={2} name="racha" size={9} />
+                <Texto style={tc.meta}> {racha} días</Texto>
+              </View>
+            </View>
+          </View>
           <View style={tc.dias}>
-            {Array.from({ length: DIAS_SEMANA }, (_, indice) => {
+            {DIAS_SEMANA_ETIQUETA.map((etiqueta, indice) => {
               const idDia = indice + 1;
               const programado = diasProgramados.includes(idDia);
               const completado = diasCompletados.includes(idDia);
-              return <View key={idDia} style={[tc.diaPunto, programado ? tc.diaPuntoProgramado : tc.diaPuntoNoAplica, completado && tc.diaPuntoCompletado]} />;
+              return (
+                <View key={idDia} style={tc.dia}>
+                  <Texto style={tc.diaTexto}>{etiqueta}</Texto>
+                  <View style={[tc.diaCirculo, programado ? tc.diaCirculoProgramado : tc.diaCirculoNoAplica, completado && tc.diaCirculoCompletado]} />
+                </View>
+              );
             })}
           </View>
-        </View>
-        <View style={tc.anilloMeta}>
-          <Svg height={38} style={tc.anilloSvg} width={38}>
-            <Circle cx="19" cy="19" fill="none" r={RADIO_ANILLO} stroke="rgba(20,92,55,.17)" strokeWidth={3.5} />
-            <Circle cx="19" cy="19" fill="none" r={RADIO_ANILLO} rotation="-90" stroke="#25884C" strokeDasharray={`${CIRCUNFERENCIA_ANILLO} ${CIRCUNFERENCIA_ANILLO}`} strokeDashoffset={offsetAnillo} strokeLinecap="round" strokeWidth={3.5} origin="19,19" />
-          </Svg>
-          <Texto style={tc.anilloTexto}>{valorHoy}/{meta}</Texto>
         </View>
       </RecuadroGlass>
     </Pressable>
@@ -64,22 +76,23 @@ export function TarjetaHabitoCompacta({
 }
 
 const tc = StyleSheet.create({
-  contenedor: { height: 108, width: 272 },
-  raiz: { alignItems: 'center', borderRadius: 20, flex: 1, flexDirection: 'row', gap: 10, overflow: 'hidden', padding: 12, position: 'relative' },
-  raizSeleccionada: { borderColor: '#25884C', borderWidth: 1.5 },
-  arbol: { height: 150, opacity: .3, position: 'absolute', resizeMode: 'contain', right: -34, top: -18, width: 130, zIndex: 0 },
-  iconoMarco: { alignItems: 'center', borderRadius: 14, elevation: 2, height: 48, justifyContent: 'center', shadowColor: '#176836', shadowOffset: { height: 3, width: 2 }, shadowOpacity: .14, shadowRadius: 5, width: 48, zIndex: 2 },
-  iconoGlass: { alignItems: 'center', borderRadius: 14, flex: 1, justifyContent: 'center', width: '100%' },
-  icono: { height: 30, resizeMode: 'contain', width: 30 },
-  info: { flex: 1, gap: 3, zIndex: 2 },
-  titulo: { color: '#145C37', fontFamily: 'MontserratAlternates-Bold', fontSize: 15 },
-  meta: { color: '#4A7F5D', fontFamily: 'Montserrat-Medium', fontSize: 10 },
-  dias: { flexDirection: 'row', gap: 4, marginTop: 2 },
-  diaPunto: { borderRadius: 4, height: 7, width: 7 },
-  diaPuntoProgramado: { backgroundColor: 'rgba(37,136,76,.25)' },
-  diaPuntoNoAplica: { backgroundColor: 'rgba(90,128,105,.14)' },
-  diaPuntoCompletado: { backgroundColor: '#25884C' },
-  anilloMeta: { alignItems: 'center', height: 38, justifyContent: 'center', width: 38, zIndex: 2 },
+  raiz: { borderRadius: 16, flex: 1, overflow: 'hidden', padding: 12, position: 'relative' },
+  arbol: { bottom: -20, height: 132, opacity: .9, position: 'absolute', right: -20, width: 132, zIndex: 0 },
+  anilloMeta: { alignItems: 'center', height: 40, justifyContent: 'center', position: 'absolute', right: 10, top: 10, width: 40, zIndex: 3 },
   anilloSvg: { position: 'absolute' },
-  anilloTexto: { color: '#145C37', fontFamily: 'MontserratAlternates-Bold', fontSize: 8 },
+  anilloTexto: { color: '#12331F', fontFamily: 'MontserratAlternates-Bold', fontSize: 10 },
+  contenido: { zIndex: 2 },
+  filaSuperior: { alignItems: 'center', flexDirection: 'row', gap: 10 },
+  iconoMarco: { alignItems: 'center', backgroundColor: 'rgba(255,255,255,.55)', borderRadius: 12, height: 40, justifyContent: 'center', width: 40 },
+  icono: { height: 24, width: 24 },
+  titulo: { color: '#12331F', fontFamily: 'MontserratAlternates-Bold', fontSize: 12 },
+  metaFila: { alignItems: 'center', flexDirection: 'row', marginTop: 0 },
+  meta: { color: '#4A7F5D', fontFamily: 'Montserrat-Medium', fontSize: 8 },
+  dias: { flexDirection: 'row', gap: 4, marginTop: 6 },
+  dia: { alignItems: 'center', gap: 2 },
+  diaTexto: { color: '#3C6650', fontFamily: 'Montserrat-Bold', fontSize: 8 },
+  diaCirculo: { borderRadius: 5, height: 9, width: 9 },
+  diaCirculoProgramado: { backgroundColor: 'rgba(37,136,76,.2)' },
+  diaCirculoNoAplica: { backgroundColor: 'rgba(90,128,105,.14)' },
+  diaCirculoCompletado: { backgroundColor: '#25884C' },
 });
