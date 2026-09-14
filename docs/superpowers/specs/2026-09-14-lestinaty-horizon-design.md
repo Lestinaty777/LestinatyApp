@@ -25,7 +25,9 @@ no implementa todavía App Widgets nativos de Android ni WidgetKit de iOS.
 ## RevenueCat
 
 El nombre comercial es **Lestinaty Horizon**. El entitlement de RevenueCat es
-`horizon`.
+`horizon`. La oferta principal es una suscripción mensual de **$129 MXN**.
+RevenueCat proporciona el precio localizado que se mostrará en el paywall; el
+precio de referencia evita copy falso cuando la tienda no está configurada.
 
 El servicio no guarda precios ni estado de suscripción en Supabase. Consulta
 `Purchases.getCustomerInfo()` para revisar `entitlements.active.horizon` y
@@ -43,10 +45,14 @@ mensaje claro; no concede Horizon localmente. Restaurar compras usa
 Hábitos ── Widgets ──┬── usuario Horizon ──> /habitos/widgets
                     └── usuario gratuito ─> /horizon
 
-Recordatorios ── tarjeta "Lleva tus hábitos a tu inicio" ── mismo flujo
+Recordatorios ── tip al final de la lista: "Lleva tus hábitos a tu inicio" ── mismo flujo
 
 /horizon ── comprar/restaurar ──> refresca entitlement ──> /habitos/widgets
 ```
+
+La promoción de Recordatorios se coloca al final de los hábitos para no
+interrumpir la revisión de horarios. Si la lista está vacía, aparece antes del
+estado vacío como siguiente paso útil.
 
 La galería contendrá previews no interactivos de los tres widgets y explicará
 que la instalación en la pantalla de inicio llegará al implementar el módulo
