@@ -37,6 +37,8 @@ export default function LayoutRaiz() {
         <Stack.Screen name="tienda/pago" />
         <Stack.Screen name="metas/[id]" />
         <Stack.Screen name="habitos/[id]" options={{ animation: 'fade', presentation: 'transparentModal' }} />
+        <Stack.Screen name="horizon" />
+        <Stack.Screen name="habitos/widgets" />
       </Stack>
     </ProveedoresApp>
   );
