@@ -11,6 +11,10 @@ import { entorno } from '../configuracion/entorno';
 let inicializado = false;
 let usuarioPendiente: string | null = null;
 
+export function comprasInicializadas() {
+  return inicializado;
+}
+
 function apiKeyPlataforma(): string {
   return Platform.OS === 'ios' ? entorno.revenueCatAppleKey : entorno.revenueCatGoogleKey;
 }
