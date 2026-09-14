@@ -11,6 +11,7 @@ const FUENTES: Record<string, ImageSourcePropType> = {
   almohada: require('../../../assets/icons/ui/almohada.png'),
   arbol: require('../../../assets/icons/ui/arbol.png'),
   audifonos: require('../../../assets/icons/ui/audifonos.png'),
+  bandera: require('../../../assets/icons/hoy/hoy.png'),
   bateria: require('../../../assets/icons/ui/bateria.png'),
   bicicleta: require('../../../assets/icons/ui/bicicleta.png'),
   botella: require('../../../assets/icons/ui/botella.png'),

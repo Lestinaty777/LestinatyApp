@@ -5,7 +5,7 @@ import Svg, { Path, Rect, Defs, Pattern } from 'react-native-svg';
 
 import { Texto } from '../../../../diseno';
 import { crearTemaMapa, generarMapaProcedural, type CategoriaMapaId } from '../../algoritmo/mapaProcedural';
-import { obtenerAssetBioma, registroBiomas } from '../../algoritmo/registroBiomas';
+import { ASSETS_AMBIENTE_UNIVERSAL, obtenerAssetBioma, registroBiomas } from '../../algoritmo/registroBiomas';
 import { obtenerNodosMapaMock } from '../../datos/mapaEjercicio.mock';
 import type { EstadoNodoMapa, NodoMapaSendero } from '../../datos/mapaEjercicio.mock';
 import { PixelartIcon } from '../../../../diseno/iconos/PixelartIcon';
@@ -141,6 +141,7 @@ export function ContenedorMapaSenderos({ altura, categoriaId, color, enfocado, n
       overScrollMode="never"
       scrollEnabled={true}
       showsVerticalScrollIndicator={false}
+      style={styles.raiz}
       contentContainerStyle={[styles.contenido, { minHeight: altoContenido }]}
     >
       <TouchableWithoutFeedback onPress={() => setSeleccionado('')}>
@@ -153,8 +154,8 @@ export function ContenedorMapaSenderos({ altura, categoriaId, color, enfocado, n
            return (
              <View pointerEvents="none" style={[StyleSheet.absoluteFill, { zIndex: 0 }]}>
                {/* Bases grandes en la parte superior, más separadas */}
-               <Image source={assetBase.fuente} style={{ position: 'absolute', top: -60, left: -50, width: 240, height: 240, opacity: 0.9, resizeMode: 'contain' }} />
-               <Image source={assetBase.fuente} style={{ position: 'absolute', top: -30, right: -60, width: 260, height: 260, opacity: 0.9, resizeMode: 'contain', transform: [{ scaleX: -1 }] }} />
+               <Image source={assetBase.fuente} style={{ position: 'absolute', top: -60, left: -50, width: 168, height: 168, opacity: 0.9, resizeMode: 'contain' }} />
+               <Image source={assetBase.fuente} style={{ position: 'absolute', top: -30, right: -60, width: 182, height: 182, opacity: 0.9, resizeMode: 'contain', transform: [{ scaleX: -1 }] }} />
                
                
              </View>
@@ -162,6 +163,22 @@ export function ContenedorMapaSenderos({ altura, categoriaId, color, enfocado, n
         })()}
 
         <View style={[styles.escenaPerspectiva, StyleSheet.absoluteFill, { zIndex: 1 }]}>
+        {mapa.ambiente.map((item, indice) => {
+          const tamano = 172 * item.escala;
+          return (
+            <View
+              key={`ambiente-${indice}`}
+              pointerEvents="none"
+              style={[styles.ambiente, { height: tamano, left: item.x, top: item.y, width: tamano }]}
+            >
+              <Image
+                resizeMode="contain"
+                source={ASSETS_AMBIENTE_UNIVERSAL[item.assetId]}
+                style={{ height: '100%', opacity: item.opacidad, transform: [{ scaleX: item.volteado ? -1 : 1 }], width: '100%' }}
+              />
+            </View>
+          );
+        })}
         {mapa.manchasHojas.map((mancha, indice) => (
           <View
             key={`mancha-hojas-${indice}`}
@@ -366,6 +383,9 @@ function DecoracionSendero({ arriba, izquierda, tamano }: { arriba: number; izqu
 }
 
 const styles = StyleSheet.create({
+  raiz: {
+    backgroundColor: '#c4e7c6',
+  },
   contenido: {
     position: 'relative',
   },
@@ -375,6 +395,10 @@ const styles = StyleSheet.create({
   },
   hojasCamino: {
     position: 'absolute',
+  },
+  ambiente: {
+    position: 'absolute',
+    zIndex: 0,
   },
   manchasHojas: {
     opacity: 0.9,

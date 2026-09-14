@@ -22,7 +22,10 @@ const C={fondo:'#F3EEFA',texto:'#1A1335',tenue:'#7B7494',glass:'rgba(255,255,255
 // Detalle de un hábito, presentado como hoja deslizante sobre HabitosPantalla
 // (no reemplaza la pantalla): ícono real del hábito, diorama del bioma elegido
 // al crearlo, anillo de progreso animado del día y celebración al subir de nivel.
-export function DetalleHabitoPantalla({id}:{id:string}){
+// onCerrar la maneja quien la invoque: HabitosPantalla la renderiza inline
+// (retirando el estado local, sin navegar) y la ruta /habitos/[id] (deep-links,
+// notificaciones) le pasa router.back().
+export function DetalleHabitoPantalla({id,onCerrar}:{id:string;onCerrar:()=>void}){
  const router=useRouter(),cliente=useQueryClient();
  const insets=useSafeAreaInsets();
  const [celebracion,setCelebracion]=useState<Celebracion|null>(null);
@@ -39,7 +42,7 @@ export function DetalleHabitoPantalla({id}:{id:string}){
    } else { hapticSeguro('accion'); }
   },
  });
- const cerrar=()=>router.back();
+ const cerrar=onCerrar;
 
  useEffect(()=>{
   if(celebracion===null) return;
@@ -56,7 +59,7 @@ export function DetalleHabitoPantalla({id}:{id:string}){
     d={consulta.data}
     guardando={mutacion.isPending}
     onRegistrar={(valor)=>mutacion.mutate({habitoId:id,fechaLocal:new Date().toISOString().slice(0,10),valor})}
-    onVerSendero={()=>router.push({pathname:'/senderos',params:{habitoId:id}})}
+    onVerSendero={()=>{cerrar();router.push({pathname:'/senderos',params:{habitoId:id}});}}
     paddingInferior={insets.bottom+28}
    />
   )}

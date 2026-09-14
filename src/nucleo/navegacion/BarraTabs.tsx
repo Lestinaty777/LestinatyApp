@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import type { Icon } from 'phosphor-react-native';
-import { CalendarStar, CompassRose, Crosshair, GearSix, Mountains, SquaresFour, Storefront, Target, BookOpen, Calendar, MagicWand } from 'phosphor-react-native';
+import { CalendarStar, ChartLineUp, CompassRose, Crosshair, GearSix, Mountains, SquaresFour, Storefront, Target, BookOpen, Calendar, MagicWand } from 'phosphor-react-native';
 import { Animated, Pressable, StyleSheet, View } from 'react-native';
 import Svg, { Polygon } from 'react-native-svg';
 
@@ -10,7 +10,7 @@ import { usarAccionBarraSenderos } from '../../modulos/senderos/estado/accionBar
 import { usarEstadoVisualAby } from '../../modulos/aby/estado/abyVisual.estado';
 import { colorEnvioCategoriaAby } from '../../modulos/aby/datos/categoriasAby';
 
-type NombreIconoTab = 'aby' | 'configuracion' | 'hoy' | 'metas' | 'mi_espacio' | 'ruta' | 'senderos' | 'tienda' | 'top_book' | 'top_calendar' | 'top_sparkle' | 'top_store';
+type NombreIconoTab = 'aby' | 'configuracion' | 'hoy' | 'insights' | 'metas' | 'mi_espacio' | 'ruta' | 'senderos' | 'tienda' | 'top_book' | 'top_calendar' | 'top_sparkle' | 'top_store';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 const colorActivo = biomas.inicio.Paleta.primaryDark;
@@ -25,6 +25,7 @@ function obtenerIcono(nombre: Exclude<NombreIconoTab, 'aby'>): Icon {
   if (nombre === 'top_sparkle') return MagicWand;
   if (nombre === 'top_store') return Storefront;
   if (nombre === 'hoy') return CalendarStar;
+  if (nombre === 'insights') return ChartLineUp;
   if (nombre === 'senderos') return Mountains;
   if (nombre === 'tienda') return Storefront;
   if (nombre === 'metas') return Target;
@@ -176,6 +177,7 @@ export function BotonTiendaContextual(props: any) {
 export const iconosTabs: Record<string, NombreIconoTab> = {
   direccion: 'configuracion',
   hoy: 'hoy',
+  insights: 'insights',
   metas: 'metas',
   'mi-espacio': 'mi_espacio',
   senderos: 'senderos',

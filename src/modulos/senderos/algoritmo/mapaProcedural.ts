@@ -38,7 +38,12 @@ export type DecoracionProcedural = {
   volteado?: boolean;
 };
 
+/** Id de los 3 assets universales de pasto/roca — mismos para cualquier bioma, no vienen de registroBiomas. */
+export type AmbienteId = 'pasto' | 'pasto1' | 'roca';
+export type AmbienteProcedural = { assetId: AmbienteId; escala: number; opacidad: number; volteado: boolean; x: number; y: number };
+
 export type MapaProcedural = {
+  ambiente: AmbienteProcedural[];
   decoraciones: DecoracionProcedural[];
   hojas: HojasProcedurales[];
   lamparas: LamparaProcedural[];
@@ -53,6 +58,13 @@ type RolDecoracion = 'arbol-principal' | 'arbol-secundario' | 'arbusto' | 'flor'
 const TAMANO_BASE_ASSET = 172;
 const SEPARACION_NODOS = 112;
 const LIMPIEZA_NODO = 68;
+// Ambiente universal (pasto/roca): 3 niveles de opacidad fijos para dar
+// sensación de profundidad/textura en vez de un solo tono plano repetido.
+const AMBIENTE_IDS: AmbienteId[] = ['pasto', 'pasto1', 'roca'];
+const AMBIENTE_OPACIDADES = [0.3, 0.6, 1];
+// Reducida 70% respecto al primer intento (era 1/1600) — menos piezas, pero
+// cada una más grande, para que se vean como elementos de diseño y no relleno.
+const AMBIENTE_DENSIDAD = (1 / 1600) * 0.3;
 
 const hashCadena = (valor: string) => Array.from(valor).reduce((hash, caracter) => ((hash << 5) - hash + caracter.charCodeAt(0)) | 0, 2166136261) >>> 0;
 
@@ -276,5 +288,33 @@ export function generarMapaProcedural({ ancho, cantidadNodos, tema }: { ancho: n
     }
   }
 
-  return { decoraciones, hojas, lamparas, manchasHojas, nodos, piedras };
+  // Pasto/roca universales: pocas piezas pero grandes, como macizos de
+  // diseño (no textura de fondo) — van al final porque ahora sí evitan pisar
+  // la vegetación del bioma ya colocada (cajasDecoracion), además de nodos y
+  // lámparas; también evitan pisarse entre sí (cajasAmbiente propia).
+  const ambiente: AmbienteProcedural[] = [];
+  const cajasAmbiente: CajaColision[] = [];
+  const altoMapa = 54 + Math.max(0, nodos.length - 1) * SEPARACION_NODOS + 200;
+  const cantidadAmbiente = Math.round(ancho * altoMapa * AMBIENTE_DENSIDAD);
+  for (let indice = 0; indice < cantidadAmbiente; indice += 1) {
+    const escala = 0.18 + aleatorio() * 0.16;
+    const tamano = TAMANO_BASE_ASSET * escala;
+    const x = aleatorio() * (ancho - tamano);
+    const y = -50 + aleatorio() * (altoMapa + 50);
+    const caja = crearCaja(x, y, tamano);
+    const centro = { x: x + tamano / 2, y: y + tamano / 2 };
+    const invadeNodo = nodos.some((nodo) => Math.hypot(centro.x - nodo.x, centro.y - nodo.y) <= LIMPIEZA_NODO);
+    if (invadeNodo || hayColision(caja, cajasProtegidas) || hayColision(caja, cajasDecoracion) || hayColision(caja, cajasAmbiente)) continue;
+    ambiente.push({
+      assetId: AMBIENTE_IDS[Math.floor(aleatorio() * AMBIENTE_IDS.length)],
+      escala,
+      opacidad: AMBIENTE_OPACIDADES[Math.floor(aleatorio() * AMBIENTE_OPACIDADES.length)],
+      volteado: aleatorio() > 0.5,
+      x,
+      y,
+    });
+    cajasAmbiente.push(caja);
+  }
+
+  return { ambiente, decoraciones, hojas, lamparas, manchasHojas, nodos, piedras };
 }

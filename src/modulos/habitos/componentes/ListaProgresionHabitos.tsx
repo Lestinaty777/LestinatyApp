@@ -1,7 +1,7 @@
 import { ChevronRight } from 'lucide-react-native';
 import { Pressable, StyleSheet, View } from 'react-native';
 
-import { fuenteInsignia, MasterChanger, RecuadroGlass, Texto } from '../../../diseno';
+import { fuenteInsignia, MasterAnimation, MasterChanger, Rebote, RecuadroGlass, Texto } from '../../../diseno';
 import { tonoVerdeNivel } from '../iconosHabitos';
 import type { PlanHabitoResumen } from '../tipos';
 
@@ -22,28 +22,32 @@ export function ListaProgresionHabitos({ isError, isLoading, onReintentar, onSel
   if (isError) return <Pressable onPress={onReintentar}><Texto style={s.error}>No pudimos cargar tu progresión. Toca para reintentar.</Texto></Pressable>;
   if (planes.length === 0) return <Texto style={s.estado}>Crea tu primer hábito para empezar a subir de nivel.</Texto>;
 
-  return <>{planes.map((plan) => {
-    const tono = tonoVerdeNivel(plan.nivel);
-    return (
-      <Pressable key={plan.id} onPress={() => onSeleccionar(plan.id)} style={s.fila}>
-        <RecuadroGlass style={s.filaGlass}>
-          <View style={[s.icono, { backgroundColor: `${tono}18` }]}><MasterChanger ancho={34} alto={34} colorDestino={2} fuente={fuenteInsignia(plan.nivel)} /></View>
-          <View style={s.filaCentro}>
-            <View style={s.filaTop}>
-              <Texto numberOfLines={1} style={s.filaTitulo}>{plan.titulo}</Texto>
-              <View style={[s.nivelPill, { backgroundColor: `${tono}18` }]}><Texto style={[s.nivelPillTexto, { color: tono }]}>Nivel {plan.nivel}</Texto></View>
-            </View>
-            <View style={s.puntosFila}>
-              {Array.from({ length: NIVEL_MAXIMO }).map((_, indice) => (
-                <View key={indice} style={[s.punto, indice < plan.nivel && { backgroundColor: tono }]} />
-              ))}
-            </View>
-          </View>
-          <ChevronRight color={C.tenue} size={18} />
-        </RecuadroGlass>
-      </Pressable>
-    );
-  })}</>;
+  return (
+    <MasterAnimation duracion={280}>
+      {planes.map((plan) => {
+        const tono = tonoVerdeNivel(plan.nivel);
+        return (
+          <Rebote accessibilityLabel={plan.titulo} estilo={s.fila} key={plan.id} onPress={() => onSeleccionar(plan.id)}>
+            <RecuadroGlass style={s.filaGlass}>
+              <View style={[s.icono, { backgroundColor: `${tono}18` }]}><MasterChanger ancho={34} alto={34} colorDestino={2} fuente={fuenteInsignia(plan.nivel)} /></View>
+              <View style={s.filaCentro}>
+                <View style={s.filaTop}>
+                  <Texto numberOfLines={1} style={s.filaTitulo}>{plan.titulo}</Texto>
+                  <View style={[s.nivelPill, { backgroundColor: `${tono}18` }]}><Texto style={[s.nivelPillTexto, { color: tono }]}>Nivel {plan.nivel}</Texto></View>
+                </View>
+                <View style={s.puntosFila}>
+                  {Array.from({ length: NIVEL_MAXIMO }).map((_, puntoIndice) => (
+                    <View key={puntoIndice} style={[s.punto, puntoIndice < plan.nivel && { backgroundColor: tono }]} />
+                  ))}
+                </View>
+              </View>
+              <ChevronRight color={C.tenue} size={18} />
+            </RecuadroGlass>
+          </Rebote>
+        );
+      })}
+    </MasterAnimation>
+  );
 }
 
 const s = StyleSheet.create({

@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 import { Image, StyleSheet, View } from 'react-native';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 
-import { RecuadroGlass } from '../componentes/RecuadroGlass';
+import { MasterGlass } from './MasterGlass';
 
 type MasterIconBgProps = {
   children?: ReactNode;
@@ -27,7 +27,7 @@ export function MasterIconBg({
 }: MasterIconBgProps) {
   const radioExterior = Math.round(size * (18 / 68));
   const radioInterior = Math.round(size * (16 / 68));
-  const tamanoIcono = Math.round(size * (48 / 68) * 1.4);
+  const tamanoIcono = Math.round(size * (48 / 68) * 1.2);
 
   return (
     <View style={[mib.marco, { borderRadius: radioExterior, height: size, width: size }, style]}>
@@ -40,9 +40,9 @@ export function MasterIconBg({
         </Defs>
         <Rect fill="url(#masterIconBgBorde)" height={size} rx={radioExterior} ry={radioExterior} width={size} />
       </Svg>
-      <RecuadroGlass blur degradado={{ inicio: degradadoInicio, fin: degradadoFin }} style={[mib.glass, { borderRadius: radioInterior }]}>
+      <MasterGlass blur compacto style={[mib.glass, { borderRadius: radioInterior }]}>
         {fuente ? <Image resizeMode="contain" source={fuente} style={{ height: tamanoIcono, width: tamanoIcono }} /> : children}
-      </RecuadroGlass>
+      </MasterGlass>
     </View>
   );
 }

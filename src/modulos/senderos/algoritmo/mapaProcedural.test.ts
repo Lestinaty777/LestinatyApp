@@ -65,4 +65,35 @@ describe('generarMapaProcedural', () => {
       expect(hojasDeTramo[indice].espejoHorizontal).toBe(-hojasDeTramo[indice - 1].espejoHorizontal);
     }
   });
+
+  it('esparce pocas piezas grandes de pasto/roca ambiental universal, en 3 niveles de opacidad, sin pisar nada más', () => {
+    const tema = crearTemaMapa('estudio', '#7453B6', 'sendero-ambiente');
+    const mapa = generarMapaProcedural({ ancho: 360, cantidadNodos: 6, tema });
+
+    expect(mapa.ambiente.length).toBeGreaterThan(5);
+    expect(mapa.ambiente.every((item) => ['pasto', 'pasto1', 'roca'].includes(item.assetId))).toBe(true);
+    expect(mapa.ambiente.every((item) => item.escala >= 0.18 && item.escala <= 0.34)).toBe(true);
+    expect(mapa.ambiente.every((item) => [0.3, 0.6, 1].includes(item.opacidad))).toBe(true);
+    expect(new Set(mapa.ambiente.map((item) => item.opacidad)).size).toBe(3);
+
+    const cajaDe = (x: number, y: number, escala: number) => {
+      const tamano = 172 * escala;
+      return { x: x + tamano * 0.18, y: y + tamano * 0.22, w: tamano * 0.64, h: tamano * 0.62 };
+    };
+    const chocan = (a: { x: number; y: number; w: number; h: number }, b: { x: number; y: number; w: number; h: number }) =>
+      a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+    const cajasDecoracion = mapa.decoraciones.map((d) => cajaDe(d.x, d.y, d.escala));
+
+    for (const [indice, item] of mapa.ambiente.entries()) {
+      const tamano = 172 * item.escala;
+      const centro = { x: item.x + tamano / 2, y: item.y + tamano / 2 };
+      for (const nodo of mapa.nodos) expect(Math.hypot(centro.x - nodo.x, centro.y - nodo.y)).toBeGreaterThan(64);
+      const caja = cajaDe(item.x, item.y, item.escala);
+      expect(cajasDecoracion.some((d) => chocan(caja, d))).toBe(false);
+      for (const [otroIndice, otro] of mapa.ambiente.entries()) {
+        if (otroIndice === indice) continue;
+        expect(chocan(caja, cajaDe(otro.x, otro.y, otro.escala))).toBe(false);
+      }
+    }
+  });
 });

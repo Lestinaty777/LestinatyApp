@@ -62,6 +62,13 @@ export default function LayoutPrincipal() {
         }}
       />
       <Tabs.Screen
+        name="insights"
+        options={{
+          tabBarIcon: ({ focused }) => <IconoTab focused={focused} nombre={iconosTabs.insights} />,
+          title: 'Insights',
+        }}
+      />
+      <Tabs.Screen
         name="tienda"
         options={{ href: null }}
       />

@@ -1,3 +1,4 @@
+import { LinearGradient } from 'expo-linear-gradient';
 import type { LucideIcon } from 'lucide-react-native';
 import React, { useEffect, useRef } from 'react';
 import { Animated, Easing, Pressable, StyleSheet, View } from 'react-native';
@@ -70,8 +71,15 @@ export function NodoSendero({ Icono, asentado, color, estado, onCompletar, onPre
         style={[styles.halo, { backgroundColor: color, opacity: opacidadHalo, transform: [{ scale: escalaHalo }] }]}
       />
       <View pointerEvents="none" style={styles.pedestal}>
-        <View style={styles.pedestalCara} />
+        <LinearGradient colors={['#eefbf0', '#bce8c4']} end={{ x: 0, y: 1 }} start={{ x: 0, y: 0 }} style={styles.pedestalCara} />
         <View style={styles.pedestalLateral} />
+        {/* Ni boxShadow (string) ni shadow*+elevation siguen el borderRadius
+            de un círculo tan cerrado en este entorno — la sombra "cast" sale
+            recortada en rectángulo. Un LinearGradient transparente→verde
+            oscuro SÍ respeta el borderRadius (es contenido pintado dentro del
+            propio círculo, no una sombra proyectada fuera de él), así que
+            logra el mismo look de blur oscuro pegado abajo sin ese bug. */}
+        <LinearGradient colors={['transparent', 'rgba(11,92,48,0.4)']} end={{ x: 0, y: 1 }} locations={[0.45, 1]} start={{ x: 0, y: 0 }} style={styles.pedestalSombra} />
       </View>
       <Animated.View pointerEvents="none" style={[styles.sombraAmbiental, { opacity: opacidadExtrusion }]} />
       <Animated.View pointerEvents="none" style={[styles.extrusion, { opacity: opacidadExtrusion }]}>
@@ -172,7 +180,6 @@ const styles = StyleSheet.create({
     width: 68,
   },
   pedestalCara: {
-    backgroundColor: '#F2F0EC',
     borderColor: 'rgba(255,255,255,0.92)',
     borderRadius: 34,
     borderWidth: 1,
@@ -181,11 +188,19 @@ const styles = StyleSheet.create({
     zIndex: 2,
   },
   pedestalLateral: {
-    backgroundColor: '#BDB6AE',
+    backgroundColor: '#bce8c4',
     borderRadius: 34,
     height: 68,
     left: 0,
     marginTop: 0,
+    position: 'absolute',
+    top: 8,
+    width: 68,
+  },
+  pedestalSombra: {
+    borderRadius: 34,
+    height: 68,
+    left: 0,
     position: 'absolute',
     top: 8,
     width: 68,

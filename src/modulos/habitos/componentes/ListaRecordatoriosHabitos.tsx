@@ -1,7 +1,8 @@
 import { Bell, BellOff, ChevronRight, Sparkles } from 'lucide-react-native';
-import { Image, Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 
-import { RecuadroGlass, Texto } from '../../../diseno';
+import { MasterAnimation, MasterGlass, MasterIconBg, Rebote, Texto } from '../../../diseno';
+import { HorizonTipRecordatorios } from './HorizonTipRecordatorios';
 import { buscarIconoHabito } from '../iconosHabitos';
 import type { PlanHabitoResumen } from '../tipos';
 
@@ -19,34 +20,37 @@ export function ListaRecordatoriosHabitos({ isError, isLoading, onReintentar, on
 }) {
   if (isLoading) return <Texto style={s.estado}>Cargando recordatorios…</Texto>;
   if (isError) return <Pressable onPress={onReintentar}><Texto style={s.error}>No pudimos cargar tus recordatorios. Toca para reintentar.</Texto></Pressable>;
-  if (planes.length === 0) return <Texto style={s.estado}>Crea un hábito para configurar su recordatorio.</Texto>;
+  if (planes.length === 0) return <><HorizonTipRecordatorios /><Texto style={s.estado}>Crea un hábito para configurar su recordatorio.</Texto></>;
 
-  return <>{planes.map((plan) => {
-    const icono = buscarIconoHabito(plan.iconoLucide);
-    return (
-      <Pressable key={plan.id} onPress={() => onSeleccionar(plan.id)} style={s.fila}>
-        <RecuadroGlass style={s.filaGlass}>
-          <View style={[s.icono, { backgroundColor: `${plan.color}18` }]}>{icono ? <Image source={icono.fuente} style={s.iconoImagen} /> : <Sparkles color={plan.color} size={26} />}</View>
-          <Texto numberOfLines={1} style={s.filaTitulo}>{plan.titulo}</Texto>
-          {plan.recordatorioActivo && plan.horaRecordatorio ? (
-            <View style={[s.horaPill, { backgroundColor: `${plan.color}18` }]}><Bell color={plan.color} size={13} /><Texto style={[s.horaPillTexto, { color: plan.color }]}>{plan.horaRecordatorio.slice(0, 5)}</Texto></View>
-          ) : (
-            <View style={s.sinRecordatorio}><BellOff color={C.tenue} size={13} /><Texto style={s.sinRecordatorioTexto}>Sin recordatorio</Texto></View>
-          )}
-          <ChevronRight color={C.tenue} size={18} />
-        </RecuadroGlass>
-      </Pressable>
-    );
-  })}</>;
+  return (
+    <MasterAnimation duracion={280}>
+      {planes.map((plan) => {
+        const icono = buscarIconoHabito(plan.iconoLucide);
+        return (
+          <Rebote accessibilityLabel={plan.titulo} estilo={s.fila} key={plan.id} onPress={() => onSeleccionar(plan.id)}>
+            <MasterGlass style={s.filaGlass}>
+              <MasterIconBg fuente={icono?.fuente} size={44}>{!icono && <Sparkles color={plan.color} size={22} />}</MasterIconBg>
+              <Texto numberOfLines={1} style={s.filaTitulo}>{plan.titulo}</Texto>
+              {plan.recordatorioActivo && plan.horaRecordatorio ? (
+                <View style={[s.horaPill, { backgroundColor: `${plan.color}18` }]}><Bell color={plan.color} size={13} /><Texto style={[s.horaPillTexto, { color: plan.color }]}>{plan.horaRecordatorio.slice(0, 5)}</Texto></View>
+              ) : (
+                <View style={s.sinRecordatorio}><BellOff color={C.tenue} size={13} /><Texto style={s.sinRecordatorioTexto}>Sin recordatorio</Texto></View>
+              )}
+              <ChevronRight color={C.tenue} size={18} />
+            </MasterGlass>
+          </Rebote>
+        );
+      })}
+      <HorizonTipRecordatorios />
+    </MasterAnimation>
+  );
 }
 
 const s = StyleSheet.create({
   estado: { color: C.tenue, paddingVertical: 18, textAlign: 'center' },
   error: { color: '#DC2626', paddingVertical: 18, textAlign: 'center' },
-  fila: {},
-  filaGlass: { alignItems: 'center', backgroundColor: C.glass, borderColor: C.glassBorde, borderRadius: 18, borderWidth: 1, flexDirection: 'row', gap: 11, padding: 12 },
-  icono: { alignItems: 'center', borderRadius: 13, height: 44, justifyContent: 'center', width: 44 },
-  iconoImagen: { height: 29, resizeMode: 'contain', width: 29 },
+  fila: { marginBottom: 10 },
+  filaGlass: { alignItems: 'center', borderRadius: 18, flexDirection: 'row', gap: 11, padding: 12 },
   filaTitulo: { color: C.texto, flex: 1, fontFamily: 'Montserrat-Bold', fontSize: 15 },
   horaPill: { alignItems: 'center', borderRadius: 99, flexDirection: 'row', gap: 4, paddingHorizontal: 10, paddingVertical: 5 },
   horaPillTexto: { fontFamily: 'Montserrat-Bold', fontSize: 12 },
