@@ -2,6 +2,7 @@ import React, { useMemo, useRef, useState } from 'react';
 import { Animated, Image, ScrollView, StyleSheet, useWindowDimensions, View, Pressable, TouchableWithoutFeedback } from 'react-native';
 import { useRouter } from 'expo-router';
 import Svg, { Path, Rect, Defs, Pattern } from 'react-native-svg';
+import { BlurMask, Canvas, Group, Oval } from '@shopify/react-native-skia';
 
 import { Texto } from '../../../../diseno';
 import { crearTemaMapa, generarMapaProcedural, type CategoriaMapaId } from '../../algoritmo/mapaProcedural';
@@ -9,9 +10,7 @@ import { ASSETS_AMBIENTE_UNIVERSAL, obtenerAssetBioma, registroBiomas } from '..
 import { obtenerNodosMapaMock } from '../../datos/mapaEjercicio.mock';
 import type { EstadoNodoMapa, NodoMapaSendero } from '../../datos/mapaEjercicio.mock';
 import { PixelartIcon } from '../../../../diseno/iconos/PixelartIcon';
-import { CaminoHojasSendero } from './CaminoHojasSendero';
 import { LamparaSendero } from './LamparaSendero';
-import { PiedrasSendero } from './PiedrasSendero';
 
 import { NodoSendero } from './NodoSendero';
 
@@ -33,8 +32,31 @@ const separacionVertical = 112;
 const margenSuperior = 16;
 const margenInferior = 64;
 const AnimatedPath = Animated.createAnimatedComponent(Path);
-const hojasVisiblesPorNodo = [true, false, true, true];
 const zIndexPorCapa = { fondo: 1, medio: 3, frente: 4 } as const;
+
+// Sombra de contacto muy sutil bajo cada pasto/roca del ambiente universal,
+// para que no floten sobre el suelo — verde oscuro, difuminada de verdad con
+// Skia (igual que AcentoBlur en PedestalNodo.tsx: una <View> con opacity no
+// se difumina, hace falta BlurMask sobre un <Canvas>).
+function SombraSuelo({ tamano }: { tamano: number }) {
+  const ancho = tamano * 0.44;
+  const alto = tamano * 0.1;
+  const x = (tamano - ancho) / 2;
+  // Pegada a la base real del sprite (no al borde del cuadro contenedor, que
+  // suele tener aire arriba/abajo por el "contain") y detrás de la imagen —
+  // este Canvas se declara antes que el <Image> en el JSX, así que queda
+  // debajo en el orden de pintado.
+  const y = tamano * 0.7;
+  return (
+    <Canvas pointerEvents="none" style={[StyleSheet.absoluteFill, { height: tamano, width: tamano }]}>
+      <Group opacity={0.32}>
+        <Oval color="#0B3D1F" height={alto} width={ancho} x={x} y={y}>
+          <BlurMask blur={tamano * 0.05} style="normal" />
+        </Oval>
+      </Group>
+    </Canvas>
+  );
+}
 
 function oscurecer(color: string, factor = 0.7) {
   const hex = color.replace('#', '');
@@ -171,6 +193,7 @@ export function ContenedorMapaSenderos({ altura, categoriaId, color, enfocado, n
               pointerEvents="none"
               style={[styles.ambiente, { height: tamano, left: item.x, top: item.y, width: tamano }]}
             >
+              <SombraSuelo tamano={tamano} />
               <Image
                 resizeMode="contain"
                 source={ASSETS_AMBIENTE_UNIVERSAL[item.assetId]}
@@ -179,22 +202,6 @@ export function ContenedorMapaSenderos({ altura, categoriaId, color, enfocado, n
             </View>
           );
         })}
-        {mapa.manchasHojas.map((mancha, indice) => (
-          <View
-            key={`mancha-hojas-${indice}`}
-            pointerEvents="none"
-            style={[
-              styles.manchasHojas,
-              {
-                left: mancha.x,
-                top: mancha.y,
-                transform: [{ scaleX: mancha.espejoHorizontal }],
-              },
-            ]}
-          >
-            <CaminoHojasSendero color={temaMapa.acento} opacidad={mancha.zona === 'superior' ? 0.32 : 0.22} tamano={mancha.tamano} />
-          </View>
-        ))}
         {mapa.piedras.map((piedras, indice) => (
           <View
             key={`piedras-${indice}`}
@@ -202,35 +209,18 @@ export function ContenedorMapaSenderos({ altura, categoriaId, color, enfocado, n
             style={[
               styles.piedras,
               {
+                height: piedras.tamano,
                 left: piedras.x,
                 top: piedras.y,
+                width: piedras.tamano,
                 transform: [{ scaleX: piedras.espejoHorizontal }],
               },
             ]}
           >
-            <PiedrasSendero tamano={piedras.tamano} />
+            <SombraSuelo tamano={piedras.tamano} />
+            <Image resizeMode="contain" source={ASSETS_AMBIENTE_UNIVERSAL[piedras.assetId]} style={{ height: '100%', width: '100%' }} />
           </View>
         ))}
-        {mapa.hojas.map((hojas, indice) => {
-          if (categoriaId !== 'rutinas' && !hojasVisiblesPorNodo[indice]) return null;
-          return (
-            <View
-              key={`hojas-${indice}`}
-              pointerEvents="none"
-              style={[
-                styles.hojasCamino,
-                {
-                  left: hojas.x,
-                  top: hojas.y,
-                  zIndex: 2,
-                  transform: [{ scaleX: hojas.lado === 'derecha' ? 1 : -1 }],
-                },
-              ]}
-            >
-              <CaminoHojasSendero color={temaMapa.acento} opacidad={1} tamano={hojas.tamano} />
-            </View>
-          );
-        })}
 
         {mapa.decoraciones.map((decoracion, indice) => {
           const asset = obtenerAssetBioma(categoriaId, decoracion.assetId, tono);
@@ -393,17 +383,9 @@ const styles = StyleSheet.create({
     transform: [{ perspective: 1200 }, { rotateX: '7deg' }, { scaleY: 0.98 }],
     transformOrigin: 'center bottom',
   },
-  hojasCamino: {
-    position: 'absolute',
-  },
   ambiente: {
     position: 'absolute',
     zIndex: 0,
-  },
-  manchasHojas: {
-    opacity: 0.9,
-    position: 'absolute',
-    zIndex: 1,
   },
   piedras: {
     position: 'absolute',

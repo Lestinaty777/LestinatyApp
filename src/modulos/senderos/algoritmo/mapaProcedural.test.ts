@@ -47,11 +47,9 @@ describe('generarMapaProcedural', () => {
 
     expect(mapa.decoraciones.filter((decoracion) => decoracion.assetId.endsWith('-04')).length).toBeGreaterThanOrEqual(2);
     expect(mapa.decoraciones.some((decoracion) => decoracion.assetId.endsWith('-07'))).toBe(true);
-    expect(mapa.manchasHojas.length).toBeGreaterThanOrEqual(6);
-    expect(mapa.manchasHojas.length).toBeLessThanOrEqual(8);
-    expect(mapa.manchasHojas.filter((mancha) => mancha.zona === 'superior')).toHaveLength(2);
     expect(mapa.piedras.length).toBeGreaterThanOrEqual(4);
     expect(mapa.piedras.length).toBeLessThanOrEqual(6);
+    expect(mapa.piedras.every((piedras) => piedras.assetId === 'roca' || piedras.assetId === 'roca1')).toBe(true);
     for (const piedras of mapa.piedras) {
       const centroPiedras = { x: piedras.x + piedras.tamano / 2, y: piedras.y + piedras.tamano * 0.3 };
       const lamparaAsociada = mapa.lamparas[piedras.lamparaIndice];
@@ -59,19 +57,14 @@ describe('generarMapaProcedural', () => {
     }
     expect(mapa.piedras.every((piedras) => Number.isFinite(piedras.desplazamientoX) && Number.isFinite(piedras.desplazamientoY))).toBe(true);
     expect(mapa.piedras.some((piedras) => piedras.desplazamientoX !== 0 || piedras.desplazamientoY !== 0)).toBe(true);
-    const hojasDeTramo = mapa.manchasHojas.filter((mancha) => mancha.zona === 'tramo');
-    for (let indice = 1; indice < hojasDeTramo.length; indice += 1) {
-      expect(Math.abs(hojasDeTramo[indice].y - hojasDeTramo[indice - 1].y)).toBeGreaterThanOrEqual(80);
-      expect(hojasDeTramo[indice].espejoHorizontal).toBe(-hojasDeTramo[indice - 1].espejoHorizontal);
-    }
   });
 
-  it('esparce pocas piezas grandes de pasto/roca ambiental universal, en 3 niveles de opacidad, sin pisar nada más', () => {
+  it('esparce mucho pasto/roca ambiental universal (5 variantes), sin pisar nada más', () => {
     const tema = crearTemaMapa('estudio', '#7453B6', 'sendero-ambiente');
     const mapa = generarMapaProcedural({ ancho: 360, cantidadNodos: 6, tema });
 
-    expect(mapa.ambiente.length).toBeGreaterThan(5);
-    expect(mapa.ambiente.every((item) => ['pasto', 'pasto1', 'roca'].includes(item.assetId))).toBe(true);
+    expect(mapa.ambiente.length).toBeGreaterThan(15);
+    expect(mapa.ambiente.every((item) => ['pasto', 'pasto1', 'pasto2', 'roca', 'roca1'].includes(item.assetId))).toBe(true);
     expect(mapa.ambiente.every((item) => item.escala >= 0.18 && item.escala <= 0.34)).toBe(true);
     expect(mapa.ambiente.every((item) => [0.3, 0.6, 1].includes(item.opacidad))).toBe(true);
     expect(new Set(mapa.ambiente.map((item) => item.opacidad)).size).toBe(3);

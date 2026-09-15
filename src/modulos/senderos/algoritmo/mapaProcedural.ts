@@ -17,9 +17,10 @@ export type TemaMapaProcedural = {
 
 export type NodoProcedural = { id: string; x: number; y: number };
 export type LamparaProcedural = { lado: LadoMapa; tamano: number; x: number; y: number };
-export type HojasProcedurales = { lado: LadoMapa; tamano: number; x: number; y: number };
-export type ManchaHojasProcedural = HojasProcedurales & { espejoHorizontal: -1 | 1; zona: 'superior' | 'tramo' };
+/** roca/roca1 al azar por instancia, para variedad visual junto a cada lámpara. */
+export type PiedraAssetId = 'roca' | 'roca1';
 export type PiedrasProcedurales = {
+  assetId: PiedraAssetId;
   desplazamientoX: number;
   desplazamientoY: number;
   espejoHorizontal: -1 | 1;
@@ -38,16 +39,14 @@ export type DecoracionProcedural = {
   volteado?: boolean;
 };
 
-/** Id de los 3 assets universales de pasto/roca — mismos para cualquier bioma, no vienen de registroBiomas. */
-export type AmbienteId = 'pasto' | 'pasto1' | 'roca';
+/** Id de los 5 assets universales de pasto/roca — mismos para cualquier bioma, no vienen de registroBiomas. */
+export type AmbienteId = 'pasto' | 'pasto1' | 'pasto2' | 'roca' | 'roca1';
 export type AmbienteProcedural = { assetId: AmbienteId; escala: number; opacidad: number; volteado: boolean; x: number; y: number };
 
 export type MapaProcedural = {
   ambiente: AmbienteProcedural[];
   decoraciones: DecoracionProcedural[];
-  hojas: HojasProcedurales[];
   lamparas: LamparaProcedural[];
-  manchasHojas: ManchaHojasProcedural[];
   nodos: NodoProcedural[];
   piedras: PiedrasProcedurales[];
 };
@@ -60,11 +59,16 @@ const SEPARACION_NODOS = 112;
 const LIMPIEZA_NODO = 68;
 // Ambiente universal (pasto/roca): 3 niveles de opacidad fijos para dar
 // sensación de profundidad/textura en vez de un solo tono plano repetido.
-const AMBIENTE_IDS: AmbienteId[] = ['pasto', 'pasto1', 'roca'];
+// Las 5 variantes (incluyendo pasto1/pasto2) participan por igual.
+const AMBIENTE_IDS: AmbienteId[] = ['pasto', 'pasto1', 'pasto2', 'roca', 'roca1'];
 const AMBIENTE_OPACIDADES = [0.3, 0.6, 1];
-// Reducida 70% respecto al primer intento (era 1/1600) — menos piezas, pero
-// cada una más grande, para que se vean como elementos de diseño y no relleno.
-const AMBIENTE_DENSIDAD = (1 / 1600) * 0.3;
+// Tramo final (después del último nodo, la "cola" del mapa): se reduce el
+// pasto un 30% ahí para que no se sienta tan cargado justo donde termina el
+// sendero — las rocas no se tocan.
+const REDUCCION_PASTO_TRAMO_FINAL = 0.3;
+// "Mucho pasto y rocas" — más denso que el ajuste anterior (que buscaba pocas
+// piezas grandes tipo acento); ahora se quiere cobertura real de terreno.
+const AMBIENTE_DENSIDAD = 1 / 700;
 
 const hashCadena = (valor: string) => Array.from(valor).reduce((hash, caracter) => ((hash << 5) - hash + caracter.charCodeAt(0)) | 0, 2166136261) >>> 0;
 
@@ -102,8 +106,6 @@ export function generarMapaProcedural({ ancho, cantidadNodos, tema }: { ancho: n
   const centro = ancho / 2;
   const nodos: NodoProcedural[] = [];
   const lamparas: LamparaProcedural[] = [];
-  const hojas: HojasProcedurales[] = [];
-  const manchasHojas: ManchaHojasProcedural[] = [];
   const piedras: PiedrasProcedurales[] = [];
   const decoraciones: DecoracionProcedural[] = [];
   const cajasProtegidas: CajaColision[] = [{ x: 0, y: -80, w: ancho, h: 80 }];
@@ -122,48 +124,11 @@ export function generarMapaProcedural({ ancho, cantidadNodos, tema }: { ancho: n
 
     if (indice === 0) continue;
     const ladoLampara: LadoMapa = x < centro ? 'derecha' : 'izquierda';
-    const tamanoHojas = 30 + Math.round(aleatorio() * 5);
-    hojas.push({
-      lado: ladoLampara,
-      tamano: tamanoHojas,
-      x: ladoLampara === 'derecha' ? x + 33 : x - tamanoHojas - 33,
-      y: y - (tamanoHojas * 35 / 26) / 2,
-    });
-
     const lamparaX = ladoLampara === 'derecha' ? ancho - 108 : 64;
     const lamparaY = y - 16;
     const tamanoLampara = 23 + Math.round(aleatorio() * 3);
     lamparas.push({ lado: ladoLampara, tamano: tamanoLampara, x: lamparaX, y: lamparaY });
     cajasProtegidas.push({ x: lamparaX - 14, y: lamparaY - 14, w: 58, h: 62 });
-  }
-
-  const cantidadManchasHojas = Math.min(nodos.length, Math.min(6, Math.max(4, Math.ceil((nodos.length - 1) * 0.75))));
-  const espejoInicial = hashCadena(tema.id) % 2 === 0 ? -1 : 1;
-  for (let indice = 0; indice < cantidadManchasHojas; indice += 1) {
-    const indiceNodo = Math.min(nodos.length - 1, Math.max(0, Math.floor((indice + 1) * nodos.length / (cantidadManchasHojas + 1))));
-    const nodoReferencia = nodos[indiceNodo];
-    const lado: LadoMapa = indice % 2 === 0 ? 'izquierda' : 'derecha';
-    const tamano = 58 + Math.round(aleatorio() * 20);
-    manchasHojas.push({
-      lado,
-      tamano,
-      x: lado === 'izquierda' ? 8 + Math.round(aleatorio() * 24) : ancho - tamano - 8 - Math.round(aleatorio() * 24),
-      y: nodoReferencia.y - tamano * 0.42,
-      espejoHorizontal: indice % 2 === 0 ? espejoInicial : (espejoInicial * -1) as -1 | 1,
-      zona: 'tramo',
-    });
-  }
-
-  for (const lado of ['izquierda', 'derecha'] as const) {
-    const tamano = 72 + Math.round(aleatorio() * 16);
-    manchasHojas.push({
-      lado,
-      tamano,
-      x: lado === 'izquierda' ? -12 : ancho - tamano + 12,
-      y: -34 + Math.round(aleatorio() * 18),
-      espejoHorizontal: lado === 'derecha' ? 1 : -1,
-      zona: 'superior',
-    });
   }
 
   const cantidadPiedras = Math.min(6, Math.max(4, Math.ceil((nodos.length - 1) * 0.8)));
@@ -175,6 +140,7 @@ export function generarMapaProcedural({ ancho, cantidadNodos, tema }: { ancho: n
     const desplazamientoX = -8 + Math.round(aleatorio() * 16);
     const desplazamientoY = -5 + Math.round(aleatorio() * 10);
     piedras.push({
+      assetId: aleatorio() > 0.5 ? 'roca' : 'roca1',
       desplazamientoX,
       desplazamientoY,
       espejoHorizontal: lamparaAsociada.lado === 'izquierda' ? -1 : 1,
@@ -296,6 +262,7 @@ export function generarMapaProcedural({ ancho, cantidadNodos, tema }: { ancho: n
   const cajasAmbiente: CajaColision[] = [];
   const altoMapa = 54 + Math.max(0, nodos.length - 1) * SEPARACION_NODOS + 200;
   const cantidadAmbiente = Math.round(ancho * altoMapa * AMBIENTE_DENSIDAD);
+  const ultimoNodoY = nodos[nodos.length - 1]?.y ?? 0;
   for (let indice = 0; indice < cantidadAmbiente; indice += 1) {
     const escala = 0.18 + aleatorio() * 0.16;
     const tamano = TAMANO_BASE_ASSET * escala;
@@ -305,16 +272,13 @@ export function generarMapaProcedural({ ancho, cantidadNodos, tema }: { ancho: n
     const centro = { x: x + tamano / 2, y: y + tamano / 2 };
     const invadeNodo = nodos.some((nodo) => Math.hypot(centro.x - nodo.x, centro.y - nodo.y) <= LIMPIEZA_NODO);
     if (invadeNodo || hayColision(caja, cajasProtegidas) || hayColision(caja, cajasDecoracion) || hayColision(caja, cajasAmbiente)) continue;
-    ambiente.push({
-      assetId: AMBIENTE_IDS[Math.floor(aleatorio() * AMBIENTE_IDS.length)],
-      escala,
-      opacidad: AMBIENTE_OPACIDADES[Math.floor(aleatorio() * AMBIENTE_OPACIDADES.length)],
-      volteado: aleatorio() > 0.5,
-      x,
-      y,
-    });
+    const assetId = AMBIENTE_IDS[Math.floor(aleatorio() * AMBIENTE_IDS.length)];
+    const enTramoFinal = centro.y > ultimoNodoY;
+    if (assetId.startsWith('pasto') && enTramoFinal && aleatorio() < REDUCCION_PASTO_TRAMO_FINAL) continue;
+    const opacidad = AMBIENTE_OPACIDADES[Math.floor(aleatorio() * AMBIENTE_OPACIDADES.length)];
+    ambiente.push({ assetId, escala, opacidad, volteado: aleatorio() > 0.5, x, y });
     cajasAmbiente.push(caja);
   }
 
-  return { ambiente, decoraciones, hojas, lamparas, manchasHojas, nodos, piedras };
+  return { ambiente, decoraciones, lamparas, nodos, piedras };
 }

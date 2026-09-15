@@ -13,12 +13,14 @@ export type AssetBioma = {
 export type BiomaVisualId = 'arce' | 'bosque-calido' | 'bosque-dorado' | 'cerezo' | 'pino-nevado' | 'sauce-ruinas' | 'selva';
 export type RolAssetBioma = 'arbol-principal' | 'arbol-secundario' | 'arbusto' | 'base' | 'flor';
 
-// Pasto/roca: los únicos assets que NO varían por bioma — mismo pasto/roca
+// Pasto/roca: los únicos assets que NO varían por bioma — mismos pasto/roca
 // para los 7 biomas, como relleno ambiental disperso (ver mapaProcedural.ts).
-export const ASSETS_AMBIENTE_UNIVERSAL: Record<'pasto' | 'pasto1' | 'roca', ImageSourcePropType> = {
+export const ASSETS_AMBIENTE_UNIVERSAL: Record<'pasto' | 'pasto1' | 'pasto2' | 'roca' | 'roca1', ImageSourcePropType> = {
   pasto: require('../../../../assets/ilustraciones/senderos/biomas/arboles/pasto.png'),
   pasto1: require('../../../../assets/ilustraciones/senderos/biomas/arboles/pasto1.png'),
+  pasto2: require('../../../../assets/ilustraciones/senderos/biomas/arboles/pasto2.png'),
   roca: require('../../../../assets/ilustraciones/senderos/biomas/arboles/roca.png'),
+  roca1: require('../../../../assets/ilustraciones/senderos/biomas/arboles/roca1.png'),
 };
 
 export type ReglaBioma = {
