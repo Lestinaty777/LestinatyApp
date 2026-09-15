@@ -301,7 +301,7 @@ export function ContenedorMapaSenderos({ altura, categoriaId, color, enfocado, n
           const asentado = esSeleccionado;
           const escalaEscena = Math.max(0.78, 1.1 - indice * 0.07);
           return (
-            <View key={nodo.id} style={[styles.nodoPosicion, { left: posicion.x - 36, top: posicion.y - 36, zIndex: 20 }]}>
+            <View key={nodo.id} style={[styles.nodoPosicion, { left: posicion.x - 42, top: posicion.y - 48, zIndex: 20 }]}>
               <NodoSendero Icono={nodo.icono} asentado={asentado} color={color} escalaEscena={escalaEscena} estado={estadoVisual} seleccionado={esSeleccionado} onCompletar={() => completarNodo(indice)} onPress={() => seleccionarNodo(nodo.id, indice)} />
             </View>
           );
@@ -390,7 +390,7 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   escenaPerspectiva: {
-    transform: [{ perspective: 900 }, { rotateX: '8deg' }, { scaleY: 0.98 }],
+    transform: [{ perspective: 1200 }, { rotateX: '7deg' }, { scaleY: 0.98 }],
     transformOrigin: 'center bottom',
   },
   hojasCamino: {

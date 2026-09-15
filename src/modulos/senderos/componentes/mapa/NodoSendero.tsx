@@ -1,11 +1,10 @@
-import { LinearGradient } from 'expo-linear-gradient';
 import type { LucideIcon } from 'lucide-react-native';
 import React, { useEffect, useRef } from 'react';
 import { Animated, Easing, Pressable, StyleSheet, View } from 'react-native';
-import Svg, { Path } from 'react-native-svg';
 
 import type { EstadoNodoMapa } from '../../datos/mapaEjercicio.mock';
 import { hapticSeguro } from '../../../../nucleo/dispositivo/haptics';
+import { PedestalBase, PedestalBaseBloqueada, PedestalBotonBloqueado, PedestalBotonSuperior } from './PedestalNodo';
 
 type NodoSenderoProps = {
   Icono: LucideIcon;
@@ -18,11 +17,13 @@ type NodoSenderoProps = {
   seleccionado: boolean;
 };
 
-function oscurecer(color: string, factor = 0.58) {
-  const hex = color.replace('#', '');
-  const canal = (inicio: number) => Math.round(parseInt(hex.slice(inicio, inicio + 2), 16) * factor).toString(16).padStart(2, '0');
-  return `#${canal(0)}${canal(2)}${canal(4)}`;
-}
+const TAMANO_PEDESTAL = 84;
+// La elipse superior (clara) está centrada 17.5 unidades más arriba que la
+// media (oscura) en el lienzo original de 302 — ese sería el desplazamiento
+// para caer EXACTO encima de la oscura, pero a propósito se presiona un poco
+// menos (15, no 17.5) para que al fondo del press la clara se quede
+// ligeramente arriba/encima de la oscura, no perfectamente al ras.
+const DESPLAZAMIENTO_PRESS = 30 * (TAMANO_PEDESTAL / 302);
 
 export function NodoSendero({ Icono, asentado, color, estado, onCompletar, onPress, escalaEscena = 1, seleccionado }: NodoSenderoProps) {
   const halo = useRef(new Animated.Value(0)).current;
@@ -53,16 +54,13 @@ export function NodoSendero({ Icono, asentado, color, estado, onCompletar, onPre
   }, [asentado, asentamiento]);
 
   const profundidad = asentamiento;
-  const escala = profundidad.interpolate({ inputRange: [0, 1], outputRange: [1, 0.985] });
-  const descensoBase = profundidad.interpolate({ inputRange: [0, 1], outputRange: [0, 8] });
+  const escala = profundidad.interpolate({ inputRange: [0, 1], outputRange: [1, 0.96] });
+  const descensoBase = profundidad.interpolate({ inputRange: [0, 1], outputRange: [0, DESPLAZAMIENTO_PRESS] });
   const descensoInspeccion = inspeccion.interpolate({ inputRange: [0, 1], outputRange: [0, 4] });
   const descenso = Animated.add(descensoBase, descensoInspeccion);
   const intensidadHalo = Animated.add(halo, pulsoInspeccion);
   const escalaHalo = intensidadHalo.interpolate({ inputRange: [0, 2], outputRange: [0.82, 1.3] });
   const opacidadHalo = intensidadHalo.interpolate({ inputRange: [0, 2], outputRange: [0, 0.34] });
-  const opacidadExtrusion = profundidad.interpolate({ inputRange: [0, 1], outputRange: [1, 0] });
-  const fondo = bloqueado ? '#D8D3CD' : color;
-  const base = bloqueado ? '#AAA49D' : oscurecer(fondo);
 
   return (
     <View style={[styles.raiz, { transform: [{ scale: escalaEscena }] }]}>
@@ -70,24 +68,6 @@ export function NodoSendero({ Icono, asentado, color, estado, onCompletar, onPre
         pointerEvents="none"
         style={[styles.halo, { backgroundColor: color, opacity: opacidadHalo, transform: [{ scale: escalaHalo }] }]}
       />
-      <View pointerEvents="none" style={styles.pedestal}>
-        <LinearGradient colors={['#eefbf0', '#bce8c4']} end={{ x: 0, y: 1 }} start={{ x: 0, y: 0 }} style={styles.pedestalCara} />
-        <View style={styles.pedestalLateral} />
-        {/* Ni boxShadow (string) ni shadow*+elevation siguen el borderRadius
-            de un círculo tan cerrado en este entorno — la sombra "cast" sale
-            recortada en rectángulo. Un LinearGradient transparente→verde
-            oscuro SÍ respeta el borderRadius (es contenido pintado dentro del
-            propio círculo, no una sombra proyectada fuera de él), así que
-            logra el mismo look de blur oscuro pegado abajo sin ese bug. */}
-        <LinearGradient colors={['transparent', 'rgba(11,92,48,0.4)']} end={{ x: 0, y: 1 }} locations={[0.45, 1]} start={{ x: 0, y: 0 }} style={styles.pedestalSombra} />
-      </View>
-      <Animated.View pointerEvents="none" style={[styles.sombraAmbiental, { opacity: opacidadExtrusion }]} />
-      <Animated.View pointerEvents="none" style={[styles.extrusion, { opacity: opacidadExtrusion }]}>
-        <Svg height={66} width={58}>
-          <Path d="M 0 29 A 29 29 0 0 0 58 29 L 58 37 A 29 29 0 0 1 0 37 Z" fill={base} />
-          <Path d="M 4 31 A 25 25 0 0 0 54 31 L 54 35" fill="none" stroke="rgba(255,255,255,0.16)" strokeLinecap="round" strokeWidth={1.2} />
-        </Svg>
-      </Animated.View>
       <Pressable
         accessibilityLabel={bloqueado ? 'Inspeccionar paso bloqueado' : 'Abrir paso'}
         accessibilityRole="button"
@@ -116,10 +96,19 @@ export function NodoSendero({ Icono, asentado, color, estado, onCompletar, onPre
         }}
         style={styles.botonNodo}
       >
-        <Animated.View style={[styles.nodo, asentado && styles.nodoAsentado, { backgroundColor: fondo, transform: [{ translateY: descenso }, { scale: escala }] }]}>
-          <View style={[styles.bisel, bloqueado && styles.biselBloqueado]} />
-          <Icono color={bloqueado ? '#928C86' : '#FFFFFF'} size={27} strokeWidth={2.7} />
-        </Animated.View>
+        {/* Base y botón vienen del diseño de Figma del usuario, separados a
+            propósito: la base pálida se queda quieta, y solo el botón de
+            colores saturados (+ el ícono real, dinámico según el paso,
+            montado encima) recibe el efecto press (translateY/scale). */}
+        <View style={styles.shell}>
+          {bloqueado ? <PedestalBaseBloqueada tamano={TAMANO_PEDESTAL} /> : <PedestalBase color={color} tamano={TAMANO_PEDESTAL} />}
+          <Animated.View style={[styles.capaBoton, { transform: [{ translateY: descenso }, { scale: escala }] }]}>
+            {bloqueado ? <PedestalBotonBloqueado tamano={TAMANO_PEDESTAL} /> : <PedestalBotonSuperior color={color} tamano={TAMANO_PEDESTAL} />}
+            <View pointerEvents="none" style={styles.iconoContenedor}>
+              <Icono color={bloqueado ? '#5C8A57' : '#FFFFFF'} size={27} strokeWidth={2.7} />
+            </View>
+          </Animated.View>
+        </View>
       </Pressable>
     </View>
   );
@@ -128,94 +117,42 @@ export function NodoSendero({ Icono, asentado, color, estado, onCompletar, onPre
 const styles = StyleSheet.create({
   raiz: {
     alignItems: 'center',
-    height: 90,
-    width: 72,
+    height: 96,
+    width: 84,
   },
   botonNodo: {
     alignItems: 'center',
-    height: 58,
+    height: TAMANO_PEDESTAL,
     justifyContent: 'center',
-    left: 7,
     position: 'absolute',
-    top: 0,
-    width: 58,
+    top: 6,
+    width: TAMANO_PEDESTAL,
   },
   halo: {
-    borderRadius: 36,
-    height: 72,
+    borderRadius: 46,
+    height: 92,
     position: 'absolute',
-    width: 72,
+    top: 6,
+    width: 92,
   },
-  nodo: {
-    alignItems: 'center',
-    borderRadius: 29,
-    height: 58,
-    justifyContent: 'center',
-    width: 58,
+  shell: {
+    height: TAMANO_PEDESTAL,
+    width: TAMANO_PEDESTAL,
   },
-  nodoAsentado: {
-    borderColor: 'rgba(42, 53, 39, 0.28)',
-    borderWidth: 2,
-  },
-  extrusion: {
-    left: 7,
+  capaBoton: {
+    height: TAMANO_PEDESTAL,
+    left: 0,
     position: 'absolute',
     top: 0,
-    width: 58,
+    width: TAMANO_PEDESTAL,
   },
-  sombraAmbiental: {
-    backgroundColor: 'rgba(53, 43, 35, 0.16)',
-    borderRadius: 999,
-    height: 5,
-    left: 10,
-    position: 'absolute',
-    top: 80,
-    width: 52,
-  },
-  pedestal: {
+  iconoContenedor: {
     alignItems: 'center',
-    left: 2,
+    height: 27,
+    justifyContent: 'center',
+    left: 28.5,
     position: 'absolute',
-    top: 4,
-    width: 68,
-  },
-  pedestalCara: {
-    borderColor: 'rgba(255,255,255,0.92)',
-    borderRadius: 34,
-    borderWidth: 1,
-    height: 68,
-    width: 68,
-    zIndex: 2,
-  },
-  pedestalLateral: {
-    backgroundColor: '#bce8c4',
-    borderRadius: 34,
-    height: 68,
-    left: 0,
-    marginTop: 0,
-    position: 'absolute',
-    top: 8,
-    width: 68,
-  },
-  pedestalSombra: {
-    borderRadius: 34,
-    height: 68,
-    left: 0,
-    position: 'absolute',
-    top: 8,
-    width: 68,
-  },
-  bisel: {
-    borderColor: 'rgba(255,255,255,0.52)',
-    borderRadius: 22,
-    borderTopWidth: 1.5,
-    height: 43,
-    left: 5,
-    position: 'absolute',
-    top: 5,
-    width: 43,
-  },
-  biselBloqueado: {
-    borderColor: 'rgba(255,255,255,0.34)',
+    top: 19,
+    width: 27,
   },
 });
