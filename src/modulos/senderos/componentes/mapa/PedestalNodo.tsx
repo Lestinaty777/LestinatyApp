@@ -85,13 +85,12 @@ export function PedestalBotonSuperior({ color, tamano = 84 }: { color: string; t
           <Stop offset="1" stopColor={botonTopeOscuro} />
         </LinearGradient>
       </Defs>
-      {/* Ligeramente MÁS GRANDE que botonMedioGrad (rx/ry +1.5) a propósito:
-          así al presionar (ver DESPLAZAMIENTO_PRESS en NodoSendero.tsx) esta
-          elipse cae sobre la oscura y la rebasa por un pelito en todo el
-          borde — garantiza que nunca quede una rendija visible, con un
-          bultito mínimo "premium" en vez de quedar exactamente del mismo
-          tamaño. Si cambias el tamaño de botonMedioGrad, mantén este +1.5. */}
-      <Ellipse cx={151} cy={119} fill="url(#botonSuperiorGrad)" rx={121} ry={101.5} stroke="white" strokeOpacity={0.2} />
+      {/* Más CHICA que botonMedioGrad (rx/ry -7.5) a propósito: al presionar
+          (ver DESPLAZAMIENTO_PRESS en NodoSendero.tsx, calibrado para centrar
+          ambas exactamente) esta elipse queda concéntrica y más pequeña que
+          la oscura, dejando un borde parejo de la oscura visible alrededor —
+          una encima de la otra, no tapándola por completo. */}
+      <Ellipse cx={151} cy={119} fill="url(#botonSuperiorGrad)" rx={112} ry={92.5} stroke="white" strokeOpacity={0.2} />
     </Svg>
   );
 }

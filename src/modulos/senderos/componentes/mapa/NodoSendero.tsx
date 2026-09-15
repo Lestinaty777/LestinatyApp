@@ -18,12 +18,12 @@ type NodoSenderoProps = {
 };
 
 const TAMANO_PEDESTAL = 84;
-// La elipse superior (clara) está centrada 17.5 unidades más arriba que la
-// media (oscura) en el lienzo original de 302 — ese sería el desplazamiento
-// para caer EXACTO encima de la oscura, pero a propósito se presiona un poco
-// menos (15, no 17.5) para que al fondo del press la clara se quede
-// ligeramente arriba/encima de la oscura, no perfectamente al ras.
-const DESPLAZAMIENTO_PRESS = 30 * (TAMANO_PEDESTAL / 302);
+// La elipse superior (clara, ahora más CHICA que la oscura — ver
+// PedestalNodo.tsx) está centrada 17.5 unidades más arriba que la media
+// (oscura) en el lienzo original de 302x303. Este desplazamiento las centra
+// exactamente una encima de la otra al presionar — como es más chica, queda
+// un borde parejo de la oscura visible alrededor, no tapada por completo.
+const DESPLAZAMIENTO_PRESS = 17.5 * (TAMANO_PEDESTAL / 307);
 
 export function NodoSendero({ Icono, asentado, color, estado, onCompletar, onPress, escalaEscena = 1, seleccionado }: NodoSenderoProps) {
   const halo = useRef(new Animated.Value(0)).current;
@@ -54,7 +54,10 @@ export function NodoSendero({ Icono, asentado, color, estado, onCompletar, onPre
   }, [asentado, asentamiento]);
 
   const profundidad = asentamiento;
-  const escala = profundidad.interpolate({ inputRange: [0, 1], outputRange: [1, 0.96] });
+  // Solo scaleX (no scale parejo): encoge nada más los costados, un pelito —
+  // deja intacto el alto (ry/translateY) que ya se calibró para que la
+  // elipse clara caiga bien sobre la oscura al presionar.
+  const escalaX = profundidad.interpolate({ inputRange: [0, 1], outputRange: [1, 0.93] });
   const descensoBase = profundidad.interpolate({ inputRange: [0, 1], outputRange: [0, DESPLAZAMIENTO_PRESS] });
   const descensoInspeccion = inspeccion.interpolate({ inputRange: [0, 1], outputRange: [0, 4] });
   const descenso = Animated.add(descensoBase, descensoInspeccion);
@@ -102,7 +105,7 @@ export function NodoSendero({ Icono, asentado, color, estado, onCompletar, onPre
             montado encima) recibe el efecto press (translateY/scale). */}
         <View style={styles.shell}>
           {bloqueado ? <PedestalBaseBloqueada tamano={TAMANO_PEDESTAL} /> : <PedestalBase color={color} tamano={TAMANO_PEDESTAL} />}
-          <Animated.View style={[styles.capaBoton, { transform: [{ translateY: descenso }, { scale: escala }] }]}>
+          <Animated.View style={[styles.capaBoton, { transform: [{ translateY: descenso }, { scaleX: escalaX }] }]}>
             {bloqueado ? <PedestalBotonBloqueado tamano={TAMANO_PEDESTAL} /> : <PedestalBotonSuperior color={color} tamano={TAMANO_PEDESTAL} />}
             <View pointerEvents="none" style={styles.iconoContenedor}>
               <Icono color={bloqueado ? '#5C8A57' : '#FFFFFF'} size={27} strokeWidth={2.7} />
