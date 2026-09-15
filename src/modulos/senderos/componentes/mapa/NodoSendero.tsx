@@ -23,7 +23,7 @@ const TAMANO_PEDESTAL = 84;
 // (oscura) en el lienzo original de 302x303. Este desplazamiento las centra
 // exactamente una encima de la otra al presionar — como es más chica, queda
 // un borde parejo de la oscura visible alrededor, no tapada por completo.
-const DESPLAZAMIENTO_PRESS = 17.5 * (TAMANO_PEDESTAL / 307);
+const DESPLAZAMIENTO_PRESS = 21.5 * (TAMANO_PEDESTAL / 307);
 
 export function NodoSendero({ Icono, asentado, color, estado, onCompletar, onPress, escalaEscena = 1, seleccionado }: NodoSenderoProps) {
   const halo = useRef(new Animated.Value(0)).current;
@@ -46,7 +46,7 @@ export function NodoSendero({ Icono, asentado, color, estado, onCompletar, onPre
 
   useEffect(() => {
     Animated.timing(asentamiento, {
-      duration: asentado ? 260 : 430,
+      duration: asentado ? 140 : 220,
       easing: Easing.out(Easing.cubic),
       toValue: asentado ? 1 : 0,
       useNativeDriver: true,
@@ -58,6 +58,9 @@ export function NodoSendero({ Icono, asentado, color, estado, onCompletar, onPre
   // deja intacto el alto (ry/translateY) que ya se calibró para que la
   // elipse clara caiga bien sobre la oscura al presionar.
   const escalaX = profundidad.interpolate({ inputRange: [0, 1], outputRange: [1, 0.93] });
+  // Oscurece la elipse oscura (el "socket") ~20% mientras está presionada —
+  // overlay negro semitransparente, ver PedestalBase en PedestalNodo.tsx.
+  const oscurecimientoMedio = profundidad.interpolate({ inputRange: [0, 1], outputRange: [0, 0.2] });
   const descensoBase = profundidad.interpolate({ inputRange: [0, 1], outputRange: [0, DESPLAZAMIENTO_PRESS] });
   const descensoInspeccion = inspeccion.interpolate({ inputRange: [0, 1], outputRange: [0, 4] });
   const descenso = Animated.add(descensoBase, descensoInspeccion);
@@ -104,7 +107,7 @@ export function NodoSendero({ Icono, asentado, color, estado, onCompletar, onPre
             colores saturados (+ el ícono real, dinámico según el paso,
             montado encima) recibe el efecto press (translateY/scale). */}
         <View style={styles.shell}>
-          {bloqueado ? <PedestalBaseBloqueada tamano={TAMANO_PEDESTAL} /> : <PedestalBase color={color} tamano={TAMANO_PEDESTAL} />}
+          {bloqueado ? <PedestalBaseBloqueada tamano={TAMANO_PEDESTAL} /> : <PedestalBase color={color} oscurecimiento={oscurecimientoMedio} tamano={TAMANO_PEDESTAL} />}
           <Animated.View style={[styles.capaBoton, { transform: [{ translateY: descenso }, { scaleX: escalaX }] }]}>
             {bloqueado ? <PedestalBotonBloqueado tamano={TAMANO_PEDESTAL} /> : <PedestalBotonSuperior color={color} tamano={TAMANO_PEDESTAL} />}
             <View pointerEvents="none" style={styles.iconoContenedor}>

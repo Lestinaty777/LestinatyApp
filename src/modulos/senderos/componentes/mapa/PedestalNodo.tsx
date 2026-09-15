@@ -1,8 +1,11 @@
 import { BlurMask, Canvas, Group, Path as PathSkia } from '@shopify/react-native-skia';
-import { StyleSheet } from 'react-native';
-import { Defs, Ellipse, LinearGradient, Path, Stop, Svg } from 'react-native-svg';
+import { Animated, StyleSheet } from 'react-native';
+import { Defs, Ellipse, LinearGradient, Path, RadialGradient, Stop, Svg } from 'react-native-svg';
 
 import { rotarPaletaHex } from '../../algoritmo/colorHsl';
+
+const AnimatedEllipse = Animated.createAnimatedComponent(Ellipse);
+type ValorAnimado = Animated.Value | Animated.AnimatedInterpolation<number>;
 
 // El acento de blur del diseño de Figma (una línea difuminada bajo el botón)
 // SÍ se puede lograr con blur real: react-native-svg trae <Filter>/
@@ -37,7 +40,7 @@ function AcentoBlur({ color, tamano }: { color: string; tamano: number }) {
 const REFERENCIA_HUE = '#21A844';
 const PALETA_BASE = ['#B4DC9B', '#DEFCDD', '#B2EEB1', '#44B042', '#248723', '#53C35D', '#21A844', '#69C068', '#28A116'] as const;
 
-export function PedestalBase({ color, tamano = 84 }: { color: string; tamano?: number }) {
+export function PedestalBase({ color, oscurecimiento, tamano = 84 }: { color: string; oscurecimiento?: ValorAnimado; tamano?: number }) {
   const [pedestalSolido, pedestalClaro, pedestalOscuro, botonMedioClaro, botonMedioOscuro, , , strokeEllipse, lineaBlur] =
     rotarPaletaHex(PALETA_BASE, REFERENCIA_HUE, color);
 
@@ -66,9 +69,19 @@ export function PedestalBase({ color, tamano = 84 }: { color: string; tamano?: n
             <Stop offset="0.782899" stopColor={botonMedioClaro} />
             <Stop offset="1" stopColor={botonMedioOscuro} />
           </LinearGradient>
+          <RadialGradient cx="50%" cy="50%" id="sombraPresionadoGrad" r="50%">
+            <Stop offset="0%" stopColor="#0B5C30" stopOpacity={1} />
+            <Stop offset="100%" stopColor="#66C27A" stopOpacity={0.35} />
+          </RadialGradient>
         </Defs>
         <Ellipse cx={151} cy={130} fill="url(#botonTopeGrad)" rx={150.5} ry={129.5} stroke="white" strokeOpacity={0.2} />
         <Ellipse cx={151} cy={136.5} fill="url(#botonMedioGrad)" rx={119.5} ry={100} stroke={strokeEllipse} strokeWidth={2} />
+        {/* Degradado radial EXACTO sobre botonMedioGrad — verde oscuro al
+            centro, más suave en el borde — sube de opacidad al presionar
+            (ver NodoSendero.tsx) en vez de un overlay negro plano. */}
+        {oscurecimiento !== undefined && (
+          <AnimatedEllipse cx={151} cy={136.5} fill="url(#sombraPresionadoGrad)" opacity={oscurecimiento} rx={119.5} ry={100} />
+        )}
       </Svg>
     </>
   );
@@ -90,7 +103,7 @@ export function PedestalBotonSuperior({ color, tamano = 84 }: { color: string; t
           ambas exactamente) esta elipse queda concéntrica y más pequeña que
           la oscura, dejando un borde parejo de la oscura visible alrededor —
           una encima de la otra, no tapándola por completo. */}
-      <Ellipse cx={151} cy={119} fill="url(#botonSuperiorGrad)" rx={112} ry={92.5} stroke="white" strokeOpacity={0.2} />
+      <Ellipse cx={151} cy={119} fill="url(#botonSuperiorGrad)" rx={114} ry={94.5} stroke="white" strokeOpacity={0.2} />
     </Svg>
   );
 }
