@@ -12,6 +12,8 @@ import { obtenerNodosMapaMock } from '../../datos/mapaEjercicio.mock';
 import type { EstadoNodoMapa, NodoMapaSendero } from '../../datos/mapaEjercicio.mock';
 import { PixelartIcon } from '../../../../diseno/iconos/PixelartIcon';
 import { LamparaSendero } from './LamparaSendero';
+import { LinearGradient } from 'expo-linear-gradient';
+import { rotarPaletaHex } from '../../algoritmo/colorHsl';
 
 import { NodoSendero } from './NodoSendero';
 
@@ -493,16 +495,39 @@ function TooltipNodoSeleccionado({ anchoEscena, color, estado, nodo, posicion, o
   const izquierdaTooltip = anchoEscena / 2 - anchoTooltip / 2;
   const izquierdaFlecha = posicion.x - izquierdaTooltip - 10;
   const IconoNodo = nodo.icono;
+  const REFERENCIA_HUE = '#21A844';
+  const PALETA_BASE = ['#B4DC9B', '#DEFCDD', '#B2EEB1', '#44B042', '#248723', '#53C35D', '#21A844', '#69C068', '#28A116'] as const;
+  const PALETA_BLOQUEADA = ['#EDFFED', '#CDFACC', '#C8E0B8', '#E2FFE2', '#C0EEBF', '#206116', '#ADF1B3', '#8AE280'] as const;
+
+  const colorBaseTooltip = estado === 'bloqueado' ? '#666666' : color;
+  const colorFlechita = estado === 'bloqueado' ? '#444444' : color;
   const colorMaster = colorMasterMasCercano(color);
-  const tono = TONOS_TOOLTIP_MASTER[colorMaster];
+  
+  const [colorTopeClaro, colorTopeOscuro] = estado === 'bloqueado'
+    ? (() => {
+        const paleta = rotarPaletaHex(PALETA_BLOQUEADA, REFERENCIA_HUE, color);
+        return [paleta[6], paleta[7]];
+      })()
+    : (() => {
+        const paleta = rotarPaletaHex(PALETA_BASE, REFERENCIA_HUE, color);
+        return [paleta[5], paleta[6]];
+      })();
+
+  const colorBorde = 'rgba(255,255,255,0.2)';
+  const tono = estado === 'bloqueado' ? { aurora: '#444444', texto: '#FFFFFF' } : TONOS_TOOLTIP_MASTER[colorMaster];
 
   return (
     <View pointerEvents="box-none" style={[styles.etiqueta, { left: izquierdaTooltip, top: posicion.y + 40 }]}>
-      <View style={[styles.tooltipFlechita, { backgroundColor: color, left: izquierdaFlecha, position: 'absolute', top: -10 }]} />
+      <View style={[styles.tooltipFlechita, { backgroundColor: colorTopeClaro, left: izquierdaFlecha, position: 'absolute', top: -10 }]} />
       <View style={{ width: '100%' }}>
-        <MasterGlass blur colorBase={color} intensity={18} style={styles.tooltipCaja}>
+        <LinearGradient 
+          colors={[colorTopeClaro, colorTopeOscuro]} 
+          start={{ x: 0, y: 0.1 }} 
+          end={{ x: 0, y: 1 }} 
+          style={[styles.tooltipCaja, { borderWidth: 1, borderColor: colorBorde }]}
+        >
           <AuroraTooltip color={tono.aurora} />
-          <AcentoTooltipNodo color={color} />
+          <AcentoTooltipNodo color={colorBaseTooltip} />
           <View style={styles.tooltipContenido}>
           <View style={{ alignItems: 'center', flexDirection: 'row', gap: 8 }}>
             <IconoNodo color={tono.texto} size={20} />
@@ -511,7 +536,7 @@ function TooltipNodoSeleccionado({ anchoEscena, color, estado, nodo, posicion, o
           <Texto style={[styles.etiquetaMeta, { color: tono.texto }]}>Lección clave para poner a prueba tus habilidades y avanzar.</Texto>
           <MasterButton
             style={{ marginTop: 14, width: '100%' }}
-            color={color}
+            color={colorBaseTooltip}
             disabled={estado === 'bloqueado'}
             onPress={onCompletar}
             iconoDerecha={estado === 'completado' ? (props) => <PixelartIcon name="chevron-right" color={props.color} size={props.size} /> : undefined}
@@ -519,7 +544,7 @@ function TooltipNodoSeleccionado({ anchoEscena, color, estado, nodo, posicion, o
             {estado === 'bloqueado' ? 'Bloqueado' : estado === 'completado' ? 'Repasar' : 'Comenzar'}
           </MasterButton>
           </View>
-        </MasterGlass>
+        </LinearGradient>
       </View>
     </View>
   );

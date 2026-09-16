@@ -96,16 +96,26 @@ export function NodoSendero({ Icono, asentado, color, estado, onCompletar, onPre
             onCompletar();
             return;
           }
-          Animated.timing(inspeccion, { duration: 140, toValue: 1, useNativeDriver: true }).start();
-          pulsoInspeccion.stopAnimation();
-          pulsoInspeccion.setValue(0);
-          Animated.loop(Animated.sequence([
-            Animated.timing(pulsoInspeccion, { duration: 520, toValue: 1, useNativeDriver: true }),
-            Animated.timing(pulsoInspeccion, { duration: 520, toValue: 0, useNativeDriver: true }),
-          ])).start();
+          if (!bloqueado) {
+            Animated.timing(inspeccion, { duration: 140, toValue: 1, useNativeDriver: true }).start();
+            pulsoInspeccion.stopAnimation();
+            pulsoInspeccion.setValue(0);
+            Animated.loop(Animated.sequence([
+              Animated.timing(pulsoInspeccion, { duration: 520, toValue: 1, useNativeDriver: true }),
+              Animated.timing(pulsoInspeccion, { duration: 520, toValue: 0, useNativeDriver: true }),
+            ])).start();
+          }
           hapticSeguro('seleccion');
         }}
+        onPressIn={() => {
+          if (!bloqueado) {
+            Animated.timing(profundidad, { duration: 100, easing: Easing.out(Easing.quad), toValue: 1, useNativeDriver: true }).start();
+          }
+        }}
         onPressOut={() => {
+          if (!bloqueado) {
+            Animated.timing(profundidad, { duration: 150, easing: Easing.out(Easing.cubic), toValue: 0, useNativeDriver: true }).start();
+          }
           pulsoInspeccion.stopAnimation();
           Animated.timing(inspeccion, { duration: 160, toValue: 0, useNativeDriver: true }).start();
         }}
