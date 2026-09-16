@@ -125,6 +125,23 @@ describe('generarMapaProcedural', () => {
     expect(porProfundidad.secundario / total).toBeLessThan(porProfundidad.principal / total);
   });
 
+  it('intercala algunos árboles de etapa entre nodos consecutivos de un paquete real', () => {
+    const tema = crearTemaMapa('habitos', '#22C55E', 'sendero-intermedio', 'albedo', 4, undefined, true);
+    const mapa = generarMapaProcedural({ ancho: 360, cantidadNodos: 60, tema });
+    const arbolesIntermedios = mapa.decoraciones.filter((decoracion) => {
+      if (!decoracion.assetId.startsWith('albedo-') || decoracion.etapa === undefined) return false;
+      const tamano = 172 * decoracion.escala;
+      const baseArbol = decoracion.y + tamano * 0.62;
+      return mapa.nodos.slice(0, -1).some((nodo, indice) => Math.abs(baseArbol - (nodo.y + mapa.nodos[indice + 1].y) / 2) < 0.01);
+    });
+
+    expect(arbolesIntermedios.length).toBeGreaterThan(0);
+    expect(arbolesIntermedios.some((decoracion) => {
+      const tamano = 172 * decoracion.escala;
+      return decoracion.x < 0 || decoracion.x + tamano > 360;
+    })).toBe(true);
+  });
+
   it('esparce semillas y brotes del paquete solo en niveles bajos y solo con arte real', () => {
     const temaNivel1 = crearTemaMapa('habitos', '#22C55E', 'sendero-semillas-1', 'albedo', 1, undefined, true);
     const mapaNivel1 = generarMapaProcedural({ ancho: 360, cantidadNodos: 6, tema: temaNivel1 });

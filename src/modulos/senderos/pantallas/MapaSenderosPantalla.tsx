@@ -87,6 +87,8 @@ export function MapaSenderosPantalla() {
   const [filtroMomento, setFiltroMomento] = React.useState<'manana' | 'noche' | 'tarde' | 'todos'>('todos');
   const [nivelVistaPrueba, setNivelVistaPrueba] = React.useState(1);
   const animMenuState = useSharedValue(0);
+  const listaHabitosRef = React.useRef<FlatList>(null);
+  const [indiceVisibleHabito, setIndiceVisibleHabito] = React.useState(0);
 
   const handleToggleMenu = (menu: 'categories' | 'courses' | 'store') => {
     hapticSeguro('seleccion');
@@ -233,7 +235,7 @@ export function MapaSenderosPantalla() {
               {activeMenu === 'courses' && categoriaActiva === 'habitos' && (() => {
                 const habitosPendientesHoy = Math.max(0, habitosReales.length - habitosCompletadosHoy);
                 const fraccionHoy = habitosReales.length > 0 ? habitosCompletadosHoy / habitosReales.length : 0;
-                const anchoCarta = Math.min(340, windowWidth - 40 - PEEK_SIGUIENTE_TARJETA);
+                const anchoCarta = 200; // Ancho fijo compacto
                 return (
                   <View style={{ flex: 1, paddingHorizontal: 20, paddingTop: 5, paddingBottom: 5 }}>
                     <MasterGlass blur style={cp.headerGlass}>
@@ -257,40 +259,76 @@ export function MapaSenderosPantalla() {
                       </View>
                     </MasterGlass>
 
-                    <FlatList
-                      contentContainerStyle={{ paddingBottom: 6 }}
-                      data={asignaturasHabitos}
-                      decelerationRate="fast"
-                      getItemLayout={(_, indice) => ({ index: indice, length: anchoCarta + 14, offset: indice * (anchoCarta + 14) })}
-                      horizontal
-                      initialNumToRender={2}
-                      ItemSeparatorComponent={() => <View style={{ width: 14 }} />}
-                      keyExtractor={(asig) => asig.id}
-                      maxToRenderPerBatch={2}
-                      removeClippedSubviews
-                      renderItem={({ item: asig }) => {
-                        const detalle = detallesPorHabito.get(asig.habitoReal!.id);
-                        const icono = buscarIconoHabito(asig.habitoReal!.iconoLucide);
-                        return (
-                          <TarjetaHabitoCompacta
-                            alto={104}
-                            ancho={anchoCarta}
-                            diasCompletados={detalle?.diasCompletadosSemana ?? []}
-                            diasProgramados={detalle?.diasProgramados ?? DIAS_SEMANA_COMPLETA}
-                            icono={icono ?? { fuente: require('../../../../assets/icons/ui/idea.png') }}
-                            key={asig.id}
-                            meta={asig.habitoReal!.meta}
-                            nivel={detalle?.nivel ?? 1}
-                            onPress={() => { hapticSeguro('seleccion'); setAsignaturaId(asig.id); setActiveMenu('none'); }}
-                            racha={detalle?.racha ?? 0}
-                            titulo={asig.titulo}
-                            valorHoy={asig.habitoReal!.valorHoy}
-                          />
-                        );
-                      }}
-                      showsHorizontalScrollIndicator={false}
-                      windowSize={3}
-                    />
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                      <Pressable 
+                        disabled={indiceVisibleHabito === 0}
+                        onPress={() => {
+                          hapticSeguro('seleccion');
+                          listaHabitosRef.current?.scrollToIndex({ index: Math.max(0, indiceVisibleHabito - 1), animated: true });
+                          setIndiceVisibleHabito(i => Math.max(0, i - 1));
+                        }}
+                      >
+                        <MasterGlass compacto style={{ width: 36, height: 104, alignItems: 'center', justifyContent: 'center', borderRadius: 12, opacity: indiceVisibleHabito === 0 ? 0.3 : 1 }}>
+                          <ChevronLeft color="#145C37" size={24} />
+                        </MasterGlass>
+                      </Pressable>
+
+                      <View style={{ flex: 1 }}>
+                        <FlatList
+                          ref={listaHabitosRef}
+                          contentContainerStyle={{ paddingBottom: 6 }}
+                          data={asignaturasHabitos}
+                          decelerationRate="fast"
+                          getItemLayout={(_, indice) => ({ index: indice, length: anchoCarta + 14, offset: indice * (anchoCarta + 14) })}
+                          horizontal
+                          initialNumToRender={2}
+                          ItemSeparatorComponent={() => <View style={{ width: 14 }} />}
+                          keyExtractor={(asig) => asig.id}
+                          maxToRenderPerBatch={2}
+                          onMomentumScrollEnd={(e) => {
+                            const newIndex = Math.round(e.nativeEvent.contentOffset.x / (anchoCarta + 14));
+                            setIndiceVisibleHabito(newIndex);
+                          }}
+                          snapToInterval={anchoCarta + 14}
+                          removeClippedSubviews
+                          renderItem={({ item: asig }) => {
+                            const detalle = detallesPorHabito.get(asig.habitoReal!.id);
+                            const icono = buscarIconoHabito(asig.habitoReal!.iconoLucide);
+                            return (
+                              <TarjetaHabitoCompacta
+                                alto={92}
+                                ancho={anchoCarta}
+                                diasCompletados={detalle?.diasCompletadosSemana ?? []}
+                                diasProgramados={detalle?.diasProgramados ?? DIAS_SEMANA_COMPLETA}
+                                icono={icono ?? { fuente: require('../../../../assets/icons/ui/idea.png') }}
+                                key={asig.id}
+                                meta={asig.habitoReal!.meta}
+                                nivel={detalle?.nivel ?? 1}
+                                onPress={() => { hapticSeguro('seleccion'); setAsignaturaId(asig.id); setActiveMenu('none'); }}
+                                racha={detalle?.racha ?? 0}
+                                titulo={asig.titulo}
+                                valorHoy={asig.habitoReal!.valorHoy}
+                              />
+                            );
+                          }}
+                          showsHorizontalScrollIndicator={false}
+                          windowSize={3}
+                        />
+                      </View>
+
+                      <Pressable 
+                        disabled={indiceVisibleHabito >= asignaturasHabitos.length - 1}
+                        onPress={() => {
+                          hapticSeguro('seleccion');
+                          listaHabitosRef.current?.scrollToIndex({ index: Math.min(asignaturasHabitos.length - 1, indiceVisibleHabito + 1), animated: true });
+                          setIndiceVisibleHabito(i => Math.min(asignaturasHabitos.length - 1, i + 1));
+                        }}
+                      >
+                        <MasterGlass compacto style={{ width: 36, height: 104, alignItems: 'center', justifyContent: 'center', borderRadius: 12, opacity: indiceVisibleHabito >= asignaturasHabitos.length - 1 ? 0.3 : 1 }}>
+                          <ChevronRight color="#145C37" size={24} />
+                        </MasterGlass>
+                      </Pressable>
+                    </View>
 
                     <View style={{ flexDirection: 'row', gap: 8, marginTop: 16 }}>
                       {([
@@ -497,10 +535,11 @@ export function MapaSenderosPantalla() {
                         </Pressable>
                       )}
                       <MasterGlass 
+                        colorBase={colorEfectivo}
                         compacto 
-                        style={{ paddingHorizontal: 10, paddingVertical: 6, borderRadius: 12, flexDirection: 'row', alignItems: 'center', backgroundColor: aclarar(colorEfectivo, 0.75) }}
+                        style={{ paddingHorizontal: 10, paddingVertical: 6, borderRadius: 12, flexDirection: 'row', alignItems: 'center' }}
                       >
-                        <MasterIcon color={2} name={`nivel${nivelVisible}`} size={24} />
+                        <MasterIcon color={colorMasterMasCercano(colorEfectivo)} name={`nivel${nivelVisible}`} size={24} />
                       </MasterGlass>
                       {esPruebaDiamante && (
                         <Pressable accessibilityLabel="Ver nivel siguiente" disabled={nivelVisible === 7} hitSlop={8} onPress={() => { hapticSeguro('seleccion'); setNivelVistaPrueba((nivel) => Math.min(7, nivel + 1)); }} style={[styles.botonNivelPrueba, nivelVisible === 7 && styles.botonNivelPruebaDeshabilitado]}>

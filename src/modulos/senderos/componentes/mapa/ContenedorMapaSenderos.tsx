@@ -1,12 +1,12 @@
 import React, { useMemo, useRef, useState } from 'react';
-import { Animated, FlatList, Image, ScrollView, StyleSheet, useWindowDimensions, View, Pressable, TouchableWithoutFeedback } from 'react-native';
+import { Animated, Image, type ImageSourcePropType, ScrollView, StyleSheet, useWindowDimensions, View, Pressable, TouchableWithoutFeedback } from 'react-native';
 import { useRouter } from 'expo-router';
 import Svg, { Path, Rect, Defs, Pattern } from 'react-native-svg';
 import { BlurMask, Canvas, Group, Oval } from '@shopify/react-native-skia';
 
 import { Texto } from '../../../../diseno';
-import { colorMasterMasCercano, MasterChanger } from '../../../../diseno/componentes/MasterChanger';
-import { crearTemaMapa, generarMapaProcedural, type CategoriaMapaId } from '../../algoritmo/mapaProcedural';
+import { colorMasterMasCercano, MasterChanger, type ColorMaster } from '../../../../diseno/componentes/MasterChanger';
+import { crearTemaMapa, generarMapaProcedural, type CategoriaMapaId, type MapaProcedural } from '../../algoritmo/mapaProcedural';
 import { ASSETS_AMBIENTE_UNIVERSAL, obtenerAssetBioma, obtenerAssetEtapaUnoPaquete, obtenerAssetSemillaPaquete, registroBiomas, tienePaqueteAssetsReales } from '../../algoritmo/registroBiomas';
 import { obtenerNodosMapaMock } from '../../datos/mapaEjercicio.mock';
 import type { EstadoNodoMapa, NodoMapaSendero } from '../../datos/mapaEjercicio.mock';
@@ -34,32 +34,35 @@ type ContenedorMapaSenderosProps = {
 };
 
 const separacionVertical = 112;
-// Debe reflejar el mismo espacio de arriba que usa generarMapaProcedural
-// (DESPLAZAMIENTO_SUPERIOR en mapaProcedural.ts) para que el contenedor
-// scrolleable sea lo bastante alto y no comprima el terreno de abajo.
-const margenSuperior = 220;
+// Debe reflejar el arranque compacto que usa generarMapaProcedural; así el
+// primer nodo entra cerca al cambiar de nivel, sin efecto de alejamiento.
+const margenSuperior = 222;
 const margenInferior = 64;
 const AnimatedPath = Animated.createAnimatedComponent(Path);
 const zIndexPorCapa = { fondo: 1, medio: 3, frente: 4 } as const;
 
-// Sombra de contacto muy sutil bajo cada pasto/roca del ambiente universal,
+// Sombra de contacto muy sutil bajo cada elemento del terreno,
 // para que no floten sobre el suelo — verde oscuro, difuminada de verdad con
 // Skia (igual que AcentoBlur en PedestalNodo.tsx: una <View> con opacity no
 // se difumina, hace falta BlurMask sobre un <Canvas>).
-function SombraSuelo({ tamano }: { tamano: number }) {
-  const ancho = tamano * 0.44;
-  const alto = tamano * 0.1;
+function SombraSuelo({ tamano, vegetacion = false }: { tamano: number; vegetacion?: boolean }) {
+  // Las copas llevan mucho aire transparente dentro del PNG. Para árboles,
+  // flores y arbustos la sombra se calcula desde su tamaño final, pero con
+  // una huella de base más compacta que la de una roca o macizo de pasto.
+  const ancho = Math.max(vegetacion ? 14 : 12, tamano * (vegetacion ? 0.5 : 0.44));
+  const alto = Math.max(vegetacion ? 3 : 2.5, tamano * (vegetacion ? 0.085 : 0.1));
+  const desenfoque = Math.max(1.5, tamano * (vegetacion ? 0.045 : 0.05));
   const x = (tamano - ancho) / 2;
   // Pegada a la base real del sprite (no al borde del cuadro contenedor, que
   // suele tener aire arriba/abajo por el "contain") y detrás de la imagen —
   // este Canvas se declara antes que el <Image> en el JSX, así que queda
   // debajo en el orden de pintado.
-  const y = tamano * 0.7;
+  const y = tamano * (vegetacion ? 0.74 : 0.7);
   return (
     <Canvas pointerEvents="none" style={[StyleSheet.absoluteFill, { height: tamano, width: tamano }]}>
-      <Group opacity={0.32}>
+      <Group opacity={vegetacion ? 0.3 : 0.32}>
         <Oval color="#0B3D1F" height={alto} width={ancho} x={x} y={y}>
-          <BlurMask blur={tamano * 0.05} style="normal" />
+          <BlurMask blur={desenfoque} style="normal" />
         </Oval>
       </Group>
     </Canvas>
@@ -103,12 +106,128 @@ const MosaicoTooltip = () => (
   </View>
 );
 
+type CapaDecoracionMapaProps = {
+  assetBrote: ImageSourcePropType | null;
+  assetSemilla: ImageSourcePropType | null;
+  categoriaId: CategoriaMapaId;
+  colorMasterAmbiente: ColorMaster;
+  finVentana: number;
+  inicioVentana: number;
+  mapa: MapaProcedural;
+  nivel?: number;
+  paqueteId?: string;
+};
+
+// Esta capa es deliberadamente independiente de nodos/SVG. React.memo evita
+// volver a reconciliar sus imágenes costosas al seleccionar un nodo o animar
+// una conexión; solo cambia al cruzar la ventana de scroll calculada arriba.
+const CapaDecoracionMapa = React.memo(function CapaDecoracionMapa({
+  assetBrote,
+  assetSemilla,
+  categoriaId,
+  colorMasterAmbiente,
+  finVentana,
+  inicioVentana,
+  mapa,
+  nivel,
+  paqueteId,
+}: CapaDecoracionMapaProps) {
+  const estaVisible = (arriba: number, alto: number) => arriba + alto >= inicioVentana && arriba <= finVentana;
+
+  return (
+    <View pointerEvents="none" style={[StyleSheet.absoluteFill, { zIndex: 1 }]}>
+      {mapa.ambiente.map((item, indice) => {
+        const tamano = 172 * item.escala;
+        if (!estaVisible(item.y, tamano)) return null;
+        return (
+          <View
+            key={`ambiente-${indice}`}
+            style={[styles.ambiente, { height: tamano, left: item.x, top: item.y, width: tamano }]}
+          >
+            <SombraSuelo tamano={tamano} />
+            <View style={{ height: tamano, opacity: item.opacidad, transform: [{ scaleX: item.volteado ? -1 : 1 }], width: tamano }}>
+              <MasterChanger ancho={tamano} alto={tamano} colorDestino={colorMasterAmbiente} fit="contain" fuente={ASSETS_AMBIENTE_UNIVERSAL[item.assetId]} />
+            </View>
+          </View>
+        );
+      })}
+      {assetSemilla && mapa.semillas.map((item, indice) => {
+        const tamano = 172 * item.escala;
+        if (!estaVisible(item.y, tamano)) return null;
+        return (
+          <View key={`semilla-${indice}`} style={[styles.ambiente, { height: tamano, left: item.x, top: item.y, width: tamano }]}>
+            <SombraSuelo tamano={tamano} />
+            <Image resizeMode="contain" source={assetSemilla} style={{ height: '100%', transform: [{ scaleX: item.volteado ? -1 : 1 }], width: '100%' }} />
+          </View>
+        );
+      })}
+      {assetBrote && mapa.brotes.map((item, indice) => {
+        const tamano = 172 * item.escala;
+        if (!estaVisible(item.y, tamano)) return null;
+        return (
+          <View key={`brote-${indice}`} style={[styles.ambiente, { height: tamano, left: item.x, top: item.y, width: tamano }]}>
+            <SombraSuelo tamano={tamano} />
+            <Image resizeMode="contain" source={assetBrote} style={{ height: '100%', transform: [{ scaleX: item.volteado ? -1 : 1 }], width: '100%' }} />
+          </View>
+        );
+      })}
+      {mapa.piedras.map((piedra, indice) => {
+        if (!estaVisible(piedra.y, piedra.tamano)) return null;
+        return (
+          <View
+            key={`piedras-${indice}`}
+            style={[styles.piedras, {
+              height: piedra.tamano,
+              left: piedra.x,
+              top: piedra.y,
+              transform: [{ scaleX: piedra.espejoHorizontal }],
+              width: piedra.tamano,
+            }]}
+          >
+            <SombraSuelo tamano={piedra.tamano} />
+            <MasterChanger ancho={piedra.tamano} alto={piedra.tamano} colorDestino={colorMasterAmbiente} fit="contain" fuente={ASSETS_AMBIENTE_UNIVERSAL[piedra.assetId]} />
+          </View>
+        );
+      })}
+      {mapa.decoraciones.map((decoracion, indice) => {
+        const asset = obtenerAssetBioma(categoriaId, decoracion.assetId, paqueteId, nivel);
+        if (!asset) return null;
+        const tamano = 172 * decoracion.escala;
+        if (!estaVisible(decoracion.y, tamano)) return null;
+        return (
+          <View
+            key={`bioma-${decoracion.assetId}-${indice}`}
+            style={[styles.decoracionBioma, {
+              height: tamano,
+              left: decoracion.x,
+              top: decoracion.y,
+              width: tamano,
+              zIndex: zIndexPorCapa[decoracion.capa],
+            }]}
+          >
+            <SombraSuelo tamano={tamano} vegetacion />
+            <Image
+              resizeMode="contain"
+              source={asset.fuente}
+              style={[styles.decoracionBiomaImagen, { transform: [{ scaleX: decoracion.volteado ? -1 : 1 }] }]}
+            />
+          </View>
+        );
+      })}
+      {mapa.lamparas.map((lampara, indice) => estaVisible(lampara.y, lampara.tamano)
+        ? <DecoracionSendero key={`lampara-${indice}`} izquierda={lampara.x} tamano={lampara.tamano} arriba={lampara.y} />
+        : null)}
+    </View>
+  );
+});
+
 export function ContenedorMapaSenderos({ altura, categoriaId, color, enfocado, nivel, nodos: nodosOverride, onCompletarNodo, paqueteId, progresoPastoTemprano, subcategoriaId }: ContenedorMapaSenderosProps) {
   const { width } = useWindowDimensions();
   const router = useRouter();
   const scrollRef = useRef<ScrollView>(null);
-  const listaMapaRef = useRef<FlatList<number>>(null);
   const [anchoMapa, setAnchoMapa] = useState(0);
+  const [desplazamientoMapa, setDesplazamientoMapa] = useState(0);
+  const desplazamientoDecoracionRef = useRef(0);
   const nodos = nodosOverride ?? obtenerNodosMapaMock(subcategoriaId);
   const ultimoCompletadoInicial = Math.max(-1, nodos.reduce((ultimo, nodo, indice) => nodo.estado === 'completado' ? indice : ultimo, -1));
   const [ultimoCompletado, setUltimoCompletado] = useState(ultimoCompletadoInicial);
@@ -118,11 +237,10 @@ export function ContenedorMapaSenderos({ altura, categoriaId, color, enfocado, n
   const [conexionEnCurso, setConexionEnCurso] = useState<number | null>(null);
   const progresoConexion = useRef(new Animated.Value(0)).current;
   const altoContenido = Math.max(altura, margenSuperior + Math.max(0, nodos.length - 1) * separacionVertical + 430);
-  // Desde nivel 3 hay suficientes nodos/ambiente para que valga la pena
-  // virtualizar por franjas. Los dos primeros niveles conservan el lienzo
-  // continuo para que su escena breve se sienta inmediata.
-  const usarMapaVirtualizado = (nivel ?? 1) >= 3;
-  const tramosVirtuales = useMemo(() => Array.from({ length: Math.ceil(altoContenido / separacionVertical) }, (_, indice) => indice), [altoContenido]);
+  // El lienzo de nodos y conexiones nunca se virtualiza: es interactivo y
+  // continuo. En mapas 3+ solo se cierra la ventana de decoración lejana.
+  const limitarDecoracion = (nivel ?? 1) >= 3;
+  const margenDecoracion = Math.max(altura, 480);
   const anchoEscena = anchoMapa || width;
   const colorMasterAmbiente = useMemo(() => colorMasterMasCercano(color), [color]);
   const tieneAssetsPaquete = paqueteId ? tienePaqueteAssetsReales(paqueteId) : false;
@@ -161,8 +279,7 @@ export function ContenedorMapaSenderos({ altura, categoriaId, color, enfocado, n
     setSeleccionado(id);
     if (enfocado) {
       const destino = Math.max(0, margenSuperior + indice * separacionVertical - altura * 0.34);
-      if (usarMapaVirtualizado) listaMapaRef.current?.scrollToOffset({ animated: true, offset: destino });
-      else scrollRef.current?.scrollTo({ animated: true, y: destino });
+      scrollRef.current?.scrollTo({ animated: true, y: destino });
     }
   }
 
@@ -191,112 +308,23 @@ export function ContenedorMapaSenderos({ altura, categoriaId, color, enfocado, n
     setAnchoMapa((actual) => Math.abs(actual - ancho) < 1 ? actual : ancho);
   }
 
-  if (usarMapaVirtualizado) {
-    return (
-      <View onLayout={({ nativeEvent }) => medirAnchoMapa(nativeEvent.layout.width)} style={[styles.raiz, { backgroundColor: aclarar(color, 0.88), flex: 1 }]}>
-        <View style={[styles.escenaPerspectiva, { flex: 1 }]}>
-          <FlatList
-            ref={listaMapaRef}
-            data={tramosVirtuales}
-            getItemLayout={(_, indice) => ({ index: indice, length: separacionVertical, offset: indice * separacionVertical })}
-            initialNumToRender={4}
-            keyExtractor={(tramo) => `tramo-mapa-${tramo}`}
-            maxToRenderPerBatch={3}
-            nestedScrollEnabled
-            overScrollMode="never"
-            removeClippedSubviews
-            renderItem={({ item: tramo }) => {
-              const inicio = tramo * separacionVertical;
-              const fin = inicio + separacionVertical;
-              // Cada sprite tiene un único tramo propietario (por su centro),
-              // para no duplicarlo en los límites entre celdas de FlatList.
-              const pertenece = (arriba: number, alto: number) => {
-                const centro = arriba + alto / 2;
-                return centro >= inicio && centro < fin;
-              };
-              const aLocal = (y: number) => y - inicio;
-              const indiceSeleccionadoEnTramo = indiceNodoSeleccionado >= 0 && posiciones[indiceNodoSeleccionado]
-                && posiciones[indiceNodoSeleccionado].y >= inicio && posiciones[indiceNodoSeleccionado].y < fin;
-
-              return (
-                <View style={{ height: separacionVertical, overflow: 'visible', width: anchoEscena }}>
-                  {mapa.ambiente.map((item, indice) => {
-                    const tamano = 172 * item.escala;
-                    if (!pertenece(item.y, tamano)) return null;
-                    return <View key={`ambiente-${indice}`} pointerEvents="none" style={[styles.ambiente, { height: tamano, left: item.x, top: aLocal(item.y), width: tamano }]}>
-                      <SombraSuelo tamano={tamano} />
-                      <View style={{ height: tamano, opacity: item.opacidad, transform: [{ scaleX: item.volteado ? -1 : 1 }], width: tamano }}>
-                        <MasterChanger ancho={tamano} alto={tamano} colorDestino={colorMasterAmbiente} fit="contain" fuente={ASSETS_AMBIENTE_UNIVERSAL[item.assetId]} />
-                      </View>
-                    </View>;
-                  })}
-                  {assetSemilla && mapa.semillas.map((item, indice) => {
-                    const tamano = 172 * item.escala;
-                    if (!pertenece(item.y, tamano)) return null;
-                    return <View key={`semilla-${indice}`} pointerEvents="none" style={[styles.ambiente, { height: tamano, left: item.x, top: aLocal(item.y), width: tamano }]}>
-                      <SombraSuelo tamano={tamano} />
-                      <Image resizeMode="contain" source={assetSemilla} style={{ height: '100%', transform: [{ scaleX: item.volteado ? -1 : 1 }], width: '100%' }} />
-                    </View>;
-                  })}
-                  {assetBrote && mapa.brotes.map((item, indice) => {
-                    const tamano = 172 * item.escala;
-                    if (!pertenece(item.y, tamano)) return null;
-                    return <View key={`brote-${indice}`} pointerEvents="none" style={[styles.ambiente, { height: tamano, left: item.x, top: aLocal(item.y), width: tamano }]}>
-                      <SombraSuelo tamano={tamano} />
-                      <Image resizeMode="contain" source={assetBrote} style={{ height: '100%', transform: [{ scaleX: item.volteado ? -1 : 1 }], width: '100%' }} />
-                    </View>;
-                  })}
-                  {mapa.piedras.map((piedra, indice) => {
-                    if (!pertenece(piedra.y, piedra.tamano)) return null;
-                    return <View key={`piedra-${indice}`} pointerEvents="none" style={[styles.piedras, { height: piedra.tamano, left: piedra.x, top: aLocal(piedra.y), transform: [{ scaleX: piedra.espejoHorizontal }], width: piedra.tamano }]}>
-                      <SombraSuelo tamano={piedra.tamano} />
-                      <MasterChanger ancho={piedra.tamano} alto={piedra.tamano} colorDestino={colorMasterAmbiente} fit="contain" fuente={ASSETS_AMBIENTE_UNIVERSAL[piedra.assetId]} />
-                    </View>;
-                  })}
-                  {mapa.decoraciones.map((decoracion, indice) => {
-                    const tamano = 172 * decoracion.escala;
-                    if (!pertenece(decoracion.y, tamano)) return null;
-                    const asset = obtenerAssetBioma(categoriaId, decoracion.assetId, paqueteId, nivel);
-                    if (!asset) return null;
-                    return <View key={`bioma-${decoracion.assetId}-${indice}`} pointerEvents="none" style={[styles.decoracionBioma, { height: tamano, left: decoracion.x, top: aLocal(decoracion.y), width: tamano, zIndex: zIndexPorCapa[decoracion.capa] }]}>
-                      <Image resizeMode="contain" source={asset.fuente} style={[styles.decoracionBiomaImagen, { transform: [{ scaleX: decoracion.volteado ? -1 : 1 }] }]} />
-                    </View>;
-                  })}
-                  <Svg height={separacionVertical * 2} pointerEvents="none" style={[StyleSheet.absoluteFill, { zIndex: 8 }]} viewBox={`0 ${inicio} ${anchoEscena} ${separacionVertical * 2}`} width={anchoEscena}>
-                    {conexiones.filter((_, indice) => posiciones[indice].y >= inicio && posiciones[indice].y < fin).map((conexion) => {
-                      const indiceConexion = conexiones.indexOf(conexion);
-                      const completa = indiceConexion < ultimoCompletado;
-                      return <Path d={conexion.d} fill="none" key={conexion.id} stroke={completa ? color : '#D2CEC8'} strokeDasharray={completa ? undefined : '4 8'} strokeLinecap="round" strokeWidth={completa ? Math.max(3.5, 7 - indiceConexion * 0.7) : 3.5} />;
-                    })}
-                  </Svg>
-                  {mapa.lamparas.map((lampara, indice) => pertenece(lampara.y, lampara.tamano) ? <DecoracionSendero key={`lampara-${indice}`} izquierda={lampara.x} tamano={lampara.tamano} arriba={aLocal(lampara.y)} /> : null)}
-                  {nodos.map((nodo, indice) => {
-                    const posicion = posiciones[indice];
-                    if (!posicion || posicion.y < inicio || posicion.y >= fin) return null;
-                    const estadoVisual = indice <= ultimoCompletado ? 'completado' : indice === indiceNodoActual ? 'activo' : 'bloqueado';
-                    return <View key={nodo.id} style={[styles.nodoPosicion, { left: posicion.x - 42, top: aLocal(posicion.y) - 48, zIndex: 20 }]}>
-                      <NodoSendero Icono={nodo.icono} asentado={seleccionado === nodo.id} color={color} escalaEscena={1} estado={estadoVisual} seleccionado={seleccionado === nodo.id} onCompletar={() => completarNodo(indice)} onPress={() => seleccionarNodo(nodo.id, indice)} />
-                    </View>;
-                  })}
-                  {indiceSeleccionadoEnTramo && nodoSeleccionado && posicionNodoSeleccionado && estadoNodoSeleccionado ? <TooltipNodoSeleccionado anchoEscena={anchoEscena} color={color} estado={estadoNodoSeleccionado} nodo={nodoSeleccionado} posicion={{ x: posicionNodoSeleccionado.x, y: aLocal(posicionNodoSeleccionado.y) }} onCompletar={() => completarNodo(indiceNodoSeleccionado)} /> : null}
-                </View>
-              );
-            }}
-            showsVerticalScrollIndicator={false}
-            windowSize={5}
-          />
-        </View>
-        {nodoSeleccionado ? <View accessibilityElementsHidden style={styles.lectorOculto}><Texto>{nodoSeleccionado.titulo}</Texto></View> : null}
-      </View>
-    );
-  }
-
   return (
+    <View style={[styles.viewportPerspectiva, { backgroundColor: aclarar(color, 0.88) }]}>
     <ScrollView
       ref={scrollRef}
       nestedScrollEnabled
       onLayout={({ nativeEvent }) => medirAnchoMapa(nativeEvent.layout.width)}
+      onScroll={({ nativeEvent }) => {
+        if (!limitarDecoracion) return;
+        const siguiente = nativeEvent.contentOffset.y;
+        // Evita volver a reconciliar la escena a cada píxel: la ventana se
+        // actualiza por bloques, con una pantalla completa de anticipación.
+        if (Math.abs(siguiente - desplazamientoDecoracionRef.current) < 144) return;
+        desplazamientoDecoracionRef.current = siguiente;
+        setDesplazamientoMapa(siguiente);
+      }}
       overScrollMode="never"
+      scrollEventThrottle={96}
       scrollEnabled={true}
       showsVerticalScrollIndicator={false}
       style={[styles.raiz, { backgroundColor: aclarar(color, 0.88) }]}
@@ -325,84 +353,17 @@ export function ContenedorMapaSenderos({ altura, categoriaId, color, enfocado, n
            );
         })()}
 
-        <View style={[styles.escenaPerspectiva, StyleSheet.absoluteFill, { zIndex: 1 }]}>
-        {mapa.ambiente.map((item, indice) => {
-          const tamano = 172 * item.escala;
-          return (
-            <View
-              key={`ambiente-${indice}`}
-              pointerEvents="none"
-              style={[styles.ambiente, { height: tamano, left: item.x, top: item.y, width: tamano }]}
-            >
-              <SombraSuelo tamano={tamano} />
-              <View style={{ height: tamano, opacity: item.opacidad, transform: [{ scaleX: item.volteado ? -1 : 1 }], width: tamano }}>
-                <MasterChanger ancho={tamano} alto={tamano} colorDestino={colorMasterAmbiente} fit="contain" fuente={ASSETS_AMBIENTE_UNIVERSAL[item.assetId]} />
-              </View>
-            </View>
-          );
-        })}
-        {assetSemilla && mapa.semillas.map((item, indice) => {
-          const tamano = 172 * item.escala;
-          return (
-            <View key={`semilla-${indice}`} pointerEvents="none" style={[styles.ambiente, { height: tamano, left: item.x, top: item.y, width: tamano }]}>
-              <SombraSuelo tamano={tamano} />
-              <Image resizeMode="contain" source={assetSemilla} style={{ height: '100%', transform: [{ scaleX: item.volteado ? -1 : 1 }], width: '100%' }} />
-            </View>
-          );
-        })}
-        {assetBrote && mapa.brotes.map((item, indice) => {
-          const tamano = 172 * item.escala;
-          return (
-            <View key={`brote-${indice}`} pointerEvents="none" style={[styles.ambiente, { height: tamano, left: item.x, top: item.y, width: tamano }]}>
-              <SombraSuelo tamano={tamano} />
-              <Image resizeMode="contain" source={assetBrote} style={{ height: '100%', transform: [{ scaleX: item.volteado ? -1 : 1 }], width: '100%' }} />
-            </View>
-          );
-        })}
-        {mapa.piedras.map((piedras, indice) => (
-          <View
-            key={`piedras-${indice}`}
-            pointerEvents="none"
-            style={[
-              styles.piedras,
-              {
-                height: piedras.tamano,
-                left: piedras.x,
-                top: piedras.y,
-                width: piedras.tamano,
-                transform: [{ scaleX: piedras.espejoHorizontal }],
-              },
-            ]}
-          >
-            <SombraSuelo tamano={piedras.tamano} />
-            <MasterChanger ancho={piedras.tamano} alto={piedras.tamano} colorDestino={colorMasterAmbiente} fit="contain" fuente={ASSETS_AMBIENTE_UNIVERSAL[piedras.assetId]} />
-          </View>
-        ))}
-
-        {mapa.decoraciones.map((decoracion, indice) => {
-          const asset = obtenerAssetBioma(categoriaId, decoracion.assetId, paqueteId, nivel);
-          if (!asset) return null;
-          const tamano = 172 * decoracion.escala;
-          return (
-            <View
-              key={`bioma-${decoracion.assetId}-${indice}`}
-              pointerEvents="none"
-              style={[styles.decoracionBioma, {
-                height: tamano,
-                left: decoracion.x,
-                top: decoracion.y,
-                width: tamano,
-                zIndex: zIndexPorCapa[decoracion.capa],
-              }]}
-            >
-              <Image
-                resizeMode="contain"
-                source={asset.fuente}
-                style={[styles.decoracionBiomaImagen, { transform: [{ scaleX: decoracion.volteado ? -1 : 1 }] }]}
-              />
-            </View>
-          );
-        })}
+        <CapaDecoracionMapa
+          assetBrote={assetBrote}
+          assetSemilla={assetSemilla}
+          categoriaId={categoriaId}
+          colorMasterAmbiente={colorMasterAmbiente}
+          finVentana={limitarDecoracion ? desplazamientoMapa + altura + margenDecoracion : Number.POSITIVE_INFINITY}
+          inicioVentana={limitarDecoracion ? desplazamientoMapa - margenDecoracion : Number.NEGATIVE_INFINITY}
+          mapa={mapa}
+          nivel={nivel}
+          paqueteId={paqueteId}
+        />
         <Svg height={altoContenido} pointerEvents="none" style={[StyleSheet.absoluteFill, { zIndex: 2 }]} width={anchoEscena}>
           {conexiones.map((conexion, indice) => {
             const completa = indice < ultimoCompletado;
@@ -433,13 +394,6 @@ export function ContenedorMapaSenderos({ altura, categoriaId, color, enfocado, n
           })}
         </Svg>
 
-        {/* The snow sits above the routine scenery so it remains visible, but below interactive map elements. */}
-        {/* Snow removed to prevent canvaskit error */}
-
-        {mapa.lamparas.map((lampara, indice) => (
-          <DecoracionSendero key={`lampara-${indice}`} izquierda={lampara.x} tamano={lampara.tamano} arriba={lampara.y} />
-        ))}
-
         {nodos.map((nodo, indice) => {
           const posicion = posiciones[indice];
           const esNodoActual = indice === indiceNodoActual;
@@ -465,11 +419,11 @@ export function ContenedorMapaSenderos({ altura, categoriaId, color, enfocado, n
             onCompletar={() => completarNodo(indiceNodoSeleccionado)}
           />
         ) : null}
-      </View>
       </View></TouchableWithoutFeedback>
 
       {nodoSeleccionado ? <View accessibilityElementsHidden style={styles.lectorOculto}><Texto>{nodoSeleccionado.titulo}</Texto></View> : null}
     </ScrollView>
+    </View>
   );
 }
 
@@ -526,7 +480,14 @@ function TooltipNodoSeleccionado({ anchoEscena, color, estado, nodo, posicion, o
 function DecoracionSendero({ arriba, izquierda, tamano }: { arriba: number; izquierda: number; tamano: number }) {
   return (
     <View pointerEvents="none" style={[styles.decoracion, { left: izquierda, top: arriba, transform: [{ scale: tamano / 34 }], zIndex: 10 }]}>
-      <LamparaSendero retraso={arriba} tamano={34} />
+      <Image
+        resizeMode="contain"
+        source={ASSETS_AMBIENTE_UNIVERSAL.roca1}
+        style={styles.piedraBaseLampara}
+      />
+      <View style={styles.lamparaSobrePiedra}>
+        <LamparaSendero retraso={arriba} tamano={34} />
+      </View>
     </View>
   );
 }
@@ -538,7 +499,9 @@ const styles = StyleSheet.create({
   contenido: {
     position: 'relative',
   },
-  escenaPerspectiva: {
+  viewportPerspectiva: {
+    flex: 1,
+    overflow: 'hidden',
     transform: [{ perspective: 1200 }, { rotateX: '7deg' }, { scaleY: 0.98 }],
     transformOrigin: 'center bottom',
   },
@@ -561,8 +524,20 @@ const styles = StyleSheet.create({
   decoracion: {
     alignItems: 'center',
     height: 40,
+    overflow: 'visible',
     position: 'absolute',
     width: 34,
+  },
+  piedraBaseLampara: {
+    height: 24,
+    left: -4,
+    position: 'absolute',
+    top: 38,
+    width: 42,
+    zIndex: 0,
+  },
+  lamparaSobrePiedra: {
+    zIndex: 1,
   },
   tooltipCaja: {
     borderRadius: 20,

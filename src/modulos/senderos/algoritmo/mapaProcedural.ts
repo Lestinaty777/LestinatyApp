@@ -93,10 +93,9 @@ const TAMANO_BASE_ASSET = 172;
 const TAMANO_ETAPA_POR_NIVEL: Record<number, number> = { 1: 80, 2: 90, 3: 100, 4: 110, 5: 120, 6: 130, 7: 140 };
 const SEPARACION_NODOS = 112;
 const LIMPIEZA_NODO = 68;
-// Espacio de terreno decorado arriba del primer nodo — antes solo 54px
-// (casi nada, contra los 200px de "cola" de pasto/rocas que ya existían abajo
-// del último nodo) — ahora simétrico con esa extensión inferior.
-const DESPLAZAMIENTO_SUPERIOR = 220;
+// Aire breve antes del primer nodo. Un margen grande hacía que, al rematar el
+// mapa al cambiar de nivel, la escena pareciera quedar alejada.
+const DESPLAZAMIENTO_SUPERIOR = 222;
 // Ambiente universal (pasto/roca): 3 niveles de opacidad fijos para dar
 // sensación de profundidad/textura en vez de un solo tono plano repetido.
 // Las 5 variantes (incluyendo pasto1/pasto2) participan por igual.
@@ -106,9 +105,9 @@ const AMBIENTE_OPACIDADES = [0.3, 0.6, 1];
 // pasto un 30% ahí para que no se sienta tan cargado justo donde termina el
 // sendero — las rocas no se tocan.
 const REDUCCION_PASTO_TRAMO_FINAL = 0.3;
-// "Mucho pasto y rocas" — más denso que el ajuste anterior (que buscaba pocas
-// piezas grandes tipo acento); ahora se quiere cobertura real de terreno.
-const AMBIENTE_DENSIDAD = 1 / 900;
+// Cobertura de terreno presente, pero 20% más ligera para que los árboles,
+// lámparas y nodos respiren mejor.
+const AMBIENTE_DENSIDAD = 1 / 1125;
 // Semillas/brotes del paquete: MUCHAS en nivel 1 (recién plantado), se van
 // perdiendo a medida que el árbol crece — nivel 4 en adelante ya no hay
 // ninguna (todo lo que era semilla ya se hizo árbol). Curva lineal simple,
@@ -124,7 +123,12 @@ const SEMILLA_CANTIDAD_BASE = 8;
 // puñado de brotes de tamaño similar a un nodo (60-80px), repartidos por todo
 // el mapa pero siempre pegados a los bordes izquierdo/derecho, con espacio
 // entre uno y otro para que no se vean amontonados.
-const BROTES_POR_LADO = 5;
+// Etapa 1 tiene lectura de semilla/brote, no de árbol alto. Nueve por lado
+// deja los bordes vivos desde el inicio sin invadir el sendero central.
+const BROTES_POR_LADO = 9;
+const ARBOLES_ETAPA_POR_NODO = 2;
+const PROBABILIDAD_ARBOL_INTERMEDIO = 0.32;
+const RECORTE_LATERAL_ARBOL_INTERMEDIO = 0.12;
 // Etapa 1: 80px, la misma regla fija que el árbol de etapa 1.
 const BROTE_ESCALA_MIN = 80 / TAMANO_BASE_ASSET;
 const BROTE_ESCALA_MAX = 80 / TAMANO_BASE_ASSET;
@@ -214,8 +218,14 @@ export function generarMapaProcedural({ ancho, cantidadNodos, tema }: { ancho: n
     });
   }
 
+  // Un paquete real de hábito tiene arte por etapa; su vegetación puede
+  // poblar ambos bordes. Los biomas antiguos conservan su presupuesto actual.
+  const presupuestoDecoracion = tema.tieneAssetsPaquete
+    ? Math.max(tema.presupuestoDecoracion, nodos.length * ARBOLES_ETAPA_POR_NODO + Math.ceil(nodos.length * PROBABILIDAD_ARBOL_INTERMEDIO) + 6)
+    : tema.presupuestoDecoracion;
+
   function colocar({ assetId, capa, escala, etapa, lado, x, y }: Omit<DecoracionProcedural, 'volteado'>) {
-    if (decoraciones.length >= tema.presupuestoDecoracion) return false;
+    if (decoraciones.length >= presupuestoDecoracion) return false;
     const tamano = TAMANO_BASE_ASSET * escala;
     const caja = crearCaja(x, y, tamano);
     const centroDecoracion = { x: x + tamano / 2, y: y + tamano / 2 };
@@ -233,6 +243,45 @@ export function generarMapaProcedural({ ancho, cantidadNodos, tema }: { ancho: n
   function colocarConLadoAlterno(ladoPreferido: LadoMapa, crear: (lado: LadoMapa) => Omit<DecoracionProcedural, 'volteado'>) {
     if (colocar(crear(ladoPreferido))) return true;
     return colocar(crear(ladoPreferido === 'izquierda' ? 'derecha' : 'izquierda'));
+  }
+
+  const arbolesPrincipales = assetsPorRol('arbol-principal');
+  const arbolesSecundarios = assetsPorRol('arbol-secundario');
+  const arbolesTerciarios = assetsPorRol('arbol-terciario');
+  const arbolesPorProfundidad = [arbolesPrincipales, arbolesSecundarios, arbolesTerciarios];
+  const usaProfundidad = arbolesTerciarios.length > 0;
+
+  // El árbol irregular se planta primero: flores, arbustos, pasto y los
+  // árboles regulares deberán respetar su espacio. Las lámparas permanecen
+  // como zonas protegidas y nunca se desplazan.
+  if (tema.tieneAssetsPaquete && usaProfundidad) {
+    for (let indice = 0; indice < nodos.length - 1; indice += 1) {
+      if (aleatorio() > PROBABILIDAD_ARBOL_INTERMEDIO) continue;
+
+      const disponibles = arbolesPorProfundidad.map((lista) => lista.length > 0);
+      const profundidad = elegirProfundidad(aleatorio, disponibles);
+      const arbolesEtapa = arbolesPorProfundidad[profundidad];
+      const arbol = arbolesEtapa[Math.floor(aleatorio() * arbolesEtapa.length)];
+      const etapa = Math.max(1, (tema.nivel ?? 1) - profundidad);
+      if (!arbol || etapa === 1) continue;
+
+      const tamano = TAMANO_ETAPA_POR_NIVEL[etapa] ?? TAMANO_BASE_ASSET * 0.7;
+      const escala = tamano / TAMANO_BASE_ASSET;
+      const lado: LadoMapa = aleatorio() > 0.5 ? 'izquierda' : 'derecha';
+      const y = (nodos[indice].y + nodos[indice + 1].y) / 2 - tamano * 0.62;
+      const capa: CapaDecoracion = profundidad === 0 ? 'frente' : profundidad === 1 ? 'medio' : 'fondo';
+      const desbordeLateral = tamano * RECORTE_LATERAL_ARBOL_INTERMEDIO;
+
+      colocar({
+        assetId: arbol.id,
+        capa,
+        escala,
+        etapa,
+        lado,
+        x: lado === 'izquierda' ? -desbordeLateral : ancho - tamano + desbordeLateral,
+        y,
+      });
+    }
   }
 
   // La primera curva siempre recibe una flor antes de colocar árboles: evita que el follaje la oculte.
@@ -282,12 +331,6 @@ export function generarMapaProcedural({ ancho, cantidadNodos, tema }: { ancho: n
   // PESO_POR_PROFUNDIDAD y así resuelve tanto la imagen como la capa (más
   // nuevo = más al frente). Si el paquete usa el puente viejo (un asset por
   // rol, sin arbol-terciario), se mantiene la alternancia de siempre.
-  const arbolesPrincipales = assetsPorRol('arbol-principal');
-  const arbolesSecundarios = assetsPorRol('arbol-secundario');
-  const arbolesTerciarios = assetsPorRol('arbol-terciario');
-  const arbolesPorProfundidad = [arbolesPrincipales, arbolesSecundarios, arbolesTerciarios];
-  const usaProfundidad = arbolesTerciarios.length > 0;
-
   for (let indice = 0; indice < nodos.length; indice += 1) {
     const nodo = nodos[indice];
     const ladoLampara: LadoMapa = nodo.x < centro ? 'derecha' : 'izquierda';
@@ -325,7 +368,7 @@ export function generarMapaProcedural({ ancho, cantidadNodos, tema }: { ancho: n
     const escala = tamanoFijoEtapa ? tamanoFijoEtapa / TAMANO_BASE_ASSET : 0.7 + aleatorio() * 0.24;
     const tamano = TAMANO_BASE_ASSET * escala;
     const y = nodo.y - tamano * 0.62;
-    colocarConLadoAlterno(ladoPreferido, (lado) => ({
+    const crearArbolLateral = (lado: LadoMapa): Omit<DecoracionProcedural, 'volteado'> => ({
       assetId: arbolElegido.id,
       capa,
       escala,
@@ -334,7 +377,17 @@ export function generarMapaProcedural({ ancho, cantidadNodos, tema }: { ancho: n
       // Siempre anclado a un borde: jamás cruza al centro del sendero.
       x: lado === 'izquierda' ? 8 : ancho - tamano - 8,
       y,
-    }));
+    });
+
+    if (tema.tieneAssetsPaquete) {
+      // Cada etapa real enmarca el nodo desde ambos costados. Las colisiones
+      // siguen siendo la autoridad final, por lo que jamás tapa un nodo,
+      // lámpara o árbol ya colocado.
+      colocar(crearArbolLateral(ladoPreferido));
+      colocar(crearArbolLateral(ladoPreferido === 'izquierda' ? 'derecha' : 'izquierda'));
+    } else {
+      colocarConLadoAlterno(ladoPreferido, crearArbolLateral);
+    }
   }
 
   for (let indice = 0; indice < Math.max(0, nodos.length - 1); indice += 1) {

@@ -15,6 +15,8 @@ type MasterGlassProps = PropsWithChildren<{
   forma?: 'rectangulo' | 'heptagono';
   style?: StyleProp<ViewStyle>;
   tint?: BlurViewProps['tint'];
+  /** Color base opcional para teñir el cristal de un color específico en lugar de verde/menta. */
+  colorBase?: string;
 }>;
 
 const MENTA_SUAVE = '#f3fcf3';
@@ -32,18 +34,24 @@ function mezclarHex(origen: string, destino: string, proporcion: number) {
   return `#${mezclarCanal(1)}${mezclarCanal(3)}${mezclarCanal(5)}`;
 }
 
-export function MasterGlass({ blur = false, children, compacto = false, forma = 'rectangulo', intensity = 24, mastery = false, style, tint = 'light' }: MasterGlassProps) {
+export function MasterGlass({ blur = false, children, colorBase, compacto = false, forma = 'rectangulo', intensity = 24, mastery = false, style, tint = 'light' }: MasterGlassProps) {
   const [tamano, setTamano] = useState({ alto: 0, ancho: 0 });
   const intensidadMenta = Math.min(1, Math.max(0, (tamano.alto - 52) / 348));
-  const colorSuave = mastery ? MASTERY_SUAVE : compacto ? '#DDF4DF' : MENTA_SUAVE;
-  const colorProfundo = mastery ? MASTERY_PROFUNDA : compacto ? '#BCE5C1' : MENTA_PROFUNDA;
+  
+  const mentaSuave = colorBase ? mezclarHex(colorBase, '#FFFFFF', 0.95) : MENTA_SUAVE;
+  const mentaProfunda = colorBase ? mezclarHex(colorBase, '#FFFFFF', 0.85) : MENTA_PROFUNDA;
+  const masterySuave = colorBase ? mezclarHex(colorBase, '#000000', 0.1) : MASTERY_SUAVE;
+  const masteryProfunda = colorBase ? mezclarHex(colorBase, '#000000', 0.3) : MASTERY_PROFUNDA;
+
+  const colorSuave = mastery ? masterySuave : compacto ? mezclarHex(mentaSuave, mentaProfunda, 0.4) : mentaSuave;
+  const colorProfundo = mastery ? masteryProfunda : compacto ? mezclarHex(mentaProfunda, '#000000', 0.1) : mentaProfunda;
   const colorCuerpo = mezclarHex(colorSuave, colorProfundo, 0.35 + intensidadMenta * 0.65);
-  const colorPie = mastery ? mezclarHex(colorCuerpo, '#0B2417', 0.3) : mezclarHex(colorCuerpo, '#8CCF92', 0.2);
-  // Mastery: arriba también es verde (nunca blanco) — colorSuave en vez de casi-blanco.
-  const colorTope = mastery ? colorSuave : compacto ? '#EBF8EC' : '#F7FDF7';
+  const colorPie = mastery ? mezclarHex(colorCuerpo, '#000000', 0.3) : mezclarHex(colorCuerpo, colorBase ? colorBase : '#8CCF92', 0.2);
+  
+  const colorTope = mastery ? colorSuave : compacto ? mezclarHex(colorSuave, '#FFFFFF', 0.6) : mezclarHex(colorSuave, '#FFFFFF', 0.8);
   const coloresExteriores: [string, string, string] = mastery
     ? [colorSuave, mezclarHex(colorSuave, colorProfundo, 0.45), colorProfundo]
-    : ['#FFFFFF', '#CDEFCF', '#B7E6BD'];
+    : ['#FFFFFF', mezclarHex('#FFFFFF', colorProfundo, 0.3), colorProfundo];
   const finBorde = mastery ? { x: 1.2, y: 1 } : { x: 1, y: 1 };
   const ubicacionesBorde: [number, number, number] = mastery ? [0, 0.54, 1] : [0, 0.48, 1];
   const medirContenedor = ({ nativeEvent: { layout } }: LayoutChangeEvent) => {
