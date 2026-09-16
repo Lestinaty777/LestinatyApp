@@ -68,7 +68,7 @@ const AMBIENTE_OPACIDADES = [0.3, 0.6, 1];
 const REDUCCION_PASTO_TRAMO_FINAL = 0.3;
 // "Mucho pasto y rocas" — más denso que el ajuste anterior (que buscaba pocas
 // piezas grandes tipo acento); ahora se quiere cobertura real de terreno.
-const AMBIENTE_DENSIDAD = 1 / 700;
+const AMBIENTE_DENSIDAD = 1 / 900;
 
 const hashCadena = (valor: string) => Array.from(valor).reduce((hash, caracter) => ((hash << 5) - hash + caracter.charCodeAt(0)) | 0, 2166136261) >>> 0;
 
@@ -131,7 +131,7 @@ export function generarMapaProcedural({ ancho, cantidadNodos, tema }: { ancho: n
     cajasProtegidas.push({ x: lamparaX - 14, y: lamparaY - 14, w: 58, h: 62 });
   }
 
-  const cantidadPiedras = Math.min(6, Math.max(4, Math.ceil((nodos.length - 1) * 0.8)));
+  const cantidadPiedras = Math.min(5, Math.max(3, Math.ceil((nodos.length - 1) * 0.65)));
   for (let indice = 0; indice < cantidadPiedras; indice += 1) {
     const indiceNodo = Math.min(nodos.length - 1, Math.max(1, Math.floor((indice + 1) * nodos.length / (cantidadPiedras + 1))));
     const lamparaIndice = Math.max(0, indiceNodo - 1);
@@ -164,6 +164,14 @@ export function generarMapaProcedural({ ancho, cantidadNodos, tema }: { ancho: n
     return true;
   }
 
+  // Intenta el lado preferido y, si choca con algo ya colocado, prueba el
+  // lado contrario antes de rendirse — evita que un solo lado fijo condene
+  // una pieza a desaparecer cada vez que otra decoración ya lo ocupa.
+  function colocarConLadoAlterno(ladoPreferido: LadoMapa, crear: (lado: LadoMapa) => Omit<DecoracionProcedural, 'volteado'>) {
+    if (colocar(crear(ladoPreferido))) return true;
+    return colocar(crear(ladoPreferido === 'izquierda' ? 'derecha' : 'izquierda'));
+  }
+
   // La primera curva siempre recibe una flor antes de colocar árboles: evita que el follaje la oculte.
   const florInicial = assetsPorRol('flor')[0];
   const ladoFlorInicial: LadoMapa = aleatorio() > 0.5 ? 'izquierda' : 'derecha';
@@ -184,43 +192,53 @@ export function generarMapaProcedural({ ancho, cantidadNodos, tema }: { ancho: n
   const arbustosIniciales = assetsPorRol('arbusto');
   for (let indice = 0; indice < Math.min(2, arbustosIniciales.length ? 2 : 0, Math.max(0, nodos.length - 1)); indice += 1) {
     const ladoLampara: LadoMapa = nodos[indice + 1].x < centro ? 'derecha' : 'izquierda';
-    const lado: LadoMapa = ladoLampara === 'izquierda' ? 'derecha' : 'izquierda';
+    const ladoPreferido: LadoMapa = ladoLampara === 'izquierda' ? 'derecha' : 'izquierda';
     const escala = 0.42;
     const tamano = TAMANO_BASE_ASSET * escala;
-    colocar({
+    const y = (nodos[indice].y + nodos[indice + 1].y) / 2 + 12;
+    colocarConLadoAlterno(ladoPreferido, (lado) => ({
       assetId: arbustosIniciales[indice % arbustosIniciales.length].id,
       capa: 'medio',
       escala,
       lado,
       x: lado === 'izquierda' ? 10 : ancho - tamano - 10,
-      y: (nodos[indice].y + nodos[indice + 1].y) / 2 + 12,
-    });
+      y,
+    }));
   }
 
   // Cada tramo alterna su masa vegetal: un árbol encuadra la curva y los detalles acercan el camino.
+  // El lado preferido es el contrario a la lámpara de ese nodo (más "adentro",
+  // mirando hacia el centro del sendero); si ese lado ya está ocupado
+  // (arbusto lateral, otro árbol, etc.) se prueba el lado contrario antes de
+  // descartar el árbol — antes se elegía un único lado fijo y, al traer los
+  // árboles más hacia adentro, cualquier choque los hacía desaparecer del
+  // todo en vez de solo cambiar de lado.
   for (let indice = 0; indice < nodos.length; indice += 1) {
     const nodo = nodos[indice];
-    const lado: LadoMapa = indice % 2 === 0 ? 'izquierda' : 'derecha';
+    const ladoLampara: LadoMapa = nodo.x < centro ? 'derecha' : 'izquierda';
+    const ladoPreferido: LadoMapa = ladoLampara === 'izquierda' ? 'derecha' : 'izquierda';
     const arboles = indice % 3 === 0 ? assetsPorRol('arbol-principal') : assetsPorRol('arbol-secundario');
     const arbol = arboles[Math.floor(aleatorio() * arboles.length)];
     if (!arbol) continue;
 
     const escala = 0.7 + aleatorio() * 0.24;
     const tamano = TAMANO_BASE_ASSET * escala;
-    colocar({
+    const factorX = aleatorio() * 0.14;
+    const y = nodo.y - tamano * (0.45 + aleatorio() * 0.18);
+    colocarConLadoAlterno(ladoPreferido, (lado) => ({
       assetId: arbol.id,
       capa: indice % 3 === 0 ? 'frente' : 'fondo',
       escala,
       lado,
-      x: lado === 'izquierda' ? -tamano * (0.48 + aleatorio() * 0.14) : ancho - tamano * (0.52 - aleatorio() * 0.14),
-      y: nodo.y - tamano * (0.45 + aleatorio() * 0.18),
-    });
+      x: lado === 'izquierda' ? -tamano * (0.38 + factorX) : ancho - tamano * (0.62 - factorX),
+      y,
+    }));
   }
 
   for (let indice = 0; indice < Math.max(0, nodos.length - 1); indice += 1) {
     const actual = nodos[indice];
     const siguiente = nodos[indice + 1];
-    const lado: LadoMapa = actual.x < centro ? 'derecha' : 'izquierda';
+    const ladoPreferido: LadoMapa = actual.x < centro ? 'derecha' : 'izquierda';
     const centroTramoY = (actual.y + siguiente.y) / 2;
 
     const flores = assetsPorRol('flor');
@@ -228,14 +246,16 @@ export function generarMapaProcedural({ ancho, cantidadNodos, tema }: { ancho: n
     if (flor && (indice === 0 || aleatorio() < tema.densidadDecoracion * 0.62)) {
       const escala = 0.18 + aleatorio() * 0.1;
       const tamano = TAMANO_BASE_ASSET * escala;
-      colocar({
+      const factorX = aleatorio() * 20;
+      const y = centroTramoY - tamano * 0.38;
+      colocarConLadoAlterno(ladoPreferido, (lado) => ({
         assetId: flor.id,
         capa: 'frente',
         escala,
         lado,
-        x: lado === 'izquierda' ? centro - 96 - aleatorio() * 20 : centro + 62 + aleatorio() * 20,
-        y: centroTramoY - tamano * 0.38,
-      });
+        x: lado === 'izquierda' ? centro - 96 - factorX : centro + 62 + factorX,
+        y,
+      }));
     }
 
     const arbustos = assetsPorRol('arbusto');
@@ -243,14 +263,16 @@ export function generarMapaProcedural({ ancho, cantidadNodos, tema }: { ancho: n
     if (arbusto && (indice < 2 || aleatorio() < Math.min(0.94, tema.densidadDecoracion + 0.16))) {
       const escala = 0.36 + aleatorio() * 0.2;
       const tamano = TAMANO_BASE_ASSET * escala;
-      colocar({
+      const factorX = aleatorio() * 34;
+      const y = centroTramoY - tamano * 0.45;
+      colocarConLadoAlterno(ladoPreferido, (lado) => ({
         assetId: arbusto.id,
         capa: 'medio',
         escala,
         lado,
-        x: lado === 'izquierda' ? 14 + aleatorio() * 34 : ancho - tamano - 14 - aleatorio() * 34,
-        y: centroTramoY - tamano * 0.45,
-      });
+        x: lado === 'izquierda' ? 14 + factorX : ancho - tamano - 14 - factorX,
+        y,
+      }));
     }
   }
 

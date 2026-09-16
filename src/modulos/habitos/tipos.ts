@@ -57,11 +57,12 @@ export type PlanHabitoResumen = {
 
 export type ProximoNivelHabito = {
   color: string;
+  diasCompletados: number;
+  diasRequeridos: number;
   iconoLucide: string;
   id: string;
   nivel: number;
-  porcentajeVentana1: number;
-  porcentajeVentana2: number;
+  porcentaje: number;
   titulo: string;
 };
 

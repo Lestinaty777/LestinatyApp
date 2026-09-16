@@ -20,12 +20,12 @@ export async function registrarProgresoHabito(input: { habitoId: string; fechaLo
   return { fechaLocal: remoto.fecha_local, gemasGanadas: Number(remoto.gemas_ganadas ?? 0), habitoId: remoto.habito_id, id: remoto.id, nivel: Number(remoto.nivel), nota: remoto.nota, subioNivel: remoto.subio_nivel, valor: Number(remoto.valor) };
 }
 
-export type CrearHabitoInput = { titulo: string; descripcion?: string; meta: number; unidad: string; tipoMeta?: TipoMetaHabito; iconoLucide?: string; color?: string; frecuencia?: 'diaria' | 'dias_semana' | 'veces_semana'; diasSemana?: number[] | null; vecesPorSemana?: number | null; categoria?: string; dificultad?: 'minimo' | 'estandar' | 'reto'; disparador?: string; recompensa?: string; recordatorioActivo?: boolean; horaRecordatorio?: string | null; mostrarNombreNotificacion?: boolean; nivelInicial?: number };
+export type CrearHabitoInput = { titulo: string; descripcion?: string; meta: number; unidad: string; tipoMeta?: TipoMetaHabito; iconoLucide?: string; color?: string; frecuencia?: 'diaria' | 'dias_semana' | 'veces_semana'; diasSemana?: number[] | null; vecesPorSemana?: number | null; categoria?: string; dificultad?: 'minimo' | 'estandar' | 'reto'; disparador?: string; recompensa?: string; recordatorioActivo?: boolean; horaRecordatorio?: string | null; mostrarNombreNotificacion?: boolean; nivelInicial?: number; tonoVisual?: number };
 
 export async function crearHabito(input: CrearHabitoInput) {
   const { data, error } = await obtenerClienteSupabase().rpc('crear_habito_premium', {
     p_titulo: input.titulo.trim(), p_descripcion: input.descripcion ?? null, p_icono_lucide: input.iconoLucide ?? 'Sparkles', p_color: input.color ?? '#22C55E', p_tipo_meta: input.tipoMeta ?? 'cantidad', p_unidad: input.unidad.trim(), p_categoria: input.categoria ?? null, p_dificultad: input.dificultad ?? 'estandar', p_disparador: input.disparador ?? null, p_recompensa: input.recompensa ?? null,
-    p_frecuencia: input.frecuencia ?? 'diaria', p_dias_semana: input.diasSemana ?? null, p_veces_por_semana: input.vecesPorSemana ?? null, p_objetivo_valor: input.meta, p_recordatorio_activo: input.recordatorioActivo ?? false, p_hora_recordatorio: input.horaRecordatorio ?? null, p_mostrar_nombre_notificacion: input.mostrarNombreNotificacion ?? false, p_desde_fecha: new Date().toISOString().slice(0, 10), p_nivel_inicial: input.nivelInicial ?? 1,
+    p_frecuencia: input.frecuencia ?? 'diaria', p_dias_semana: input.diasSemana ?? null, p_veces_por_semana: input.vecesPorSemana ?? null, p_objetivo_valor: input.meta, p_recordatorio_activo: input.recordatorioActivo ?? false, p_hora_recordatorio: input.horaRecordatorio ?? null, p_mostrar_nombre_notificacion: input.mostrarNombreNotificacion ?? false, p_desde_fecha: new Date().toISOString().slice(0, 10), p_nivel_inicial: input.nivelInicial ?? 1, p_tono_visual: input.tonoVisual ?? 1,
   });
   if (error) throw error;
   return data;
@@ -70,7 +70,7 @@ export async function obtenerDetalleHabito(id: string, referencia = new Date()):
   return { habito: { id: item.id, titulo: item.titulo, descripcion: item.descripcion, iconoLucide: item.icono_lucide, color: item.color, tipoMeta: tipo, unidad: item.unidad, meta: Number(planHoy.objetivo_valor), valorHoy: porFecha.get(hoy) ?? 0, completado: completo(tipo, porFecha.get(hoy) ?? 0, Number(planHoy.objetivo_valor)) }, nivel: Number(planHoy.nivel ?? 1), semana: { completados, programados: programados.length, porcentaje: programados.length ? Math.round(completados * 100 / programados.length) : 0 }, rachaActual, totalAcumulado: todosRegistros.reduce((total, registro) => total + Number(registro.valor), 0), mejorDia: mejor ? nombresDias[mejor[0]] : null, progresoSemana };
 }
 
-export type ProgresoNivelHabito = { diasCompletados: number; diasRequeridos: number | null; fechasCumplidas: string[]; habito: { color: string; iconoLucide: string; meta: number; tipoMeta: TipoMetaHabito; titulo: string; unidad: string | null; valorHoy: number }; nivel: number };
+export type ProgresoNivelHabito = { diasCompletados: number; diasRequeridos: number | null; fechasCumplidas: string[]; habito: { color: string; iconoLucide: string; meta: number; tipoMeta: TipoMetaHabito; titulo: string; tonoVisual: number; unidad: string | null; valorHoy: number }; nivel: number };
 
 // Días cumplidos ACUMULADOS (no consecutivos, no se resetea) desde que
 // empezó el plan vigente — misma cuenta que usa privacidad.registrar_progreso_habito()
@@ -79,7 +79,7 @@ export async function obtenerProgresoNivelHabito(id: string, referencia = new Da
   const supabase = obtenerClienteSupabase();
   const hoy = fechaLocal(referencia);
   const [{ data: item, error: errorItem }, { data: planes, error: errorPlanes }] = await Promise.all([
-    supabase.from('habitos_items').select('id,titulo,icono_lucide,color,tipo_meta,unidad').eq('id', id).eq('estado', 'activo').single(),
+    supabase.from('habitos_items').select('id,titulo,icono_lucide,color,tipo_meta,unidad,tono_visual').eq('id', id).eq('estado', 'activo').single(),
     supabase.from('habitos_planes').select('frecuencia,dias_semana,objetivo_valor,desde_fecha,hasta_fecha,nivel').eq('habito_id', id).order('desde_fecha', { ascending: false }),
   ]);
   if (errorItem || !item) throw errorItem ?? new Error('Hábito no encontrado.');
@@ -110,67 +110,63 @@ export async function obtenerProgresoNivelHabito(id: string, referencia = new Da
     diasCompletados: fechasCumplidas.length,
     diasRequeridos,
     fechasCumplidas,
-    habito: { color: item.color, iconoLucide: item.icono_lucide, meta: Number(planVigente.objetivo_valor), tipoMeta: tipo, titulo: item.titulo, unidad: item.unidad, valorHoy: Number(valorHoy) },
+    habito: { color: item.color, iconoLucide: item.icono_lucide, meta: Number(planVigente.objetivo_valor), tipoMeta: tipo, titulo: item.titulo, tonoVisual: Number(item.tono_visual ?? 1), unidad: item.unidad, valorHoy: Number(valorHoy) },
     nivel,
   };
 }
 
 type FilaPlanVentana = { habito_id: string; nivel: number; objetivo_valor: number; frecuencia: 'diaria' | 'dias_semana' | 'veces_semana'; dias_semana: number[] | null; desde_fecha: string; hasta_fecha: string | null };
 
-// Mismo cálculo de las dos ventanas de 7 días que usa la regla de subida de
-// nivel en SQL (registrar_progreso_habito), pero de solo lectura: cuál hábito
-// está más cerca de subir, para destacarlo en HabitosPantalla. Un hábito solo
-// entra en la carrera si su plan lleva ≥14 días activo (igual que la regla real).
+// Mismo cálculo de días acumulados que usa privacidad.registrar_progreso_habito()
+// (migración 21) y obtenerProgresoNivelHabito, pero de solo lectura y sobre
+// TODOS los hábitos: cuál está más cerca de subir de nivel, para destacarlo en
+// HabitosPantalla. Un hábito en nivel máximo (sin próximo nivel) no compite.
 export async function obtenerHabitoMasCercaDeNivel(referencia = new Date()): Promise<ProximoNivelHabito | null> {
   const supabase = obtenerClienteSupabase();
   const hoy = fechaLocal(referencia);
-  const dias14 = Array.from({ length: 14 }, (_, indice) => { const fecha = new Date(referencia); fecha.setDate(fecha.getDate() - (13 - indice)); return fechaLocal(fecha); });
-  const hace13Dias = dias14[0];
 
   const [{ data: items, error: errorItems }, { data: planes, error: errorPlanes }] = await Promise.all([
-    supabase.from('habitos_items').select('id,titulo,icono_lucide,color').eq('estado', 'activo'),
+    supabase.from('habitos_items').select('id,titulo,icono_lucide,color,tipo_meta').eq('estado', 'activo'),
     supabase.from('habitos_planes').select('habito_id,nivel,objetivo_valor,frecuencia,dias_semana,desde_fecha,hasta_fecha').order('desde_fecha', { ascending: false }),
   ]);
   if (errorItems) throw errorItems;
   if (errorPlanes) throw errorPlanes;
-  const todosItems = (items ?? []) as { id: string; titulo: string; icono_lucide: string; color: string }[];
+  const todosItems = (items ?? []) as { id: string; titulo: string; icono_lucide: string; color: string; tipo_meta: TipoMetaHabito }[];
   const todosPlanes = (planes ?? []) as FilaPlanVentana[];
 
   const elegibles = todosItems.flatMap((item) => {
-    const plan = todosPlanes.find((fila) => fila.habito_id === item.id && fila.desde_fecha <= hoy && (!fila.hasta_fecha || fila.hasta_fecha > hoy));
-    if (!plan || plan.desde_fecha > hace13Dias) return [];
-    return [{ item, plan }];
+    const planesItem = todosPlanes.filter((fila) => fila.habito_id === item.id);
+    const plan = planParaFecha(planesItem, hoy);
+    const diasRequeridos = plan ? DIAS_REQUERIDOS_POR_NIVEL[plan.nivel + 1] ?? null : null;
+    if (!plan || diasRequeridos === null) return [];
+    return [{ diasRequeridos, item, plan }];
   });
   if (elegibles.length === 0) return null;
 
+  const desdeMasAntiguo = elegibles.reduce((minimo, { plan }) => (plan.desde_fecha < minimo ? plan.desde_fecha : minimo), hoy);
   const { data: registros, error: errorRegistros } = await supabase
     .from('habitos_registros')
     .select('habito_id,fecha_local,valor')
     .in('habito_id', elegibles.map(({ item }) => item.id))
-    .gte('fecha_local', hace13Dias)
+    .gte('fecha_local', desdeMasAntiguo)
     .lte('fecha_local', hoy);
   if (errorRegistros) throw errorRegistros;
   const todosRegistros = (registros ?? []) as { habito_id: string; fecha_local: string; valor: number }[];
 
   let mejor: ProximoNivelHabito | null = null;
-  let mejorProximidad = -1;
+  let mejorPorcentaje = -1;
 
-  for (const { item, plan } of elegibles) {
-    let prog1 = 0, comp1 = 0, prog2 = 0, comp2 = 0;
-    dias14.forEach((fecha, indice) => {
-      const programado = plan.frecuencia !== 'dias_semana' || Boolean(plan.dias_semana?.includes(((new Date(`${fecha}T12:00:00`).getDay() + 6) % 7) + 1));
-      if (!programado) return;
-      const valor = todosRegistros.find((registro) => registro.habito_id === item.id && registro.fecha_local === fecha)?.valor ?? 0;
-      const completado = valor >= plan.objetivo_valor;
-      if (indice < 7) { prog1 += 1; if (completado) comp1 += 1; } else { prog2 += 1; if (completado) comp2 += 1; }
-    });
-    if (prog1 < 3 || prog2 < 3) continue;
-    const porcentajeVentana1 = Math.round((comp1 * 100) / prog1);
-    const porcentajeVentana2 = Math.round((comp2 * 100) / prog2);
-    const proximidad = Math.min(porcentajeVentana1, porcentajeVentana2);
-    if (proximidad > mejorProximidad) {
-      mejorProximidad = proximidad;
-      mejor = { color: item.color, iconoLucide: item.icono_lucide, id: item.id, nivel: plan.nivel, porcentajeVentana1, porcentajeVentana2, titulo: item.titulo };
+  for (const { diasRequeridos, item, plan } of elegibles) {
+    const diasCompletados = todosRegistros.filter((registro) =>
+      registro.habito_id === item.id
+      && registro.fecha_local >= plan.desde_fecha
+      && programado(plan, registro.fecha_local)
+      && completo(item.tipo_meta, Number(registro.valor), plan.objetivo_valor),
+    ).length;
+    const porcentaje = Math.min(100, Math.round((diasCompletados * 100) / diasRequeridos));
+    if (porcentaje > mejorPorcentaje) {
+      mejorPorcentaje = porcentaje;
+      mejor = { color: item.color, diasCompletados, diasRequeridos, iconoLucide: item.icono_lucide, id: item.id, nivel: plan.nivel, porcentaje, titulo: item.titulo };
     }
   }
   return mejor;

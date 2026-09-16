@@ -1,13 +1,9 @@
 import { Redirect, Tabs } from 'expo-router';
-import { BlurView } from 'expo-blur';
-import { StyleSheet, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Image, Pressable, StyleSheet, View } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { colores, espaciado } from '../../src/diseno';
+import { MasterGlass, Texto } from '../../src/diseno';
 import { usarEstadoAcceso } from '../../src/modulos/acceso/acceso.estado';
-import { BotonTab, IconoTab, iconosTabs } from '../../src/nucleo/navegacion/BarraTabs';
-
-const radioGlassNavegacion = 15;
 
 export default function LayoutPrincipal() {
   const cargandoSesion = usarEstadoAcceso((estado) => estado.cargandoSesion);
@@ -24,24 +20,16 @@ export default function LayoutPrincipal() {
 
   return (
     <Tabs
+      tabBar={(props) => <BarraNavegacionPrincipal {...props} />}
       screenOptions={{
         headerShown: false,
         headerTitleAlign: 'center',
-        tabBarActiveTintColor: colores.texto,
         animation: 'fade',
-        tabBarBackground: () => <FondoTabsGlass />,
-        tabBarButton: (props) => <BotonTab {...props} />,
-        tabBarInactiveTintColor: colores.textoSecundario,
-        tabBarShowLabel: false,
         tabBarStyle: {
           backgroundColor: 'transparent',
           borderTopWidth: 0,
-          bottom: insets.bottom + espaciado.sm,
           elevation: 0,
-          height: 62,
-          marginHorizontal: espaciado.xl + espaciado.md,
-          paddingBottom: 5,
-          paddingTop: 5,
+          height: insets.bottom + 108,
           position: 'absolute',
           shadowOpacity: 0,
         },
@@ -49,24 +37,15 @@ export default function LayoutPrincipal() {
     >
       <Tabs.Screen
         name="hoy"
-        options={{
-          tabBarIcon: ({ focused }) => <IconoTab focused={focused} nombre={iconosTabs.hoy} />,
-          title: 'Hoy',
-        }}
+        options={{ title: 'Hoy' }}
       />
       <Tabs.Screen
         name="senderos"
-        options={{
-          tabBarIcon: ({ focused }) => <IconoTab focused={focused} nombre={iconosTabs.senderos} />,
-          title: 'Senderos',
-        }}
+        options={{ title: 'Senderos' }}
       />
       <Tabs.Screen
         name="insights"
-        options={{
-          tabBarIcon: ({ focused }) => <IconoTab focused={focused} nombre={iconosTabs.insights} />,
-          title: 'Insights',
-        }}
+        options={{ title: 'Insights' }}
       />
       <Tabs.Screen
         name="tienda"
@@ -82,61 +61,77 @@ export default function LayoutPrincipal() {
       />
       <Tabs.Screen
         name="direccion"
-        options={{
-          tabBarIcon: ({ focused }) => <IconoTab focused={focused} nombre={iconosTabs.direccion} />,
-          title: 'Configuración',
-        }}
+        options={{ title: 'Configuración' }}
       />
     </Tabs>
   );
 }
 
-function FondoTabsGlass() {
+const DESTINOS_BARRA = [
+  { etiqueta: 'Inicio', ruta: 'hoy' },
+  { etiqueta: 'Explorar', ruta: 'senderos' },
+  { central: true, etiqueta: 'Tienda', ruta: 'tienda' },
+  { etiqueta: 'Insights', ruta: 'insights' },
+  { etiqueta: 'Perfil', ruta: 'direccion' },
+] as const;
+
+const ICONOS_NAVEGACION: Record<string, number> = {
+  direccion: require('../../assets/icons/navegacion/perfil.png'),
+  hoy: require('../../assets/icons/navegacion/hoy.png'),
+  insights: require('../../assets/icons/navegacion/inisghts.png'),
+  senderos: require('../../assets/icons/navegacion/explorar.png'),
+  tienda: require('../../assets/icons/navegacion/tienda.png'),
+};
+
+function BarraNavegacionPrincipal({ navigation, state, style }: { navigation: any; state: { index: number; routes: Array<{ key: string; name: string }> }; style?: any }) {
+  const insets = useSafeAreaInsets();
+  const rutaActiva = state.routes[state.index]?.name;
+
+  const abrir = (ruta: string) => {
+    const evento = navigation.emit({ canPreventDefault: true, target: ruta, type: 'tabPress' });
+    if (!evento.defaultPrevented) navigation.navigate(ruta);
+  };
+
   return (
-    <BlurView intensity={24} tint="light" style={styles.fondoTabs}>
-      <View style={styles.fondoTabsTinte} />
-      <View pointerEvents="none" style={styles.fondoTabsBrilloLateral} />
-      <View pointerEvents="none" style={styles.fondoTabsBorde} />
-    </BlurView>
+    <SafeAreaView edges={['bottom']} style={[styles.areaSegura, { height: insets.bottom + 108 }, style]}>
+    <View style={styles.contenedor}>
+      <MasterGlass blur style={styles.barra}>
+        {DESTINOS_BARRA.map(({ etiqueta, ruta, ...opciones }) => {
+          const central = 'central' in opciones && opciones.central === true;
+          const activo = ruta === rutaActiva;
+          if (central) return <View key={ruta} style={styles.espacioCentral} />;
+          return (
+            <Pressable accessibilityRole="tab" accessibilityState={{ selected: activo }} key={ruta} onPress={() => abrir(ruta)} style={styles.destino}>
+              <Image resizeMode="contain" source={ICONOS_NAVEGACION[ruta]} style={styles.iconoNavegacion} />
+              <Texto style={[styles.etiqueta, activo && styles.etiquetaActiva]}>{etiqueta}</Texto>
+              {activo && <View style={styles.indicador} />}
+            </Pressable>
+          );
+        })}
+      </MasterGlass>
+
+      <Pressable accessibilityLabel="Tienda" accessibilityRole="tab" accessibilityState={{ selected: rutaActiva === 'tienda' }} onPress={() => abrir('tienda')} style={styles.botonCentral}>
+        <MasterGlass forma="heptagono" mastery style={styles.circuloCentral}><View style={styles.contenedorIconoCentral}><Image resizeMode="contain" source={ICONOS_NAVEGACION.tienda} style={styles.iconoNavegacionCentral} /></View></MasterGlass>
+        <Texto style={[styles.etiquetaCentral, rutaActiva === 'tienda' && styles.etiquetaActiva]}>Tienda</Texto>
+      </Pressable>
+    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  fondoTabs: {
-    borderRadius: radioGlassNavegacion,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
-    right: 0,
-    top: 0,
-    overflow: 'hidden',
-  },
-  fondoTabsTinte: {
-    backgroundColor: 'rgba(255, 255, 255, 0.90)',
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
-    right: 0,
-    top: 0,
-  },
-  fondoTabsBrilloLateral: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderRadius: 999,
-    bottom: 12,
-    left: 8,
-    position: 'absolute',
-    top: 12,
-    width: 3,
-  },
-  fondoTabsBorde: {
-    borderColor: 'rgba(255, 255, 255, 0.62)',
-    borderRadius: radioGlassNavegacion,
-    borderTopWidth: 0.8,
-    borderWidth: 0.45,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
-    right: 0,
-    top: 0,
-  },
+  areaSegura: { justifyContent: 'flex-end' },
+  barra: { flexDirection: 'row', height: 72 },
+  botonCentral: { alignItems: 'center', height: 104, justifyContent: 'flex-start', left: '40%', position: 'absolute', top: -2, width: '20%' },
+  circuloCentral: { alignItems: 'center', height: 72, justifyContent: 'center', width: 72 },
+  contenedor: { height: 108, justifyContent: 'flex-end', marginHorizontal: 16 },
+  contenedorIconoCentral: { alignItems: 'center', flex: 1, justifyContent: 'center' },
+  destino: { alignItems: 'center', flex: 1, height: 72, justifyContent: 'center', paddingTop: 3 },
+  espacioCentral: { flex: 1 },
+  etiqueta: { color: '#20653A', fontFamily: 'MontserratAlternates-Bold', fontSize: 10, marginTop: 1 },
+  etiquetaActiva: { color: '#124C29' },
+  etiquetaCentral: { color: '#20653A', fontFamily: 'MontserratAlternates-Bold', fontSize: 10, marginTop: 1 },
+  indicador: { backgroundColor: '#208A42', borderRadius: 4, bottom: 5, height: 5, position: 'absolute', width: 5 },
+  iconoNavegacion: { height: 30, width: 30 },
+  iconoNavegacionCentral: { height: 43, width: 43 },
 });

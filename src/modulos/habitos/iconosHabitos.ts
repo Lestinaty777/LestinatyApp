@@ -13,11 +13,16 @@ export type { IconoRegistrado as IconoHabito } from '../../diseno/iconos/registr
 // (migración 21). Única fuente de verdad: úsalo en vez de repetir el array.
 export const DIAS_REQUERIDOS_POR_NIVEL: Record<number, number> = { 2: 3, 3: 7, 4: 14, 5: 30, 6: 60, 7: 90 };
 
-// Hábitos ya no elige color libre: todos son verde, y el tono se oscurece
-// conforme subes de nivel (1 = más claro, 7 = más oscuro) — el color visualiza
-// el progreso en vez de ser una decisión al crear el hábito. Los 6 biomas no
-// verdes que existían antes (Cerezos, Arces, Sauces...) quedan como candidatos
-// a skins desbloqueables más adelante, no se borran.
+// OJO: el tono (1-7, oscurece este verde de más claro a más oscuro) es una
+// elección VISUAL fija de por vida del hábito — se guarda en
+// habitos_items.tono_visual al crearlo (ver migración 22) y es independiente
+// del nivel real. tonoVerdeNivel también se reutiliza para colorear insignias
+// según el nivel real en otras pantallas (ej. ListaProgresionHabitos) — ahí el
+// número que recibe es el nivel, no el tono del hábito; son dos usos distintos
+// de la misma paleta de 7 tonos, no el mismo concepto. Los 6 biomas no verdes
+// que existían antes (Cerezos, Arces, Sauces...) quedan como candidatos a
+// paquetes de árbol únicos vendibles en la tienda (ver plan de "paquetes de
+// bioma"), no se borran.
 const BASE_VERDE_HABITOS = '#22C55E';
 // 7 tonos: 1 = saturado actual, 2..7 = -5%,-10%,-15%,-20%,-25%,-30%.
 export const FACTORES_TONO = [1, 0.95, 0.9, 0.85, 0.8, 0.75, 0.7];

@@ -169,7 +169,7 @@ export function HabitosPantalla() {
       </View>
       {consultaCercania.data && (() => {
         const habito = consultaCercania.data;
-        const proximidad = Math.min(habito.porcentajeVentana1, habito.porcentajeVentana2);
+        const proximidad = habito.porcentaje;
         return (
           <Animated.View entering={entradaEncadenada(9)}>
             <Rebote accessibilityLabel={`${habito.titulo}, a punto de subir de nivel`} estilo={s.cercaniaTarjeta} onPress={() => setDetalleHabitoId(habito.id)}>

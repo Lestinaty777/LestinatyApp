@@ -2,6 +2,7 @@ import { PropsWithChildren, useState } from 'react';
 import { BlurView, BlurViewProps } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { LayoutChangeEvent, StyleProp, StyleSheet, View, ViewStyle } from 'react-native';
+import Svg, { Defs, LinearGradient as GradienteSvg, Polygon, Stop } from 'react-native-svg';
 
 type MasterGlassProps = PropsWithChildren<{
   blur?: boolean;
@@ -10,6 +11,8 @@ type MasterGlassProps = PropsWithChildren<{
   compacto?: boolean;
   /** Variante especial verde semi-oscuro (en vez de blanco/menta arriba) — pensada para MasterChip. */
   mastery?: boolean;
+  /** Variante poligonal para un control destacado, como el acceso central de tienda. */
+  forma?: 'rectangulo' | 'heptagono';
   style?: StyleProp<ViewStyle>;
   tint?: BlurViewProps['tint'];
 }>;
@@ -18,6 +21,7 @@ const MENTA_SUAVE = '#f3fcf3';
 const MENTA_PROFUNDA = '#e5f5e6';
 const MASTERY_SUAVE = '#2F7D52';
 const MASTERY_PROFUNDA = '#148549';
+const RADIO_MASTER_GLASS = 12;
 
 function mezclarHex(origen: string, destino: string, proporcion: number) {
   const mezclarCanal = (indice: number) => {
@@ -28,7 +32,7 @@ function mezclarHex(origen: string, destino: string, proporcion: number) {
   return `#${mezclarCanal(1)}${mezclarCanal(3)}${mezclarCanal(5)}`;
 }
 
-export function MasterGlass({ blur = false, children, compacto = false, intensity = 24, mastery = false, style, tint = 'light' }: MasterGlassProps) {
+export function MasterGlass({ blur = false, children, compacto = false, forma = 'rectangulo', intensity = 24, mastery = false, style, tint = 'light' }: MasterGlassProps) {
   const [tamano, setTamano] = useState({ alto: 0, ancho: 0 });
   const intensidadMenta = Math.min(1, Math.max(0, (tamano.alto - 52) / 348));
   const colorSuave = mastery ? MASTERY_SUAVE : compacto ? '#DDF4DF' : MENTA_SUAVE;
@@ -51,10 +55,29 @@ export function MasterGlass({ blur = false, children, compacto = false, intensit
   const inicioTransicionInferior = Math.max(finTransicionSuperior, alto * 0.66);
   const grosorBorde = Math.min(2.4, Math.max(1.35, Math.min(tamano.ancho, tamano.alto) * 0.018));
   const ubicacion = (valor: number) => Math.min(1, Math.max(0, valor / alto));
-  const interior = [styles.interior, { borderRadius: 20 - grosorBorde, margin: grosorBorde }];
+  const interior = [styles.interior, { borderRadius: Math.max(0, RADIO_MASTER_GLASS - grosorBorde), margin: grosorBorde }];
+
+  if (forma === 'heptagono') {
+    const borde = mastery ? '#1D8D48' : '#CDEFCF';
+    const centro = mastery ? '#42B766' : colorCuerpo;
+    const pie = mastery ? '#17733B' : colorPie;
+    return (
+      <View onLayout={medirContenedor} style={[styles.raiz, styles.heptagonoRaiz, style]}>
+        <Svg height="100%" preserveAspectRatio="xMidYMid meet" style={StyleSheet.absoluteFill} viewBox="0 0 72 72" width="100%">
+          <Defs>
+            <GradienteSvg id="masterGlassHeptagonoBorde" x1="0%" x2="100%" y1="0%" y2="100%"><Stop offset="0" stopColor={borde}/><Stop offset="1" stopColor={pie}/></GradienteSvg>
+            <GradienteSvg id="masterGlassHeptagonoCentro" x1="0%" x2="0%" y1="0%" y2="100%"><Stop offset="0" stopColor={centro}/><Stop offset="1" stopColor={pie}/></GradienteSvg>
+          </Defs>
+          <Polygon fill="url(#masterGlassHeptagonoBorde)" points="36,1 61,13 71,40 52,67 20,67 1,40 11,13" />
+          <Polygon fill="url(#masterGlassHeptagonoCentro)" points="36,4 58,15 67,40 50,63 22,63 5,40 14,15" />
+        </Svg>
+        <View style={styles.contenidoHeptagono}>{children}</View>
+      </View>
+    );
+  }
 
   return (
-    <LinearGradient colors={coloresExteriores} end={finBorde} locations={ubicacionesBorde} onLayout={medirContenedor} start={{ x: 0, y: 0 }} style={[styles.raiz, style]}>
+    <LinearGradient colors={coloresExteriores} end={finBorde} locations={ubicacionesBorde} onLayout={medirContenedor} start={{ x: 0, y: 0 }} style={[styles.raiz, style, styles.radioFijo]}>
       {blur ? <BlurView intensity={intensity} pointerEvents="none" tint={tint} style={interior} /> : <View pointerEvents="none" style={interior} />}
       <LinearGradient colors={[colorTope, colorTope, colorCuerpo, colorCuerpo, colorPie]} end={{ x: 0, y: 1 }} locations={[0, ubicacion(franjaSuperior), ubicacion(finTransicionSuperior), ubicacion(inicioTransicionInferior), 1]} pointerEvents="none" start={{ x: 0, y: 0 }} style={interior} />
       {children}
@@ -64,7 +87,7 @@ export function MasterGlass({ blur = false, children, compacto = false, intensit
 
 const styles = StyleSheet.create({
   raiz: {
-    borderRadius: 20,
+    borderRadius: RADIO_MASTER_GLASS,
     boxShadow: '1px 3px 7px rgba(11, 116, 50, 0.15)',
     // boxShadow (a diferencia del shadow* clásico de RN) no necesita
     // overflow:'visible' para pintarse fuera de la caja — con 'visible' aquí,
@@ -72,5 +95,8 @@ const styles = StyleSheet.create({
     // relleno del swipe) no se recorta a la forma redonda y se ve cuadrado.
     overflow: 'hidden',
   },
+  radioFijo: { borderRadius: RADIO_MASTER_GLASS },
+  contenidoHeptagono: { alignItems: 'center', flex: 1, justifyContent: 'center' },
+  heptagonoRaiz: { borderRadius: 0, overflow: 'visible' },
   interior: { bottom: 0, left: 0, overflow: 'hidden', position: 'absolute', right: 0, top: 0 },
 });

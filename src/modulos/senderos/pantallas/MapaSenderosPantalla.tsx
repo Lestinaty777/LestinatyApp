@@ -1,8 +1,8 @@
-import Svg, { Polygon, Rect, Defs, Pattern, Path, Circle, Line } from 'react-native-svg';
+import Svg, { Rect, Defs, Pattern, Path, Circle, Line } from 'react-native-svg';
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useLocalSearchParams } from 'expo-router';
-import { StyleSheet, View, useWindowDimensions, Pressable, ScrollView, Text as TextoRN, Image } from 'react-native';
+import { FlatList, StyleSheet, View, useWindowDimensions, Pressable, ScrollView, Text as TextoRN, Image } from 'react-native';
 import { BotonTab } from '../../../nucleo/navegacion/BarraTabs';
 import { PixelartIcon } from '../../../diseno/iconos/PixelartIcon';
 import Animated, { useSharedValue, useAnimatedStyle, useAnimatedProps, withTiming, Easing, withSpring, withRepeat } from 'react-native-reanimated';
@@ -10,7 +10,7 @@ import { Beaker, Users, Activity, Calculator, BookOpen } from 'lucide-react-nati
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Shield, Terminal, Hexagon, Trophy, Leaf, Sun, Moon } from 'lucide-react-native';
 import { ContenedorMapaSenderos } from '../../senderos/componentes/mapa/ContenedorMapaSenderos';
-import { MasterChip, MasterGlass, MasterIconBg, Texto, colores, RecuadroGlass } from '../../../diseno';
+import { MasterChip, MasterGlass, MasterIcon, MasterIconBg, Texto, colores, RecuadroGlass } from '../../../diseno';
 import { hapticSeguro } from '../../../nucleo/dispositivo/haptics';
 import { TarjetaHabitoCompacta } from '../../habitos/componentes/TarjetaHabitoCompacta';
 import { WidgetRegistrarProgreso } from '../../habitos/componentes/WidgetRegistrarProgreso';
@@ -18,12 +18,14 @@ import { useSenderoHabito } from '../../habitos/hooks/useSenderoHabito';
 import { buscarIconoHabito } from '../../habitos/iconosHabitos';
 import { obtenerDetallesHabitosHoy, obtenerPanelHabitos } from '../../habitos/habitos.servicio';
 import type { HabitoResumen } from '../../habitos/tipos';
+import { useSaldoGemas } from '../../tienda/useSaldoGemas';
 import { categoriaInicialMapa, coloresSelectorCategoria, modulosPorCategoria, type CategoriaMapaMvp, type IconoModuloMapa, type ModuloCategoriaMapa } from '../datos/modulosCategorias';
 
 const DIAS_SEMANA_COMPLETA = [1, 2, 3, 4, 5, 6, 7];
 const TAMANO_ICONO_CATEGORIA = 64;
 const ALTURA_NAVBAR_BASE = 88;
 const PEEK_SIGUIENTE_TARJETA = 32;
+const VERDE_MENTA = '#f1f8f6';
 
 const TITULOS_CATEGORIA: Record<CategoriaMapaMvp, string> = {
   habitos: 'Hábitos',
@@ -39,22 +41,6 @@ const SUBTITULOS_CATEGORIA: Record<CategoriaMapaMvp, string> = {
 
 type AsignaturaVisible = ModuloCategoriaMapa & { habitoReal?: HabitoResumen };
 
-
-const GemaMorada = ({ focused, size = 20 }: { focused: boolean, size?: number }) => (
-  <Svg height={size} viewBox="0 0 24 24" width={size}>
-    <Polygon
-      fill={focused ? '#A100FF' : '#76736D'}
-      stroke={focused ? '#A100FF' : '#76736D'}
-      strokeWidth="1.7"
-      strokeLinejoin="round"
-      points="12,2 19.8,5.7 21.7,14.1 16.3,20.8 7.7,20.8 2.3,14.1 4.2,5.7"
-    />
-    <Polygon
-      fill={focused ? '#E6B8FF' : 'rgba(255,255,255,0.4)'}
-      points="12,7.1 15.6,8.8 16.5,12.7 14,15.8 10,15.8 7.5,12.7 8.4,8.8"
-    />
-  </Svg>
-);
 
 const iconosCategoriasMapa: Record<CategoriaMapaMvp, number> = {
   habitos: require('../../../../assets/icons/hoy/habitos.png'),
@@ -98,7 +84,6 @@ export function MapaSenderosPantalla() {
   const [categoriaActiva, setCategoriaActiva] = React.useState<CategoriaMapaMvp>(categoriaInicialMapa);
   const [filtroMomento, setFiltroMomento] = React.useState<'manana' | 'noche' | 'tarde' | 'todos'>('todos');
   const animMenuState = useSharedValue(0);
-  const animExpansionHeight = useSharedValue(0);
 
   const handleToggleMenu = (menu: 'categories' | 'courses' | 'store') => {
     hapticSeguro('seleccion');
@@ -111,6 +96,7 @@ export function MapaSenderosPantalla() {
 
   const consultaHabitos = useQuery({ queryKey: ['habitos', 'panel'], queryFn: () => obtenerPanelHabitos() });
   const consultaDetallesHoy = useQuery({ queryKey: ['habitos', 'detalles-hoy'], queryFn: () => obtenerDetallesHabitosHoy() });
+  const { data: saldoGemas } = useSaldoGemas();
   const habitosReales = consultaHabitos.data?.hoy.datos ?? [];
   const detallesPorHabito = React.useMemo(() => new Map((consultaDetallesHoy.data ?? []).map((detalle) => [detalle.habitoId, detalle])), [consultaDetallesHoy.data]);
   const habitosCompletadosHoy = habitosReales.filter((habito) => habito.completado).length;
@@ -149,19 +135,10 @@ export function MapaSenderosPantalla() {
 
   React.useEffect(() => {
     const isAnyOpen = activeMenu !== 'none';
-    animMenuState.value = withSpring(isAnyOpen ? 1 : 0, { damping: 16, stiffness: 100 });
-    
-    let targetH = 0;
-    if (activeMenu === 'courses') targetH = categoriaActiva === 'habitos' ? 326 : 200;
-    if (activeMenu === 'categories') targetH = 132;
-    if (activeMenu === 'store') targetH = 260;
-
-    animExpansionHeight.value = withSpring(targetH, { damping: 16, stiffness: 100 });
+    animMenuState.value = withTiming(isAnyOpen ? 1 : 0, { duration: 180, easing: Easing.out(Easing.cubic) });
   }, [activeMenu, categoriaActiva]);
 
-  const animNavbarEstilos = useAnimatedStyle(() => ({
-    height: ALTURA_NAVBAR_BASE + animExpansionHeight.value,
-  }));
+  const alturaPanelMenu = activeMenu === 'courses' ? (categoriaActiva === 'habitos' ? 326 : 200) : activeMenu === 'categories' ? 132 : 260;
 
   const animContenidoEstilos = useAnimatedStyle(() => ({
     opacity: animMenuState.value,
@@ -183,7 +160,7 @@ export function MapaSenderosPantalla() {
         
         {/* Barra de Navegación Superior */}
         <View style={{ zIndex: 10 }}>
-          <Animated.View style={[styles.navbarContenedor, animNavbarEstilos]}>
+          <View style={styles.navbarContenedor}>
             <MasterGlass blur style={styles.navbarGlass}>
             <View style={styles.navbarFila}>
               <Pressable onPress={() => handleToggleMenu('categories')}>
@@ -197,21 +174,28 @@ export function MapaSenderosPantalla() {
                 <Texto numberOfLines={2} style={[styles.descAsignatura, { color: oscurecer(coloresSelectorCategoria[categoriaActiva], 0.6) }]}>{SUBTITULOS_CATEGORIA[categoriaActiva]}</Texto>
               </View>
 
-              <Pressable onPress={() => handleToggleMenu('courses')}>
-                <View style={[styles.botonPildora, activeMenu === 'courses' && { backgroundColor: aclarar(coloresSelectorCategoria[categoriaActiva], 0.84) }]}>
-                  <Image resizeMode="contain" source={require('../../../../assets/icons/habitos.png')} style={{ height: 19, width: 19 }} />
-                  <Texto style={{ fontSize: 13, fontFamily: 'Montserrat-Bold', color: activeMenu === 'courses' ? oscurecer(coloresSelectorCategoria[categoriaActiva], 0.4) : '#76736D', marginTop: -2 }}>{ASIGNATURAS.length}</Texto>
-                </View>
+              <Pressable accessibilityLabel="Ver hábitos" onPress={() => handleToggleMenu('courses')}>
+                <MasterGlass blur compacto style={styles.botonCristal}>
+                  <View style={[styles.botonPildora, activeMenu === 'courses' && { backgroundColor: aclarar(coloresSelectorCategoria[categoriaActiva], 0.84) }]}>
+                    <BookOpen color={activeMenu === 'courses' ? oscurecer(coloresSelectorCategoria[categoriaActiva], 0.4) : '#53505B'} size={22} strokeWidth={2.35} />
+                    <Texto style={{ fontSize: 14, fontFamily: 'Montserrat-Bold', color: activeMenu === 'courses' ? oscurecer(coloresSelectorCategoria[categoriaActiva], 0.4) : '#53505B', marginTop: -2 }}>{ASIGNATURAS.length}</Texto>
+                  </View>
+                </MasterGlass>
               </Pressable>
-              <Pressable onPress={() => handleToggleMenu('store')}>
-                <View style={[styles.botonPildora, activeMenu === 'store' && { backgroundColor: aclarar('#A100FF', 0.86) }]}>
-                  <GemaMorada focused={activeMenu === 'store'} size={17} />
-                  <Texto style={{ fontSize: 13, fontFamily: 'Montserrat-Bold', color: activeMenu === 'store' ? '#A100FF' : '#76736D', marginTop: -2 }}>1,250</Texto>
-                </View>
+              <Pressable accessibilityLabel="Ver saldo de gemas" onPress={() => handleToggleMenu('store')}>
+                <MasterGlass blur compacto style={styles.botonCristal}>
+                  <View style={[styles.botonPildora, activeMenu === 'store' && { backgroundColor: aclarar('#A100FF', 0.86) }]}>
+                    <Image resizeMode="contain" source={require('../../../../assets/icons/hoy/gemas.png')} style={{ height: 23, width: 23 }} />
+                    <Texto style={{ fontSize: 14, fontFamily: 'Montserrat-Bold', color: activeMenu === 'store' ? '#A100FF' : '#53505B', marginTop: -2 }}>{saldoGemas ?? 0}</Texto>
+                  </View>
+                </MasterGlass>
               </Pressable>
             </View>
 
-            <Animated.View pointerEvents={activeMenu !== 'none' ? 'auto' : 'none'} style={[{ flex: 1 }, animContenidoEstilos]}>
+            </MasterGlass>
+            {activeMenu !== 'none' && (
+              <MasterGlass style={[styles.panelDesplegable, { height: alturaPanelMenu }]}>
+            <Animated.View pointerEvents="auto" style={[styles.contenidoDesplegable, animContenidoEstilos]}>
               {activeMenu === 'categories' && (
                 <View style={styles.tooltipCategorias}>
                   <Texto style={styles.tooltipCategoriasTitulo}>CAMBIAR CATEGORÍA</Texto>
@@ -254,13 +238,18 @@ export function MapaSenderosPantalla() {
                       </View>
                     </MasterGlass>
 
-                    <ScrollView
-                      contentContainerStyle={{ gap: 14, paddingBottom: 6 }}
+                    <FlatList
+                      contentContainerStyle={{ paddingBottom: 6 }}
+                      data={asignaturasHabitos}
                       decelerationRate="fast"
+                      getItemLayout={(_, indice) => ({ index: indice, length: anchoCarta + 14, offset: indice * (anchoCarta + 14) })}
                       horizontal
-                      showsHorizontalScrollIndicator={false}
-                    >
-                      {asignaturasHabitos.map((asig) => {
+                      initialNumToRender={2}
+                      ItemSeparatorComponent={() => <View style={{ width: 14 }} />}
+                      keyExtractor={(asig) => asig.id}
+                      maxToRenderPerBatch={2}
+                      removeClippedSubviews
+                      renderItem={({ item: asig }) => {
                         const detalle = detallesPorHabito.get(asig.habitoReal!.id);
                         const icono = buscarIconoHabito(asig.habitoReal!.iconoLucide);
                         return (
@@ -279,8 +268,10 @@ export function MapaSenderosPantalla() {
                             valorHoy={asig.habitoReal!.valorHoy}
                           />
                         );
-                      })}
-                    </ScrollView>
+                      }}
+                      showsHorizontalScrollIndicator={false}
+                      windowSize={3}
+                    />
 
                     <View style={{ flexDirection: 'row', gap: 8, marginTop: 16 }}>
                       {([
@@ -400,21 +391,29 @@ export function MapaSenderosPantalla() {
               </ScrollView>
                 </View>
               )}
-              {activeMenu === 'store' && <PanelTienda />}
+              {activeMenu === 'store' && <PanelTienda saldoGemas={saldoGemas ?? 0} />}
             </Animated.View>
             </MasterGlass>
-          </Animated.View>
+            )}
+          </View>
         </View>
 
         {/* Barra del hábito seleccionado — info normal, o se convierte en el widget de registro / celebración de nivel */}
         {asignatura && (() => {
           const colorTexto = oscurecer(asignatura.color, 0.5);
           const colorSub = oscurecer(asignatura.color, 0.62);
+          const iconoHabito = asignatura.habitoReal ? buscarIconoHabito(asignatura.habitoReal.iconoLucide) : null;
           return (
             <View style={styles.tarjetaContenedor}>
               <RecuadroGlass blur degradado={{ inicio: aclarar(asignatura.color, 0.86), fin: aclarar(asignatura.color, 0.5) }} style={styles.tarjetaAsignatura}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, padding: 16, flex: 1 }}>
-                  {!sendero.celebracion && !sendero.registrando && <IconoAsignatura asignatura={asignatura} color={colorTexto} size={30} />}
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, flex: 1 }}>
+                  {!sendero.celebracion && !sendero.registrando && (
+                    asignatura.habitoReal && iconoHabito ? (
+                      <MasterIconBg fuente={iconoHabito.fuente} size={48} />
+                    ) : (
+                      <MasterIconBg size={48}><IconoModulo color={colorTexto} nombre={asignatura.icono} size={24} /></MasterIconBg>
+                    )
+                  )}
                   <View style={{ flex: 1 }}>
                     {sendero.celebracion ? (
                       <View style={{ alignItems: 'center', flexDirection: 'row', gap: 8 }}>
@@ -435,14 +434,35 @@ export function MapaSenderosPantalla() {
                     ) : (
                       <>
                         <Texto numberOfLines={1} style={{ color: colorTexto, fontFamily: 'MontserratAlternates-Bold', fontSize: 16 }}>{asignatura.titulo}</Texto>
-                        <Texto numberOfLines={1} style={{ color: colorSub, fontFamily: 'Montserrat-Medium', fontSize: 12, marginTop: 1 }}>
-                          {asignatura.habitoReal && sendero.consulta.data
-                            ? (sendero.esNivelMaximo ? `Nivel máximo (${sendero.consulta.data.nivel})` : `Nivel ${sendero.consulta.data.nivel} · ${sendero.consulta.data.diasCompletados}/${sendero.consulta.data.diasRequeridos} días para subir`)
-                            : asignatura.descripcion}
-                        </Texto>
+                        {/* Los días ya los muestra el anillo de la derecha — el recuadro
+                            de abajo solo repite la insignia de nivel (ícono + texto). */}
+                        {asignatura.habitoReal && sendero.consulta.data ? (
+                          <View style={styles.pildoraNivel}>
+                            <MasterIcon color={2} name={`nivel${sendero.consulta.data.nivel}`} size={14} />
+                            <Texto style={[styles.pildoraNivelTexto, { color: colorTexto }]}>{sendero.esNivelMaximo ? 'Nivel máximo' : `Nivel ${sendero.consulta.data.nivel}`}</Texto>
+                          </View>
+                        ) : (
+                          <Texto numberOfLines={1} style={{ color: colorSub, fontFamily: 'Montserrat-Medium', fontSize: 12, marginTop: 1 }}>{asignatura.descripcion}</Texto>
+                        )}
                       </>
                     )}
                   </View>
+                  {!sendero.celebracion && !sendero.registrando && asignatura.habitoReal && sendero.consulta.data?.diasRequeridos != null && (() => {
+                    const diasCompletados = sendero.consulta.data!.diasCompletados;
+                    const diasRequeridos = sendero.consulta.data!.diasRequeridos ?? 0;
+                    const fraccionDias = diasRequeridos > 0 ? Math.min(1, diasCompletados / diasRequeridos) : 0;
+                    const radio = 22;
+                    const circunferencia = 2 * Math.PI * radio;
+                    return (
+                      <View style={styles.anilloDias}>
+                        <Svg height={54} style={{ position: 'absolute' }} width={54}>
+                          <Circle cx="27" cy="27" fill="none" r={radio} stroke={VERDE_MENTA} strokeOpacity={0.22} strokeWidth={5} />
+                          <Circle cx="27" cy="27" fill="none" r={radio} rotation="-90" stroke={VERDE_MENTA} strokeDasharray={`${circunferencia} ${circunferencia}`} strokeDashoffset={circunferencia * (1 - fraccionDias)} strokeLinecap="round" strokeWidth={5} origin="27,27" />
+                        </Svg>
+                        <Texto style={[styles.anilloDiasTexto, { color: VERDE_MENTA }]}>{diasCompletados}/{diasRequeridos}</Texto>
+                      </View>
+                    );
+                  })()}
                 </View>
               </RecuadroGlass>
             </View>
@@ -468,7 +488,10 @@ export function MapaSenderosPantalla() {
                 nodos={sendero.nodos}
                 onCompletarNodo={() => sendero.setRegistrando(true)}
                 subcategoriaId={asignatura.habitoReal.id}
-                tono={sendero.consulta.data.nivel}
+                // tonoVisual: elección fija de por vida del hábito (qué
+                // paquete de árbol usa) — independiente del nivel real, que
+                // solo gobierna cuántos nodos/días muestra el mapa.
+                tono={sendero.consulta.data.habito.tonoVisual}
               />
             )
           ) : asignatura ? (
@@ -525,8 +548,17 @@ const styles = StyleSheet.create({
     marginHorizontal: 20,
     marginTop: 10,
     marginBottom: 10,
+    position: 'relative',
   },
-  navbarGlass: { flex: 1 },
+  navbarGlass: { height: ALTURA_NAVBAR_BASE },
+  panelDesplegable: {
+    left: 0,
+    position: 'absolute',
+    right: 0,
+    top: ALTURA_NAVBAR_BASE + 8,
+    zIndex: 1,
+  },
+  contenidoDesplegable: { flex: 1 },
   badgeCategoriaActivo: {
     transform: [{ scale: 0.94 }],
   },
@@ -536,12 +568,14 @@ const styles = StyleSheet.create({
   },
   botonPildora: {
     alignItems: 'center',
-    borderRadius: 15,
+    borderRadius: 12,
     flexDirection: 'row',
-    gap: 5,
-    paddingHorizontal: 10,
-    paddingVertical: 7,
+    gap: 6,
+    minHeight: 42,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
   },
+  botonCristal: { borderRadius: 12 },
   tooltipCategorias: {
     flex: 1,
     paddingHorizontal: 16,
@@ -636,19 +670,55 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(0,0,0,0.05)',
   },
+  // Flotante de verdad: position absolute + zIndex propio, para que no vaya
+  // pegada a la navbar (ambas eran hermanas en el flujo normal, con márgenes
+  // idénticos que las hacían leer como una sola pieza) ni se empuje cuando la
+  // navbar se expande (su dropdown anima su propia altura). zIndex 5 la deja
+  // por encima del mapa (sin zIndex propio) pero debajo de la navbar (10),
+  // así su dropdown la sigue tapando con naturalidad al abrirse.
   tarjetaContenedor: {
-    marginHorizontal: 20,
-    marginTop: 12,
+    left: 20,
+    right: 20,
+    top: ALTURA_NAVBAR_BASE + 54,
+    position: 'absolute',
     height: 72,
+    zIndex: 5,
     shadowColor: '#0D3D22',
-    shadowOffset: { height: 4, width: 0 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 2,
+    shadowOffset: { height: 6, width: 0 },
+    shadowOpacity: 0.16,
+    shadowRadius: 14,
+    elevation: 6,
   },
   tarjetaAsignatura: {
-    borderRadius: 22,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.55)',
     height: 72,
+  },
+  pildoraNivel: {
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    backgroundColor: 'rgba(255,255,255,.55)',
+    borderRadius: 10,
+    flexDirection: 'row',
+    gap: 5,
+    marginTop: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  pildoraNivelTexto: {
+    fontFamily: 'MontserratAlternates-Bold',
+    fontSize: 11,
+  },
+  anilloDias: {
+    alignItems: 'center',
+    height: 54,
+    justifyContent: 'center',
+    width: 54,
+  },
+  anilloDiasTexto: {
+    fontFamily: 'MontserratAlternates-Bold',
+    fontSize: 12,
   },
   tarjetaBrilloCarrusel: {
     position: 'absolute',
@@ -707,7 +777,7 @@ const styles = StyleSheet.create({
 });
 
 
-function PanelTienda() {
+function PanelTienda({ saldoGemas }: { saldoGemas: number }) {
   const articulos = [
     { id: 1, titulo: 'Tema: Matrix', desc: 'Esquema de color negro y verde hacker.', precio: 500, color: '#2E7D32', Icono: Terminal },
     { id: 2, titulo: 'Escudo', desc: 'Congela y salva tu racha por 24 horas.', precio: 200, color: '#B34A4A', Icono: Shield },
@@ -727,7 +797,7 @@ function PanelTienda() {
           <View style={{ width: 42, height: 42 }}>
             <View style={{ position: 'absolute', top: 4, left: 0, right: 0, bottom: -4, backgroundColor: '#000000', borderRadius: 8 }} />
             <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: '#111111', borderRadius: 8, justifyContent: 'center', alignItems: 'center' }}>
-              <GemaMorada focused={true} size={24} />
+              <Image resizeMode="contain" source={require('../../../../assets/icons/hoy/gemas.png')} style={{ height: 24, width: 24 }} />
             </View>
           </View>
           <View>
@@ -738,8 +808,8 @@ function PanelTienda() {
         <View style={{ alignItems: 'flex-end' }}>
           <Texto style={{ fontSize: 8, color: 'rgba(0,0,0,0.5)', fontFamily: 'Montserrat-Bold', letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 2 }}>FONDOS (CRÉDITOS)</Texto>
           <View style={{ backgroundColor: '#111111', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, borderBottomWidth: 2, borderBottomColor: '#000000', flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-            <Hexagon size={10} color="#FFD700" fill="#FFD700" />
-            <Texto style={{ fontSize: 13, fontFamily: 'Montserrat-Bold', color: '#FFD700' }}>1,250</Texto>
+            <Image resizeMode="contain" source={require('../../../../assets/icons/hoy/gemas.png')} style={{ height: 14, width: 14 }} />
+            <Texto style={{ fontSize: 13, fontFamily: 'Montserrat-Bold', color: '#FFD700' }}>{saldoGemas}</Texto>
           </View>
         </View>
       </View>
