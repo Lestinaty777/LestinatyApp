@@ -1,6 +1,8 @@
 export { AnilloProgreso } from './AnilloProgreso';
 export { Banner } from './Banner';
 export { Boton } from './Boton';
+export { MasterButton } from './MasterButton';
+export type { MasterButtonProps } from './MasterButton';
 export { CampoContrasena } from './CampoContrasena';
 export { CampoTexto } from './CampoTexto';
 export { Checkbox } from './Checkbox';

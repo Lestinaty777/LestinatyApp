@@ -101,38 +101,18 @@ const DESPLAZAMIENTO_SUPERIOR = 222;
 // Las 5 variantes (incluyendo pasto1/pasto2) participan por igual.
 const AMBIENTE_IDS: AmbienteId[] = ['pasto', 'pasto1', 'pasto2', 'roca', 'roca1'];
 const AMBIENTE_OPACIDADES = [0.3, 0.6, 1];
-// Tramo final (después del último nodo, la "cola" del mapa): se reduce el
-// pasto un 30% ahí para que no se sienta tan cargado justo donde termina el
-// sendero — las rocas no se tocan.
-const REDUCCION_PASTO_TRAMO_FINAL = 0.3;
+// El pasto se reduce explícitamente en cualquier nivel, independiente de la
+// densidad global de ambiente. Los extremos antes/después del sendero quedan
+// aún más despejados para que el mapa tenga respiración visual.
+const FACTOR_DENSIDAD_PASTO = 0.8;
+const REDUCCION_PASTO_EXTREMOS = 0.5;
+const FACTOR_ESCALA_ARBUSTO = 0.8;
 // Cobertura de terreno presente, pero 20% más ligera para que los árboles,
 // lámparas y nodos respiren mejor.
 const AMBIENTE_DENSIDAD = 1 / 1125;
-// Semillas/brotes del paquete: MUCHAS en nivel 1 (recién plantado), se van
-// perdiendo a medida que el árbol crece — nivel 4 en adelante ya no hay
-// ninguna (todo lo que era semilla ya se hizo árbol). Curva lineal simple,
-// se ajusta a ojo si hace falta.
-function factorSemillaPorNivel(nivel: number): number {
-  return Math.max(0, Math.min(1, (4 - nivel) / 3));
-}
-// Semillas: pocas y pegadas a los costados del mapa (no un scatter amplio
-// como el pasto — resultaba demasiado cargado).
-const SEMILLA_CANTIDAD_BASE = 8;
-// Brotes (etapa 1): la etapa 1 NUNCA se dibuja como árbol protagonista de
-// nodo (ver el "continue" en el loop de árboles) — en su lugar se ve como un
-// puñado de brotes de tamaño similar a un nodo (60-80px), repartidos por todo
-// el mapa pero siempre pegados a los bordes izquierdo/derecho, con espacio
-// entre uno y otro para que no se vean amontonados.
-// Etapa 1 tiene lectura de semilla/brote, no de árbol alto. Nueve por lado
-// deja los bordes vivos desde el inicio sin invadir el sendero central.
-const BROTES_POR_LADO = 9;
 const ARBOLES_ETAPA_POR_NODO = 2;
 const PROBABILIDAD_ARBOL_INTERMEDIO = 0.32;
 const RECORTE_LATERAL_ARBOL_INTERMEDIO = 0.12;
-// Etapa 1: 80px, la misma regla fija que el árbol de etapa 1.
-const BROTE_ESCALA_MIN = 80 / TAMANO_BASE_ASSET;
-const BROTE_ESCALA_MAX = 80 / TAMANO_BASE_ASSET;
-const BROTE_SEPARACION_MINIMA = 90;
 
 const hashCadena = (valor: string) => Array.from(valor).reduce((hash, caracter) => ((hash << 5) - hash + caracter.charCodeAt(0)) | 0, 2166136261) >>> 0;
 
@@ -249,13 +229,20 @@ export function generarMapaProcedural({ ancho, cantidadNodos, tema }: { ancho: n
   const arbolesSecundarios = assetsPorRol('arbol-secundario');
   const arbolesTerciarios = assetsPorRol('arbol-terciario');
   const arbolesPorProfundidad = [arbolesPrincipales, arbolesSecundarios, arbolesTerciarios];
-  const usaProfundidad = arbolesTerciarios.length > 0;
+  // Un paquete real entra siempre al sistema de etapas. En nivel 1 solo hay
+  // una lista disponible y en nivel 2 dos; elegirProfundidad ya descarta las
+  // listas vacías. Antes se exigía una tercera etapa y los niveles 1–2 caían
+  // accidentalmente en el algoritmo viejo de escala aleatoria.
+  const usaProfundidad = tema.tieneAssetsPaquete;
 
   // El árbol irregular se planta primero: flores, arbustos, pasto y los
   // árboles regulares deberán respetar su espacio. Las lámparas permanecen
   // como zonas protegidas y nunca se desplazan.
   if (tema.tieneAssetsPaquete && usaProfundidad) {
-    for (let indice = 0; indice < nodos.length - 1; indice += 1) {
+    // El tramo de salida queda reservado para los dos árboles del nodo 0.
+    // La irregularidad empieza después para que el arranque conserve una
+    // composición legible y simétrica.
+    for (let indice = 1; indice < nodos.length - 1; indice += 1) {
       if (aleatorio() > PROBABILIDAD_ARBOL_INTERMEDIO) continue;
 
       const disponibles = arbolesPorProfundidad.map((lista) => lista.length > 0);
@@ -284,40 +271,6 @@ export function generarMapaProcedural({ ancho, cantidadNodos, tema }: { ancho: n
     }
   }
 
-  // La primera curva siempre recibe una flor antes de colocar árboles: evita que el follaje la oculte.
-  const florInicial = assetsPorRol('flor')[0];
-  const ladoFlorInicial: LadoMapa = aleatorio() > 0.5 ? 'izquierda' : 'derecha';
-  if (florInicial && nodos.length > 1) {
-    const escala = 0.24;
-    const tamano = TAMANO_BASE_ASSET * escala;
-    colocar({
-      assetId: florInicial.id,
-      capa: 'frente',
-      escala,
-      lado: ladoFlorInicial,
-      x: ladoFlorInicial === 'izquierda' ? 58 : ancho - tamano - 58,
-      y: (nodos[0].y + nodos[1].y) / 2 - tamano * 0.4,
-    });
-  }
-
-  // Dos arbustos laterales aseguran que el sendero no se sienta vacío aun con un bioma poco denso.
-  const arbustosIniciales = assetsPorRol('arbusto');
-  for (let indice = 0; indice < Math.min(2, arbustosIniciales.length ? 2 : 0, Math.max(0, nodos.length - 1)); indice += 1) {
-    const ladoLampara: LadoMapa = nodos[indice + 1].x < centro ? 'derecha' : 'izquierda';
-    const ladoPreferido: LadoMapa = ladoLampara === 'izquierda' ? 'derecha' : 'izquierda';
-    const escala = 0.42;
-    const tamano = TAMANO_BASE_ASSET * escala;
-    const y = (nodos[indice].y + nodos[indice + 1].y) / 2 + 12;
-    colocarConLadoAlterno(ladoPreferido, (lado) => ({
-      assetId: arbustosIniciales[indice % arbustosIniciales.length].id,
-      capa: 'medio',
-      escala,
-      lado,
-      x: lado === 'izquierda' ? 10 : ancho - tamano - 10,
-      y,
-    }));
-  }
-
   // Cada tramo alterna su masa vegetal: un árbol encuadra la curva y los detalles acercan el camino.
   // El lado preferido es el contrario a la lámpara de ese nodo (más "adentro",
   // mirando hacia el centro del sendero); si ese lado ya está ocupado
@@ -338,28 +291,25 @@ export function generarMapaProcedural({ ancho, cantidadNodos, tema }: { ancho: n
 
     let arbol: AssetBioma | undefined;
     let capa: CapaDecoracion;
-    let esEtapaUno = false;
     let etapaArbol: number | undefined;
     if (usaProfundidad) {
       const disponibles = arbolesPorProfundidad.map((lista) => lista.length > 0);
-      const profundidad = elegirProfundidad(aleatorio, disponibles);
+      // Los dos árboles del primer nodo son el ancla del mapa: no mezclan
+      // etapas previas. Así nivel 1 usa siempre etapa 1 (80 px) y nivel 2
+      // etapa 2 (90 px), en ambos costados y con el mismo tamaño.
+      const profundidad = indice === 0 && tema.tieneAssetsPaquete
+        ? 0
+        : elegirProfundidad(aleatorio, disponibles);
       const lista = arbolesPorProfundidad[profundidad];
       arbol = lista[Math.floor(aleatorio() * lista.length)];
       capa = profundidad === 0 ? 'frente' : profundidad === 1 ? 'medio' : 'fondo';
       etapaArbol = Math.max(1, (tema.nivel ?? 1) - profundidad);
-      esEtapaUno = etapaArbol === 1;
     } else {
       const arboles = indice % 3 === 0 ? arbolesPrincipales : arbolesSecundarios;
       arbol = arboles[Math.floor(aleatorio() * arboles.length)];
       capa = indice % 3 === 0 ? 'frente' : 'fondo';
     }
     if (!arbol) continue;
-    // La etapa 1 (recién plantada) nunca se dibuja como árbol protagonista
-    // de nodo — se ve mal a tamaño de árbol grande. En su lugar se resuelve
-    // aparte, como un scatter de brotes chicos pegados a los bordes (ver
-    // más abajo, bloque de "brotes"). Esto vacía el mapa de nivel 1 de
-    // árboles-nodo (ahí SIEMPRE es etapa1) a propósito.
-    if (esEtapaUno) continue;
     const arbolElegido = arbol;
 
     // Los árboles de un paquete real conservan un tamaño fijo por etapa.
@@ -398,7 +348,7 @@ export function generarMapaProcedural({ ancho, cantidadNodos, tema }: { ancho: n
 
     const flores = assetsPorRol('flor');
     const flor = flores[Math.floor(aleatorio() * flores.length)];
-    if (flor && (indice === 0 || aleatorio() < tema.densidadDecoracion * 0.62)) {
+    if (flor && aleatorio() < tema.densidadDecoracion * 0.62) {
       const escala = 0.18 + aleatorio() * 0.1;
       const tamano = TAMANO_BASE_ASSET * escala;
       const factorX = aleatorio() * 20;
@@ -415,8 +365,8 @@ export function generarMapaProcedural({ ancho, cantidadNodos, tema }: { ancho: n
 
     const arbustos = assetsPorRol('arbusto');
     const arbusto = arbustos[Math.floor(aleatorio() * arbustos.length)];
-    if (arbusto && (indice < 2 || aleatorio() < Math.min(0.94, tema.densidadDecoracion + 0.16))) {
-      const escala = 0.36 + aleatorio() * 0.2;
+    if (arbusto && aleatorio() < Math.min(0.94, tema.densidadDecoracion + 0.16)) {
+      const escala = (0.36 + aleatorio() * 0.2) * FACTOR_ESCALA_ARBUSTO;
       const tamano = TAMANO_BASE_ASSET * escala;
       const factorX = aleatorio() * 34;
       const y = centroTramoY - tamano * 0.45;
@@ -439,13 +389,11 @@ export function generarMapaProcedural({ ancho, cantidadNodos, tema }: { ancho: n
   const cajasAmbiente: CajaColision[] = [];
   const altoMapa = DESPLAZAMIENTO_SUPERIOR + Math.max(0, nodos.length - 1) * SEPARACION_NODOS + 200;
   const cantidadAmbiente = Math.round(ancho * altoMapa * AMBIENTE_DENSIDAD);
+  const primerNodoY = nodos[0]?.y ?? 0;
   const ultimoNodoY = nodos[nodos.length - 1]?.y ?? 0;
-  // Pasto crítico en niveles 1-3, pero no de golpe: crece "poquito a poquito"
-  // con progresoPastoTemprano (0-1, calculado por el caller a partir de los
-  // días completados). Piso de 0.3 para que nunca se sienta pelado desde el
-  // primer día. No afecta a las rocas ni a categorías que no son 'habitos'
-  // (ahí progresoPastoTemprano queda undefined → factor 1, sin cambios).
-  const factorCrecimientoPasto = Math.max(0.3, Math.min(1, tema.progresoPastoTemprano ?? 1));
+  // Todos los niveles comparten la misma cobertura de pasto; el crecimiento
+  // se comunica por los tamaños de etapa, no por vaciar los primeros mapas.
+  const factorCrecimientoPasto = 1;
   for (let indice = 0; indice < cantidadAmbiente; indice += 1) {
     const escala = 0.18 + aleatorio() * 0.16;
     const tamano = TAMANO_BASE_ASSET * escala;
@@ -456,9 +404,10 @@ export function generarMapaProcedural({ ancho, cantidadNodos, tema }: { ancho: n
     const invadeNodo = nodos.some((nodo) => Math.hypot(centro.x - nodo.x, centro.y - nodo.y) <= LIMPIEZA_NODO);
     if (invadeNodo || hayColision(caja, cajasProtegidas) || hayColision(caja, cajasDecoracion) || hayColision(caja, cajasAmbiente)) continue;
     const assetId = AMBIENTE_IDS[Math.floor(aleatorio() * AMBIENTE_IDS.length)];
-    const enTramoFinal = centro.y > ultimoNodoY;
+    const enMargenExterior = centro.y < primerNodoY || centro.y > ultimoNodoY;
     if (assetId.startsWith('pasto')) {
-      if (enTramoFinal && aleatorio() < REDUCCION_PASTO_TRAMO_FINAL) continue;
+      if (aleatorio() > FACTOR_DENSIDAD_PASTO) continue;
+      if (enMargenExterior && aleatorio() < REDUCCION_PASTO_EXTREMOS) continue;
       if (aleatorio() > factorCrecimientoPasto) continue;
     }
     const opacidad = AMBIENTE_OPACIDADES[Math.floor(aleatorio() * AMBIENTE_OPACIDADES.length)];
@@ -466,60 +415,11 @@ export function generarMapaProcedural({ ancho, cantidadNodos, tema }: { ancho: n
     cajasAmbiente.push(caja);
   }
 
-  // Semillas y brotes del paquete — solo si ya tiene arte real cargado
-  // (registroBiomas.ts resuelve qué imagen usar; acá solo se generan
-  // posiciones). Se desvanecen igual, con factorSemillaPorNivel.
+  // Los primeros niveles usan el mismo lenguaje visual que los altos: sus
+  // árboles de etapa ya ocupan los costados, sin una capa extra de semillas
+  // o brotes que cambie la densidad del mapa.
   const semillas: SemillaAmbiental[] = [];
   const brotes: SemillaAmbiental[] = [];
-  if (tema.categoriaId === 'habitos' && tema.tieneAssetsPaquete) {
-    const factorSemilla = factorSemillaPorNivel(tema.nivel ?? 1);
-    if (factorSemilla > 0) {
-      // Semillas: pocas, pegadas a los costados — no un scatter amplio como
-      // el pasto (era demasiado), unas 8 a densidad plena repartidas en toda
-      // la altura del mapa pero solo cerca del borde izquierdo/derecho.
-      const cantidadSemillas = Math.round(SEMILLA_CANTIDAD_BASE * factorSemilla);
-      for (let indice = 0; indice < cantidadSemillas; indice += 1) {
-        const escala = 0.12 + aleatorio() * 0.1;
-        const tamano = TAMANO_BASE_ASSET * escala;
-        const ladoSemilla: LadoMapa = aleatorio() > 0.5 ? 'izquierda' : 'derecha';
-        const x = ladoSemilla === 'izquierda'
-          ? aleatorio() * 50
-          : ancho - tamano - aleatorio() * 50;
-        const y = -50 + aleatorio() * (altoMapa + 50);
-        const caja = crearCaja(x, y, tamano);
-        const centro = { x: x + tamano / 2, y: y + tamano / 2 };
-        const invadeNodo = nodos.some((nodo) => Math.hypot(centro.x - nodo.x, centro.y - nodo.y) <= LIMPIEZA_NODO);
-        if (invadeNodo || hayColision(caja, cajasProtegidas) || hayColision(caja, cajasDecoracion) || hayColision(caja, cajasAmbiente)) continue;
-        semillas.push({ escala, volteado: aleatorio() > 0.5, x, y });
-        cajasAmbiente.push(caja);
-      }
-
-      // Brotes (etapa 1): tamaño similar a un nodo (60-80px), repartidos por
-      // toda la altura del mapa pero siempre pegados a un borde — no atados a
-      // ningún nodo en particular — y con separación mínima entre sí para que
-      // no queden amontonados.
-      for (const ladoBrote of ['izquierda', 'derecha'] as const) {
-        const cantidadBrotes = Math.round(BROTES_POR_LADO * factorSemilla);
-        const posicionesY: number[] = [];
-        let intentos = 0;
-        while (posicionesY.length < cantidadBrotes && intentos < cantidadBrotes * 25) {
-          intentos += 1;
-          const escala = BROTE_ESCALA_MIN + aleatorio() * (BROTE_ESCALA_MAX - BROTE_ESCALA_MIN);
-          const tamano = TAMANO_BASE_ASSET * escala;
-          const y = aleatorio() * altoMapa;
-          if (posicionesY.some((otraY) => Math.abs(otraY - y) < BROTE_SEPARACION_MINIMA)) continue;
-          const x = ladoBrote === 'izquierda' ? aleatorio() * 30 : ancho - tamano - aleatorio() * 30;
-          const caja = crearCaja(x, y, tamano);
-          const centro = { x: x + tamano / 2, y: y + tamano / 2 };
-          const invadeNodo = nodos.some((nodo) => Math.hypot(centro.x - nodo.x, centro.y - nodo.y) <= LIMPIEZA_NODO);
-          if (invadeNodo || hayColision(caja, cajasProtegidas) || hayColision(caja, cajasDecoracion) || hayColision(caja, cajasAmbiente)) continue;
-          brotes.push({ escala, volteado: aleatorio() > 0.5, x, y });
-          cajasAmbiente.push(caja);
-          posicionesY.push(y);
-        }
-      }
-    }
-  }
 
   return { ambiente, brotes, decoraciones, lamparas, nodos, piedras, semillas };
 }

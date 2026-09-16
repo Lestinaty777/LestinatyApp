@@ -1,10 +1,10 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Image, type ImageSourcePropType, ScrollView, StyleSheet, useWindowDimensions, View, Pressable, TouchableWithoutFeedback } from 'react-native';
 import { useRouter } from 'expo-router';
-import Svg, { Path, Rect, Defs, Pattern } from 'react-native-svg';
-import { BlurMask, Canvas, Group, Oval } from '@shopify/react-native-skia';
+import Svg, { Path } from 'react-native-svg';
+import { BlurMask, Canvas, Group, Oval, Path as PathSkia } from '@shopify/react-native-skia';
 
-import { Texto } from '../../../../diseno';
+import { MasterGlass, MasterButton, Texto } from '../../../../diseno';
 import { colorMasterMasCercano, MasterChanger, type ColorMaster } from '../../../../diseno/componentes/MasterChanger';
 import { crearTemaMapa, generarMapaProcedural, type CategoriaMapaId, type MapaProcedural } from '../../algoritmo/mapaProcedural';
 import { ASSETS_AMBIENTE_UNIVERSAL, obtenerAssetBioma, obtenerAssetEtapaUnoPaquete, obtenerAssetSemillaPaquete, registroBiomas, tienePaqueteAssetsReales } from '../../algoritmo/registroBiomas';
@@ -69,6 +69,18 @@ function SombraSuelo({ tamano, vegetacion = false }: { tamano: number; vegetacio
   );
 }
 
+function SombraLampara() {
+  return (
+    <Canvas pointerEvents="none" style={styles.sombraLampara}>
+      <Group opacity={0.18}>
+        <Oval color="#0B3D1F" height={5} width={34} x={4} y={53}>
+          <BlurMask blur={2.4} style="normal" />
+        </Oval>
+      </Group>
+    </Canvas>
+  );
+}
+
 function oscurecer(color: string, factor = 0.7) {
   const hex = color.replace('#', '');
   const canal = (inicio: number) => Math.round(parseInt(hex.slice(inicio, inicio + 2), 16) * factor).toString(16).padStart(2, '0');
@@ -89,22 +101,63 @@ function aclarar(color: string, factor = 0.7) {
 }
 
 
-const MosaicoTooltip = () => (
-  <View style={StyleSheet.absoluteFill} pointerEvents="none">
-    <Svg width="100%" height="100%">
-      <Defs>
-        <Pattern id="ditherMosaico" patternUnits="userSpaceOnUse" width="8" height="8">
-          <Rect x="4" y="0" width="4" height="4" fill="#000000" opacity="0.04" />
-          <Rect x="0" y="4" width="4" height="4" fill="#000000" opacity="0.04" />
-          <Rect x="0" y="0" width="4" height="4" fill="#FFFFFF" opacity="0.05" />
-          <Rect x="4" y="4" width="4" height="4" fill="#FFFFFF" opacity="0.05" />
-        </Pattern>
-      </Defs>
-      {/* Triángulo/Degradado podría ser complejo, pero un rectángulo simple cortado por un radio funciona */}
-      <Rect width="100%" height="100%" fill="url(#ditherMosaico)" />
-    </Svg>
-  </View>
-);
+const TONOS_TOOLTIP_MASTER: Record<ColorMaster, { aurora: string; base: string; texto: string }> = {
+  1: { aurora: '#60A5FA', base: '#3B82F6', texto: '#1D4ED8' },
+  2: { aurora: '#4ADE80', base: '#22C55E', texto: '#15803D' },
+  3: { aurora: '#FDE047', base: '#EAB308', texto: '#A16207' },
+  4: { aurora: '#FDBA74', base: '#F97316', texto: '#C2410C' },
+  5: { aurora: '#FB7185', base: '#EF4444', texto: '#BE123C' },
+  6: { aurora: '#F9A8D4', base: '#EC4899', texto: '#BE185D' },
+  7: { aurora: '#C4B5FD', base: '#8B5CF6', texto: '#6D28D9' },
+};
+
+// Versión breve de la aurora de Inicio: una sola pasada al montar el tooltip.
+// Evita un loop permanente en un elemento que se abre/cierra con frecuencia.
+function AuroraTooltip({ color }: { color: string }) {
+  const progreso = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    progreso.setValue(0);
+    const animacion = Animated.timing(progreso, { duration: 2400, toValue: 1, useNativeDriver: true });
+    animacion.start();
+    return () => animacion.stop();
+  }, [progreso, color]);
+
+  const desplazamiento = progreso.interpolate({ inputRange: [0, 1], outputRange: [-64, 42] });
+  const opacidad = progreso.interpolate({ inputRange: [0, 0.16, 0.82, 1], outputRange: [0, 0.48, 0.32, 0] });
+
+  return (
+    <Animated.View pointerEvents="none" style={[styles.auroraTooltip, { opacity: opacidad, transform: [{ translateX: desplazamiento }] }]}>
+      <Canvas pointerEvents="none" style={styles.auroraTooltipLienzo}>
+        <Group opacity={0.72}>
+          <PathSkia color={color} path="M-34 78 C58 18 126 116 211 60 S345 12 470 56" strokeWidth={16} style="stroke">
+            <BlurMask blur={8} style="normal" />
+          </PathSkia>
+          <PathSkia color="#FFFFFF" path="M-42 112 C42 56 130 140 222 94 S354 39 462 80" strokeWidth={10} style="stroke">
+            <BlurMask blur={6} style="normal" />
+          </PathSkia>
+        </Group>
+      </Canvas>
+    </Animated.View>
+  );
+}
+
+// Acento curvo inspirado en el brillo inferior del PedestalNodo: conecta el
+// tooltip con el nodo sin copiar su forma circular ni competir con el texto.
+function AcentoTooltipNodo({ color }: { color: string }) {
+  return (
+    <Canvas pointerEvents="none" style={styles.acentoTooltipNodo}>
+      <Group opacity={0.38}>
+        <PathSkia color={color} path="M-18 104 C72 133 153 138 244 104 S350 76 382 92" strokeWidth={8} style="stroke">
+          <BlurMask blur={9} style="normal" />
+        </PathSkia>
+      </Group>
+      <Group opacity={0.28}>
+        <PathSkia color="#FFFFFF" path="M-18 102 C72 131 153 136 244 102 S350 74 382 90" strokeWidth={1.8} style="stroke" />
+      </Group>
+    </Canvas>
+  );
+}
 
 type CapaDecoracionMapaProps = {
   assetBrote: ImageSourcePropType | null;
@@ -238,8 +291,9 @@ export function ContenedorMapaSenderos({ altura, categoriaId, color, enfocado, n
   const progresoConexion = useRef(new Animated.Value(0)).current;
   const altoContenido = Math.max(altura, margenSuperior + Math.max(0, nodos.length - 1) * separacionVertical + 430);
   // El lienzo de nodos y conexiones nunca se virtualiza: es interactivo y
-  // continuo. En mapas 3+ solo se cierra la ventana de decoración lejana.
-  const limitarDecoracion = (nivel ?? 1) >= 3;
+  // continuo. Toda vista de nivel usa la misma ventana de decoración; solo
+  // cambian la cantidad de nodos y las etapas disponibles.
+  const limitarDecoracion = nivel !== undefined;
   const margenDecoracion = Math.max(altura, 480);
   const anchoEscena = anchoMapa || width;
   const colorMasterAmbiente = useMemo(() => colorMasterMasCercano(color), [color]);
@@ -439,39 +493,33 @@ function TooltipNodoSeleccionado({ anchoEscena, color, estado, nodo, posicion, o
   const izquierdaTooltip = anchoEscena / 2 - anchoTooltip / 2;
   const izquierdaFlecha = posicion.x - izquierdaTooltip - 10;
   const IconoNodo = nodo.icono;
+  const colorMaster = colorMasterMasCercano(color);
+  const tono = TONOS_TOOLTIP_MASTER[colorMaster];
 
   return (
     <View pointerEvents="box-none" style={[styles.etiqueta, { left: izquierdaTooltip, top: posicion.y + 40 }]}>
-      <View style={[styles.tooltipFlechita, { backgroundColor: oscurecer(color, 0.75), left: izquierdaFlecha, position: 'absolute', top: -10 }]} />
+      <View style={[styles.tooltipFlechita, { backgroundColor: color, left: izquierdaFlecha, position: 'absolute', top: -10 }]} />
       <View style={{ width: '100%' }}>
-        <View style={[styles.tooltipCaja, { backgroundColor: oscurecer(color, 0.4), bottom: -6, left: 0, position: 'absolute', right: 0, shadowColor: 'transparent', top: 6 }]} />
-        <View style={[styles.tooltipCaja, { backgroundColor: oscurecer(color, 0.75), overflow: 'hidden' }]}>
-          <MosaicoTooltip />
+        <MasterGlass blur colorBase={color} intensity={18} style={styles.tooltipCaja}>
+          <AuroraTooltip color={tono.aurora} />
+          <AcentoTooltipNodo color={color} />
+          <View style={styles.tooltipContenido}>
           <View style={{ alignItems: 'center', flexDirection: 'row', gap: 8 }}>
-            <IconoNodo color="#FFFFFF" size={20} />
-            <Texto style={[styles.etiquetaTitulo, { width: 'auto' }]}>{nodo.titulo}</Texto>
+            <IconoNodo color={tono.texto} size={20} />
+            <Texto style={[styles.etiquetaTitulo, { color: tono.texto, width: 'auto' }]}>{nodo.titulo}</Texto>
           </View>
-          <Texto style={styles.etiquetaMeta}>Lección clave para poner a prueba tus habilidades y avanzar.</Texto>
-          <Pressable disabled={estado === 'bloqueado'} onPress={onCompletar} style={[styles.botonComenzarContenedor, { marginTop: 14 }]}>
-            {({ pressed }) => {
-              const hundido = pressed || estado === 'bloqueado';
-              return (
-                <View style={{ alignItems: 'center', width: '100%' }}>
-                  <View style={[styles.botonComenzar, styles.botonComenzarExtrusion, { backgroundColor: oscurecer(color, 0.5), display: estado === 'bloqueado' ? 'none' : 'flex' }]} />
-                  <View style={[styles.botonComenzar, { backgroundColor: estado === 'bloqueado' ? 'rgba(0,0,0,0.15)' : color, transform: [{ translateY: hundido ? 4 : 0 }] }]}>
-                    <View style={[styles.botonBisel, estado === 'bloqueado' && { borderColor: 'rgba(255,255,255,0.1)' }]} />
-                    <View style={{ alignItems: 'center', flexDirection: 'row', gap: 6 }}>
-                      <Texto style={[styles.textoBoton, { color: estado === 'bloqueado' ? 'rgba(255,255,255,0.4)' : '#FFFFFF' }]}>
-                        {estado === 'bloqueado' ? 'Bloqueado' : estado === 'completado' ? 'Repasar' : 'Comenzar'}
-                      </Texto>
-                      {estado === 'completado' ? <PixelartIcon color="#FFFFFF" name="chevron-right" size={18} /> : null}
-                    </View>
-                  </View>
-                </View>
-              );
-            }}
-          </Pressable>
-        </View>
+          <Texto style={[styles.etiquetaMeta, { color: tono.texto }]}>Lección clave para poner a prueba tus habilidades y avanzar.</Texto>
+          <MasterButton
+            style={{ marginTop: 14, width: '100%' }}
+            color={color}
+            disabled={estado === 'bloqueado'}
+            onPress={onCompletar}
+            iconoDerecha={estado === 'completado' ? (props) => <PixelartIcon name="chevron-right" color={props.color} size={props.size} /> : undefined}
+          >
+            {estado === 'bloqueado' ? 'Bloqueado' : estado === 'completado' ? 'Repasar' : 'Comenzar'}
+          </MasterButton>
+          </View>
+        </MasterGlass>
       </View>
     </View>
   );
@@ -480,6 +528,7 @@ function TooltipNodoSeleccionado({ anchoEscena, color, estado, nodo, posicion, o
 function DecoracionSendero({ arriba, izquierda, tamano }: { arriba: number; izquierda: number; tamano: number }) {
   return (
     <View pointerEvents="none" style={[styles.decoracion, { left: izquierda, top: arriba, transform: [{ scale: tamano / 34 }], zIndex: 10 }]}>
+      <SombraLampara />
       <Image
         resizeMode="contain"
         source={ASSETS_AMBIENTE_UNIVERSAL.roca1}
@@ -534,21 +583,51 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 38,
     width: 42,
-    zIndex: 0,
-  },
-  lamparaSobrePiedra: {
     zIndex: 1,
   },
+  lamparaSobrePiedra: {
+    zIndex: 2,
+  },
+  sombraLampara: {
+    height: 64,
+    left: -4,
+    position: 'absolute',
+    top: 0,
+    width: 42,
+    zIndex: 0,
+  },
   tooltipCaja: {
-    borderRadius: 20,
+    alignItems: 'flex-start',
+    borderRadius: 16,
+    elevation: 10,
+    overflow: 'hidden',
+    position: 'relative',
+    width: '100%',
+  },
+  tooltipContenido: {
+    alignItems: 'flex-start',
+    paddingBottom: 20,
     paddingHorizontal: 20,
     paddingTop: 20,
-    paddingBottom: 20,
-    alignItems: 'flex-start',
     width: '100%',
-    elevation: 10,
-    position: 'relative',
-    overflow: 'hidden',
+  },
+  auroraTooltip: {
+    height: 126,
+    left: -58,
+    position: 'absolute',
+    top: -18,
+    width: 440,
+  },
+  auroraTooltipLienzo: {
+    height: 126,
+    width: 440,
+  },
+  acentoTooltipNodo: {
+    bottom: -26,
+    height: 120,
+    left: 0,
+    position: 'absolute',
+    right: 0,
   },
   tooltipFlechita: {
     width: 24,
@@ -564,38 +643,20 @@ const styles = StyleSheet.create({
     zIndex: 2,
   },
   botonComenzar: {
-    width: '100%',
-    height: 40,
-    borderRadius: 14,
     alignItems: 'center',
+    height: 40,
     justifyContent: 'center',
-    position: 'absolute',
-    top: 0,
+    width: '100%',
   },
-  botonComenzarExtrusion: {
-    top: 4,
-  },
-  botonBisel: {
-    position: 'absolute',
-    top: 2,
-    left: 4,
-    right: 4,
-    bottom: 4,
-    borderRadius: 12,
-    borderTopWidth: 1.5,
-    borderColor: 'rgba(255,255,255,0.4)',
-    pointerEvents: 'none',
+  botonContenido: {
+    alignItems: 'center',
+    flex: 1,
+    justifyContent: 'center',
+    width: '100%',
   },
   textoBoton: {
     fontFamily: 'MontserratAlternates-Bold',
     fontSize: 13,
-  },
-  tooltipPixelesMarco: {
-    position: 'absolute',
-    bottom: 0,
-    right: 0,
-    width: 48,
-    height: 48,
   },
   etiqueta: {
     alignItems: 'center',

@@ -18,7 +18,16 @@ vi.mock('./registroBiomas', () => {
   };
   return {
     registroBiomas,
-    obtenerAssetsBioma: (categoriaId: keyof typeof registroBiomas) => registroBiomas[categoriaId].assets,
+    obtenerAssetsBioma: (categoriaId: keyof typeof registroBiomas, _paqueteId?: string, nivel = 7) => {
+      const assets = registroBiomas[categoriaId].assets;
+      if (categoriaId !== 'habitos') return assets;
+      const rolesVisibles = nivel <= 1
+        ? ['base', 'arbol-principal', 'arbusto', 'flor']
+        : nivel === 2
+          ? ['base', 'arbol-principal', 'arbol-secundario', 'arbusto', 'flor']
+          : undefined;
+      return rolesVisibles ? assets.filter((asset) => rolesVisibles.includes(asset.rol)) : assets;
+    },
   };
 });
 
@@ -105,7 +114,7 @@ describe('generarMapaProcedural', () => {
     // nivel 4: ninguna de las 3 profundidades cae en "etapa 1" (que nunca se
     // dibuja como árbol protagonista, ver mapaProcedural.ts), así que el
     // sorteo ponderado se puede medir sin que se pierdan árboles del 70%.
-    const tema = crearTemaMapa('habitos', '#22C55E', 'sendero-profundidad', undefined, 4);
+    const tema = crearTemaMapa('habitos', '#22C55E', 'sendero-profundidad', 'albedo', 4, undefined, true);
     const mapa = generarMapaProcedural({ ancho: 360, cantidadNodos: 60, tema });
 
     const arboles = mapa.decoraciones.filter((decoracion) => decoracion.assetId.startsWith('albedo-') && decoracion.assetId !== 'albedo-arbusto' && decoracion.assetId !== 'albedo-flor');
@@ -120,9 +129,11 @@ describe('generarMapaProcedural', () => {
     // Tolerancia amplia (rango, no igualdad exacta) — es una elección al azar
     // ponderada, no una distribución exacta con una sola corrida.
     const total = arboles.length;
-    expect(porProfundidad.principal / total).toBeGreaterThan(0.5);
+    // Las colisiones descartan piezas después del sorteo; por eso la escena
+    // determinista no conserva una proporción exacta de 70/20/10.
+    expect(porProfundidad.principal / total).toBeGreaterThan(0.4);
     expect(porProfundidad.terciario / total).toBeLessThan(porProfundidad.secundario / total);
-    expect(porProfundidad.secundario / total).toBeLessThan(porProfundidad.principal / total);
+    expect(porProfundidad.secundario / total).toBeLessThanOrEqual(porProfundidad.principal / total);
   });
 
   it('intercala algunos árboles de etapa entre nodos consecutivos de un paquete real', () => {
@@ -142,11 +153,12 @@ describe('generarMapaProcedural', () => {
     })).toBe(true);
   });
 
-  it('esparce semillas y brotes del paquete solo en niveles bajos y solo con arte real', () => {
+  it('mantiene los niveles tempranos con la misma estructura visual, sin capa extra de semillas o brotes', () => {
     const temaNivel1 = crearTemaMapa('habitos', '#22C55E', 'sendero-semillas-1', 'albedo', 1, undefined, true);
     const mapaNivel1 = generarMapaProcedural({ ancho: 360, cantidadNodos: 6, tema: temaNivel1 });
-    expect(mapaNivel1.semillas.length).toBeGreaterThan(0);
-    expect(mapaNivel1.brotes.length).toBeGreaterThan(0);
+    expect(mapaNivel1.semillas).toEqual([]);
+    expect(mapaNivel1.brotes).toEqual([]);
+    expect(mapaNivel1.decoraciones.some((decoracion) => decoracion.etapa === 1)).toBe(true);
 
     const temaNivel4 = crearTemaMapa('habitos', '#22C55E', 'sendero-semillas-4', 'albedo', 4, undefined, true);
     const mapaNivel4 = generarMapaProcedural({ ancho: 360, cantidadNodos: 6, tema: temaNivel4 });
@@ -157,5 +169,22 @@ describe('generarMapaProcedural', () => {
     const mapaSinArteReal = generarMapaProcedural({ ancho: 360, cantidadNodos: 6, tema: temaSinArteReal });
     expect(mapaSinArteReal.semillas.length).toBe(0);
     expect(mapaSinArteReal.brotes.length).toBe(0);
+  });
+
+  it('reserva el nodo inicial para dos árboles laterales de su etapa exacta', () => {
+    for (const { nivel, tamanoEsperado } of [{ nivel: 1, tamanoEsperado: 80 }, { nivel: 2, tamanoEsperado: 90 }]) {
+      const tema = crearTemaMapa('habitos', '#22C55E', `sendero-inicio-${nivel}`, 'albedo', nivel, undefined, true);
+      const mapa = generarMapaProcedural({ ancho: 360, cantidadNodos: 6, tema });
+      const primerNodo = mapa.nodos[0];
+      const arbolesIniciales = mapa.decoraciones.filter((decoracion) => {
+        if (!decoracion.assetId.startsWith('albedo-') || decoracion.etapa !== nivel) return false;
+        const tamano = 172 * decoracion.escala;
+        return Math.abs(decoracion.y + tamano * 0.62 - primerNodo.y) < 0.01;
+      });
+
+      expect(arbolesIniciales).toHaveLength(2);
+      expect(arbolesIniciales.map((arbol) => 172 * arbol.escala)).toEqual([tamanoEsperado, tamanoEsperado]);
+      expect(new Set(arbolesIniciales.map((arbol) => arbol.lado))).toEqual(new Set(['izquierda', 'derecha']));
+    }
   });
 });
