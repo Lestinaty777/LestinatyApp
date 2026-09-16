@@ -73,16 +73,9 @@ export function NodoSendero({ Icono, asentado, color, estado, onCompletar, onPre
   const descensoBase = profundidad.interpolate({ inputRange: [0, 1], outputRange: [0, DESPLAZAMIENTO_PRESS] });
   const descensoInspeccion = inspeccion.interpolate({ inputRange: [0, 1], outputRange: [0, 4] });
   const descenso = Animated.add(descensoBase, descensoInspeccion);
-  const intensidadHalo = Animated.add(halo, pulsoInspeccion);
-  const escalaHalo = intensidadHalo.interpolate({ inputRange: [0, 2], outputRange: [0.82, 1.3] });
-  const opacidadHalo = intensidadHalo.interpolate({ inputRange: [0, 2], outputRange: [0, 0.34] });
 
   return (
     <View style={[styles.raiz, { transform: [{ scale: escalaEscena }] }]}>
-      <Animated.View
-        pointerEvents="none"
-        style={[styles.halo, { backgroundColor: color, opacity: opacidadHalo, transform: [{ scale: escalaHalo }] }]}
-      />
       <Pressable
         accessibilityLabel={bloqueado ? 'Inspeccionar paso bloqueado' : 'Abrir paso'}
         accessibilityRole="button"
@@ -107,15 +100,7 @@ export function NodoSendero({ Icono, asentado, color, estado, onCompletar, onPre
           }
           hapticSeguro('seleccion');
         }}
-        onPressIn={() => {
-          if (!bloqueado) {
-            Animated.timing(profundidad, { duration: 100, easing: Easing.out(Easing.quad), toValue: 1, useNativeDriver: true }).start();
-          }
-        }}
         onPressOut={() => {
-          if (!bloqueado) {
-            Animated.timing(profundidad, { duration: 150, easing: Easing.out(Easing.cubic), toValue: 0, useNativeDriver: true }).start();
-          }
           pulsoInspeccion.stopAnimation();
           Animated.timing(inspeccion, { duration: 160, toValue: 0, useNativeDriver: true }).start();
         }}

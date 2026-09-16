@@ -455,7 +455,7 @@ export function ContenedorMapaSenderos({ altura, categoriaId, color, enfocado, n
           const esNodoActual = indice === indiceNodoActual;
           const esSeleccionado = seleccionado === nodo.id;
           const estadoVisual = indice <= ultimoCompletado ? 'completado' : esNodoActual ? 'activo' : 'bloqueado';
-          const asentado = esSeleccionado;
+          const asentado = esSeleccionado && estadoVisual !== 'bloqueado';
           // Todos los nodos conservan el mismo peso visual: reducirlos por
           // índice hacía que los mapas largos parecieran encogerse al subir.
           const escalaEscena = 1;
@@ -514,7 +514,7 @@ function TooltipNodoSeleccionado({ anchoEscena, color, estado, nodo, posicion, o
       })();
 
   const colorBorde = 'rgba(255,255,255,0.2)';
-  const tono = estado === 'bloqueado' ? { aurora: '#444444', texto: '#FFFFFF' } : TONOS_TOOLTIP_MASTER[colorMaster];
+  const tono = estado === 'bloqueado' ? { aurora: '#FFFFFF' } : TONOS_TOOLTIP_MASTER[colorMaster];
 
   return (
     <View pointerEvents="box-none" style={[styles.etiqueta, { left: izquierdaTooltip, top: posicion.y + 40 }]}>
@@ -530,10 +530,10 @@ function TooltipNodoSeleccionado({ anchoEscena, color, estado, nodo, posicion, o
           <AcentoTooltipNodo color={colorBaseTooltip} />
           <View style={styles.tooltipContenido}>
           <View style={{ alignItems: 'center', flexDirection: 'row', gap: 8 }}>
-            <IconoNodo color={tono.texto} size={20} />
-            <Texto style={[styles.etiquetaTitulo, { color: tono.texto, width: 'auto' }]}>{nodo.titulo}</Texto>
+            <IconoNodo color="#FFFFFF" size={20} />
+            <Texto style={[styles.etiquetaTitulo, { color: '#FFFFFF', width: 'auto' }]}>{nodo.titulo}</Texto>
           </View>
-          <Texto style={[styles.etiquetaMeta, { color: tono.texto }]}>Lección clave para poner a prueba tus habilidades y avanzar.</Texto>
+          <Texto style={[styles.etiquetaMeta, { color: '#FFFFFF' }]}>Lección clave para poner a prueba tus habilidades y avanzar.</Texto>
           <MasterButton
             style={{ marginTop: 14, width: '100%' }}
             color={colorBaseTooltip}
