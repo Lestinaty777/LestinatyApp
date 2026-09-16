@@ -62,7 +62,7 @@ export function MasterGlass({ blur = false, children, compacto = false, forma = 
     const centro = mastery ? '#42B766' : colorCuerpo;
     const pie = mastery ? '#17733B' : colorPie;
     return (
-      <View onLayout={medirContenedor} style={[styles.raiz, styles.heptagonoRaiz, style]}>
+      <View onLayout={medirContenedor} style={[styles.heptagonoRaiz, style]}>
         <Svg height="100%" preserveAspectRatio="xMidYMid meet" style={StyleSheet.absoluteFill} viewBox="0 0 72 72" width="100%">
           <Defs>
             <GradienteSvg id="masterGlassHeptagonoBorde" x1="0%" x2="100%" y1="0%" y2="100%"><Stop offset="0" stopColor={borde}/><Stop offset="1" stopColor={pie}/></GradienteSvg>
@@ -97,6 +97,6 @@ const styles = StyleSheet.create({
   },
   radioFijo: { borderRadius: RADIO_MASTER_GLASS },
   contenidoHeptagono: { alignItems: 'center', flex: 1, justifyContent: 'center' },
-  heptagonoRaiz: { borderRadius: 0, overflow: 'visible' },
+  heptagonoRaiz: { borderRadius: 0, overflow: 'visible', position: 'relative' },
   interior: { bottom: 0, left: 0, overflow: 'hidden', position: 'absolute', right: 0, top: 0 },
 });

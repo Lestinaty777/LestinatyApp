@@ -1,6 +1,8 @@
 import { Redirect, Tabs } from 'expo-router';
-import { Image, Pressable, StyleSheet, View } from 'react-native';
+import { useEffect } from 'react';
+import { Image, Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import Animated, { cancelAnimation, Easing, useAnimatedStyle, useSharedValue, withSequence, withTiming } from 'react-native-reanimated';
 
 import { MasterGlass, Texto } from '../../src/diseno';
 import { usarEstadoAcceso } from '../../src/modulos/acceso/acceso.estado';
@@ -83,9 +85,34 @@ const ICONOS_NAVEGACION: Record<string, number> = {
   tienda: require('../../assets/icons/navegacion/tienda.png'),
 };
 
+const INDICE_DESTINO: Record<string, number> = { direccion: 4, hoy: 0, insights: 3, senderos: 1, tienda: 2 };
+
 function BarraNavegacionPrincipal({ navigation, state, style }: { navigation: any; state: { index: number; routes: Array<{ key: string; name: string }> }; style?: any }) {
   const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
   const rutaActiva = state.routes[state.index]?.name;
+  const anchoDestino = (width - 32) / DESTINOS_BARRA.length;
+  const anchoRecuadroActivo = anchoDestino - 16;
+  const indiceActivo = INDICE_DESTINO[rutaActiva] ?? 0;
+  const desplazamientoActivo = useSharedValue(indiceActivo * anchoDestino + 8);
+  const olaTienda = useSharedValue(0);
+
+  useEffect(() => {
+    desplazamientoActivo.value = withTiming(indiceActivo * anchoDestino + 8, { duration: 260, easing: Easing.out(Easing.cubic) });
+  }, [anchoDestino, desplazamientoActivo, indiceActivo]);
+
+  useEffect(() => {
+    cancelAnimation(olaTienda);
+    if (rutaActiva !== 'tienda') { olaTienda.value = 0; return; }
+    olaTienda.value = 0;
+    olaTienda.value = withSequence(
+      withTiming(1, { duration: 220, easing: Easing.out(Easing.quad) }),
+      withTiming(0, { duration: 520, easing: Easing.inOut(Easing.quad) }),
+    );
+  }, [olaTienda, rutaActiva]);
+
+  const estiloRecuadroActivo = useAnimatedStyle(() => ({ transform: [{ translateX: desplazamientoActivo.value }] }));
+  const estiloOlaTienda = useAnimatedStyle(() => ({ opacity: olaTienda.value, transform: [{ scaleX: 0.94 + olaTienda.value * 0.12 }, { scaleY: 0.6 + olaTienda.value * 0.4 }] }));
 
   const abrir = (ruta: string) => {
     const evento = navigation.emit({ canPreventDefault: true, target: ruta, type: 'tabPress' });
@@ -96,6 +123,9 @@ function BarraNavegacionPrincipal({ navigation, state, style }: { navigation: an
     <SafeAreaView edges={['bottom']} style={[styles.areaSegura, { height: insets.bottom + 108 }, style]}>
     <View style={styles.contenedor}>
       <MasterGlass blur style={styles.barra}>
+        <Animated.View pointerEvents="none" style={[styles.recuadroActivoAnimado, { width: anchoRecuadroActivo }, estiloRecuadroActivo]}>
+          <MasterGlass blur compacto style={styles.recuadroActivo} />
+        </Animated.View>
         {DESTINOS_BARRA.map(({ etiqueta, ruta, ...opciones }) => {
           const central = 'central' in opciones && opciones.central === true;
           const activo = ruta === rutaActiva;
@@ -108,6 +138,9 @@ function BarraNavegacionPrincipal({ navigation, state, style }: { navigation: an
             </Pressable>
           );
         })}
+        <Animated.View pointerEvents="none" style={[styles.olaTienda, estiloOlaTienda]}>
+          <MasterGlass mastery style={styles.olaMastery} />
+        </Animated.View>
       </MasterGlass>
 
       <Pressable accessibilityLabel="Tienda" accessibilityRole="tab" accessibilityState={{ selected: rutaActiva === 'tienda' }} onPress={() => abrir('tienda')} style={styles.botonCentral}>
@@ -120,7 +153,7 @@ function BarraNavegacionPrincipal({ navigation, state, style }: { navigation: an
 }
 
 const styles = StyleSheet.create({
-  areaSegura: { justifyContent: 'flex-end' },
+  areaSegura: { justifyContent: 'flex-end', position: 'absolute', bottom: 0, left: 0, right: 0 },
   barra: { flexDirection: 'row', height: 72 },
   botonCentral: { alignItems: 'center', height: 104, justifyContent: 'flex-start', left: '40%', position: 'absolute', top: -2, width: '20%' },
   circuloCentral: { alignItems: 'center', height: 72, justifyContent: 'center', width: 72 },
@@ -134,4 +167,8 @@ const styles = StyleSheet.create({
   indicador: { backgroundColor: '#208A42', borderRadius: 4, bottom: 5, height: 5, position: 'absolute', width: 5 },
   iconoNavegacion: { height: 30, width: 30 },
   iconoNavegacionCentral: { height: 43, width: 43 },
+  olaMastery: { flex: 1 },
+  olaTienda: { bottom: 2, height: 5, left: '4%', position: 'absolute', right: '4%', transformOrigin: 'center', zIndex: 1 },
+  recuadroActivo: { flex: 1 },
+  recuadroActivoAnimado: { bottom: 8, height: 56, left: 0, position: 'absolute', zIndex: 0 },
 });
