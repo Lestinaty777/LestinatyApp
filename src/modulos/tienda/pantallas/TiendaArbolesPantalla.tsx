@@ -1,6 +1,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, View } from 'react-native';
+import { ActivityIndicator, Pressable, View } from 'react-native';
 
 import { Boton, Pantalla, Tarjeta, Texto } from '../../../diseno';
 import { comprarSemillasArbol, obtenerCatalogoArboles, obtenerSemillasDisponibles } from '../gemas.servicio';
@@ -15,6 +16,7 @@ const ETIQUETA_RAREZA: Record<ArbolPaquete['rareza'], string> = {
 };
 
 export function TiendaArbolesPantalla() {
+  const router = useRouter();
   const cliente = useQueryClient();
   const { data: saldoGemas } = useSaldoGemas();
   const consultaCatalogo = useQuery({ queryKey: ['tienda', 'catalogoArboles'], queryFn: obtenerCatalogoArboles });
@@ -43,6 +45,10 @@ export function TiendaArbolesPantalla() {
     <Pantalla>
       <Texto variante="titulo">Tienda de árboles</Texto>
       <Texto variante="ayuda">Tienes {saldoGemas ?? 0} gemas.</Texto>
+      {/* Temporal, solo para revisar arte mientras se cargan paquetes — sacar cuando ya no haga falta. */}
+      <Pressable onPress={() => router.push('/vista-paquete')} style={{ marginTop: 8 }}>
+        <Texto style={{ color: '#7453B6', textDecorationLine: 'underline' }}>Vista previa de niveles (dev)</Texto>
+      </Pressable>
 
       {aviso && <Tarjeta><Texto variante="cuerpo">{aviso}</Texto></Tarjeta>}
 

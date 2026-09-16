@@ -201,3 +201,18 @@ export function obtenerAssetsBioma(categoriaId: CategoriaMapaId, paqueteId?: str
 export function obtenerAssetBioma(categoriaId: CategoriaMapaId, id: string, paqueteId?: string, nivel?: number) {
   return obtenerAssetsBioma(categoriaId, paqueteId, nivel).find((asset) => asset.id === id) ?? null;
 }
+
+/** true solo si el paquete tiene arte real (etapas/arbusto/flor/semilla) cargado — false para el puente viejo (verde-N sin migrar, premium sin arte todavía). */
+export function tienePaqueteAssetsReales(paqueteId: string): boolean {
+  return obtenerAssetsPaquete(paqueteId) !== undefined;
+}
+
+/** La semilla del paquete (scatter ambiental, como pasto/roca pero por paquete) — null si el paquete todavía no tiene arte real. */
+export function obtenerAssetSemillaPaquete(paqueteId: string): ImageSourcePropType | null {
+  return obtenerAssetsPaquete(paqueteId)?.semilla ?? null;
+}
+
+/** La etapa 1 (semilla/brote inicial) del paquete, para el scatter de brotes chicos cerca de los nodos — null si no tiene arte real. */
+export function obtenerAssetEtapaUnoPaquete(paqueteId: string): ImageSourcePropType | null {
+  return obtenerAssetsPaquete(paqueteId)?.etapas[0] ?? null;
+}

@@ -6,11 +6,12 @@ import { FlatList, StyleSheet, View, useWindowDimensions, Pressable, ScrollView,
 import { BotonTab } from '../../../nucleo/navegacion/BarraTabs';
 import { PixelartIcon } from '../../../diseno/iconos/PixelartIcon';
 import Animated, { useSharedValue, useAnimatedStyle, useAnimatedProps, withTiming, Easing, withSpring, withRepeat } from 'react-native-reanimated';
-import { Beaker, Users, Activity, Calculator, BookOpen } from 'lucide-react-native';
+import { Beaker, Users, Activity, Calculator, BookOpen, ChevronLeft, ChevronRight, Lock, Play } from 'lucide-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Shield, Terminal, Hexagon, Trophy, Leaf, Sun, Moon } from 'lucide-react-native';
 import { ContenedorMapaSenderos } from '../../senderos/componentes/mapa/ContenedorMapaSenderos';
-import { MasterChip, MasterGlass, MasterIcon, MasterIconBg, Texto, colores, RecuadroGlass } from '../../../diseno';
+import { MasterChip, MasterGlass, MasterIcon, MasterIconBg, MasterProgressbar, Texto, colores, RecuadroGlass } from '../../../diseno';
+import { colorMasterMasCercano, MasterChanger } from '../../../diseno/componentes/MasterChanger';
 import { hapticSeguro } from '../../../nucleo/dispositivo/haptics';
 import { TarjetaHabitoCompacta } from '../../habitos/componentes/TarjetaHabitoCompacta';
 import { WidgetRegistrarProgreso } from '../../habitos/componentes/WidgetRegistrarProgreso';
@@ -20,12 +21,13 @@ import { obtenerDetallesHabitosHoy, obtenerPanelHabitos } from '../../habitos/ha
 import type { HabitoResumen } from '../../habitos/tipos';
 import { useSaldoGemas } from '../../tienda/useSaldoGemas';
 import { categoriaInicialMapa, coloresSelectorCategoria, modulosPorCategoria, type CategoriaMapaMvp, type IconoModuloMapa, type ModuloCategoriaMapa } from '../datos/modulosCategorias';
+import { MAPAS_NIVELES } from '../Mapas';
 
 const DIAS_SEMANA_COMPLETA = [1, 2, 3, 4, 5, 6, 7];
 const TAMANO_ICONO_CATEGORIA = 64;
 const ALTURA_NAVBAR_BASE = 88;
 const PEEK_SIGUIENTE_TARJETA = 32;
-const VERDE_MENTA = '#f1f8f6';
+const TOTAL_NODOS_PROGRESION = MAPAS_NIVELES.reduce((total, mapa) => total + mapa.cantidadNodos, 0);
 
 const TITULOS_CATEGORIA: Record<CategoriaMapaMvp, string> = {
   habitos: 'Hábitos',
@@ -83,6 +85,7 @@ export function MapaSenderosPantalla() {
   const [activeMenu, setActiveMenu] = React.useState<'none' | 'categories' | 'courses' | 'store'>('none');
   const [categoriaActiva, setCategoriaActiva] = React.useState<CategoriaMapaMvp>(categoriaInicialMapa);
   const [filtroMomento, setFiltroMomento] = React.useState<'manana' | 'noche' | 'tarde' | 'todos'>('todos');
+  const [nivelVistaPrueba, setNivelVistaPrueba] = React.useState(1);
   const animMenuState = useSharedValue(0);
 
   const handleToggleMenu = (menu: 'categories' | 'courses' | 'store') => {
@@ -124,6 +127,22 @@ export function MapaSenderosPantalla() {
 
   const idHabitoSeleccionado = asignatura?.habitoReal?.id;
   const sendero = useSenderoHabito(idHabitoSeleccionado);
+  const esPruebaDiamante = sendero.consulta.data?.habito.paqueteId === 'diamante'
+    && sendero.consulta.data.habito.titulo.trim().toLocaleLowerCase('es') === 'prueba diamante';
+  const nivelReal = sendero.consulta.data?.nivel ?? 1;
+  const nivelVisible = esPruebaDiamante ? nivelVistaPrueba : nivelReal;
+  const mapaNivelVisible = MAPAS_NIVELES[nivelVisible - 1] ?? MAPAS_NIVELES[0];
+  const nodosPruebaDiamante = React.useMemo(() => Array.from({ length: mapaNivelVisible.cantidadNodos }, (_, indice) => ({
+    estado: indice === 0 ? 'activo' as const : 'bloqueado' as const,
+    icono: indice === 0 ? Play : Lock,
+    id: `prueba-diamante-${nivelVisible}-${indice + 1}`,
+    subtitulo: `Nodo ${indice + 1} de ${mapaNivelVisible.cantidadNodos}`,
+    titulo: `Nodo ${indice + 1}`,
+  })), [mapaNivelVisible.cantidadNodos, nivelVisible]);
+
+  React.useEffect(() => {
+    if (!esPruebaDiamante) setNivelVistaPrueba(1);
+  }, [esPruebaDiamante]);
 
   const cambiarCategoria = (categoria: CategoriaMapaMvp) => {
     hapticSeguro('seleccion');
@@ -407,18 +426,35 @@ export function MapaSenderosPantalla() {
           const colorTexto = oscurecer(colorEfectivo, 0.5);
           const colorSub = oscurecer(colorEfectivo, 0.62);
           const iconoHabito = asignatura.habitoReal ? buscarIconoHabito(asignatura.habitoReal.iconoLucide) : null;
+          const nodosPrevios = MAPAS_NIVELES.slice(0, nivelVisible - 1).reduce((total, mapa) => total + mapa.cantidadNodos, 0);
+          const nodosNivelCompletados = esPruebaDiamante
+            ? mapaNivelVisible.cantidadNodos
+            : sendero.esNivelMaximo
+              ? mapaNivelVisible.cantidadNodos
+              : Math.min(sendero.consulta.data?.diasCompletados ?? 0, mapaNivelVisible.cantidadNodos);
+          const porcentajeProgresion = Math.round(Math.min(100, ((nodosPrevios + nodosNivelCompletados) / TOTAL_NODOS_PROGRESION) * 100));
+          const insigniaNivel = buscarIconoHabito(`nivel${nivelVisible}`)?.fuente;
           return (
             <View style={styles.tarjetaContenedor}>
               <RecuadroGlass blur degradado={{ inicio: aclarar(colorEfectivo, 0.86), fin: aclarar(colorEfectivo, 0.5) }} style={styles.tarjetaAsignatura}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, flex: 1 }}>
+                <View style={{ alignItems: 'center', flexDirection: 'row', flex: 1, gap: 12, padding: 14, paddingRight: 82 }}>
                   {!sendero.celebracion && !sendero.registrando && (
                     asignatura.habitoReal && iconoHabito ? (
-                      <MasterIconBg fuente={iconoHabito.fuente} size={48} />
+                      <MasterIconBg
+                        colorBordeInicio={aclarar(colorEfectivo, 0.7)}
+                        colorBordeFin={oscurecer(colorEfectivo, 0.75)}
+                        degradadoInicio={aclarar(colorEfectivo, 0.93)}
+                        degradadoFin={aclarar(colorEfectivo, 0.72)}
+                        size={48}
+                        tinte={colorEfectivo}
+                      >
+                        <MasterChanger ancho={41} alto={41} colorDestino={colorMasterMasCercano(colorEfectivo)} fuente={iconoHabito.fuente} />
+                      </MasterIconBg>
                     ) : (
                       <MasterIconBg size={48}><IconoModulo color={colorTexto} nombre={asignatura.icono} size={24} /></MasterIconBg>
                     )
                   )}
-                  <View style={{ flex: 1 }}>
+                  <View style={{ flex: 1, minWidth: 0 }}>
                     {sendero.celebracion ? (
                       <View style={{ alignItems: 'center', flexDirection: 'row', gap: 8 }}>
                         <Trophy color="#145C37" size={22} />
@@ -438,12 +474,14 @@ export function MapaSenderosPantalla() {
                     ) : (
                       <>
                         <Texto numberOfLines={1} style={{ color: colorTexto, fontFamily: 'MontserratAlternates-Bold', fontSize: 16 }}>{asignatura.titulo}</Texto>
-                        {/* Los días ya los muestra el anillo de la derecha — el recuadro
-                            de abajo solo repite la insignia de nivel (ícono + texto). */}
                         {asignatura.habitoReal && sendero.consulta.data ? (
-                          <View style={styles.pildoraNivel}>
-                            <MasterIcon color={2} name={`nivel${sendero.consulta.data.nivel}`} size={14} />
-                            <Texto style={[styles.pildoraNivelTexto, { color: colorTexto }]}>{sendero.esNivelMaximo ? 'Nivel máximo' : `Nivel ${sendero.consulta.data.nivel}`}</Texto>
+                          <View style={styles.progresoNivelContenedor}>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                              <Texto style={[styles.progresoNivelPorcentaje, { color: colorTexto }]}>{porcentajeProgresion}%</Texto>
+                              <View style={{ flex: 1 }}>
+                                <MasterProgressbar altura={9} porcentaje={porcentajeProgresion} colorBase={colorEfectivo} />
+                              </View>
+                            </View>
                           </View>
                         ) : (
                           <Texto numberOfLines={1} style={{ color: colorSub, fontFamily: 'Montserrat-Medium', fontSize: 12, marginTop: 1 }}>{asignatura.descripcion}</Texto>
@@ -451,22 +489,26 @@ export function MapaSenderosPantalla() {
                       </>
                     )}
                   </View>
-                  {!sendero.celebracion && !sendero.registrando && asignatura.habitoReal && sendero.consulta.data?.diasRequeridos != null && (() => {
-                    const diasCompletados = sendero.consulta.data!.diasCompletados;
-                    const diasRequeridos = sendero.consulta.data!.diasRequeridos ?? 0;
-                    const fraccionDias = diasRequeridos > 0 ? Math.min(1, diasCompletados / diasRequeridos) : 0;
-                    const radio = 22;
-                    const circunferencia = 2 * Math.PI * radio;
-                    return (
-                      <View style={styles.anilloDias}>
-                        <Svg height={54} style={{ position: 'absolute' }} width={54}>
-                          <Circle cx="27" cy="27" fill="none" r={radio} stroke={VERDE_MENTA} strokeOpacity={0.22} strokeWidth={5} />
-                          <Circle cx="27" cy="27" fill="none" r={radio} rotation="-90" stroke={VERDE_MENTA} strokeDasharray={`${circunferencia} ${circunferencia}`} strokeDashoffset={circunferencia * (1 - fraccionDias)} strokeLinecap="round" strokeWidth={5} origin="27,27" />
-                        </Svg>
-                        <Texto style={[styles.anilloDiasTexto, { color: VERDE_MENTA }]}>{diasCompletados}/{diasRequeridos}</Texto>
-                      </View>
-                    );
-                  })()}
+                  {!sendero.celebracion && !sendero.registrando && asignatura.habitoReal && sendero.consulta.data && (
+                    <View style={styles.insigniaNivelContenedor}>
+                      {esPruebaDiamante && (
+                        <Pressable accessibilityLabel="Ver nivel anterior" disabled={nivelVisible === 1} hitSlop={8} onPress={() => { hapticSeguro('seleccion'); setNivelVistaPrueba((nivel) => Math.max(1, nivel - 1)); }} style={[styles.botonNivelPrueba, nivelVisible === 1 && styles.botonNivelPruebaDeshabilitado]}>
+                          <ChevronLeft color={colorTexto} size={16} strokeWidth={3} />
+                        </Pressable>
+                      )}
+                      <MasterGlass 
+                        compacto 
+                        style={{ paddingHorizontal: 10, paddingVertical: 6, borderRadius: 12, flexDirection: 'row', alignItems: 'center', backgroundColor: aclarar(colorEfectivo, 0.75) }}
+                      >
+                        <MasterIcon color={2} name={`nivel${nivelVisible}`} size={24} />
+                      </MasterGlass>
+                      {esPruebaDiamante && (
+                        <Pressable accessibilityLabel="Ver nivel siguiente" disabled={nivelVisible === 7} hitSlop={8} onPress={() => { hapticSeguro('seleccion'); setNivelVistaPrueba((nivel) => Math.min(7, nivel + 1)); }} style={[styles.botonNivelPrueba, nivelVisible === 7 && styles.botonNivelPruebaDeshabilitado]}>
+                          <ChevronRight color={colorTexto} size={16} strokeWidth={3} />
+                        </Pressable>
+                      )}
+                    </View>
+                  )}
                 </View>
               </RecuadroGlass>
             </View>
@@ -480,24 +522,24 @@ export function MapaSenderosPantalla() {
               <View style={styles.centroMapa}><Texto style={styles.subMapa}>Cargando tu sendero…</Texto></View>
             ) : sendero.consulta.isError || !sendero.consulta.data ? (
               <View style={styles.centroMapa}><Texto style={styles.subMapa}>No pudimos abrir este sendero.</Texto></View>
-            ) : sendero.esNivelMaximo ? (
+            ) : sendero.esNivelMaximo && !esPruebaDiamante ? (
               <View style={styles.centroMapa}><Trophy color={sendero.consulta.data?.habito.color ?? asignatura.color} size={48} /><Texto style={styles.tituloMapa}>¡Nivel máximo alcanzado!</Texto></View>
             ) : (
               <ContenedorMapaSenderos
-                key={asignatura.id}
+                key={`${asignatura.id}-${nivelVisible}`}
                 altura={alturaMapa}
                 categoriaId="habitos"
                 color={sendero.consulta.data.habito.color}
                 enfocado
-                nodos={sendero.nodos}
-                onCompletarNodo={() => sendero.setRegistrando(true)}
+                nodos={esPruebaDiamante ? nodosPruebaDiamante : sendero.nodos}
+                onCompletarNodo={esPruebaDiamante ? () => undefined : () => sendero.setRegistrando(true)}
                 subcategoriaId={asignatura.habitoReal.id}
                 // paqueteId: elección fija de por vida del hábito (qué
                 // paquete de árbol usa) — independiente del nivel real, que
                 // solo gobierna cuántos nodos/días muestra el mapa (y, junto
                 // al paquete, qué etapas de crecimiento se mezclan).
                 paqueteId={sendero.consulta.data.habito.paqueteId}
-                nivel={sendero.consulta.data.nivel}
+                nivel={nivelVisible}
                 // Aproximación sin consulta nueva: usa nivel + fracción de
                 // días dentro del nivel actual como proxy de "cuánto pasto
                 // creció" en los niveles 1-3 — no es la suma exacta de días
@@ -505,7 +547,8 @@ export function MapaSenderosPantalla() {
                 // históricos), pero da el efecto de crecimiento día a día que
                 // se pidió sin una consulta nueva al backend.
                 progresoPastoTemprano={(() => {
-                  const { nivel, diasCompletados, diasRequeridos } = sendero.consulta.data;
+                  const { diasCompletados, diasRequeridos } = sendero.consulta.data;
+                  const nivel = nivelVisible;
                   if (nivel >= 4 || diasRequeridos === null || diasRequeridos <= 0) return 1;
                   return Math.min(1, ((nivel - 1) + diasCompletados / diasRequeridos) / 3);
                 })()}
@@ -698,7 +741,7 @@ const styles = StyleSheet.create({
     right: 20,
     top: ALTURA_NAVBAR_BASE + 54,
     position: 'absolute',
-    height: 72,
+    height: 92,
     zIndex: 5,
     shadowColor: '#0D3D22',
     shadowOffset: { height: 6, width: 0 },
@@ -710,32 +753,44 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.55)',
-    height: 72,
+    height: 92,
   },
-  pildoraNivel: {
+  progresoNivelContenedor: {
+    gap: 4,
+    marginTop: 5,
+  },
+  progresoNivelEtiqueta: {
     alignItems: 'center',
-    alignSelf: 'flex-start',
-    backgroundColor: 'rgba(255,255,255,.55)',
-    borderRadius: 10,
     flexDirection: 'row',
-    gap: 5,
-    marginTop: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    justifyContent: 'space-between',
   },
-  pildoraNivelTexto: {
+  progresoNivelTexto: {
     fontFamily: 'MontserratAlternates-Bold',
-    fontSize: 11,
+    fontSize: 9,
   },
-  anilloDias: {
+  progresoNivelPorcentaje: {
+    fontFamily: 'MontserratAlternates-Bold',
+    fontSize: 10,
+  },
+  insigniaNivelContenedor: {
     alignItems: 'center',
-    height: 54,
-    justifyContent: 'center',
-    width: 54,
+    flexDirection: 'row',
+    gap: 1,
+    position: 'absolute',
+    right: 10,
+    top: 10,
   },
-  anilloDiasTexto: {
-    fontFamily: 'MontserratAlternates-Bold',
-    fontSize: 12,
+  insigniaNivel: {
+    marginHorizontal: 1,
+  },
+  botonNivelPrueba: {
+    alignItems: 'center',
+    height: 22,
+    justifyContent: 'center',
+    width: 18,
+  },
+  botonNivelPruebaDeshabilitado: {
+    opacity: 0.28,
   },
   tarjetaBrilloCarrusel: {
     position: 'absolute',

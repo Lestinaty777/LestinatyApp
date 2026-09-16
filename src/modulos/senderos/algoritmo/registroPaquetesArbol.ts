@@ -53,8 +53,39 @@ export type PaqueteAssetsArbol = {
 //   semilla: require('../../../../assets/ilustraciones/senderos/biomas/paquetes/albedo/semilla.png'),
 // };
 
+const aurelia: PaqueteAssetsArbol = {
+  etapas: [
+    require('../../../../assets/ilustraciones/senderos/biomas/paquetes/aurelia/etapa1.png'),
+    require('../../../../assets/ilustraciones/senderos/biomas/paquetes/aurelia/etapa2.png'),
+    require('../../../../assets/ilustraciones/senderos/biomas/paquetes/aurelia/etapa3.png'),
+    require('../../../../assets/ilustraciones/senderos/biomas/paquetes/aurelia/etapa4.png'),
+    require('../../../../assets/ilustraciones/senderos/biomas/paquetes/aurelia/etapa5.png'),
+    require('../../../../assets/ilustraciones/senderos/biomas/paquetes/aurelia/etapa6.png'),
+    require('../../../../assets/ilustraciones/senderos/biomas/paquetes/aurelia/etapa7.png'),
+  ],
+  arbusto: require('../../../../assets/ilustraciones/senderos/biomas/paquetes/aurelia/arbusto.png'),
+  flor: require('../../../../assets/ilustraciones/senderos/biomas/paquetes/aurelia/flor.png'),
+  semilla: require('../../../../assets/ilustraciones/senderos/biomas/paquetes/aurelia/semilla.png'),
+};
+
+const diamante: PaqueteAssetsArbol = {
+  etapas: [
+    require('../../../../assets/ilustraciones/senderos/biomas/paquetes/diamante/etapa1.png'),
+    require('../../../../assets/ilustraciones/senderos/biomas/paquetes/diamante/etapa2.png'),
+    require('../../../../assets/ilustraciones/senderos/biomas/paquetes/diamante/etapa3.png'),
+    require('../../../../assets/ilustraciones/senderos/biomas/paquetes/diamante/etapa4.png'),
+    require('../../../../assets/ilustraciones/senderos/biomas/paquetes/diamante/etapa5.png'),
+    require('../../../../assets/ilustraciones/senderos/biomas/paquetes/diamante/etapa6.png'),
+    require('../../../../assets/ilustraciones/senderos/biomas/paquetes/diamante/etapa7.png'),
+  ],
+  arbusto: require('../../../../assets/ilustraciones/senderos/biomas/paquetes/diamante/arbusto.png'),
+  flor: require('../../../../assets/ilustraciones/senderos/biomas/paquetes/diamante/flor.png'),
+  semilla: require('../../../../assets/ilustraciones/senderos/biomas/paquetes/diamante/semilla.png'),
+};
+
 export const PAQUETES_ARBOL: Record<string, PaqueteAssetsArbol> = {
-  // albedo,
+  aurelia,
+  diamante,
 };
 
 export function obtenerAssetsPaquete(paqueteId: string): PaqueteAssetsArbol | undefined {

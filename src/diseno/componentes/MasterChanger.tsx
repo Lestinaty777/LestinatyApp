@@ -128,6 +128,41 @@ export function useHueDominante(imagen: SkImage | null): number | null {
   return useMemo(() => (imagen ? detectarHueDominante(imagen) : null), [imagen]);
 }
 
+// ─── Color hex arbitrario -> el ColorMaster más parecido ─────────────────────
+// MasterChanger/MasterIcon solo aceptan uno de los 7 colores fijos de arriba,
+// no un hue arbitrario — esto permite tintar algo "del color del hábito" (que
+// sí es un hex libre) buscando el bucket más cercano. Cálculo de hue mínimo
+// y autocontenido acá (no importa colorHsl.ts de senderos/algoritmo) para que
+// este componente de diseño compartido no dependa de un módulo de feature.
+function hueDeHexLocal(hex: string): number {
+  const limpio = hex.replace('#', '');
+  const r = parseInt(limpio.slice(0, 2), 16) / 255;
+  const g = parseInt(limpio.slice(2, 4), 16) / 255;
+  const b = parseInt(limpio.slice(4, 6), 16) / 255;
+  const max = Math.max(r, g, b), min = Math.min(r, g, b);
+  if (max === min) return 0;
+  const d = max - min;
+  let h: number;
+  if (max === r) h = (g - b) / d + (g < b ? 6 : 0);
+  else if (max === g) h = (b - r) / d + 2;
+  else h = (r - g) / d + 4;
+  return (h / 6) * 360;
+}
+
+/** El ColorMaster (1-7) cuyo hue está más cerca del de `hex` — "un tono similar", no una réplica exacta. */
+export function colorMasterMasCercano(hex: string): ColorMaster {
+  const hueObjetivo = hueDeHexLocal(hex);
+  let mejor: ColorMaster = 2;
+  let menorDistancia = Infinity;
+  (Object.keys(COLORES_MASTER) as Array<`${ColorMaster}`>).forEach((clave) => {
+    const numero = Number(clave) as ColorMaster;
+    const distanciaBruta = Math.abs(COLORES_MASTER[numero].hue - hueObjetivo);
+    const distancia = Math.min(distanciaBruta, 360 - distanciaBruta);
+    if (distancia < menorDistancia) { menorDistancia = distancia; mejor = numero; }
+  });
+  return mejor;
+}
+
 // ─── Props ────────────────────────────────────────────────────────────────────
 interface MasterChangerProps {
   /** Fuente de la imagen (require() o uri) */

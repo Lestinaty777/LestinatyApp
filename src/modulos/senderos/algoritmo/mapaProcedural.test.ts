@@ -102,7 +102,10 @@ describe('generarMapaProcedural', () => {
   });
 
   it('mezcla etapas de árbol por profundidad ~70/20/10 cuando el bioma expone arbol-terciario', () => {
-    const tema = crearTemaMapa('habitos', '#22C55E', 'sendero-profundidad');
+    // nivel 4: ninguna de las 3 profundidades cae en "etapa 1" (que nunca se
+    // dibuja como árbol protagonista, ver mapaProcedural.ts), así que el
+    // sorteo ponderado se puede medir sin que se pierdan árboles del 70%.
+    const tema = crearTemaMapa('habitos', '#22C55E', 'sendero-profundidad', undefined, 4);
     const mapa = generarMapaProcedural({ ancho: 360, cantidadNodos: 60, tema });
 
     const arboles = mapa.decoraciones.filter((decoracion) => decoracion.assetId.startsWith('albedo-') && decoracion.assetId !== 'albedo-arbusto' && decoracion.assetId !== 'albedo-flor');
@@ -120,5 +123,22 @@ describe('generarMapaProcedural', () => {
     expect(porProfundidad.principal / total).toBeGreaterThan(0.5);
     expect(porProfundidad.terciario / total).toBeLessThan(porProfundidad.secundario / total);
     expect(porProfundidad.secundario / total).toBeLessThan(porProfundidad.principal / total);
+  });
+
+  it('esparce semillas y brotes del paquete solo en niveles bajos y solo con arte real', () => {
+    const temaNivel1 = crearTemaMapa('habitos', '#22C55E', 'sendero-semillas-1', 'albedo', 1, undefined, true);
+    const mapaNivel1 = generarMapaProcedural({ ancho: 360, cantidadNodos: 6, tema: temaNivel1 });
+    expect(mapaNivel1.semillas.length).toBeGreaterThan(0);
+    expect(mapaNivel1.brotes.length).toBeGreaterThan(0);
+
+    const temaNivel4 = crearTemaMapa('habitos', '#22C55E', 'sendero-semillas-4', 'albedo', 4, undefined, true);
+    const mapaNivel4 = generarMapaProcedural({ ancho: 360, cantidadNodos: 6, tema: temaNivel4 });
+    expect(mapaNivel4.semillas.length).toBe(0);
+    expect(mapaNivel4.brotes.length).toBe(0);
+
+    const temaSinArteReal = crearTemaMapa('habitos', '#22C55E', 'sendero-semillas-sin-arte', 'verde-1', 1, undefined, false);
+    const mapaSinArteReal = generarMapaProcedural({ ancho: 360, cantidadNodos: 6, tema: temaSinArteReal });
+    expect(mapaSinArteReal.semillas.length).toBe(0);
+    expect(mapaSinArteReal.brotes.length).toBe(0);
   });
 });

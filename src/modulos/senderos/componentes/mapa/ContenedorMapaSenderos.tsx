@@ -1,12 +1,13 @@
 import React, { useMemo, useRef, useState } from 'react';
-import { Animated, Image, ScrollView, StyleSheet, useWindowDimensions, View, Pressable, TouchableWithoutFeedback } from 'react-native';
+import { Animated, FlatList, Image, ScrollView, StyleSheet, useWindowDimensions, View, Pressable, TouchableWithoutFeedback } from 'react-native';
 import { useRouter } from 'expo-router';
 import Svg, { Path, Rect, Defs, Pattern } from 'react-native-svg';
 import { BlurMask, Canvas, Group, Oval } from '@shopify/react-native-skia';
 
 import { Texto } from '../../../../diseno';
+import { colorMasterMasCercano, MasterChanger } from '../../../../diseno/componentes/MasterChanger';
 import { crearTemaMapa, generarMapaProcedural, type CategoriaMapaId } from '../../algoritmo/mapaProcedural';
-import { ASSETS_AMBIENTE_UNIVERSAL, obtenerAssetBioma, registroBiomas } from '../../algoritmo/registroBiomas';
+import { ASSETS_AMBIENTE_UNIVERSAL, obtenerAssetBioma, obtenerAssetEtapaUnoPaquete, obtenerAssetSemillaPaquete, registroBiomas, tienePaqueteAssetsReales } from '../../algoritmo/registroBiomas';
 import { obtenerNodosMapaMock } from '../../datos/mapaEjercicio.mock';
 import type { EstadoNodoMapa, NodoMapaSendero } from '../../datos/mapaEjercicio.mock';
 import { PixelartIcon } from '../../../../diseno/iconos/PixelartIcon';
@@ -33,7 +34,10 @@ type ContenedorMapaSenderosProps = {
 };
 
 const separacionVertical = 112;
-const margenSuperior = 16;
+// Debe reflejar el mismo espacio de arriba que usa generarMapaProcedural
+// (DESPLAZAMIENTO_SUPERIOR en mapaProcedural.ts) para que el contenedor
+// scrolleable sea lo bastante alto y no comprima el terreno de abajo.
+const margenSuperior = 220;
 const margenInferior = 64;
 const AnimatedPath = Animated.createAnimatedComponent(Path);
 const zIndexPorCapa = { fondo: 1, medio: 3, frente: 4 } as const;
@@ -103,6 +107,7 @@ export function ContenedorMapaSenderos({ altura, categoriaId, color, enfocado, n
   const { width } = useWindowDimensions();
   const router = useRouter();
   const scrollRef = useRef<ScrollView>(null);
+  const listaMapaRef = useRef<FlatList<number>>(null);
   const [anchoMapa, setAnchoMapa] = useState(0);
   const nodos = nodosOverride ?? obtenerNodosMapaMock(subcategoriaId);
   const ultimoCompletadoInicial = Math.max(-1, nodos.reduce((ultimo, nodo, indice) => nodo.estado === 'completado' ? indice : ultimo, -1));
@@ -113,11 +118,20 @@ export function ContenedorMapaSenderos({ altura, categoriaId, color, enfocado, n
   const [conexionEnCurso, setConexionEnCurso] = useState<number | null>(null);
   const progresoConexion = useRef(new Animated.Value(0)).current;
   const altoContenido = Math.max(altura, margenSuperior + Math.max(0, nodos.length - 1) * separacionVertical + 430);
+  // Desde nivel 3 hay suficientes nodos/ambiente para que valga la pena
+  // virtualizar por franjas. Los dos primeros niveles conservan el lienzo
+  // continuo para que su escena breve se sienta inmediata.
+  const usarMapaVirtualizado = (nivel ?? 1) >= 3;
+  const tramosVirtuales = useMemo(() => Array.from({ length: Math.ceil(altoContenido / separacionVertical) }, (_, indice) => indice), [altoContenido]);
   const anchoEscena = anchoMapa || width;
+  const colorMasterAmbiente = useMemo(() => colorMasterMasCercano(color), [color]);
+  const tieneAssetsPaquete = paqueteId ? tienePaqueteAssetsReales(paqueteId) : false;
   const temaMapa = useMemo(
-    () => crearTemaMapa(categoriaId, color, subcategoriaId, paqueteId, nivel, progresoPastoTemprano),
-    [categoriaId, color, subcategoriaId, paqueteId, nivel, progresoPastoTemprano],
+    () => crearTemaMapa(categoriaId, color, subcategoriaId, paqueteId, nivel, progresoPastoTemprano, tieneAssetsPaquete),
+    [categoriaId, color, subcategoriaId, paqueteId, nivel, progresoPastoTemprano, tieneAssetsPaquete],
   );
+  const assetSemilla = paqueteId ? obtenerAssetSemillaPaquete(paqueteId) : null;
+  const assetBrote = paqueteId ? obtenerAssetEtapaUnoPaquete(paqueteId) : null;
   const mapa = useMemo(() => generarMapaProcedural({ ancho: anchoEscena, cantidadNodos: nodos.length, tema: temaMapa }), [anchoEscena, nodos.length, temaMapa]);
   const posiciones = mapa.nodos;
   const conexiones = posiciones.slice(0, -1).map((posicion, indice) => {
@@ -146,7 +160,9 @@ export function ContenedorMapaSenderos({ altura, categoriaId, color, enfocado, n
   function seleccionarNodo(id: string, indice: number) {
     setSeleccionado(id);
     if (enfocado) {
-      scrollRef.current?.scrollTo({ animated: true, y: Math.max(0, margenSuperior + indice * separacionVertical - altura * 0.34) });
+      const destino = Math.max(0, margenSuperior + indice * separacionVertical - altura * 0.34);
+      if (usarMapaVirtualizado) listaMapaRef.current?.scrollToOffset({ animated: true, offset: destino });
+      else scrollRef.current?.scrollTo({ animated: true, y: destino });
     }
   }
 
@@ -175,6 +191,106 @@ export function ContenedorMapaSenderos({ altura, categoriaId, color, enfocado, n
     setAnchoMapa((actual) => Math.abs(actual - ancho) < 1 ? actual : ancho);
   }
 
+  if (usarMapaVirtualizado) {
+    return (
+      <View onLayout={({ nativeEvent }) => medirAnchoMapa(nativeEvent.layout.width)} style={[styles.raiz, { backgroundColor: aclarar(color, 0.88), flex: 1 }]}>
+        <View style={[styles.escenaPerspectiva, { flex: 1 }]}>
+          <FlatList
+            ref={listaMapaRef}
+            data={tramosVirtuales}
+            getItemLayout={(_, indice) => ({ index: indice, length: separacionVertical, offset: indice * separacionVertical })}
+            initialNumToRender={4}
+            keyExtractor={(tramo) => `tramo-mapa-${tramo}`}
+            maxToRenderPerBatch={3}
+            nestedScrollEnabled
+            overScrollMode="never"
+            removeClippedSubviews
+            renderItem={({ item: tramo }) => {
+              const inicio = tramo * separacionVertical;
+              const fin = inicio + separacionVertical;
+              // Cada sprite tiene un único tramo propietario (por su centro),
+              // para no duplicarlo en los límites entre celdas de FlatList.
+              const pertenece = (arriba: number, alto: number) => {
+                const centro = arriba + alto / 2;
+                return centro >= inicio && centro < fin;
+              };
+              const aLocal = (y: number) => y - inicio;
+              const indiceSeleccionadoEnTramo = indiceNodoSeleccionado >= 0 && posiciones[indiceNodoSeleccionado]
+                && posiciones[indiceNodoSeleccionado].y >= inicio && posiciones[indiceNodoSeleccionado].y < fin;
+
+              return (
+                <View style={{ height: separacionVertical, overflow: 'visible', width: anchoEscena }}>
+                  {mapa.ambiente.map((item, indice) => {
+                    const tamano = 172 * item.escala;
+                    if (!pertenece(item.y, tamano)) return null;
+                    return <View key={`ambiente-${indice}`} pointerEvents="none" style={[styles.ambiente, { height: tamano, left: item.x, top: aLocal(item.y), width: tamano }]}>
+                      <SombraSuelo tamano={tamano} />
+                      <View style={{ height: tamano, opacity: item.opacidad, transform: [{ scaleX: item.volteado ? -1 : 1 }], width: tamano }}>
+                        <MasterChanger ancho={tamano} alto={tamano} colorDestino={colorMasterAmbiente} fit="contain" fuente={ASSETS_AMBIENTE_UNIVERSAL[item.assetId]} />
+                      </View>
+                    </View>;
+                  })}
+                  {assetSemilla && mapa.semillas.map((item, indice) => {
+                    const tamano = 172 * item.escala;
+                    if (!pertenece(item.y, tamano)) return null;
+                    return <View key={`semilla-${indice}`} pointerEvents="none" style={[styles.ambiente, { height: tamano, left: item.x, top: aLocal(item.y), width: tamano }]}>
+                      <SombraSuelo tamano={tamano} />
+                      <Image resizeMode="contain" source={assetSemilla} style={{ height: '100%', transform: [{ scaleX: item.volteado ? -1 : 1 }], width: '100%' }} />
+                    </View>;
+                  })}
+                  {assetBrote && mapa.brotes.map((item, indice) => {
+                    const tamano = 172 * item.escala;
+                    if (!pertenece(item.y, tamano)) return null;
+                    return <View key={`brote-${indice}`} pointerEvents="none" style={[styles.ambiente, { height: tamano, left: item.x, top: aLocal(item.y), width: tamano }]}>
+                      <SombraSuelo tamano={tamano} />
+                      <Image resizeMode="contain" source={assetBrote} style={{ height: '100%', transform: [{ scaleX: item.volteado ? -1 : 1 }], width: '100%' }} />
+                    </View>;
+                  })}
+                  {mapa.piedras.map((piedra, indice) => {
+                    if (!pertenece(piedra.y, piedra.tamano)) return null;
+                    return <View key={`piedra-${indice}`} pointerEvents="none" style={[styles.piedras, { height: piedra.tamano, left: piedra.x, top: aLocal(piedra.y), transform: [{ scaleX: piedra.espejoHorizontal }], width: piedra.tamano }]}>
+                      <SombraSuelo tamano={piedra.tamano} />
+                      <MasterChanger ancho={piedra.tamano} alto={piedra.tamano} colorDestino={colorMasterAmbiente} fit="contain" fuente={ASSETS_AMBIENTE_UNIVERSAL[piedra.assetId]} />
+                    </View>;
+                  })}
+                  {mapa.decoraciones.map((decoracion, indice) => {
+                    const tamano = 172 * decoracion.escala;
+                    if (!pertenece(decoracion.y, tamano)) return null;
+                    const asset = obtenerAssetBioma(categoriaId, decoracion.assetId, paqueteId, nivel);
+                    if (!asset) return null;
+                    return <View key={`bioma-${decoracion.assetId}-${indice}`} pointerEvents="none" style={[styles.decoracionBioma, { height: tamano, left: decoracion.x, top: aLocal(decoracion.y), width: tamano, zIndex: zIndexPorCapa[decoracion.capa] }]}>
+                      <Image resizeMode="contain" source={asset.fuente} style={[styles.decoracionBiomaImagen, { transform: [{ scaleX: decoracion.volteado ? -1 : 1 }] }]} />
+                    </View>;
+                  })}
+                  <Svg height={separacionVertical * 2} pointerEvents="none" style={[StyleSheet.absoluteFill, { zIndex: 8 }]} viewBox={`0 ${inicio} ${anchoEscena} ${separacionVertical * 2}`} width={anchoEscena}>
+                    {conexiones.filter((_, indice) => posiciones[indice].y >= inicio && posiciones[indice].y < fin).map((conexion) => {
+                      const indiceConexion = conexiones.indexOf(conexion);
+                      const completa = indiceConexion < ultimoCompletado;
+                      return <Path d={conexion.d} fill="none" key={conexion.id} stroke={completa ? color : '#D2CEC8'} strokeDasharray={completa ? undefined : '4 8'} strokeLinecap="round" strokeWidth={completa ? Math.max(3.5, 7 - indiceConexion * 0.7) : 3.5} />;
+                    })}
+                  </Svg>
+                  {mapa.lamparas.map((lampara, indice) => pertenece(lampara.y, lampara.tamano) ? <DecoracionSendero key={`lampara-${indice}`} izquierda={lampara.x} tamano={lampara.tamano} arriba={aLocal(lampara.y)} /> : null)}
+                  {nodos.map((nodo, indice) => {
+                    const posicion = posiciones[indice];
+                    if (!posicion || posicion.y < inicio || posicion.y >= fin) return null;
+                    const estadoVisual = indice <= ultimoCompletado ? 'completado' : indice === indiceNodoActual ? 'activo' : 'bloqueado';
+                    return <View key={nodo.id} style={[styles.nodoPosicion, { left: posicion.x - 42, top: aLocal(posicion.y) - 48, zIndex: 20 }]}>
+                      <NodoSendero Icono={nodo.icono} asentado={seleccionado === nodo.id} color={color} escalaEscena={1} estado={estadoVisual} seleccionado={seleccionado === nodo.id} onCompletar={() => completarNodo(indice)} onPress={() => seleccionarNodo(nodo.id, indice)} />
+                    </View>;
+                  })}
+                  {indiceSeleccionadoEnTramo && nodoSeleccionado && posicionNodoSeleccionado && estadoNodoSeleccionado ? <TooltipNodoSeleccionado anchoEscena={anchoEscena} color={color} estado={estadoNodoSeleccionado} nodo={nodoSeleccionado} posicion={{ x: posicionNodoSeleccionado.x, y: aLocal(posicionNodoSeleccionado.y) }} onCompletar={() => completarNodo(indiceNodoSeleccionado)} /> : null}
+                </View>
+              );
+            }}
+            showsVerticalScrollIndicator={false}
+            windowSize={5}
+          />
+        </View>
+        {nodoSeleccionado ? <View accessibilityElementsHidden style={styles.lectorOculto}><Texto>{nodoSeleccionado.titulo}</Texto></View> : null}
+      </View>
+    );
+  }
+
   return (
     <ScrollView
       ref={scrollRef}
@@ -189,8 +305,13 @@ export function ContenedorMapaSenderos({ altura, categoriaId, color, enfocado, n
       <TouchableWithoutFeedback onPress={() => setSeleccionado('')}>
       <View style={{ height: altoContenido, width: anchoEscena }}>
         
-        {/* Bases Isométricas decorativas a los lados (FUERA de la perspectiva 3D para evitar aplastamiento) */}
+        {/* Bases Isométricas decorativas a los lados (FUERA de la perspectiva 3D para evitar aplastamiento).
+            Los paquetes de árbol reales (aurelia, diamante...) no tienen arte de "base" propio —
+            registroBiomas.ts sustituye la etapa actual (ej. etapa1.png) como placeholder, lo que acá
+            se veía como un árbol gigante duplicado arriba del mapa. Mejor omitir del todo que mostrar
+            ese sustituto fuera de lugar. */}
         {(() => {
+           if (categoriaId === 'habitos' && tieneAssetsPaquete) return null;
            const assetBase = obtenerAssetBioma(categoriaId, 'base', paqueteId, nivel);
            if (!assetBase) return null;
            return (
@@ -214,11 +335,27 @@ export function ContenedorMapaSenderos({ altura, categoriaId, color, enfocado, n
               style={[styles.ambiente, { height: tamano, left: item.x, top: item.y, width: tamano }]}
             >
               <SombraSuelo tamano={tamano} />
-              <Image
-                resizeMode="contain"
-                source={ASSETS_AMBIENTE_UNIVERSAL[item.assetId]}
-                style={{ height: '100%', opacity: item.opacidad, transform: [{ scaleX: item.volteado ? -1 : 1 }], width: '100%' }}
-              />
+              <View style={{ height: tamano, opacity: item.opacidad, transform: [{ scaleX: item.volteado ? -1 : 1 }], width: tamano }}>
+                <MasterChanger ancho={tamano} alto={tamano} colorDestino={colorMasterAmbiente} fit="contain" fuente={ASSETS_AMBIENTE_UNIVERSAL[item.assetId]} />
+              </View>
+            </View>
+          );
+        })}
+        {assetSemilla && mapa.semillas.map((item, indice) => {
+          const tamano = 172 * item.escala;
+          return (
+            <View key={`semilla-${indice}`} pointerEvents="none" style={[styles.ambiente, { height: tamano, left: item.x, top: item.y, width: tamano }]}>
+              <SombraSuelo tamano={tamano} />
+              <Image resizeMode="contain" source={assetSemilla} style={{ height: '100%', transform: [{ scaleX: item.volteado ? -1 : 1 }], width: '100%' }} />
+            </View>
+          );
+        })}
+        {assetBrote && mapa.brotes.map((item, indice) => {
+          const tamano = 172 * item.escala;
+          return (
+            <View key={`brote-${indice}`} pointerEvents="none" style={[styles.ambiente, { height: tamano, left: item.x, top: item.y, width: tamano }]}>
+              <SombraSuelo tamano={tamano} />
+              <Image resizeMode="contain" source={assetBrote} style={{ height: '100%', transform: [{ scaleX: item.volteado ? -1 : 1 }], width: '100%' }} />
             </View>
           );
         })}
@@ -238,7 +375,7 @@ export function ContenedorMapaSenderos({ altura, categoriaId, color, enfocado, n
             ]}
           >
             <SombraSuelo tamano={piedras.tamano} />
-            <Image resizeMode="contain" source={ASSETS_AMBIENTE_UNIVERSAL[piedras.assetId]} style={{ height: '100%', width: '100%' }} />
+            <MasterChanger ancho={piedras.tamano} alto={piedras.tamano} colorDestino={colorMasterAmbiente} fit="contain" fuente={ASSETS_AMBIENTE_UNIVERSAL[piedras.assetId]} />
           </View>
         ))}
 
@@ -309,7 +446,9 @@ export function ContenedorMapaSenderos({ altura, categoriaId, color, enfocado, n
           const esSeleccionado = seleccionado === nodo.id;
           const estadoVisual = indice <= ultimoCompletado ? 'completado' : esNodoActual ? 'activo' : 'bloqueado';
           const asentado = esSeleccionado;
-          const escalaEscena = Math.max(0.78, 1.1 - indice * 0.07);
+          // Todos los nodos conservan el mismo peso visual: reducirlos por
+          // índice hacía que los mapas largos parecieran encogerse al subir.
+          const escalaEscena = 1;
           return (
             <View key={nodo.id} style={[styles.nodoPosicion, { left: posicion.x - 42, top: posicion.y - 48, zIndex: 20 }]}>
               <NodoSendero Icono={nodo.icono} asentado={asentado} color={color} escalaEscena={escalaEscena} estado={estadoVisual} seleccionado={esSeleccionado} onCompletar={() => completarNodo(indice)} onPress={() => seleccionarNodo(nodo.id, indice)} />

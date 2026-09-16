@@ -108,31 +108,37 @@ export function PedestalBotonSuperior({ color, tamano = 84 }: { color: string; t
   );
 }
 
-// Bloqueado: paleta fija (pálida) del diseño Group 3(1).svg, sin rotar por
-// color — un nodo bloqueado siempre se ve igual sin importar en qué color
-// terminará una vez desbloqueado. También sin el candado fijo del original
-// (el ícono dinámico real ya lo resuelve HabitosPantalla/mapaEjercicio).
-export function PedestalBaseBloqueada({ tamano = 84 }: { tamano?: number }) {
+// Bloqueado: paleta pálida del diseño Group 3(1).svg — antes fija sin
+// importar el color del hábito; ahora, si se pasa `color`, se rota igual que
+// la paleta desbloqueada (mismo rotarPaletaHex/REFERENCIA_HUE) para que un
+// hábito azul (Diamante) también se vea pálido-azul bloqueado, no
+// pálido-verde genérico. Sin `color`, se ve exactamente igual que antes.
+const PALETA_BLOQUEADA = ['#EDFFED', '#CDFACC', '#C8E0B8', '#E2FFE2', '#C0EEBF', '#206116', '#ADF1B3', '#8AE280'] as const;
+
+export function PedestalBaseBloqueada({ color, tamano = 84 }: { color?: string; tamano?: number }) {
+  const [pedestalGradInicio, pedestalGradFin, solido, topeGradInicio, topeGradFin, acentoColor] = color
+    ? rotarPaletaHex(PALETA_BLOQUEADA, REFERENCIA_HUE, color)
+    : PALETA_BLOQUEADA;
   return (
     <>
       <Svg height={tamano} style={StyleSheet.absoluteFill} viewBox="0 0 302 303" width={tamano}>
         <Defs>
           <LinearGradient gradientUnits="userSpaceOnUse" id="pedestalBloqueadoGrad" x1="150.75" x2="175.385" y1="51.1851" y2="285.699">
-            <Stop offset="0.59697" stopColor="#EDFFED" />
-            <Stop offset="1" stopColor="#CDFACC" />
+            <Stop offset="0.59697" stopColor={pedestalGradInicio} />
+            <Stop offset="1" stopColor={pedestalGradFin} />
           </LinearGradient>
         </Defs>
-        <Path d="M301.5 157.5C301.5 229.297 234.119 287.5 151 287.5C67.8811 287.5 0.5 229.297 0.5 157.5C32 210.5 72 255.5 151 260.5C216 260.5 278.5 208.5 301.5 157.5Z" fill="#C8E0B8" />
+        <Path d="M301.5 157.5C301.5 229.297 234.119 287.5 151 287.5C67.8811 287.5 0.5 229.297 0.5 157.5C32 210.5 72 255.5 151 260.5C216 260.5 278.5 208.5 301.5 157.5Z" fill={solido} />
         <Path d="M301 158C301 229.797 234.119 287.5 151.001 287.5C67.8816 287.5 0.500488 228.797 0.500488 157C3.50049 171 66.5005 259.5 151.001 259C220.501 261.5 278 209 301 158Z" fill="url(#pedestalBloqueadoGrad)" />
         <Path d="M0.500488 157C3.50049 171 66.5005 259.5 151.001 259C220.501 261.5 278 209 301 158C301 3.50006 0.5 28.5002 0.500488 157Z" fill="url(#pedestalBloqueadoGrad)" />
         <Path d="M301 158C301 229.797 234.119 287.5 151.001 287.5C67.8816 287.5 0.500488 228.797 0.500488 157M301 158C278 209 220.501 261.5 151.001 259C66.5005 259.5 3.50049 171 0.500488 157M301 158C301 3.50006 0.5 28.5002 0.500488 157" fill="none" stroke="white" strokeOpacity={0.2} />
       </Svg>
-      <AcentoBlur color="#206116" tamano={tamano} />
+      <AcentoBlur color={acentoColor} tamano={tamano} />
       <Svg height={tamano} style={StyleSheet.absoluteFill} viewBox="0 0 302 303" width={tamano}>
         <Defs>
           <LinearGradient gradientUnits="userSpaceOnUse" id="botonTopeBloqueadoGrad" x1="151" x2="180.479" y1="0.5" y2="256.975">
-            <Stop offset="0.59697" stopColor="#E2FFE2" />
-            <Stop offset="1" stopColor="#C0EEBF" />
+            <Stop offset="0.59697" stopColor={topeGradInicio} />
+            <Stop offset="1" stopColor={topeGradFin} />
           </LinearGradient>
         </Defs>
         <Ellipse cx={151} cy={130} fill="url(#botonTopeBloqueadoGrad)" rx={150.5} ry={129.5} stroke="white" strokeOpacity={0.2} />
@@ -144,13 +150,15 @@ export function PedestalBaseBloqueada({ tamano = 84 }: { tamano?: number }) {
 // Bloqueado no tiene una tercera elipse "superior" en el diseño original —
 // solo pálida (fija, arriba) + esta (la única "de superficie"). Se queda como
 // la pieza que anima al presionar, igual criterio que el estado normal.
-export function PedestalBotonBloqueado({ tamano = 84 }: { tamano?: number }) {
+export function PedestalBotonBloqueado({ color, tamano = 84 }: { color?: string; tamano?: number }) {
+  const paleta = color ? rotarPaletaHex(PALETA_BLOQUEADA, REFERENCIA_HUE, color) : PALETA_BLOQUEADA;
+  const [, , , , , , medioClaro, medioOscuro] = paleta;
   return (
     <Svg height={tamano} style={StyleSheet.absoluteFill} viewBox="0 0 302 303" width={tamano}>
       <Defs>
         <LinearGradient gradientUnits="userSpaceOnUse" id="botonMedioBloqueadoGrad" x1="151" x2="175.854" y1="26.5" y2="236.261">
-          <Stop offset="0.59697" stopColor="#ADF1B3" />
-          <Stop offset="1" stopColor="#8AE280" />
+          <Stop offset="0.59697" stopColor={medioClaro} />
+          <Stop offset="1" stopColor={medioOscuro} />
         </LinearGradient>
       </Defs>
       <Ellipse cx={151} cy={132.5} fill="url(#botonMedioBloqueadoGrad)" rx={119.5} ry={106} stroke="white" strokeOpacity={0.2} strokeWidth={5} />

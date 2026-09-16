@@ -10,6 +10,7 @@ type MasterProgressbarProps = {
   altura?: number;
   porcentaje: number;
   style?: StyleProp<ViewStyle>;
+  colorBase?: string;
 };
 
 type BurbujaProps = {
@@ -19,6 +20,18 @@ type BurbujaProps = {
   tamano: number;
   arriba: number;
 };
+
+function mezclarColor(hex: string, porcentaje: number, haciaBlanco: boolean) {
+  const limpio = hex.replace('#', '');
+  const r = parseInt(limpio.slice(0, 2), 16);
+  const g = parseInt(limpio.slice(2, 4), 16);
+  const b = parseInt(limpio.slice(4, 6), 16);
+  const t = haciaBlanco ? 255 : 0;
+  const nr = Math.round(r + (t - r) * porcentaje).toString(16).padStart(2, '0');
+  const ng = Math.round(g + (t - g) * porcentaje).toString(16).padStart(2, '0');
+  const nb = Math.round(b + (t - b) * porcentaje).toString(16).padStart(2, '0');
+  return `#${nr}${ng}${nb}`;
+}
 
 function Burbuja({ arriba, demora, duracion, izquierda, tamano }: BurbujaProps) {
   const desplazamiento = useSharedValue(-tamano);
@@ -32,7 +45,7 @@ function Burbuja({ arriba, demora, duracion, izquierda, tamano }: BurbujaProps) 
   return <Animated.View pointerEvents="none" style={[styles.burbuja, estiloAnimado, { borderRadius: tamano / 2, height: tamano, left: izquierda as `${number}%`, top: arriba, width: tamano }]} />;
 }
 
-export function MasterProgressbar({ altura = 12, porcentaje, style }: MasterProgressbarProps) {
+export function MasterProgressbar({ altura = 12, porcentaje, style, colorBase }: MasterProgressbarProps) {
   const progreso = useSharedValue(normalizarPorcentaje(porcentaje));
   const porcentajeSeguro = normalizarPorcentaje(porcentaje);
 
@@ -43,11 +56,19 @@ export function MasterProgressbar({ altura = 12, porcentaje, style }: MasterProg
   const estiloRelleno = useAnimatedStyle(() => ({ width: `${progreso.value}%` }));
   const radio = altura / 2;
 
+  const coloresGradiente = colorBase
+    ? [mezclarColor(colorBase, 0.2, false), colorBase, mezclarColor(colorBase, 0.4, true)]
+    : ['#1F7C3E', '#58BE68', '#9AE59C'];
+
+  const coloresFondo = colorBase
+    ? [mezclarColor(colorBase, 0.85, true), mezclarColor(colorBase, 0.92, true)]
+    : ['#edfaed', '#f4ffea'];
+
   return (
     <MasterGlass style={[styles.marco, { borderRadius: radio, height: altura }, style]}>
-      <LinearGradient colors={['#edfaed', '#f4ffea']} end={{ x: 1, y: 0 }} start={{ x: 0, y: 0 }} style={[styles.pista, { borderRadius: radio }]}>
+      <LinearGradient colors={coloresFondo} end={{ x: 1, y: 0 }} start={{ x: 0, y: 0 }} style={[styles.pista, { borderRadius: radio }]}>
         <Animated.View style={[styles.relleno, estiloRelleno, { borderRadius: radio }]}>
-          <LinearGradient colors={['#1F7C3E', '#58BE68', '#9AE59C']} end={{ x: 1, y: 0 }} start={{ x: 0, y: 0 }} style={styles.liquido}>
+          <LinearGradient colors={coloresGradiente} end={{ x: 1, y: 0 }} start={{ x: 0, y: 0 }} style={styles.liquido}>
             {porcentajeSeguro > 0 ? <>
               <Burbuja arriba={altura * 0.45} demora={0} duracion={2600} izquierda="8%" tamano={Math.max(2, altura * 0.36)} />
               <Burbuja arriba={altura * 0.12} demora={500} duracion={2200} izquierda="32%" tamano={Math.max(2, altura * 0.28)} />

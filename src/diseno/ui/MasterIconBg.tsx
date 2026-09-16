@@ -14,6 +14,12 @@ type MasterIconBgProps = {
   fuente?: ImageSourcePropType;
   size?: number;
   style?: StyleProp<ViewStyle>;
+  /**
+   * Tiñe el fondo interior (el "glass" menta de MasterGlass, que es fijo y
+   * no acepta un color propio) hacia este tono — sin esto, el fondo siempre
+   * queda verde sin importar el borde/degradado de arriba.
+   */
+  tinte?: string;
 };
 
 // Fondo de icono glass con anillo degradado verde — extraído tal cual de la
@@ -23,7 +29,7 @@ type MasterIconBgProps = {
 export function MasterIconBg({
   children, colorBordeFin = '#539C68', colorBordeInicio = '#C5F7B6',
   degradadoFin = '#B8EDB0', degradadoInicio = '#F4FFF1',
-  fuente, size = 68, style,
+  fuente, size = 68, style, tinte,
 }: MasterIconBgProps) {
   const radioExterior = Math.round(size * (18 / 68));
   const radioInterior = Math.round(size * (16 / 68));
@@ -41,6 +47,11 @@ export function MasterIconBg({
         <Rect fill="url(#masterIconBgBorde)" height={size} rx={radioExterior} ry={radioExterior} width={size} />
       </Svg>
       <MasterGlass blur compacto style={[mib.glass, { borderRadius: radioInterior }]}>
+        {/* MasterGlass es fijo verde menta y no tiene prop de color propio —
+            esta capa lo tiñe hacia `tinte` sin tocar ese componente
+            compartido (lo usan muchas otras pantallas que deben seguir
+            viéndose verdes). Sin `tinte`, se comporta igual que antes. */}
+        {tinte && <View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: tinte, borderRadius: radioInterior, opacity: 0.4 }]} />}
         {fuente ? <Image resizeMode="contain" source={fuente} style={{ height: tamanoIcono, width: tamanoIcono }} /> : children}
       </MasterGlass>
     </View>

@@ -6,6 +6,15 @@ import type { EstadoNodoMapa } from '../../datos/mapaEjercicio.mock';
 import { hapticSeguro } from '../../../../nucleo/dispositivo/haptics';
 import { PedestalBase, PedestalBaseBloqueada, PedestalBotonBloqueado, PedestalBotonSuperior } from './PedestalNodo';
 
+// Ícono bloqueado: antes un verde grisáceo fijo ('#5C8A57') sin importar el
+// hábito — ahora una versión oscurecida/apagada del color real, mismo criterio
+// que el resto del pedestal bloqueado (PedestalNodo.tsx ya lo hace por paleta).
+function oscurecer(color: string, factor = 0.65) {
+  const hex = color.replace('#', '');
+  const canal = (inicio: number) => Math.round(parseInt(hex.slice(inicio, inicio + 2), 16) * factor).toString(16).padStart(2, '0');
+  return `#${canal(0)}${canal(2)}${canal(4)}`;
+}
+
 type NodoSenderoProps = {
   Icono: LucideIcon;
   asentado: boolean;
@@ -107,11 +116,11 @@ export function NodoSendero({ Icono, asentado, color, estado, onCompletar, onPre
             colores saturados (+ el ícono real, dinámico según el paso,
             montado encima) recibe el efecto press (translateY/scale). */}
         <View style={styles.shell}>
-          {bloqueado ? <PedestalBaseBloqueada tamano={TAMANO_PEDESTAL} /> : <PedestalBase color={color} oscurecimiento={oscurecimientoMedio} tamano={TAMANO_PEDESTAL} />}
+          {bloqueado ? <PedestalBaseBloqueada color={color} tamano={TAMANO_PEDESTAL} /> : <PedestalBase color={color} oscurecimiento={oscurecimientoMedio} tamano={TAMANO_PEDESTAL} />}
           <Animated.View style={[styles.capaBoton, { transform: [{ translateY: descenso }, { scaleX: escalaX }] }]}>
-            {bloqueado ? <PedestalBotonBloqueado tamano={TAMANO_PEDESTAL} /> : <PedestalBotonSuperior color={color} tamano={TAMANO_PEDESTAL} />}
+            {bloqueado ? <PedestalBotonBloqueado color={color} tamano={TAMANO_PEDESTAL} /> : <PedestalBotonSuperior color={color} tamano={TAMANO_PEDESTAL} />}
             <View pointerEvents="none" style={styles.iconoContenedor}>
-              <Icono color={bloqueado ? '#5C8A57' : '#FFFFFF'} size={27} strokeWidth={2.7} />
+              <Icono color={bloqueado ? oscurecer(color) : '#FFFFFF'} size={27} strokeWidth={2.7} />
             </View>
           </Animated.View>
         </View>
