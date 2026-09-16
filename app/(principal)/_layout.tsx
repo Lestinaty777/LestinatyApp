@@ -98,7 +98,7 @@ function BarraNavegacionPrincipal({ navigation, state, style }: { navigation: an
   const olaTienda = useSharedValue(0);
 
   useEffect(() => {
-    desplazamientoActivo.value = withTiming(indiceActivo * anchoDestino + 8, { duration: 260, easing: Easing.out(Easing.cubic) });
+    desplazamientoActivo.value = withTiming(indiceActivo * anchoDestino + 8, { duration: 380, easing: Easing.out(Easing.cubic) });
   }, [anchoDestino, desplazamientoActivo, indiceActivo]);
 
   useEffect(() => {

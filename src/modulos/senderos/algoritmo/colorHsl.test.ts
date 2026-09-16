@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { hueDeHex, rotarHueHex, rotarPaletaHex } from './colorHsl';
+import { colorSeguroUi, hueDeHex, rotarHueHex, rotarPaletaHex } from './colorHsl';
 
 describe('rotarHueHex', () => {
   it('deja el color igual con un delta de 0', () => {
@@ -37,5 +37,32 @@ describe('rotarPaletaHex', () => {
       const normaliza = (v: number) => ((v + 540) % 360) - 180;
       expect(normaliza(deltaReal)).toBeCloseTo(normaliza(deltaEsperado), 0);
     });
+  });
+});
+
+describe('colorSeguroUi', () => {
+  it('deja igual un color ya dentro del rango medio', () => {
+    // #22C55E tiene luminosidad ~0.45, dentro del rango seguro por defecto (0.35-0.65).
+    expect(colorSeguroUi('#22C55E').toLowerCase()).toBe('#22c55e');
+  });
+
+  it('oscurece un color demasiado claro (luminosidad alta) sin cambiar el hue', () => {
+    const claro = '#EAFBEA'; // verde casi blanco
+    const resultado = colorSeguroUi(claro);
+    expect(hueDeHex(resultado)).toBeCloseTo(hueDeHex(claro), 0);
+    expect(resultado.toLowerCase()).not.toBe(claro.toLowerCase());
+  });
+
+  it('aclara un color demasiado oscuro (luminosidad baja) sin cambiar el hue', () => {
+    const oscuro = '#031A08'; // verde casi negro
+    const resultado = colorSeguroUi(oscuro);
+    expect(hueDeHex(resultado)).toBeCloseTo(hueDeHex(oscuro), 0);
+    expect(resultado.toLowerCase()).not.toBe(oscuro.toLowerCase());
+  });
+
+  it('es idempotente: aplicarlo dos veces da el mismo resultado', () => {
+    const una = colorSeguroUi('#031A08');
+    const dos = colorSeguroUi(una);
+    expect(dos.toLowerCase()).toBe(una.toLowerCase());
   });
 });

@@ -75,3 +75,16 @@ export function rotarPaletaHex(paleta: readonly string[], colorReferencia: strin
   const delta = hueDeHex(colorDestino) - hueDeHex(colorReferencia);
   return paleta.map((hex) => rotarHueHex(hex, delta));
 }
+
+// MasterPackColor (el tono propio de un paquete de árbol, cargado a mano por
+// paquete) puede venir demasiado claro u oscuro para usarse tal cual como
+// color de UI (texto, nodos, fondo) — clampea la luminosidad a un rango medio
+// seguro antes de usarlo, preservando tono y saturación: "un tono similar, no
+// necesariamente igual" (pedido explícito del usuario).
+export function colorSeguroUi(hex: string, luminosidadMinima = 0.35, luminosidadMaxima = 0.65): string {
+  const { r, g, b } = hexARgb(hex);
+  const { h, s, l } = rgbAHsl(r, g, b);
+  const lClampeada = Math.max(luminosidadMinima, Math.min(luminosidadMaxima, l));
+  const clampeado = hslARgb(h, s, lClampeada);
+  return rgbAHex(clampeado.r, clampeado.g, clampeado.b);
+}

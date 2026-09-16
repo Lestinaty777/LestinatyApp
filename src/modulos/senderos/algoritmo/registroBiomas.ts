@@ -1,6 +1,7 @@
 import type { ImageSourcePropType } from 'react-native';
 
 import { ARBUSTO_SELVA_BASE, obtenerAssetsSelvaPorTono } from '../../habitos/iconosHabitos';
+import { obtenerAssetsPaquete } from './registroPaquetesArbol';
 import type { CategoriaMapaId } from './mapaProcedural';
 
 export type AssetBioma = {
@@ -11,7 +12,7 @@ export type AssetBioma = {
 };
 
 export type BiomaVisualId = 'arce' | 'bosque-calido' | 'bosque-dorado' | 'cerezo' | 'pino-nevado' | 'sauce-ruinas' | 'selva';
-export type RolAssetBioma = 'arbol-principal' | 'arbol-secundario' | 'arbusto' | 'base' | 'flor';
+export type RolAssetBioma = 'arbol-principal' | 'arbol-secundario' | 'arbol-terciario' | 'arbusto' | 'base' | 'flor';
 
 // Pasto/roca: los únicos assets que NO varían por bioma — mismos pasto/roca
 // para los 7 biomas, como relleno ambiental disperso (ver mapaProcedural.ts).
@@ -142,14 +143,17 @@ export const registroBiomas: Record<CategoriaMapaId, ReglaBioma> = {
 };
 
 // El bioma de 'habitos' ya no es un set fijo de assets (era 'arce', un mockup
-// que no tenía relación con el sistema de tonos de verde de la selva) — se
-// construye en vivo a partir del nivel real del hábito (1-7), reusando los
-// mismos assets por tono que ya usa CrearHabitoWizard/DetalleHabitoPantalla.
-// El arbusto no tiene arte por tono todavía, así que siempre es el mismo
-// asset base sin oscurecer (a diferencia del wizard, que sí lo oscurece en
-// vivo con MasterChanger) — aquí el mapa ya tiene mucha otra vegetación
-// procedural dando profundidad, así que no hace falta esa variación extra.
-function construirAssetsBiomaHabitos(tono: number): AssetBioma[] {
+// sin relación con el hábito real) — se construye en vivo a partir del
+// paquete de árbol asignado al hábito (fijo de por vida, ver
+// habitos_items.paquete_id) y su nivel real (1-7, define qué etapas de
+// crecimiento se ven). Si el paquete todavía no tiene arte nuevo cargado en
+// registroPaquetesArbol (hoy: todos los "verde-N" gratuitos, y cualquier
+// paquete premium sin migrar), se usa el sistema viejo por tono como puente —
+// un solo asset por rol, igual que siempre. Cuando el paquete SÍ tiene sus 7
+// etapas reales, se arma la mezcla de hasta 3 profundidades (actual y las 2
+// anteriores) que resuelve mapaProcedural.ts.
+function construirAssetsBiomaHabitosPuente(paqueteId: string): AssetBioma[] {
+  const tono = Number(paqueteId.replace('verde-', '')) || 1;
   const assets = obtenerAssetsSelvaPorTono(tono);
   return [
     { id: 'base', fuente: assets.base, nombre: `Base Selva nivel ${tono}`, rol: 'base' },
@@ -160,12 +164,40 @@ function construirAssetsBiomaHabitos(tono: number): AssetBioma[] {
   ];
 }
 
-/** Assets del bioma para una categoría — 'habitos' se recalcula por tono (nivel real), el resto es fijo. */
-export function obtenerAssetsBioma(categoriaId: CategoriaMapaId, tono?: number): AssetBioma[] {
-  if (categoriaId === 'habitos') return construirAssetsBiomaHabitos(tono ?? 1);
+function construirAssetsBiomaHabitos(paqueteId: string, nivel: number): AssetBioma[] {
+  const paquete = obtenerAssetsPaquete(paqueteId);
+  if (!paquete) return construirAssetsBiomaHabitosPuente(paqueteId);
+
+  const nivelAcotado = Math.max(1, Math.min(7, Math.round(nivel)));
+  const assets: AssetBioma[] = [
+    // Sin arte de "base" propio en el paquete (10 imágenes: 7 etapas +
+    // arbusto + flor + semilla) — se reusa la etapa actual como sustituto.
+    { id: 'base', fuente: paquete.etapas[nivelAcotado - 1], nombre: `${paqueteId} base nivel ${nivelAcotado}`, rol: 'base' },
+    { id: 'arbusto', fuente: paquete.arbusto, nombre: `${paqueteId} arbusto`, rol: 'arbusto' },
+    { id: 'flor', fuente: paquete.flor, nombre: `${paqueteId} flor`, rol: 'flor' },
+  ];
+
+  const rolesPorProfundidad: RolAssetBioma[] = ['arbol-principal', 'arbol-secundario', 'arbol-terciario'];
+  for (let profundidad = 0; profundidad < 3; profundidad += 1) {
+    const indiceEtapa = nivelAcotado - 1 - profundidad;
+    if (indiceEtapa < 0) break;
+    assets.push({
+      id: `${rolesPorProfundidad[profundidad]}`,
+      fuente: paquete.etapas[indiceEtapa],
+      nombre: `${paqueteId} etapa ${indiceEtapa + 1}`,
+      rol: rolesPorProfundidad[profundidad],
+    });
+  }
+
+  return assets;
+}
+
+/** Assets del bioma para una categoría — 'habitos' se recalcula por paquete+nivel, el resto es fijo. */
+export function obtenerAssetsBioma(categoriaId: CategoriaMapaId, paqueteId?: string, nivel?: number): AssetBioma[] {
+  if (categoriaId === 'habitos') return construirAssetsBiomaHabitos(paqueteId ?? 'verde-1', nivel ?? 1);
   return registroBiomas[categoriaId].assets;
 }
 
-export function obtenerAssetBioma(categoriaId: CategoriaMapaId, id: string, tono?: number) {
-  return obtenerAssetsBioma(categoriaId, tono).find((asset) => asset.id === id) ?? null;
+export function obtenerAssetBioma(categoriaId: CategoriaMapaId, id: string, paqueteId?: string, nivel?: number) {
+  return obtenerAssetsBioma(categoriaId, paqueteId, nivel).find((asset) => asset.id === id) ?? null;
 }

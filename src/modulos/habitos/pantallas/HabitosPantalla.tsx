@@ -235,13 +235,14 @@ export function HabitosPantalla() {
       </Pressable>
     </Animated.View>
     <CrearHabitoWizard guardando={crear.isPending} onCerrar={() => setCrearAbierto(false)} onCrear={async (input) => {
-      await crear.mutateAsync(input);
+      const resultado = await crear.mutateAsync(input);
       await Promise.all([
         cliente.invalidateQueries({ queryKey: ['habitos', 'panel'] }),
         cliente.invalidateQueries({ queryKey: ['habitos', 'detalles-hoy'] }),
         cliente.invalidateQueries({ queryKey: ['habitos', 'cercania-nivel'] }),
         cliente.invalidateQueries({ queryKey: ['habitos', 'mejor-racha'] }),
       ]);
+      return resultado;
     }} visible={crearAbierto} />
   </ScrollView>
   {/* Fuera del ScrollView a propósito: HojaDeslizante se posiciona absoluto

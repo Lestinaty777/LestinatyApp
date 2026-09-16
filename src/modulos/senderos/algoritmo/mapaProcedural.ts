@@ -10,9 +10,13 @@ export type TemaMapaProcedural = {
   categoriaId: CategoriaMapaId;
   densidadDecoracion: number;
   id: string;
+  /** Paquete de árbol asignado al hábito (fijo de por vida) — solo aplica a la categoría 'habitos'. */
+  paqueteId?: string;
   presupuestoDecoracion: number;
-  /** Nivel real 1-7 del hábito — solo se usa para la categoría 'habitos', define qué assets de selva se cargan. */
-  tono?: number;
+  /** 0-1: qué tan "crecido" está el pasto en los niveles 1-3 (crece día a día) — 1 = densidad plena. Ver AMBIENTE_DENSIDAD. */
+  progresoPastoTemprano?: number;
+  /** Nivel real 1-7 del hábito — solo se usa para la categoría 'habitos', define qué etapas de crecimiento se mezclan. */
+  nivel?: number;
 };
 
 export type NodoProcedural = { id: string; x: number; y: number };
@@ -52,7 +56,25 @@ export type MapaProcedural = {
 };
 
 type CajaColision = { x: number; y: number; w: number; h: number };
-type RolDecoracion = 'arbol-principal' | 'arbol-secundario' | 'arbusto' | 'flor';
+type RolDecoracion = 'arbol-principal' | 'arbol-secundario' | 'arbol-terciario' | 'arbusto' | 'flor';
+
+// Mezcla de etapas de árbol: profundidad 0 = etapa actual, 1 = una atrás, 2 =
+// dos atrás — 70/20/10 de las veces que se coloca un árbol. Si una
+// profundidad no está disponible (nivel muy bajo, o el paquete todavía usa el
+// puente viejo de un solo asset por rol) se renormaliza entre las que sí.
+const PESO_POR_PROFUNDIDAD = [0.7, 0.2, 0.1];
+
+function elegirProfundidad(aleatorio: () => number, disponibles: readonly boolean[]): number {
+  const pesos = PESO_POR_PROFUNDIDAD.map((peso, indice) => (disponibles[indice] ? peso : 0));
+  const total = pesos.reduce((suma, peso) => suma + peso, 0);
+  if (total <= 0) return 0;
+  let umbral = aleatorio() * total;
+  for (let indice = 0; indice < pesos.length; indice += 1) {
+    umbral -= pesos[indice];
+    if (umbral <= 0) return indice;
+  }
+  return pesos.length - 1;
+}
 
 const TAMANO_BASE_ASSET = 172;
 const SEPARACION_NODOS = 112;
@@ -88,7 +110,7 @@ function crearCaja(x: number, y: number, tamano: number): CajaColision {
   return { x: x + tamano * 0.18, y: y + tamano * 0.22, w: tamano * 0.64, h: tamano * 0.62 };
 }
 
-export function crearTemaMapa(categoriaId: CategoriaMapaId, acento: string, id: string, tono?: number): TemaMapaProcedural {
+export function crearTemaMapa(categoriaId: CategoriaMapaId, acento: string, id: string, paqueteId?: string, nivel?: number, progresoPastoTemprano?: number): TemaMapaProcedural {
   const regla = registroBiomas[categoriaId];
   return {
     acento,
@@ -96,8 +118,10 @@ export function crearTemaMapa(categoriaId: CategoriaMapaId, acento: string, id: 
     categoriaId,
     densidadDecoracion: regla.densidadDecoracion,
     id,
+    nivel,
+    paqueteId,
     presupuestoDecoracion: regla.presupuestoDecoracion,
-    tono,
+    progresoPastoTemprano,
   };
 }
 
@@ -110,7 +134,7 @@ export function generarMapaProcedural({ ancho, cantidadNodos, tema }: { ancho: n
   const decoraciones: DecoracionProcedural[] = [];
   const cajasProtegidas: CajaColision[] = [{ x: 0, y: -80, w: ancho, h: 80 }];
   const cajasDecoracion: CajaColision[] = [];
-  const assets = obtenerAssetsBioma(tema.categoriaId, tema.tono)
+  const assets = obtenerAssetsBioma(tema.categoriaId, tema.paqueteId, tema.nivel)
     .filter((asset): asset is AssetBioma & { rol: RolDecoracion } => asset.rol !== 'base');
   const assetsPorRol = (rol: RolDecoracion) => assets.filter((asset) => asset.rol === rol);
 
@@ -213,21 +237,46 @@ export function generarMapaProcedural({ ancho, cantidadNodos, tema }: { ancho: n
   // descartar el árbol — antes se elegía un único lado fijo y, al traer los
   // árboles más hacia adentro, cualquier choque los hacía desaparecer del
   // todo en vez de solo cambiar de lado.
+  // Mezcla de etapas (solo activa si el paquete ya tiene arte real por etapa —
+  // ver registroBiomas.ts): en vez de alternar 2 roles fijos por índice de
+  // nodo, cada árbol sortea su profundidad (actual/una atrás/dos atrás) con
+  // PESO_POR_PROFUNDIDAD y así resuelve tanto la imagen como la capa (más
+  // nuevo = más al frente). Si el paquete usa el puente viejo (un asset por
+  // rol, sin arbol-terciario), se mantiene la alternancia de siempre.
+  const arbolesPrincipales = assetsPorRol('arbol-principal');
+  const arbolesSecundarios = assetsPorRol('arbol-secundario');
+  const arbolesTerciarios = assetsPorRol('arbol-terciario');
+  const arbolesPorProfundidad = [arbolesPrincipales, arbolesSecundarios, arbolesTerciarios];
+  const usaProfundidad = arbolesTerciarios.length > 0;
+
   for (let indice = 0; indice < nodos.length; indice += 1) {
     const nodo = nodos[indice];
     const ladoLampara: LadoMapa = nodo.x < centro ? 'derecha' : 'izquierda';
     const ladoPreferido: LadoMapa = ladoLampara === 'izquierda' ? 'derecha' : 'izquierda';
-    const arboles = indice % 3 === 0 ? assetsPorRol('arbol-principal') : assetsPorRol('arbol-secundario');
-    const arbol = arboles[Math.floor(aleatorio() * arboles.length)];
+
+    let arbol: AssetBioma | undefined;
+    let capa: CapaDecoracion;
+    if (usaProfundidad) {
+      const disponibles = arbolesPorProfundidad.map((lista) => lista.length > 0);
+      const profundidad = elegirProfundidad(aleatorio, disponibles);
+      const lista = arbolesPorProfundidad[profundidad];
+      arbol = lista[Math.floor(aleatorio() * lista.length)];
+      capa = profundidad === 0 ? 'frente' : profundidad === 1 ? 'medio' : 'fondo';
+    } else {
+      const arboles = indice % 3 === 0 ? arbolesPrincipales : arbolesSecundarios;
+      arbol = arboles[Math.floor(aleatorio() * arboles.length)];
+      capa = indice % 3 === 0 ? 'frente' : 'fondo';
+    }
     if (!arbol) continue;
+    const arbolElegido = arbol;
 
     const escala = 0.7 + aleatorio() * 0.24;
     const tamano = TAMANO_BASE_ASSET * escala;
     const factorX = aleatorio() * 0.14;
     const y = nodo.y - tamano * (0.45 + aleatorio() * 0.18);
     colocarConLadoAlterno(ladoPreferido, (lado) => ({
-      assetId: arbol.id,
-      capa: indice % 3 === 0 ? 'frente' : 'fondo',
+      assetId: arbolElegido.id,
+      capa,
       escala,
       lado,
       x: lado === 'izquierda' ? -tamano * (0.38 + factorX) : ancho - tamano * (0.62 - factorX),
@@ -285,6 +334,12 @@ export function generarMapaProcedural({ ancho, cantidadNodos, tema }: { ancho: n
   const altoMapa = 54 + Math.max(0, nodos.length - 1) * SEPARACION_NODOS + 200;
   const cantidadAmbiente = Math.round(ancho * altoMapa * AMBIENTE_DENSIDAD);
   const ultimoNodoY = nodos[nodos.length - 1]?.y ?? 0;
+  // Pasto crítico en niveles 1-3, pero no de golpe: crece "poquito a poquito"
+  // con progresoPastoTemprano (0-1, calculado por el caller a partir de los
+  // días completados). Piso de 0.3 para que nunca se sienta pelado desde el
+  // primer día. No afecta a las rocas ni a categorías que no son 'habitos'
+  // (ahí progresoPastoTemprano queda undefined → factor 1, sin cambios).
+  const factorCrecimientoPasto = Math.max(0.3, Math.min(1, tema.progresoPastoTemprano ?? 1));
   for (let indice = 0; indice < cantidadAmbiente; indice += 1) {
     const escala = 0.18 + aleatorio() * 0.16;
     const tamano = TAMANO_BASE_ASSET * escala;
@@ -296,7 +351,10 @@ export function generarMapaProcedural({ ancho, cantidadNodos, tema }: { ancho: n
     if (invadeNodo || hayColision(caja, cajasProtegidas) || hayColision(caja, cajasDecoracion) || hayColision(caja, cajasAmbiente)) continue;
     const assetId = AMBIENTE_IDS[Math.floor(aleatorio() * AMBIENTE_IDS.length)];
     const enTramoFinal = centro.y > ultimoNodoY;
-    if (assetId.startsWith('pasto') && enTramoFinal && aleatorio() < REDUCCION_PASTO_TRAMO_FINAL) continue;
+    if (assetId.startsWith('pasto')) {
+      if (enTramoFinal && aleatorio() < REDUCCION_PASTO_TRAMO_FINAL) continue;
+      if (aleatorio() > factorCrecimientoPasto) continue;
+    }
     const opacidad = AMBIENTE_OPACIDADES[Math.floor(aleatorio() * AMBIENTE_OPACIDADES.length)];
     ambiente.push({ assetId, escala, opacidad, volteado: aleatorio() > 0.5, x, y });
     cajasAmbiente.push(caja);

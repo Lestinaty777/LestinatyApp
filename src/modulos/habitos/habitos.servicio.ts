@@ -1,4 +1,5 @@
 import { obtenerClienteSupabase } from '../../servicios/base-datos/supabase';
+import { colorSeguroUi } from '../senderos/algoritmo/colorHsl';
 import { mapearPanelHabitos } from './habitos.mapper';
 import { DIAS_REQUERIDOS_POR_NIVEL } from './iconosHabitos';
 import { DetalleHabito, MejorRachaHabito, PanelHabitos, PlanHabitoResumen, ProximoNivelHabito, ResultadoRegistroHabito, TipoMetaHabito } from './tipos';
@@ -20,15 +21,15 @@ export async function registrarProgresoHabito(input: { habitoId: string; fechaLo
   return { fechaLocal: remoto.fecha_local, gemasGanadas: Number(remoto.gemas_ganadas ?? 0), habitoId: remoto.habito_id, id: remoto.id, nivel: Number(remoto.nivel), nota: remoto.nota, subioNivel: remoto.subio_nivel, valor: Number(remoto.valor) };
 }
 
-export type CrearHabitoInput = { titulo: string; descripcion?: string; meta: number; unidad: string; tipoMeta?: TipoMetaHabito; iconoLucide?: string; color?: string; frecuencia?: 'diaria' | 'dias_semana' | 'veces_semana'; diasSemana?: number[] | null; vecesPorSemana?: number | null; categoria?: string; dificultad?: 'minimo' | 'estandar' | 'reto'; disparador?: string; recompensa?: string; recordatorioActivo?: boolean; horaRecordatorio?: string | null; mostrarNombreNotificacion?: boolean; nivelInicial?: number; tonoVisual?: number };
+export type CrearHabitoInput = { titulo: string; descripcion?: string; meta: number; unidad: string; tipoMeta?: TipoMetaHabito; iconoLucide?: string; color?: string; frecuencia?: 'diaria' | 'dias_semana' | 'veces_semana'; diasSemana?: number[] | null; vecesPorSemana?: number | null; categoria?: string; dificultad?: 'minimo' | 'estandar' | 'reto'; disparador?: string; recompensa?: string; recordatorioActivo?: boolean; horaRecordatorio?: string | null; mostrarNombreNotificacion?: boolean; nivelInicial?: number; paqueteId?: string };
 
-export async function crearHabito(input: CrearHabitoInput) {
+export async function crearHabito(input: CrearHabitoInput): Promise<{ id: string; plan_id: string }> {
   const { data, error } = await obtenerClienteSupabase().rpc('crear_habito_premium', {
     p_titulo: input.titulo.trim(), p_descripcion: input.descripcion ?? null, p_icono_lucide: input.iconoLucide ?? 'Sparkles', p_color: input.color ?? '#22C55E', p_tipo_meta: input.tipoMeta ?? 'cantidad', p_unidad: input.unidad.trim(), p_categoria: input.categoria ?? null, p_dificultad: input.dificultad ?? 'estandar', p_disparador: input.disparador ?? null, p_recompensa: input.recompensa ?? null,
-    p_frecuencia: input.frecuencia ?? 'diaria', p_dias_semana: input.diasSemana ?? null, p_veces_por_semana: input.vecesPorSemana ?? null, p_objetivo_valor: input.meta, p_recordatorio_activo: input.recordatorioActivo ?? false, p_hora_recordatorio: input.horaRecordatorio ?? null, p_mostrar_nombre_notificacion: input.mostrarNombreNotificacion ?? false, p_desde_fecha: new Date().toISOString().slice(0, 10), p_nivel_inicial: input.nivelInicial ?? 1, p_tono_visual: input.tonoVisual ?? 1,
+    p_frecuencia: input.frecuencia ?? 'diaria', p_dias_semana: input.diasSemana ?? null, p_veces_por_semana: input.vecesPorSemana ?? null, p_objetivo_valor: input.meta, p_recordatorio_activo: input.recordatorioActivo ?? false, p_hora_recordatorio: input.horaRecordatorio ?? null, p_mostrar_nombre_notificacion: input.mostrarNombreNotificacion ?? false, p_desde_fecha: new Date().toISOString().slice(0, 10), p_nivel_inicial: input.nivelInicial ?? 1, p_paquete_id: input.paqueteId ?? 'verde-1',
   });
   if (error) throw error;
-  return data;
+  return data as { id: string; plan_id: string };
 }
 
 type FilaPlan = { frecuencia: 'diaria' | 'dias_semana' | 'veces_semana'; dias_semana: number[] | null; objetivo_valor: number; desde_fecha: string; hasta_fecha: string | null; nivel: number };
@@ -70,7 +71,7 @@ export async function obtenerDetalleHabito(id: string, referencia = new Date()):
   return { habito: { id: item.id, titulo: item.titulo, descripcion: item.descripcion, iconoLucide: item.icono_lucide, color: item.color, tipoMeta: tipo, unidad: item.unidad, meta: Number(planHoy.objetivo_valor), valorHoy: porFecha.get(hoy) ?? 0, completado: completo(tipo, porFecha.get(hoy) ?? 0, Number(planHoy.objetivo_valor)) }, nivel: Number(planHoy.nivel ?? 1), semana: { completados, programados: programados.length, porcentaje: programados.length ? Math.round(completados * 100 / programados.length) : 0 }, rachaActual, totalAcumulado: todosRegistros.reduce((total, registro) => total + Number(registro.valor), 0), mejorDia: mejor ? nombresDias[mejor[0]] : null, progresoSemana };
 }
 
-export type ProgresoNivelHabito = { diasCompletados: number; diasRequeridos: number | null; fechasCumplidas: string[]; habito: { color: string; iconoLucide: string; meta: number; tipoMeta: TipoMetaHabito; titulo: string; tonoVisual: number; unidad: string | null; valorHoy: number }; nivel: number };
+export type ProgresoNivelHabito = { diasCompletados: number; diasRequeridos: number | null; fechasCumplidas: string[]; habito: { color: string; iconoLucide: string; meta: number; paqueteId: string; tipoMeta: TipoMetaHabito; titulo: string; unidad: string | null; valorHoy: number }; nivel: number };
 
 // Días cumplidos ACUMULADOS (no consecutivos, no se resetea) desde que
 // empezó el plan vigente — misma cuenta que usa privacidad.registrar_progreso_habito()
@@ -79,7 +80,7 @@ export async function obtenerProgresoNivelHabito(id: string, referencia = new Da
   const supabase = obtenerClienteSupabase();
   const hoy = fechaLocal(referencia);
   const [{ data: item, error: errorItem }, { data: planes, error: errorPlanes }] = await Promise.all([
-    supabase.from('habitos_items').select('id,titulo,icono_lucide,color,tipo_meta,unidad,tono_visual').eq('id', id).eq('estado', 'activo').single(),
+    supabase.from('habitos_items').select('id,titulo,icono_lucide,color,tipo_meta,unidad,paquete_id,arboles_paquetes(master_pack_color)').eq('id', id).eq('estado', 'activo').single(),
     supabase.from('habitos_planes').select('frecuencia,dias_semana,objetivo_valor,desde_fecha,hasta_fecha,nivel').eq('habito_id', id).order('desde_fecha', { ascending: false }),
   ]);
   if (errorItem || !item) throw errorItem ?? new Error('Hábito no encontrado.');
@@ -106,11 +107,20 @@ export async function obtenerProgresoNivelHabito(id: string, referencia = new Da
     .sort();
   const valorHoy = todosRegistros.find((registro) => registro.fecha_local === hoy)?.valor ?? 0;
 
+  // El color efectivo del hábito ya no es libre: viene del MasterPackColor del
+  // paquete asignado (clampeado a un rango de luminosidad seguro para que un
+  // paquete con un tono muy claro/oscuro no rompa el contraste de la UI). Si
+  // por lo que sea el paquete no tiene master_pack_color (no debería pasar,
+  // todos los paquetes lo exigen), cae al color guardado en el hábito.
+  const paqueteInfo = item.arboles_paquetes as { master_pack_color: string } | { master_pack_color: string }[] | null;
+  const masterPackColor = Array.isArray(paqueteInfo) ? paqueteInfo[0]?.master_pack_color : paqueteInfo?.master_pack_color;
+  const colorEfectivo = colorSeguroUi(masterPackColor ?? item.color);
+
   return {
     diasCompletados: fechasCumplidas.length,
     diasRequeridos,
     fechasCumplidas,
-    habito: { color: item.color, iconoLucide: item.icono_lucide, meta: Number(planVigente.objetivo_valor), tipoMeta: tipo, titulo: item.titulo, tonoVisual: Number(item.tono_visual ?? 1), unidad: item.unidad, valorHoy: Number(valorHoy) },
+    habito: { color: colorEfectivo, iconoLucide: item.icono_lucide, meta: Number(planVigente.objetivo_valor), paqueteId: item.paquete_id ?? 'verde-1', tipoMeta: tipo, titulo: item.titulo, unidad: item.unidad, valorHoy: Number(valorHoy) },
     nivel,
   };
 }

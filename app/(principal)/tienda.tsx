@@ -1,3 +1,3 @@
-import { AgenteAbyPantalla } from '../../src/modulos/aby/pantallas/AgenteAbyPantalla';
+import { TiendaArbolesPantalla } from '../../src/modulos/tienda/pantallas/TiendaArbolesPantalla';
 
-export default AgenteAbyPantalla;
+export default TiendaArbolesPantalla;

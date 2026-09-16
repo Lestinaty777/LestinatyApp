@@ -4,6 +4,17 @@ vi.mock('./registroBiomas', () => {
   const registroBiomas = {
     estudio: { biomaId: 'sauce-ruinas', densidadDecoracion: 0.72, presupuestoDecoracion: 13, assets: [{ id: 'base', rol: 'base' }, { id: 'sauce-ruinas-01', rol: 'arbol-principal' }, { id: 'sauce-ruinas-02', rol: 'arbol-secundario' }, { id: 'sauce-ruinas-04', rol: 'arbusto' }, { id: 'sauce-ruinas-07', rol: 'flor' }] },
     rutinas: { biomaId: 'pino-nevado', densidadDecoracion: 0.72, presupuestoDecoracion: 13, assets: [{ id: 'base', rol: 'base' }, { id: 'pino-nevado-01', rol: 'arbol-principal' }, { id: 'pino-nevado-02', rol: 'arbol-secundario' }, { id: 'pino-nevado-04', rol: 'arbusto' }, { id: 'pino-nevado-07', rol: 'flor' }] },
+    habitos: {
+      biomaId: 'albedo', densidadDecoracion: 0.72, presupuestoDecoracion: 500,
+      assets: [
+        { id: 'base', rol: 'base' },
+        { id: 'albedo-p', rol: 'arbol-principal' },
+        { id: 'albedo-s', rol: 'arbol-secundario' },
+        { id: 'albedo-t', rol: 'arbol-terciario' },
+        { id: 'albedo-arbusto', rol: 'arbusto' },
+        { id: 'albedo-flor', rol: 'flor' },
+      ],
+    },
   };
   return {
     registroBiomas,
@@ -88,5 +99,26 @@ describe('generarMapaProcedural', () => {
         expect(chocan(caja, cajaDe(otro.x, otro.y, otro.escala))).toBe(false);
       }
     }
+  });
+
+  it('mezcla etapas de árbol por profundidad ~70/20/10 cuando el bioma expone arbol-terciario', () => {
+    const tema = crearTemaMapa('habitos', '#22C55E', 'sendero-profundidad');
+    const mapa = generarMapaProcedural({ ancho: 360, cantidadNodos: 60, tema });
+
+    const arboles = mapa.decoraciones.filter((decoracion) => decoracion.assetId.startsWith('albedo-') && decoracion.assetId !== 'albedo-arbusto' && decoracion.assetId !== 'albedo-flor');
+    expect(arboles.length).toBeGreaterThan(30);
+
+    const porProfundidad = { principal: 0, secundario: 0, terciario: 0 };
+    for (const arbol of arboles) {
+      if (arbol.assetId === 'albedo-p') { porProfundidad.principal += 1; expect(arbol.capa).toBe('frente'); }
+      else if (arbol.assetId === 'albedo-s') { porProfundidad.secundario += 1; expect(arbol.capa).toBe('medio'); }
+      else if (arbol.assetId === 'albedo-t') { porProfundidad.terciario += 1; expect(arbol.capa).toBe('fondo'); }
+    }
+    // Tolerancia amplia (rango, no igualdad exacta) — es una elección al azar
+    // ponderada, no una distribución exacta con una sola corrida.
+    const total = arboles.length;
+    expect(porProfundidad.principal / total).toBeGreaterThan(0.5);
+    expect(porProfundidad.terciario / total).toBeLessThan(porProfundidad.secundario / total);
+    expect(porProfundidad.secundario / total).toBeLessThan(porProfundidad.principal / total);
   });
 });

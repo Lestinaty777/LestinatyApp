@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { Mail } from 'lucide-react-native';
+import { Gift, Mail } from 'lucide-react-native';
 import { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
@@ -73,6 +73,7 @@ export function CrearCuentaPantalla() {
     },
   });
   const [mensaje, setMensaje] = useState<string | null>(null);
+  const [codigoReferido, setCodigoReferido] = useState('');
   const [emailPendiente, setEmailPendiente] = useState<string | null>(null);
   const [reenviando, setReenviando] = useState(false);
   const [paso, setPaso] = useState<'datos' | 'otp'>('datos');
@@ -110,7 +111,7 @@ export function CrearCuentaPantalla() {
     try {
       setMensaje(null);
       clearErrorsOtp('root');
-      const usuario = await crearCuentaConEmail(resultado.data);
+      const usuario = await crearCuentaConEmail(resultado.data, codigoReferido);
 
       if (!usuario) {
         setEmailPendiente(resultado.data.email);
@@ -261,6 +262,18 @@ export function CrearCuentaPantalla() {
               />
             )}
           />
+          <CampoTexto
+            autoCapitalize="characters"
+            campoStyle={estiloCampo}
+            iconoIzquierda={Gift}
+            iconoSize={20 * escala}
+            onChangeText={setCodigoReferido}
+            placeholder="Código de un amigo (opcional)"
+            style={estiloInput}
+            variante="flotante"
+            value={codigoReferido}
+          />
+
           {errors.root?.message ? (
             <Texto style={[estilosAcceso.error, { fontSize: 13 * escala, lineHeight: 18 * escala }]}>
               {errors.root.message}

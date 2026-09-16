@@ -23,3 +23,24 @@ export type PaqueteGemasIap = {
   cantidadGemas: number;
   precioReferenciaUsd: number | null;
 };
+
+export type ArbolPaquete = {
+  id: string;
+  nombre: string;
+  masterPackColor: string;
+  rareza: 'legendario' | 'unico';
+  precioGemas: number;
+  cantidadPorCompra: number;
+};
+
+export type ResultadoCompraSemillas = {
+  paqueteId: string;
+  semillasCompradas: number;
+  saldoRestante: number;
+};
+
+export type SemillaArbol = {
+  id: string;
+  paqueteId: string;
+  adquiridaEn: string;
+};

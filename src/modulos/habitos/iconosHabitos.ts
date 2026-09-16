@@ -8,10 +8,11 @@ export { registroIconos as iconosHabitos, buscarIcono as buscarIconoHabito };
 export type { IconoRegistrado as IconoHabito } from '../../diseno/iconos/registroIconos';
 
 // Días acumulados (no consecutivos, no se resetea) para llegar a cada nivel —
-// mismos números que ya mostraba el paso 6 del wizard como texto decorativo,
-// ahora también la regla real en privacidad.registrar_progreso_habito()
-// (migración 21). Única fuente de verdad: úsalo en vez de repetir el array.
-export const DIAS_REQUERIDOS_POR_NIVEL: Record<number, number> = { 2: 3, 3: 7, 4: 14, 5: 30, 6: 60, 7: 90 };
+// misma regla real que privacidad.registrar_progreso_habito() (migración 23).
+// Única fuente de verdad en el frontend: los 7 mapas de
+// src/modulos/senderos/Mapas/ derivan su cantidadNodos de acá (salvo
+// mapaNivel7, que no tiene contraparte real porque el nivel 7 es el máximo).
+export const DIAS_REQUERIDOS_POR_NIVEL: Record<number, number> = { 2: 3, 3: 7, 4: 12, 5: 18, 6: 25, 7: 33 };
 
 // OJO: el tono (1-7, oscurece este verde de más claro a más oscuro) es una
 // elección VISUAL fija de por vida del hábito — se guarda en

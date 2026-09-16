@@ -22,12 +22,14 @@ function obtenerMensajeError(error: unknown) {
   return i18n.t('validation.genericAction');
 }
 
-export async function crearCuentaConEmail({ email, password }: CredencialesAcceso) {
+export async function crearCuentaConEmail({ email, password }: CredencialesAcceso, codigoReferido?: string) {
   const supabase = obtenerClienteSupabase();
+  const codigoLimpio = codigoReferido?.trim();
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
+      data: codigoLimpio ? { codigo_referido: codigoLimpio } : undefined,
       emailRedirectTo: obtenerUrlRedireccion(),
     },
   });

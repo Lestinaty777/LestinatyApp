@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Animated, Image, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleProp, StyleSheet, Switch, TextInput, View, ViewStyle } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import ReanimatedView, { Easing as EasingR, FadeIn, FadeInDown, FadeOut, interpolate, interpolateColor, useAnimatedStyle, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
 import { Check, ChevronLeft, ChevronRight, Clock3, Search, Sparkles } from 'lucide-react-native';
 import Svg, { Circle, Path } from 'react-native-svg';
@@ -14,6 +15,9 @@ import { solicitarPermisoYRegistrar } from '../../../nucleo/notificaciones/oneSi
 import { estadoPreparacionHabito } from '../creacionPremium';
 import { preparacionEstilos as p } from '../creacionPremium.estilos';
 import { buscarPlantillasHabitos, type PlantillaHabito } from '../plantillasHabitos';
+import { asignarSemillaHabito, obtenerCatalogoArboles, obtenerSemillasDisponibles } from '../../tienda/gemas.servicio';
+import { colorSeguroUi } from '../../senderos/algoritmo/colorHsl';
+import { CLAVE_SEMILLAS_DISPONIBLES } from '../../tienda/pantallas/TiendaArbolesPantalla';
 import { TarjetaSenderoHabito } from './TarjetaSenderoHabito';
 
 const OTRO_PLANTILLA_ID = 'otro';
@@ -187,12 +191,34 @@ function PreparandoHabito({ color, tono, progreso, titulo }: { color: string; to
   </View>;
 }
 
-export function CrearHabitoWizard({ visible, guardando, onCerrar, onCrear }: { visible: boolean; guardando: boolean; onCerrar: () => void; onCrear: (input: CrearHabitoInput) => Promise<void> }) {
+export function CrearHabitoWizard({ visible, guardando, onCerrar, onCrear }: { visible: boolean; guardando: boolean; onCerrar: () => void; onCrear: (input: CrearHabitoInput) => Promise<{ id: string }> }) {
   const [paso, setPaso] = useState(0), [titulo, setTitulo] = useState(''), [meta, setMeta] = useState('1'), [unidad, setUnidad] = useState('veces');
   const [tipo, setTipo] = useState<CrearHabitoInput['tipoMeta']>('cantidad'), [frecuencia, setFrecuencia] = useState<CrearHabitoInput['frecuencia']>('diaria');
   const [diasSemana, setDiasSemana] = useState<number[]>([1, 2, 3, 4, 5, 6, 7]), [vecesSemana, setVecesSemana] = useState('3');
   const [recordatorio, setRecordatorio] = useState(false), [hora, setHora] = useState('08:00'), [horaPersonalizada, setHoraPersonalizada] = useState(false), [mostrar, setMostrar] = useState(false);
   const [tono, setTono] = useState(1), [iconoLucide, setIconoLucide] = useState(iconosHabitos[0].id);
+  // Semilla premium elegida (id de usuario_semillas) en vez de un tono verde
+  // gratuito — null significa "usar el tono verde de siempre". Se limpia al
+  // cerrar el wizard igual que el resto del estado transitorio.
+  const [semillaSeleccionada, setSemillaSeleccionada] = useState<string | null>(null);
+  const cliente = useQueryClient();
+  const consultaSemillas = useQuery({ enabled: visible, queryKey: CLAVE_SEMILLAS_DISPONIBLES, queryFn: obtenerSemillasDisponibles });
+  const consultaPaquetesArbol = useQuery({ enabled: visible, queryKey: ['tienda', 'catalogoArboles'], queryFn: obtenerCatalogoArboles });
+  const paquetePorId = useMemo(() => new Map((consultaPaquetesArbol.data ?? []).map((paquete) => [paquete.id, paquete])), [consultaPaquetesArbol.data]);
+  // Una tarjeta por paquete premium con semillas libres (no una por semilla
+  // individual) — si tenés 3 semillas de Albedo, elegís "Albedo" una vez y se
+  // consume la primera semilla libre de ese paquete al guardar.
+  const semillasPorPaquete = useMemo(() => {
+    const agrupadas = new Map<string, string[]>();
+    for (const semilla of consultaSemillas.data ?? []) {
+      const lista = agrupadas.get(semilla.paqueteId) ?? [];
+      lista.push(semilla.id);
+      agrupadas.set(semilla.paqueteId, lista);
+    }
+    return [...agrupadas.entries()]
+      .map(([paqueteId, semillaIds]) => ({ paquete: paquetePorId.get(paqueteId), semillaIds }))
+      .filter((grupo): grupo is { paquete: NonNullable<typeof grupo.paquete>; semillaIds: string[] } => Boolean(grupo.paquete));
+  }, [consultaSemillas.data, paquetePorId]);
   const [plantillaId, setPlantillaId] = useState<string | null>(null), [buscarPlantilla, setBuscarPlantilla] = useState('');
   const [preparando, setPreparando] = useState(false), [progresoPreparacion, setProgresoPreparacion] = useState(0), [errorCrear, setErrorCrear] = useState<string | null>(null);
   const [habitoCreado, setHabitoCreado] = useState(false);
@@ -200,7 +226,7 @@ export function CrearHabitoWizard({ visible, guardando, onCerrar, onCrear }: { v
   const scrollRef = useRef<ScrollView>(null);
   const desplazarAlFoco = () => setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 80);
   useEffect(() => { if (!recordatorio) return; void solicitarPermisoYRegistrar().then((concedido) => { if (!concedido) setRecordatorio(false); }).catch(() => setRecordatorio(false)); }, [recordatorio]);
-  useEffect(() => { if (visible) return; setPreparando(false); setProgresoPreparacion(0); setHabitoCreado(false); setErrorCrear(null); setPlantillaId(null); setBuscarPlantilla(''); }, [visible]);
+  useEffect(() => { if (visible) return; setPreparando(false); setProgresoPreparacion(0); setHabitoCreado(false); setErrorCrear(null); setPlantillaId(null); setBuscarPlantilla(''); setSemillaSeleccionada(null); }, [visible]);
   // Cuenta 1 en 1, nunca a saltos: sube despacio hasta 96% mientras esperamos
   // el guardado real, y solo sigue de 97 a 100 cuando ya se confirmó creado —
   // así el número nunca "brinca" de golpe a 100 cuando la red responde rápido.
@@ -217,7 +243,13 @@ export function CrearHabitoWizard({ visible, guardando, onCerrar, onCrear }: { v
     const temporizador = setTimeout(onCerrar, 700);
     return () => clearTimeout(temporizador);
   }, [habitoCreado, onCerrar, progresoPreparacion]);
-  const color = useMemo(() => tonoVerdeNivel(tono), [tono]);
+  const semillaInfo = useMemo(() => (consultaSemillas.data ?? []).find((semilla) => semilla.id === semillaSeleccionada), [consultaSemillas.data, semillaSeleccionada]);
+  const paqueteSeleccionado = semillaInfo ? paquetePorId.get(semillaInfo.paqueteId) : undefined;
+  // El color ya refleja el paquete premium elegido (MasterPackColor,
+  // clampeado igual que en el mapa real) — la ilustración de la selva de
+  // abajo sigue mostrando el tono verde por ahora: todavía no hay arte de
+  // paquete premium por etapa para previsualizar acá (ver Fase 4 del plan).
+  const color = useMemo(() => paqueteSeleccionado ? colorSeguroUi(paqueteSeleccionado.masterPackColor) : tonoVerdeNivel(tono), [paqueteSeleccionado, tono]);
   const assetsSelva: AssetsSelvaTono = useMemo(() => obtenerAssetsSelvaPorTono(tono), [tono]);
   const icono = useMemo(() => iconosHabitos.find((item) => item.id === iconoLucide) ?? iconosHabitos[0], [iconoLucide]);
   const horaValida = /^([01]\d|2[0-3]):[0-5]\d$/.test(hora);
@@ -247,7 +279,30 @@ export function CrearHabitoWizard({ visible, guardando, onCerrar, onCrear }: { v
     setTimeout(() => setPaso(1), 260);
   };
   const elegirPersonalizado = () => { hapticSeguro('seleccion'); setPlantillaId(OTRO_PLANTILLA_ID); setTimeout(() => setPaso(1), 200); };
-  const guardar = async () => { setErrorCrear(null); setHabitoCreado(false); setPreparando(true); setProgresoPreparacion(1); try { await onCrear({ titulo, meta: Number(meta) || 1, unidad: tipo === 'check' ? '' : unidad, tipoMeta: tipo, iconoLucide, color, frecuencia, diasSemana: frecuencia === 'dias_semana' ? diasSemana : null, vecesPorSemana: frecuencia === 'veces_semana' ? Math.max(1, Number(vecesSemana) || 1) : null, recordatorioActivo: recordatorio, horaRecordatorio: recordatorio ? hora : null, mostrarNombreNotificacion: mostrar, tonoVisual: tono }); setHabitoCreado(true); } catch (error) { setPreparando(false); setErrorCrear(error instanceof Error ? error.message : 'No pudimos crear tu hábito. Inténtalo de nuevo.'); } };
+  const guardar = async () => {
+    setErrorCrear(null); setHabitoCreado(false); setPreparando(true); setProgresoPreparacion(1);
+    try {
+      // Siempre se crea con el paquete verde gratuito (comportamiento de
+      // siempre); si se eligió una semilla premium, se asigna aparte justo
+      // después — asignar_semilla_habito consume la semilla y sobrescribe el
+      // paquete_id del hábito recién creado.
+      const resultado = await onCrear({
+        titulo, meta: Number(meta) || 1, unidad: tipo === 'check' ? '' : unidad, tipoMeta: tipo, iconoLucide, color, frecuencia,
+        diasSemana: frecuencia === 'dias_semana' ? diasSemana : null,
+        vecesPorSemana: frecuencia === 'veces_semana' ? Math.max(1, Number(vecesSemana) || 1) : null,
+        recordatorioActivo: recordatorio, horaRecordatorio: recordatorio ? hora : null, mostrarNombreNotificacion: mostrar,
+        paqueteId: `verde-${tono}`,
+      });
+      if (semillaSeleccionada) {
+        await asignarSemillaHabito(semillaSeleccionada, resultado.id);
+        cliente.invalidateQueries({ queryKey: CLAVE_SEMILLAS_DISPONIBLES });
+      }
+      setHabitoCreado(true);
+    } catch (error) {
+      setPreparando(false);
+      setErrorCrear(error instanceof Error ? error.message : 'No pudimos crear tu hábito. Inténtalo de nuevo.');
+    }
+  };
   const toggleDia = (dia: number) => setDiasSemana((v) => { const siguiente = v.includes(dia) ? v.filter((x) => x !== dia) : [...v, dia].sort(); setFrecuencia(siguiente.length === 7 ? 'diaria' : 'dias_semana'); return siguiente; });
   const seleccionarDias = (seleccion: number[]) => { setDiasSemana(seleccion); setFrecuencia(seleccion.length === 7 ? 'diaria' : 'dias_semana'); };
   const detalleMeta = tipo === 'check' ? 'Una vez al día' : `${meta || 1} ${unidad || (tipo === 'duracion' ? 'minutos' : 'veces')}`;
@@ -285,8 +340,29 @@ export function CrearHabitoWizard({ visible, guardando, onCerrar, onCrear }: { v
           <TextInput autoFocus value={titulo} onChangeText={setTitulo} placeholder="Ej. Meditar" style={s.input}/>
           <View>
             <Texto style={s.etiqueta}>Tono de tu selva</Texto>
-            <View style={s.colores}>{TONOS.map((t) => <Rebote key={t} estilo={[s.color,{backgroundColor:tonoVerdeNivel(t)},tono===t&&s.colorActivo]} onPress={() => setTono(t)} overlay={tono===t && <AnilloSeleccion activo color="#FFFFFF"/>}><CheckAnimado visible={tono===t}/></Rebote>)}</View>
+            <View style={s.colores}>{TONOS.map((t) => <Rebote key={t} estilo={[s.color,{backgroundColor:tonoVerdeNivel(t)},!semillaSeleccionada&&tono===t&&s.colorActivo]} onPress={() => { setTono(t); setSemillaSeleccionada(null); }} overlay={!semillaSeleccionada && tono===t && <AnilloSeleccion activo color="#FFFFFF"/>}><CheckAnimado visible={!semillaSeleccionada && tono===t}/></Rebote>)}</View>
           </View>
+          {semillasPorPaquete.length > 0 && (
+            <View>
+              <Texto style={s.etiqueta}>Tus semillas</Texto>
+              <View style={s.colores}>
+                {semillasPorPaquete.map(({ paquete, semillaIds }) => {
+                  const activa = semillaIds.includes(semillaSeleccionada ?? '');
+                  return (
+                    <Rebote
+                      accessibilityLabel={`Semilla de ${paquete.nombre}${semillaIds.length > 1 ? `, ${semillaIds.length} disponibles` : ''}`}
+                      key={paquete.id}
+                      estilo={[s.color, { backgroundColor: paquete.masterPackColor }, activa && s.colorActivo]}
+                      onPress={() => setSemillaSeleccionada(semillaIds[0])}
+                      overlay={activa && <AnilloSeleccion activo color="#FFFFFF"/>}
+                    >
+                      <CheckAnimado visible={activa}/>
+                    </Rebote>
+                  );
+                })}
+              </View>
+            </View>
+          )}
           <MasterGlass style={s.biomaGlass}>
             <Image source={assetsSelva.arbolPrincipal} style={s.arbol}/>
             <View><Texto style={[s.biomaTitulo,{color}]}>{BIOMA_TITULO}</Texto><Texto style={s.sub}>Este será el mundo visual de tu hábito.</Texto></View>

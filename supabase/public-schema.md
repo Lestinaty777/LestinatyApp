@@ -21,9 +21,9 @@
 | `sendero_conexiones` | Relaciones dirigidas entre nodos del mismo sendero. | Lectura solo dentro de senderos propios. |
 | `sendero_cofres` | Cofre de recompensa asociado a la evaluación de cada sección. | Lectura solo dentro de senderos propios. |
 | `aby_propuestas` | Propuestas privadas y confirmables generadas por Aby. | Lectura solo de propuestas propias. |
-| `habitos_items` | Hábito configurable de una persona. | Administración únicamente de la propia fila. |
-| `habitos_planes` | Meta y frecuencia versionadas de un hábito. | Administración por la cadena hábito propio. |
-| `habitos_registros` | Acumulado diario de progreso. | Administración únicamente de la propia fila. |
+| `habitos_items` | Hábito configurable de una persona. Incluye `tono_visual` (1-7, elección visual fija de por vida del hábito, independiente del nivel real). | Lectura de la propia fila vía RLS; toda escritura pasa por RPCs (`crear_habito_premium`, `actualizar_plan_habito`) — `authenticated` no tiene INSERT/UPDATE/DELETE directo. |
+| `habitos_planes` | Meta, frecuencia y nivel versionados de un hábito. | Solo lectura directa (RLS por hábito propio); las mutaciones son exclusivas de `privacidad.registrar_progreso_habito`/`actualizar_plan_habito` (`security definer`) — desde la migración 15, `authenticated` no tiene INSERT/UPDATE/DELETE/TRUNCATE directo sobre esta tabla. |
+| `habitos_registros` | Acumulado diario de progreso. | Solo lectura directa (RLS por hábito propio); toda escritura pasa por `privacidad.registrar_progreso_habito` — mismo endurecimiento que `habitos_planes`. |
 | `habitos_contextos` | Contextos personales opcionales para detectar patrones. | Administración únicamente de la propia fila. |
 | `habitos_registro_contextos` | Contextos asociados a un registro. | Administración por la cadena registro propio. |
 | `habitos_conexiones` | Relación dirigida entre hábitos propios. | Administración únicamente de la propia fila. |
@@ -44,8 +44,8 @@ La estructura, invariantes y flujo de creación de estas tablas se documentan en
 | `crear_solicitud_privacidad(...)` | Solicitud creada o activa existente. | Idempotente por usuario y tipo activo. |
 | `registrar_dispositivo_notificacion(...)` | Dispositivo registrado o transferido. | Transferencia atómica por suscripción OneSignal. |
 | `desvincular_dispositivo_notificacion(...)` | `true` solo si el dispositivo aún era propio. | Un logout tardío no afecta al nuevo usuario. |
-| `crear_habito(...)` | Hábito y primer plan creados atómicamente. | Deriva la persona desde `auth.uid()`. |
-| `registrar_progreso_habito(...)` | Registro diario creado o actualizado. | Idempotente por hábito y fecha local. |
+| `crear_habito_premium(...)` | Hábito y primer plan creados atómicamente, incluyendo `tono_visual`. | Deriva la persona desde `auth.uid()`; wrapper `security invoker` en `public` que delega a la versión `security definer` en `privacidad`. |
+| `registrar_progreso_habito(...)` | Registro diario creado o actualizado; sube de nivel y acredita gemas cuando corresponde. | Idempotente por hábito y fecha local; regla de subida por días acumulados (migración 23), no se resetea por días perdidos. |
 | `actualizar_plan_habito(...)` | Cierra el plan vigente y crea la nueva versión. | Conserva las métricas históricas. |
 | `obtener_panel_habitos(...)` | Panel de Hoy, Patrones, Conexiones, Riesgo e Impacto. | Devuelve estados reales o de observación. |
 | `obtener_saldo_gemas()` | Saldo actual de gemas de la persona. | Deriva la identidad desde `auth.uid()`, nunca acepta un id de otra persona. |

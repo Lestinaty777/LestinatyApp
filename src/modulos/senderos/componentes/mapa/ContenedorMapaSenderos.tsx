@@ -24,8 +24,12 @@ type ContenedorMapaSenderosProps = {
   /** Si se pasa, reemplaza la navegación mock de "Comenzar" del tooltip — para contextos con una acción real (ej. registrar progreso de un hábito). */
   onCompletarNodo?: (nodo: NodoMapaSendero, indice: number) => void;
   subcategoriaId: string;
-  /** Nivel real 1-7 — solo aplica a categoriaId 'habitos', define qué assets de selva se cargan. */
-  tono?: number;
+  /** Nivel real 1-7 del hábito — solo aplica a categoriaId 'habitos', define qué etapas de crecimiento se mezclan. */
+  nivel?: number;
+  /** Paquete de árbol asignado al hábito (fijo de por vida) — solo aplica a categoriaId 'habitos'. */
+  paqueteId?: string;
+  /** 0-1: qué tan crecido está el pasto en niveles 1-3 — solo aplica a categoriaId 'habitos'. */
+  progresoPastoTemprano?: number;
 };
 
 const separacionVertical = 112;
@@ -64,6 +68,19 @@ function oscurecer(color: string, factor = 0.7) {
   return `#${canal(0)}${canal(2)}${canal(4)}`;
 }
 
+// Fondo del mapa: antes un verde plano fijo ('#c4e7c6') sin importar el
+// hábito — ahora una versión muy clara del color real (MasterPackColor del
+// paquete asignado, o el color de siempre para hábitos sin paquete premium),
+// para que el mapa se sienta del color del árbol sin perder legibilidad.
+function aclarar(color: string, factor = 0.7) {
+  const hex = color.replace('#', '');
+  const canal = (inicio: number) => {
+    const valor = parseInt(hex.slice(inicio, inicio + 2), 16);
+    return Math.round(valor + (255 - valor) * factor).toString(16).padStart(2, '0');
+  };
+  return `#${canal(0)}${canal(2)}${canal(4)}`;
+}
+
 
 const MosaicoTooltip = () => (
   <View style={StyleSheet.absoluteFill} pointerEvents="none">
@@ -82,7 +99,7 @@ const MosaicoTooltip = () => (
   </View>
 );
 
-export function ContenedorMapaSenderos({ altura, categoriaId, color, enfocado, nodos: nodosOverride, onCompletarNodo, subcategoriaId, tono }: ContenedorMapaSenderosProps) {
+export function ContenedorMapaSenderos({ altura, categoriaId, color, enfocado, nivel, nodos: nodosOverride, onCompletarNodo, paqueteId, progresoPastoTemprano, subcategoriaId }: ContenedorMapaSenderosProps) {
   const { width } = useWindowDimensions();
   const router = useRouter();
   const scrollRef = useRef<ScrollView>(null);
@@ -97,7 +114,10 @@ export function ContenedorMapaSenderos({ altura, categoriaId, color, enfocado, n
   const progresoConexion = useRef(new Animated.Value(0)).current;
   const altoContenido = Math.max(altura, margenSuperior + Math.max(0, nodos.length - 1) * separacionVertical + 430);
   const anchoEscena = anchoMapa || width;
-  const temaMapa = useMemo(() => crearTemaMapa(categoriaId, color, subcategoriaId, tono), [categoriaId, color, subcategoriaId, tono]);
+  const temaMapa = useMemo(
+    () => crearTemaMapa(categoriaId, color, subcategoriaId, paqueteId, nivel, progresoPastoTemprano),
+    [categoriaId, color, subcategoriaId, paqueteId, nivel, progresoPastoTemprano],
+  );
   const mapa = useMemo(() => generarMapaProcedural({ ancho: anchoEscena, cantidadNodos: nodos.length, tema: temaMapa }), [anchoEscena, nodos.length, temaMapa]);
   const posiciones = mapa.nodos;
   const conexiones = posiciones.slice(0, -1).map((posicion, indice) => {
@@ -163,7 +183,7 @@ export function ContenedorMapaSenderos({ altura, categoriaId, color, enfocado, n
       overScrollMode="never"
       scrollEnabled={true}
       showsVerticalScrollIndicator={false}
-      style={styles.raiz}
+      style={[styles.raiz, { backgroundColor: aclarar(color, 0.88) }]}
       contentContainerStyle={[styles.contenido, { minHeight: altoContenido }]}
     >
       <TouchableWithoutFeedback onPress={() => setSeleccionado('')}>
@@ -171,7 +191,7 @@ export function ContenedorMapaSenderos({ altura, categoriaId, color, enfocado, n
         
         {/* Bases Isométricas decorativas a los lados (FUERA de la perspectiva 3D para evitar aplastamiento) */}
         {(() => {
-           const assetBase = obtenerAssetBioma(categoriaId, 'base', tono);
+           const assetBase = obtenerAssetBioma(categoriaId, 'base', paqueteId, nivel);
            if (!assetBase) return null;
            return (
              <View pointerEvents="none" style={[StyleSheet.absoluteFill, { zIndex: 0 }]}>
@@ -223,7 +243,7 @@ export function ContenedorMapaSenderos({ altura, categoriaId, color, enfocado, n
         ))}
 
         {mapa.decoraciones.map((decoracion, indice) => {
-          const asset = obtenerAssetBioma(categoriaId, decoracion.assetId, tono);
+          const asset = obtenerAssetBioma(categoriaId, decoracion.assetId, paqueteId, nivel);
           if (!asset) return null;
           const tamano = 172 * decoracion.escala;
           return (

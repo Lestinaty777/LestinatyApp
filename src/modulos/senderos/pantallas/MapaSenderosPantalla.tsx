@@ -400,12 +400,16 @@ export function MapaSenderosPantalla() {
 
         {/* Barra del hábito seleccionado — info normal, o se convierte en el widget de registro / celebración de nivel */}
         {asignatura && (() => {
-          const colorTexto = oscurecer(asignatura.color, 0.5);
-          const colorSub = oscurecer(asignatura.color, 0.62);
+          // El color efectivo viene del MasterPackColor del paquete asignado
+          // (ya clampeado a un rango seguro en obtenerProgresoNivelHabito) —
+          // asignatura.color es solo el fallback mientras esa consulta carga.
+          const colorEfectivo = sendero.consulta.data?.habito.color ?? asignatura.color;
+          const colorTexto = oscurecer(colorEfectivo, 0.5);
+          const colorSub = oscurecer(colorEfectivo, 0.62);
           const iconoHabito = asignatura.habitoReal ? buscarIconoHabito(asignatura.habitoReal.iconoLucide) : null;
           return (
             <View style={styles.tarjetaContenedor}>
-              <RecuadroGlass blur degradado={{ inicio: aclarar(asignatura.color, 0.86), fin: aclarar(asignatura.color, 0.5) }} style={styles.tarjetaAsignatura}>
+              <RecuadroGlass blur degradado={{ inicio: aclarar(colorEfectivo, 0.86), fin: aclarar(colorEfectivo, 0.5) }} style={styles.tarjetaAsignatura}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, flex: 1 }}>
                   {!sendero.celebracion && !sendero.registrando && (
                     asignatura.habitoReal && iconoHabito ? (
@@ -477,21 +481,34 @@ export function MapaSenderosPantalla() {
             ) : sendero.consulta.isError || !sendero.consulta.data ? (
               <View style={styles.centroMapa}><Texto style={styles.subMapa}>No pudimos abrir este sendero.</Texto></View>
             ) : sendero.esNivelMaximo ? (
-              <View style={styles.centroMapa}><Trophy color={asignatura.color} size={48} /><Texto style={styles.tituloMapa}>¡Nivel máximo alcanzado!</Texto></View>
+              <View style={styles.centroMapa}><Trophy color={sendero.consulta.data?.habito.color ?? asignatura.color} size={48} /><Texto style={styles.tituloMapa}>¡Nivel máximo alcanzado!</Texto></View>
             ) : (
               <ContenedorMapaSenderos
                 key={asignatura.id}
                 altura={alturaMapa}
                 categoriaId="habitos"
-                color={asignatura.color}
+                color={sendero.consulta.data.habito.color}
                 enfocado
                 nodos={sendero.nodos}
                 onCompletarNodo={() => sendero.setRegistrando(true)}
                 subcategoriaId={asignatura.habitoReal.id}
-                // tonoVisual: elección fija de por vida del hábito (qué
+                // paqueteId: elección fija de por vida del hábito (qué
                 // paquete de árbol usa) — independiente del nivel real, que
-                // solo gobierna cuántos nodos/días muestra el mapa.
-                tono={sendero.consulta.data.habito.tonoVisual}
+                // solo gobierna cuántos nodos/días muestra el mapa (y, junto
+                // al paquete, qué etapas de crecimiento se mezclan).
+                paqueteId={sendero.consulta.data.habito.paqueteId}
+                nivel={sendero.consulta.data.nivel}
+                // Aproximación sin consulta nueva: usa nivel + fracción de
+                // días dentro del nivel actual como proxy de "cuánto pasto
+                // creció" en los niveles 1-3 — no es la suma exacta de días
+                // reales acumulados entre niveles (eso pediría sumar planes
+                // históricos), pero da el efecto de crecimiento día a día que
+                // se pidió sin una consulta nueva al backend.
+                progresoPastoTemprano={(() => {
+                  const { nivel, diasCompletados, diasRequeridos } = sendero.consulta.data;
+                  if (nivel >= 4 || diasRequeridos === null || diasRequeridos <= 0) return 1;
+                  return Math.min(1, ((nivel - 1) + diasCompletados / diasRequeridos) / 3);
+                })()}
               />
             )
           ) : asignatura ? (

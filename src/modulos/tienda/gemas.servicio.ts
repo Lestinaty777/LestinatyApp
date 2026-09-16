@@ -1,5 +1,5 @@
 import { obtenerClienteSupabase } from '../../servicios/base-datos/supabase';
-import type { ArticuloTienda, CompraTienda, PaqueteGemasIap, ResultadoCompraArticulo } from './gemas.tipos';
+import type { ArbolPaquete, ArticuloTienda, CompraTienda, PaqueteGemasIap, ResultadoCompraArticulo, ResultadoCompraSemillas, SemillaArbol } from './gemas.tipos';
 
 // El saldo y la compra se resuelven en el schema privado `comercio` — estas
 // llamadas pasan por los wrappers RPC de `public` (security invoker), nunca
@@ -43,4 +43,40 @@ export async function comprarArticuloTienda(articuloId: string): Promise<Resulta
   if (error) throw error;
   const remoto = data as ResultadoCompraRemoto;
   return { articuloId: remoto.articulo_id, yaPoseido: remoto.ya_poseido, saldoRestante: Number(remoto.saldo_restante) };
+}
+
+type FilaArbolPaquete = { id: string; nombre: string; master_pack_color: string; rareza: 'legendario' | 'unico'; precio_gemas: number; cantidad_por_compra: number };
+
+export async function obtenerCatalogoArboles(): Promise<ArbolPaquete[]> {
+  const { data, error } = await obtenerClienteSupabase()
+    .from('arboles_paquetes')
+    .select('id, nombre, master_pack_color, rareza, precio_gemas, cantidad_por_compra')
+    .eq('activo', true)
+    .eq('es_gratuito', false);
+  if (error) throw error;
+  return (data as FilaArbolPaquete[]).map((fila) => ({ id: fila.id, nombre: fila.nombre, masterPackColor: fila.master_pack_color, rareza: fila.rareza, precioGemas: Number(fila.precio_gemas), cantidadPorCompra: Number(fila.cantidad_por_compra) }));
+}
+
+type FilaSemilla = { id: string; paquete_id: string; adquirida_en: string };
+
+export async function obtenerSemillasDisponibles(): Promise<SemillaArbol[]> {
+  const { data, error } = await obtenerClienteSupabase().from('usuario_semillas').select('id, paquete_id, adquirida_en').is('habito_id', null);
+  if (error) throw error;
+  return (data as FilaSemilla[]).map((fila) => ({ id: fila.id, paqueteId: fila.paquete_id, adquiridaEn: fila.adquirida_en }));
+}
+
+type ResultadoCompraSemillasRemoto = { paquete_id: string; semillas_compradas: number; saldo_restante: number };
+
+export async function comprarSemillasArbol(paqueteId: string): Promise<ResultadoCompraSemillas> {
+  const { data, error } = await obtenerClienteSupabase().rpc('comprar_semillas_arbol', { p_paquete_id: paqueteId });
+  if (error) throw error;
+  const remoto = data as ResultadoCompraSemillasRemoto;
+  return { paqueteId: remoto.paquete_id, semillasCompradas: Number(remoto.semillas_compradas), saldoRestante: Number(remoto.saldo_restante) };
+}
+
+export async function asignarSemillaHabito(semillaId: string, habitoId: string): Promise<{ habitoId: string; paqueteId: string }> {
+  const { data, error } = await obtenerClienteSupabase().rpc('asignar_semilla_habito', { p_semilla_id: semillaId, p_habito_id: habitoId });
+  if (error) throw error;
+  const remoto = data as { habito_id: string; paquete_id: string };
+  return { habitoId: remoto.habito_id, paqueteId: remoto.paquete_id };
 }
