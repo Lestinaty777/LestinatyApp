@@ -24,43 +24,45 @@ const SEGMENTOS_OLA = 6;
 // a medida que progreso va de 0 a 1. La fase hace un solo recorrido durante
 // la transición: no queda ningún SVG recalculando su path por frame después.
 function RellenoOlas({ animando, progreso }: { animando: boolean; progreso: SharedValue<number> }) {
-  const [tamano, setTamano] = useState({ alto: 0, ancho: 0 });
-  const fase = useSharedValue(0);
+  const ancho = useSharedValue(0);
+  const alto  = useSharedValue(0);
+  const fase  = useSharedValue(0);
 
   useEffect(() => {
     if (animando) {
       fase.value = 0;
-      fase.value = withTiming(Math.PI * 2, { duration: 1500, easing: Easing.linear });
+      fase.value = withTiming(Math.PI * 2, { duration: 600, easing: Easing.linear });
     } else {
       cancelAnimation(fase);
     }
   }, [animando, fase]);
 
-  const medir = ({ nativeEvent: { layout } }: LayoutChangeEvent) => setTamano({ alto: layout.height, ancho: layout.width });
+  const medir = ({ nativeEvent: { layout } }: LayoutChangeEvent) => {
+    ancho.value = layout.width;
+    alto.value  = layout.height;
+  };
 
   const propsAnimadas = useAnimatedProps(() => {
-    const alto = Math.max(1, tamano.alto);
-    const ancho = Math.max(1, tamano.ancho);
-    const nivel = alto * (1 - progreso.value);
-    // La cresta se nota más a media transición y se aplana en los extremos (lleno o vacío).
-    const amplitud = 3.2 * Math.sin(progreso.value * Math.PI);
-    let d = `M0 ${nivel.toFixed(0)}`;
-    for (let indice = 1; indice <= SEGMENTOS_OLA; indice += 1) {
-      const x = (ancho / SEGMENTOS_OLA) * indice;
-      const y = nivel + Math.sin(fase.value + indice * 1.25) * amplitud;
-      d += ` L${x.toFixed(0)} ${y.toFixed(0)}`;
+    const h = Math.max(1, alto.value);
+    const w = Math.max(1, ancho.value);
+    const nivel = h * (1 - progreso.value);
+    const amplitud = 3 * Math.sin(progreso.value * Math.PI);
+    const paso = w / SEGMENTOS_OLA;
+    let d = `M0 ${nivel.toFixed(1)}`;
+    for (let i = 1; i <= SEGMENTOS_OLA; i++) {
+      const x = paso * i;
+      const y = nivel + Math.sin(fase.value + i * 1.25) * amplitud;
+      d += ` L${x.toFixed(1)} ${y.toFixed(1)}`;
     }
-    d += ` L${ancho.toFixed(0)} ${alto.toFixed(0)} L0 ${alto.toFixed(0)} Z`;
+    d += ` L${w.toFixed(1)} ${h.toFixed(1)} L0 ${h.toFixed(1)} Z`;
     return { d, fill: interpolateColor(progreso.value, [0, 1], [COLOR_INACTIVO, COLOR_ACTIVO]) };
   });
 
   return (
     <View onLayout={medir} pointerEvents="none" style={StyleSheet.absoluteFill}>
-      {tamano.ancho > 0 && tamano.alto > 0 && (
-        <Svg height={tamano.alto} width={tamano.ancho}>
-          <AnimatedPath animatedProps={propsAnimadas} />
-        </Svg>
-      )}
+      <Svg height="100%" width="100%">
+        <AnimatedPath animatedProps={propsAnimadas} />
+      </Svg>
     </View>
   );
 }
@@ -81,7 +83,7 @@ export function MasterChip({ activo = false, icono, onPress, texto }: MasterChip
   useEffect(() => {
     if (primerMontaje.current) { primerMontaje.current = false; return; }
     setAsentado(false);
-    progreso.value = withTiming(activo ? 1 : 0, { duration: 1500, easing: Easing.out(Easing.cubic) }, (terminado) => {
+    progreso.value = withTiming(activo ? 1 : 0, { duration: 400, easing: Easing.out(Easing.cubic) }, (terminado) => {
       if (terminado) runOnJS(setAsentado)(true);
     });
   }, [activo, progreso]);
@@ -116,11 +118,11 @@ export function MasterChip({ activo = false, icono, onPress, texto }: MasterChip
 }
 
 const mc = StyleSheet.create({
-  raiz: { borderRadius: 20 },
+  raiz: { borderRadius: 12 },
   // La ola se dibuja como un rectángulo (0,0 a ancho,alto) a propósito — este
   // recorte propio (independiente del overflow de MasterGlass) es lo que la
   // deja con forma de píldora en vez de cuadrada.
-  recorte: { borderRadius: 20, overflow: 'hidden' },
+  recorte: { borderRadius: 12, overflow: 'hidden' },
   fila: { alignItems: 'center', flexDirection: 'row', gap: 8, paddingHorizontal: 12, paddingVertical: 8 },
   texto: { color: '#4A7F5D', fontFamily: 'Montserrat-Bold', fontSize: 13 },
   textoActivo: { color: '#FFFFFF' },

@@ -1,9 +1,9 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Image, View } from 'react-native';
+import { ActivityIndicator, Image, View, ScrollView } from 'react-native';
 import type { PurchasesPackage } from 'react-native-purchases';
 
-import { Boton, Pantalla, Tarjeta, Texto } from '../../../diseno';
+import { Boton, Pantalla, Tarjeta, Texto, PixelartIcon } from '../../../diseno';
 import { comprarPaqueteGemas, obtenerPaquetesGemas } from '../../../nucleo/compras/revenueCat';
 import { obtenerCatalogoGemasIap } from '../gemas.servicio';
 import type { PaqueteGemasIap } from '../gemas.tipos';
