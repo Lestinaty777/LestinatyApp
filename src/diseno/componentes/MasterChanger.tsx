@@ -71,13 +71,21 @@ export function calcularDeltaHue(hueOrigen: number, hueDestino: number): number 
 // Promedio circular de hue ponderado por saturación*alpha: ignora píxeles
 // transparentes, grises, casi blancos o casi negros, para que el fondo o el
 // antialiasing no distorsionen el resultado hacia un hue falso.
+const CACHE_HUE = new WeakMap<SkImage, number | null>();
+
 function detectarHueDominante(imagen: SkImage): number | null {
+  if (CACHE_HUE.has(imagen)) {
+    return CACHE_HUE.get(imagen)!;
+  }
   const ancho = imagen.width();
   const alto = imagen.height();
   if (ancho === 0 || alto === 0) return null;
 
   const pixeles = imagen.readPixels();
-  if (!pixeles) return null;
+  if (!pixeles) {
+    CACHE_HUE.set(imagen, null);
+    return null;
+  }
 
   const esByte = pixeles instanceof Uint8Array;
   const totalPixeles = ancho * alto;
@@ -117,9 +125,13 @@ function detectarHueDominante(imagen: SkImage): number | null {
     pesoTotal += peso;
   }
 
-  if (pesoTotal === 0) return null;
+  if (pesoTotal === 0) {
+    CACHE_HUE.set(imagen, null);
+    return null;
+  }
   let promedio = (Math.atan2(sumaY, sumaX) * 180) / Math.PI;
   if (promedio < 0) promedio += 360;
+  CACHE_HUE.set(imagen, promedio);
   return promedio;
 }
 

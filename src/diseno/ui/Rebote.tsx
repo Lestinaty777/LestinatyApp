@@ -9,7 +9,7 @@ type ReboteProps = {
   children: ReactNode;
   estilo?: StyleProp<ViewStyle>;
   hitSlop?: number | Insets;
-  onPress: () => void;
+  onPress?: () => void;
   overlay?: ReactNode;
 };
 
@@ -23,9 +23,9 @@ export function Rebote({ accessibilityLabel, children, estilo, hitSlop, onPress,
     <Pressable
       accessibilityLabel={accessibilityLabel}
       hitSlop={hitSlop}
-      onPress={() => { hapticSeguro('seleccion'); onPress(); }}
-      onPressIn={() => { escala.value = withTiming(0.94, { duration: 90 }); }}
-      onPressOut={() => { escala.value = withSpring(1, { damping: 9, stiffness: 260 }); }}
+      onPress={() => { if (onPress) { hapticSeguro('seleccion'); onPress(); } }}
+      onPressIn={() => { if (onPress) escala.value = withTiming(0.94, { duration: 90 }); }}
+      onPressOut={() => { if (onPress) escala.value = withSpring(1, { damping: 9, stiffness: 260 }); }}
       style={estilo}
     >
       {/* overlay va fuera del envoltorio de escala (que se ajusta a su

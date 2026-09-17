@@ -56,11 +56,11 @@ export function MasterProgressbar({ altura = 12, porcentaje, style, colorBase }:
   const estiloRelleno = useAnimatedStyle(() => ({ width: `${progreso.value}%` }));
   const radio = altura / 2;
 
-  const coloresGradiente = colorBase
+  const coloresGradiente: [string, string, ...string[]] = colorBase
     ? [mezclarColor(colorBase, 0.2, false), colorBase, mezclarColor(colorBase, 0.4, true)]
     : ['#1F7C3E', '#58BE68', '#9AE59C'];
 
-  const coloresFondo = colorBase
+  const coloresFondo: [string, string, ...string[]] = colorBase
     ? [mezclarColor(colorBase, 0.85, true), mezclarColor(colorBase, 0.92, true)]
     : ['#edfaed', '#f4ffea'];
 

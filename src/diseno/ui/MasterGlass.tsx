@@ -55,7 +55,11 @@ export function MasterGlass({ blur = false, children, colorBase, compacto = fals
   const finBorde = mastery ? { x: 1.2, y: 1 } : { x: 1, y: 1 };
   const ubicacionesBorde: [number, number, number] = mastery ? [0, 0.54, 1] : [0, 0.48, 1];
   const medirContenedor = ({ nativeEvent: { layout } }: LayoutChangeEvent) => {
-    if (layout.width !== tamano.ancho || layout.height !== tamano.alto) setTamano({ alto: layout.height, ancho: layout.width });
+    const w = Math.round(layout.width);
+    const h = Math.round(layout.height);
+    if (Math.abs(w - tamano.ancho) > 2 || Math.abs(h - tamano.alto) > 2) {
+      setTamano({ alto: h, ancho: w });
+    }
   };
   const alto = Math.max(1, tamano.alto);
   const franjaSuperior = Math.min(14, alto * 0.14);
