@@ -33,6 +33,7 @@ export default function LayoutRaiz() {
         <Stack.Screen name="senderos/analisis" />
         <Stack.Screen name="senderos/leccion" options={{ presentation: 'fullScreenModal' }} />
         <Stack.Screen name="senderos/[id]" />
+        <Stack.Screen name="tienda/gemas" />
         <Stack.Screen name="tienda/producto/[id]" />
         <Stack.Screen name="tienda/pago" />
         <Stack.Screen name="metas/[id]" />

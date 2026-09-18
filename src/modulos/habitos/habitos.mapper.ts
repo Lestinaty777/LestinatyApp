@@ -1,6 +1,7 @@
 import { ConexionHabito, HabitoResumen, ImpactoHabito, PanelHabitos, PatronHabito, RiesgoHabito, SeccionPanelHabitos } from './tipos';
 
-type SeccionRemota<T> = { estado: SeccionPanelHabitos<T[]>['estado']; datos: T[] };
+type ProgresoRemoto = { actual: number; requerido: number };
+type SeccionRemota<T> = { estado: SeccionPanelHabitos<T[]>['estado']; datos: T[]; progreso?: ProgresoRemoto };
 type HabitoRemoto = { id: string; titulo: string; descripcion: string | null; icono_lucide: string; color: string; tipo_meta: HabitoResumen['tipoMeta']; unidad: string | null; meta: number; valor_hoy: number; completado: boolean };
 type PanelRemoto = {
   hoy: SeccionRemota<HabitoRemoto>;
@@ -11,7 +12,11 @@ type PanelRemoto = {
 };
 
 function mapearSeccion<TOrigen, TDestino>(seccion: SeccionRemota<TOrigen>, mapear: (dato: TOrigen) => TDestino): SeccionPanelHabitos<TDestino[]> {
-  return { estado: seccion.estado, datos: seccion.datos.map(mapear) };
+  return {
+    estado: seccion.estado,
+    datos: seccion.datos.map(mapear),
+    ...(seccion.progreso ? { progreso: { actual: Number(seccion.progreso.actual), requerido: Number(seccion.progreso.requerido) } } : {}),
+  };
 }
 
 export function mapearPanelHabitos(remoto: PanelRemoto): PanelHabitos {

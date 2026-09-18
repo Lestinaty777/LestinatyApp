@@ -5,20 +5,26 @@ import { useEffect, useState } from 'react';
 import { hapticSeguro } from '../../../nucleo/dispositivo/haptics';
 import type { NodoMapaSendero } from '../../senderos/datos/mapaEjercicio.mock';
 import { CLAVE_SALDO_GEMAS } from '../../tienda/useSaldoGemas';
+import { diasAcumuladosAntesDeNivel } from '../iconosHabitos';
 import { obtenerProgresoNivelHabito, registrarProgresoHabito } from '../habitos.servicio';
 
 // Cada nodo ES un día real hacia el próximo nivel — no una lección falsa ni
 // un nivel completo. "Acumulado, no se resetea" (migración 21): un día
 // perdido no vuelve a bloquear los nodos ya cumplidos.
-function construirNodosDias(diasCompletados: number, diasRequeridos: number): NodoMapaSendero[] {
+// La numeración del título es continua entre niveles (Día 1..3 en nivel 1,
+// Día 4..10 en nivel 2, ...) — diaInicial trae el total ya acumulado en
+// niveles previos, así el primer nodo del nivel nuevo sigue el conteo.
+function construirNodosDias(diasCompletados: number, diasRequeridos: number, nivel: number): NodoMapaSendero[] {
+  const diaInicial = diasAcumuladosAntesDeNivel(nivel);
   return Array.from({ length: diasRequeridos }, (_, indice) => {
-    const dia = indice + 1;
+    const diaEnNivel = indice + 1;
+    const diaGlobal = diaInicial + diaEnNivel;
     return {
-      estado: dia <= diasCompletados ? 'completado' : dia === diasCompletados + 1 ? 'activo' : 'bloqueado',
-      icono: dia <= diasCompletados ? Check : dia === diasCompletados + 1 ? Play : Lock,
-      id: `dia-${dia}`,
-      subtitulo: `Día ${dia} de ${diasRequeridos}`,
-      titulo: `Día ${dia}`,
+      estado: diaEnNivel <= diasCompletados ? 'completado' : diaEnNivel === diasCompletados + 1 ? 'activo' : 'bloqueado',
+      icono: diaEnNivel <= diasCompletados ? Check : diaEnNivel === diasCompletados + 1 ? Play : Lock,
+      id: `dia-${diaGlobal}`,
+      subtitulo: `Nivel ${nivel} · día ${diaEnNivel} de ${diasRequeridos}`,
+      titulo: `Día ${diaGlobal}`,
     };
   });
 }
@@ -58,7 +64,7 @@ export function useSenderoHabito(id: string | undefined) {
 
   const datos = consulta.data;
   const esNivelMaximo = datos ? datos.diasRequeridos === null : false;
-  const nodos = datos && datos.diasRequeridos !== null ? construirNodosDias(datos.diasCompletados, datos.diasRequeridos) : [];
+  const nodos = datos && datos.diasRequeridos !== null ? construirNodosDias(datos.diasCompletados, datos.diasRequeridos, datos.nivel) : [];
 
   return { celebracion, consulta, esNivelMaximo, nodos, registrando, registrar, setRegistrando };
 }

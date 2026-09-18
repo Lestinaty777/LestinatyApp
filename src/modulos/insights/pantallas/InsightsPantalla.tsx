@@ -1,48 +1,144 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { LinearGradient } from 'expo-linear-gradient';
-import { ChevronRight, ArrowDown, TrendingUp } from 'lucide-react-native';
-import { Image, ScrollView, StyleSheet, View } from 'react-native';
+import { ChevronRight, ArrowDown, Sparkles } from 'lucide-react-native';
+import { Image, Linking, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { Easing, useSharedValue, useAnimatedStyle, withRepeat, withSequence, withTiming, withDelay } from 'react-native-reanimated';
 
-import { MasterGlass, MasterIconBg, MasterIcon, Texto, entradaEncadenada, MasterAnimation, Rebote, MasterProgressbar } from '../../../diseno';
+import { MasterGlass, MasterIconBg, MasterIcon, Texto, entradaEncadenada, MasterAnimation, Rebote, MasterProgressbar, Skeleton } from '../../../diseno';
 import { AuroraBoreal } from '../../hoy/componentes/AuroraBoreal';
 import { buscarIconoHabito } from '../../habitos/iconosHabitos';
-import { obtenerPanelHabitos } from '../../habitos/habitos.servicio';
-import type { EstadoPanelHabitos, HabitoResumen, ImpactoHabito, PatronHabito, RiesgoHabito } from '../../habitos/tipos';
+import { obtenerHabitoMejorRacha, obtenerPanelHabitos, obtenerResumenPlanesHabitos } from '../../habitos/habitos.servicio';
+import type { ConexionHabito, EstadoPanelHabitos, PatronHabito, ProgresoSeccionPanel, RiesgoHabito } from '../../habitos/tipos';
+import { useSaldoGemas } from '../../tienda/useSaldoGemas';
+import { GaleriaWidgetsModal } from '../componentes/GaleriaWidgetsModal';
+import { SeccionProgresoDatos } from '../componentes/SeccionProgresoDatos';
+import { elegirReflexionAby } from '../reflexionAby';
 
 const C = { texto: '#1A1335', tenue: '#648170', verde: '#25884C', rojo: '#DC2626', glass: 'rgba(255,255,255,0.72)', glassBorde: 'rgba(255,255,255,0.85)' };
 
-const TARJETAS_MOCK = [
-  { id: 'constancia', nombreIcono: 'hoja', colorIcono: 2, detalle: '+12%', titulo: 'Constancia', valor: '78%' },
-  { id: 'racha', nombreIcono: 'energia', colorIcono: 4, detalle: '+3', titulo: 'Racha', valor: '12' },
-  { id: 'xp', nombreIcono: 'trofeo', colorIcono: 3, detalle: '+18%', titulo: 'XP ganada', valor: '320' },
-  { id: 'activos', nombreIcono: 'estadistica', colorIcono: 2, detalle: '+1', titulo: 'Activos', valor: '4/5' },
-];
-
 const DIAS_SEMANA_ETIQUETA = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
+const NOMBRES_DIA_SEMANA = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 
 function IconoHabitoChico({ id, color, size = 18 }: { id?: string | null; color: string; size?: number }) { 
   const icono = buscarIconoHabito(id); 
   return icono ? <Image source={icono.fuente} style={{ height: size, resizeMode: 'contain', width: size }} /> : <View style={{ height: size, width: size, borderRadius: size/2, backgroundColor: color }} />; 
 }
 
-function EstadoSeccion({ estado }: { estado: EstadoPanelHabitos }) {
-  return <View style={s.estadoContenedor}><Texto style={s.estadoTexto}>Reuniendo datos...</Texto></View>;
+function EsqueletoPatrones() {
+  return (
+    <View style={s.barras}>
+      {DIAS_SEMANA_ETIQUETA.map((etiqueta, indice) => (
+        <View key={indice} style={s.barraColumna}>
+          <View style={[s.barraFondo, { justifyContent: 'flex-end', backgroundColor: 'rgba(37,136,76,0.06)' }]}>
+            <Skeleton alto={[28, 56, 38, 72, 44, 62, 34][indice]} ancho="100%" radio={4} />
+          </View>
+          <Texto style={s.barraTexto}>{etiqueta}</Texto>
+        </View>
+      ))}
+    </View>
+  );
 }
 
-function SeccionPatrones({ datos, estado }: { datos: PatronHabito[]; estado: EstadoPanelHabitos }) {
+function EsqueletoConexiones() {
+  return (
+    <View style={s.listaCompacta}>
+      {[0, 1, 2].map((i) => (
+        <View key={i} style={s.filaImpacto}>
+          <Skeleton alto={20} ancho={20} radio={10} />
+          <View style={{ flex: 1, gap: 6 }}>
+            <Skeleton alto={11} ancho={(['65%', '80%', '50%'] as const)[i]} radio={4} />
+            <Skeleton alto={6} ancho="100%" radio={3} />
+          </View>
+          <Skeleton alto={12} ancho={22} radio={4} />
+        </View>
+      ))}
+    </View>
+  );
+}
+
+function EsqueletoRiesgo() {
+  return (
+    <View style={s.listaCompacta}>
+      {[0, 1, 2].map((i) => (
+        <View key={i} style={s.filaSimple}>
+          <Skeleton alto={20} ancho={20} radio={10} />
+          <Skeleton alto={12} ancho={(['70%', '55%', '75%'] as const)[i]} radio={4} style={{ flex: 1 }} />
+          <Skeleton alto={14} ancho={14} radio={4} />
+        </View>
+      ))}
+    </View>
+  );
+}
+
+function EsqueletoColumnasInsights() {
+  return (
+    <View style={s.columnas}>
+      <View style={s.columna}>
+        <MasterGlass style={s.seccionColumna}>
+          <View style={s.seccionHeaderCompacto}>
+            <Skeleton alto={32} ancho={32} radio={8} />
+            <View style={{ flex: 1, gap: 4 }}>
+              <Skeleton alto={13} ancho="60%" radio={4} />
+              <Skeleton alto={10} ancho="40%" radio={3} />
+            </View>
+          </View>
+          <EsqueletoPatrones />
+        </MasterGlass>
+        <MasterGlass style={s.seccionColumna}>
+          <View style={s.seccionHeaderCompacto}>
+            <Skeleton alto={32} ancho={32} radio={8} />
+            <View style={{ flex: 1, gap: 4 }}>
+              <Skeleton alto={13} ancho="70%" radio={4} />
+              <Skeleton alto={10} ancho="50%" radio={3} />
+            </View>
+          </View>
+          <EsqueletoConexiones />
+        </MasterGlass>
+      </View>
+      <View style={s.columna}>
+        <MasterGlass style={s.seccionColumna}>
+          <View style={s.seccionHeaderCompacto}>
+            <Skeleton alto={32} ancho={32} radio={8} />
+            <View style={{ flex: 1, gap: 4 }}>
+              <Skeleton alto={13} ancho="65%" radio={4} />
+              <Skeleton alto={10} ancho="45%" radio={3} />
+            </View>
+          </View>
+          <EsqueletoPatrones />
+        </MasterGlass>
+        <MasterGlass style={s.seccionColumna}>
+          <View style={s.seccionHeaderCompacto}>
+            <Skeleton alto={32} ancho={32} radio={8} />
+            <View style={{ flex: 1, gap: 4 }}>
+              <Skeleton alto={13} ancho="55%" radio={4} />
+              <Skeleton alto={10} ancho="35%" radio={3} />
+            </View>
+          </View>
+          <EsqueletoRiesgo />
+        </MasterGlass>
+      </View>
+    </View>
+  );
+}
+
+function SeccionPatrones({ cargando, datos, estado, progreso }: { cargando: boolean; datos: PatronHabito[]; estado: EstadoPanelHabitos; progreso?: ProgresoSeccionPanel }) {
+  const diasConDatos = datos.filter((item) => item.muestras > 0).length;
   return (
     <MasterGlass style={s.seccionColumna}>
       <View style={s.seccionHeaderCompacto}>
         <MasterIconBg size={32}><MasterIcon color={2} name="calendario" size={16} /></MasterIconBg>
         <View style={{ flex: 1 }}>
           <Texto style={s.seccionTituloCompacto}>Tu semana</Texto>
-          <Texto style={s.seccionSubtituloCompacto}>4/7 días</Texto>
+          <Texto style={s.seccionSubtituloCompacto}>{estado === 'listo' ? `${diasConDatos}/7 días con registros` : 'Reuniendo tu historial'}</Texto>
         </View>
       </View>
-      {estado !== 'listo' || datos.length === 0 ? <EstadoSeccion estado={estado} /> : (
+      {cargando ? (
+        <EsqueletoPatrones />
+      ) : estado !== 'listo' ? (
+        <SeccionProgresoDatos mensaje="Necesitamos más días de registros para ver tu semana con claridad." progreso={progreso} />
+      ) : (
         <View style={s.barras}>
           {DIAS_SEMANA_ETIQUETA.map((etiqueta, indice) => {
             const patron = datos.find((item) => item.diaSemana === indice + 1);
@@ -62,38 +158,46 @@ function SeccionPatrones({ datos, estado }: { datos: PatronHabito[]; estado: Est
   );
 }
 
-function SeccionImpacto({ datos, estado, habitosPorId }: { datos: ImpactoHabito[]; estado: EstadoPanelHabitos; habitosPorId: Map<string, HabitoResumen> }) {
+type HabitoBasico = { titulo: string; color: string; iconoLucide: string };
+
+function SeccionConexiones({ cargando, datos, estado, habitosPorId, progreso }: { cargando: boolean; datos: ConexionHabito[]; estado: EstadoPanelHabitos; habitosPorId: Map<string, HabitoBasico>; progreso?: ProgresoSeccionPanel }) {
   return (
     <MasterGlass style={s.seccionColumna}>
       <View style={s.seccionHeaderCompacto}>
         <MasterIconBg size={32}><MasterIcon color={2} name="hoja" size={16} /></MasterIconBg>
-        <Texto style={s.seccionTituloCompacto}>Impulsan tu día</Texto>
+        <Texto style={s.seccionTituloCompacto}>Se cumplen juntos</Texto>
       </View>
-      <Texto style={s.seccionSubtituloCompacto}>Cuando completas estos, logras más.</Texto>
-      {estado !== 'listo' || datos.length === 0 ? <EstadoSeccion estado={estado} /> : (
+      <Texto style={s.seccionSubtituloCompacto}>Hábitos que sueles completar el mismo día.</Texto>
+      {cargando ? (
+        <EsqueletoConexiones />
+      ) : estado !== 'listo' ? (
+        <SeccionProgresoDatos mensaje="Necesitamos más días con varios hábitos completados para encontrar conexiones." progreso={progreso} />
+      ) : (
         <View style={s.listaCompacta}>
-          {datos.slice(0, 3).map((impacto, i) => {
-            const origen = habitosPorId.get(impacto.origenHabitoId);
-            if (!origen) return null;
-            const factor = ((100 + impacto.impacto) / 100).toFixed(1);
-            return (
-              <View key={`${impacto.origenHabitoId}-${i}`} style={s.filaImpacto}>
-                <IconoHabitoChico color={origen.color} id={origen.iconoLucide} />
-                <View style={{ flex: 1 }}>
-                  <Texto numberOfLines={1} style={s.filaProgresoTitulo}>{origen.titulo}</Texto>
-                  <MasterProgressbar altura={6} porcentaje={Math.min(100, (Number(factor) / 3) * 100)} style={{ marginTop: 4 }} />
+          <MasterAnimation>
+            {datos.slice(0, 3).map((conexion, i) => {
+              const origen = habitosPorId.get(conexion.origenHabitoId);
+              const destino = habitosPorId.get(conexion.destinoHabitoId);
+              if (!origen || !destino) return null;
+              return (
+                <View key={`${conexion.origenHabitoId}-${conexion.destinoHabitoId}-${i}`} style={s.filaImpacto}>
+                  <IconoHabitoChico color={origen.color} id={origen.iconoLucide} />
+                  <View style={{ flex: 1 }}>
+                    <Texto numberOfLines={1} style={s.filaProgresoTitulo}>{origen.titulo} + {destino.titulo}</Texto>
+                    <MasterProgressbar altura={6} porcentaje={conexion.fuerza} style={{ marginTop: 4 }} />
+                  </View>
+                  <Texto style={s.filaProgresoFactor}>{Math.round(conexion.fuerza)}%</Texto>
                 </View>
-                <Texto style={s.filaProgresoFactor}>{factor}x</Texto>
-              </View>
-            );
-          })}
+              );
+            })}
+          </MasterAnimation>
         </View>
       )}
     </MasterGlass>
   );
 }
 
-function SeccionRiesgo({ datos, estado }: { datos: RiesgoHabito[]; estado: EstadoPanelHabitos }) {
+function SeccionRiesgo({ cargando, datos, estado, progreso }: { cargando: boolean; datos: RiesgoHabito[]; estado: EstadoPanelHabitos; progreso?: ProgresoSeccionPanel }) {
   return (
     <MasterGlass style={s.seccionColumna}>
       <View style={s.seccionHeaderCompacto}>
@@ -101,53 +205,115 @@ function SeccionRiesgo({ datos, estado }: { datos: RiesgoHabito[]; estado: Estad
         <Texto style={s.seccionTituloCompacto}>Atención</Texto>
       </View>
       <Texto style={s.seccionSubtituloCompacto}>Bajaron su actividad esta semana.</Texto>
-      {estado !== 'listo' || datos.length === 0 ? <EstadoSeccion estado={estado} /> : (
+      {cargando ? (
+        <EsqueletoRiesgo />
+      ) : estado !== 'listo' ? (
+        <SeccionProgresoDatos mensaje="Necesitamos más historial para detectar bajones de actividad." progreso={progreso} />
+      ) : datos.length === 0 ? (
+        <View style={s.estadoContenedor}><Texto style={s.estadoTexto}>Ningún hábito bajó el ritmo. Vas sólido.</Texto></View>
+      ) : (
         <View style={s.listaCompacta}>
-          {datos.slice(0, 3).map((riesgo, i) => (
-            <View key={`${riesgo.habitoId}-${i}`} style={s.filaSimple}>
-              <IconoHabitoChico color={riesgo.color} id={riesgo.iconoLucide} />
-              <Texto numberOfLines={1} style={s.filaSimpleTitulo}>{riesgo.titulo}</Texto>
-              <ArrowDown color={C.rojo} size={14} strokeWidth={3} />
-            </View>
-          ))}
+          <MasterAnimation>
+            {datos.slice(0, 3).map((riesgo, i) => (
+              <View key={`${riesgo.habitoId}-${i}`} style={s.filaSimple}>
+                <IconoHabitoChico color={riesgo.color} id={riesgo.iconoLucide} />
+                <Texto numberOfLines={1} style={s.filaSimpleTitulo}>{riesgo.titulo}</Texto>
+                <ArrowDown color={C.rojo} size={14} strokeWidth={3} />
+              </View>
+            ))}
+          </MasterAnimation>
         </View>
       )}
     </MasterGlass>
   );
 }
 
-function SeccionDiaFuerte() {
+function SeccionDiaFuerte({ cargando, datos, estado, progreso }: { cargando: boolean; datos: PatronHabito[]; estado: EstadoPanelHabitos; progreso?: ProgresoSeccionPanel }) {
+  const diasConMuestras = datos.filter((item) => item.muestras > 0);
+  const mejorDia = diasConMuestras.reduce<PatronHabito | null>((mejor, item) => (!mejor || item.porcentaje > mejor.porcentaje ? item : mejor), null);
+  const indiceMejorDia = mejorDia ? mejorDia.diaSemana - 1 : -1;
+
   return (
     <MasterGlass style={s.seccionColumna}>
        <View style={s.seccionHeaderCompacto}>
          <MasterIconBg size={32}><MasterIcon color={2} name="trofeo" size={16} /></MasterIconBg>
          <Texto style={s.seccionTituloCompacto}>Día más fuerte</Texto>
        </View>
-       <Texto style={s.seccionSubtituloCompacto}>Tus mejores días son los Martes.</Texto>
-       <View style={[s.barras, { height: 60, marginTop: 12 }]}>
-          {DIAS_SEMANA_ETIQUETA.map((etiqueta, indice) => {
-            const porcentaje = indice === 1 ? 100 : [40, 50, 80, 30, 20, 60][indice] || 20;
-            return (
-              <View key={indice} style={s.barraColumna}>
-                <View style={[s.barraFondo, { backgroundColor: indice === 1 ? 'rgba(37,136,76,.15)' : 'rgba(37,136,76,.06)' }]}>
-                  <View style={[s.barraLlena, { height: `${porcentaje}%`, backgroundColor: indice === 1 ? C.verde : '#8CC89F' }]} />
+       <Texto style={s.seccionSubtituloCompacto}>{estado === 'listo' && mejorDia ? `Tus mejores días son los ${NOMBRES_DIA_SEMANA[indiceMejorDia]}.` : 'Todavía no hay un día que destaque.'}</Texto>
+       {cargando ? (
+         <EsqueletoPatrones />
+       ) : estado !== 'listo' ? (
+         <SeccionProgresoDatos mensaje="Necesitamos más días de registros para encontrar tu mejor día." progreso={progreso} />
+       ) : (
+         <View style={[s.barras, { height: 60, marginTop: 12 }]}>
+            {DIAS_SEMANA_ETIQUETA.map((etiqueta, indice) => {
+              const patron = datos.find((item) => item.diaSemana === indice + 1);
+              const esMejor = indice === indiceMejorDia;
+              const porcentaje = Math.max(10, patron?.porcentaje ?? 0);
+              return (
+                <View key={indice} style={s.barraColumna}>
+                  <View style={[s.barraFondo, { backgroundColor: esMejor ? 'rgba(37,136,76,.15)' : 'rgba(37,136,76,.06)' }]}>
+                    <View style={[s.barraLlena, { height: `${porcentaje}%`, backgroundColor: esMejor ? C.verde : '#8CC89F' }]} />
+                  </View>
+                  <Texto style={[s.barraTexto, esMejor && { color: C.verde, fontFamily: 'Montserrat-Bold' }]}>{etiqueta}</Texto>
                 </View>
-                <Texto style={[s.barraTexto, indice === 1 && { color: C.verde, fontFamily: 'Montserrat-Bold' }]}>{etiqueta}</Texto>
-              </View>
-            );
-          })}
-        </View>
+              );
+            })}
+          </View>
+       )}
     </MasterGlass>
   );
 }
 
-function WidgetReflexion() {
+function ElementoFlotanteSuave({
+  children,
+  distancia = 3.5,
+  duracion = 2800,
+  delay = 0,
+  rotacion = '0deg',
+  style,
+}: {
+  children: React.ReactNode;
+  distancia?: number;
+  duracion?: number;
+  delay?: number;
+  rotacion?: string;
+  style?: any;
+}) {
+  const translateY = useSharedValue(0);
+
+  useEffect(() => {
+    translateY.value = withDelay(
+      delay,
+      withRepeat(
+        withSequence(
+          withTiming(-distancia, { duration: duracion, easing: Easing.inOut(Easing.sin) }),
+          withTiming(distancia, { duration: duracion, easing: Easing.inOut(Easing.sin) }),
+        ),
+        -1,
+        true
+      )
+    );
+  }, [delay, distancia, duracion, translateY]);
+
+  const animStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: translateY.value }, { rotate: rotacion }],
+  }));
+
   return (
-    <View style={{ marginTop: 22, alignSelf: 'flex-start', maxWidth: 170 }}>
-      <MasterGlass style={{ borderRadius: 18, padding: 14, alignItems: 'center', gap: 8 }}>
-        <Image source={require('../../../../assets/icons/ui/cerebro.png')} style={{ width: 34, height: 34, resizeMode: 'contain', opacity: 0.9 }} />
-        <Texto style={{ fontFamily: 'Montserrat-Medium', fontSize: 9, color: C.tenue, textAlign: 'center', lineHeight: 14, paddingHorizontal: 2 }}>
-          "A veces te observo castigarte por los días perdidos. Tal vez ignoras que la gracia no está en mantener rachas perfectas, sino en la humildad de recoger los eslabones rotos."
+    <Animated.View style={[style, animStyle]}>
+      {children}
+    </Animated.View>
+  );
+}
+
+function WidgetReflexion({ mensaje }: { mensaje: string }) {
+  return (
+    <View style={s.widgetReflexionWrap}>
+      <MasterGlass style={s.widgetReflexionGlass}>
+        <Image source={require('../../../../assets/icons/ui/cerebro.png')} style={{ width: 32, height: 32, resizeMode: 'contain', opacity: 0.9 }} />
+        <Texto style={{ fontFamily: 'Montserrat-Medium', fontSize: 9, color: C.tenue, textAlign: 'center', lineHeight: 13, paddingHorizontal: 2 }}>
+          "{mensaje}"
           <Texto style={{ fontFamily: 'Montserrat-Bold', fontSize: 8 }}>{'\n\n'}— Aby</Texto>
         </Texto>
       </MasterGlass>
@@ -158,8 +324,29 @@ function WidgetReflexion() {
 export function InsightsPantalla() {
   const insets = useSafeAreaInsets();
   const consulta = useQuery({ queryKey: ['habitos', 'panel'], queryFn: () => obtenerPanelHabitos() });
+  const consultaMejorRacha = useQuery({ queryKey: ['habitos', 'mejor-racha'], queryFn: () => obtenerHabitoMejorRacha() });
+  const consultaGemas = useSaldoGemas();
+  // Conexiones puede unir hábitos que no están programados HOY (ej. uno de
+  // lunes con uno diario) — `panel.hoy.datos` solo trae los de hoy, así que
+  // usar ese mapa acá dejaba filas de conexiones reales invisibles cualquier
+  // día que no coincidiera con el horario de alguno de los dos hábitos.
+  const consultaHabitosTodos = useQuery({ queryKey: ['habitos', 'planes-resumen'], queryFn: () => obtenerResumenPlanesHabitos() });
   const panel = consulta.data;
-  const habitosPorId = new Map((panel?.hoy.datos ?? []).map((habito) => [habito.id, habito]));
+  const habitosPorId = new Map((consultaHabitosTodos.data ?? []).map((habito) => [habito.id, habito]));
+  const [modalWidgetsVisible, setModalWidgetsVisible] = useState(false);
+  const statsListos = !consulta.isLoading && !consultaMejorRacha.isLoading && !consultaGemas.isLoading;
+
+  const diasConMuestras = panel?.patrones.datos.filter((item) => item.muestras > 0) ?? [];
+  const constancia = diasConMuestras.length > 0 ? Math.round(diasConMuestras.reduce((suma, item) => suma + item.porcentaje, 0) / diasConMuestras.length) : 0;
+  const habitosHoy = panel?.hoy.datos ?? [];
+  const completadosHoy = habitosHoy.filter((habito) => habito.completado).length;
+
+  const tarjetasStats = [
+    { id: 'constancia', nombreIcono: 'hoja', colorIcono: 2, titulo: 'Constancia', valor: panel?.patrones.estado === 'listo' ? `${constancia}%` : '—' },
+    { id: 'racha', nombreIcono: 'racha', titulo: 'Racha', valor: consultaMejorRacha.data ? `${consultaMejorRacha.data.racha}d` : '0d' },
+    { id: 'gemas', nombreIcono: 'gema', colorIcono: 4, titulo: 'Gemas', valor: `${consultaGemas.data ?? 0}` },
+    { id: 'hoy', nombreIcono: 'estadistica', colorIcono: 2, titulo: 'Hoy', valor: `${completadosHoy}/${habitosHoy.length}` },
+  ];
 
   return (
     <LinearGradient colors={['#F7FDF7', '#E8F7E9', '#CDEFCF']} end={{ x: 0, y: 1 }} start={{ x: 0, y: 0 }} style={s.raiz}>
@@ -169,12 +356,6 @@ export function InsightsPantalla() {
           <AuroraBoreal tema="verde" />
           
           <View style={s.headerInicio}>
-            <View style={s.heroColDer}>
-              <View style={s.ilustracionContenedor}>
-                <Image source={require('../../../../assets/ilustraciones/hoy/fondos/habitos.png')} style={s.ilustracionHabitos} resizeMode="cover" />
-              </View>
-            </View>
-
             <View style={s.headerTitulo}>
               <Animated.View entering={entradaEncadenada(0)} style={s.headerIzq}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
@@ -182,103 +363,210 @@ export function InsightsPantalla() {
                   <Texto style={s.headerTituloPrincipal}>Tus Insights</Texto>
                 </View>
                 <Texto style={s.headerSubtitulo}>Analiza tu progreso y descubre patrones.</Texto>
-                
-                <WidgetReflexion />
               </Animated.View>
             </View>
             <View style={s.headerDer}>
               <Animated.View entering={entradaEncadenada(1)}>
-                <MasterGlass style={s.notificacion}>
-                  <Image source={require('../../../../assets/icons/hoy/notificaciones.png')} style={s.notificacionIcono} />
-                </MasterGlass>
+                <Rebote accessibilityLabel="Notificaciones" onPress={() => Linking.openSettings()}>
+                  <MasterGlass style={s.notificacion}>
+                    <Image source={require('../../../../assets/icons/hoy/notificaciones.png')} style={s.notificacionIcono} />
+                  </MasterGlass>
+                </Rebote>
               </Animated.View>
             </View>
           </View>
+
+          <Animated.View entering={entradaEncadenada(2)} style={s.heroReflexion}>
+            <WidgetReflexion mensaje={panel ? elegirReflexionAby(panel) : 'Estoy reuniendo tus datos para poder acompañarte mejor.'} />
+            <View style={s.heroColDer}>
+              <ElementoFlotanteSuave delay={0} distancia={3.5} duracion={2600} rotacion="-14deg" style={s.flotanteRocaTop}>
+                <Image
+                  source={require('../../../../assets/ilustraciones/senderos/biomas/arboles/roca.png')}
+                  style={s.imgFlotante}
+                  resizeMode="contain"
+                />
+              </ElementoFlotanteSuave>
+
+              <ElementoFlotanteSuave delay={400} distancia={4} duracion={3100} rotacion="12deg" style={s.flotantePastoTop}>
+                <Image
+                  source={require('../../../../assets/ilustraciones/senderos/biomas/arboles/pasto.png')}
+                  style={s.imgFlotante}
+                  resizeMode="contain"
+                />
+              </ElementoFlotanteSuave>
+
+              <ElementoFlotanteSuave delay={800} distancia={3} duracion={2400} rotacion="22deg" style={s.flotanteRocaMidLeft}>
+                <Image
+                  source={require('../../../../assets/ilustraciones/senderos/biomas/arboles/roca1.png')}
+                  style={s.imgFlotante}
+                  resizeMode="contain"
+                />
+              </ElementoFlotanteSuave>
+
+              <ElementoFlotanteSuave delay={200} distancia={4.5} duracion={2900} rotacion="16deg" style={s.flotantePastoMidRight}>
+                <Image
+                  source={require('../../../../assets/ilustraciones/senderos/biomas/arboles/pasto2.png')}
+                  style={s.imgFlotante}
+                  resizeMode="contain"
+                />
+              </ElementoFlotanteSuave>
+
+              <Image
+                source={require('../../../../assets/ilustraciones/hoy/fondos/habitos.png')}
+                style={s.ilustracionHabitos}
+                resizeMode="contain"
+              />
+
+              <ElementoFlotanteSuave delay={600} distancia={3} duracion={3200} rotacion="-6deg" style={s.flotantePastoCenterBottom}>
+                <Image
+                  source={require('../../../../assets/ilustraciones/senderos/biomas/arboles/pasto.png')}
+                  style={s.imgFlotante}
+                  resizeMode="contain"
+                />
+              </ElementoFlotanteSuave>
+
+              <ElementoFlotanteSuave delay={1000} distancia={4} duracion={2700} rotacion="-8deg" style={s.flotantePastoBottom}>
+                <Image
+                  source={require('../../../../assets/ilustraciones/senderos/biomas/arboles/pasto1.png')}
+                  style={s.imgFlotante}
+                  resizeMode="contain"
+                />
+              </ElementoFlotanteSuave>
+
+              <ElementoFlotanteSuave delay={300} distancia={3.5} duracion={3000} rotacion="15deg" style={s.flotanteRocaBottom}>
+                <Image
+                  source={require('../../../../assets/ilustraciones/senderos/biomas/arboles/roca1.png')}
+                  style={s.imgFlotante}
+                  resizeMode="contain"
+                />
+              </ElementoFlotanteSuave>
+            </View>
+          </Animated.View>
         </View>
 
         <View style={s.contenidoInterior}>
           <View style={s.statsFila}>
-            {TARJETAS_MOCK.map((tarjeta, indice) => (
-              <Animated.View entering={entradaEncadenada(3 + indice)} key={tarjeta.id} style={s.statCardWrapper}>
-                <MasterGlass style={s.statCardMini}>
-                  <MasterIcon color={tarjeta.colorIcono as any} name={tarjeta.nombreIcono} size={32} />
-                  <Texto numberOfLines={1} style={s.statCardValor}>{tarjeta.valor}</Texto>
-                  <Texto style={s.statCardTitulo}>{tarjeta.titulo}</Texto>
-                  <View style={s.statCardBadge}>
-                    <TrendingUp color={C.verde} size={10} strokeWidth={3} />
-                    <Texto style={s.statCardBadgeTexto}>{tarjeta.detalle}</Texto>
+            {!statsListos
+              ? [0, 1, 2, 3].map((i) => (
+                  <View key={i} style={s.statCardWrapper}>
+                    <MasterGlass style={s.statCardMini}>
+                      <Skeleton alto={32} ancho={32} radio={8} />
+                      <Skeleton alto={18} ancho="55%" radio={4} style={{ marginTop: 8 }} />
+                      <Skeleton alto={11} ancho="80%" radio={4} style={{ marginTop: 4 }} />
+                      <Skeleton alto={14} ancho="60%" radio={6} style={{ marginTop: 6 }} />
+                    </MasterGlass>
                   </View>
-                </MasterGlass>
-              </Animated.View>
-            ))}
+                ))
+              : tarjetasStats.map((tarjeta, indice) => (
+                  <Animated.View entering={entradaEncadenada(3 + indice)} key={tarjeta.id} style={s.statCardWrapper}>
+                    <MasterGlass style={s.statCardMini}>
+                      {tarjeta.id === 'gemas' ? (
+                        <Image source={require('../../../../assets/icons/hoy/gemas.png')} style={{ height: 32, width: 32, resizeMode: 'contain' }} />
+                      ) : (
+                        <MasterIcon color={tarjeta.colorIcono as any} name={tarjeta.nombreIcono} size={32} />
+                      )}
+                      <Texto numberOfLines={1} style={s.statCardValor}>{tarjeta.valor}</Texto>
+                      <Texto style={s.statCardTitulo}>{tarjeta.titulo}</Texto>
+                    </MasterGlass>
+                  </Animated.View>
+                ))}
           </View>
 
           <Animated.View entering={entradaEncadenada(7)}>
-            <Rebote>
-              <MasterGlass style={s.bannerSuperior}>
-                <View style={s.bannerIconoContenedor}>
-                  <Image source={require('../../../../assets/icons/ui/hoja2.png')} style={s.bannerIcono} />
+            <Rebote onPress={() => setModalWidgetsVisible(true)}>
+              <MasterGlass style={s.bannerWidgetsAcceso}>
+                <View style={s.bannerWidgetsIconoContenedor}>
+                  <Sparkles color={C.verde} size={18} />
                 </View>
                 <View style={s.bannerTextoContenedor}>
-                  <Texto style={s.bannerTitulo}>Vas muy bien</Texto>
-                  <Texto style={s.bannerSubtitulo}>Tu constancia aumentó 14% esta semana.</Texto>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <Texto style={s.bannerTitulo}>Widgets de Inicio</Texto>
+                    <View style={s.badgePro}>
+                      <Texto style={s.badgeProTexto}>VER</Texto>
+                    </View>
+                  </View>
+                  <Texto style={s.bannerSubtitulo}>Pon tu racha y hábitos en la pantalla de tu celular.</Texto>
                 </View>
                 <MasterGlass style={s.bannerChevron}><ChevronRight color={C.verde} size={16} /></MasterGlass>
               </MasterGlass>
             </Rebote>
           </Animated.View>
 
-          <MasterAnimation duracion={340}>
-            {panel && (
-              <View style={s.columnas}>
-                <View style={s.columna}>
-                  <SeccionPatrones datos={panel.patrones.datos} estado={panel.patrones.estado} />
-                  <SeccionImpacto datos={panel.impacto.datos} estado={panel.impacto.estado} habitosPorId={habitosPorId} />
-                </View>
-                <View style={s.columna}>
-                  <SeccionDiaFuerte />
-                  <SeccionRiesgo datos={panel.riesgo.datos} estado={panel.riesgo.estado} />
-                </View>
+          {panel ? (
+            <View style={s.columnas}>
+              <View style={s.columna}>
+                <Animated.View entering={entradaEncadenada(9)}>
+                  <SeccionPatrones cargando={false} datos={panel.patrones.datos} estado={panel.patrones.estado} progreso={panel.patrones.progreso} />
+                </Animated.View>
+                <Animated.View entering={entradaEncadenada(11)}>
+                  <SeccionConexiones cargando={consultaHabitosTodos.isLoading} datos={panel.conexiones.datos} estado={panel.conexiones.estado} habitosPorId={habitosPorId} progreso={panel.conexiones.progreso} />
+                </Animated.View>
               </View>
-            )}
-          </MasterAnimation>
+              <View style={s.columna}>
+                <Animated.View entering={entradaEncadenada(10)}>
+                  <SeccionDiaFuerte cargando={false} datos={panel.patrones.datos} estado={panel.patrones.estado} progreso={panel.patrones.progreso} />
+                </Animated.View>
+                <Animated.View entering={entradaEncadenada(12)}>
+                  <SeccionRiesgo cargando={false} datos={panel.riesgo.datos} estado={panel.riesgo.estado} progreso={panel.riesgo.progreso} />
+                </Animated.View>
+              </View>
+            </View>
+          ) : (
+            <EsqueletoColumnasInsights />
+          )}
         </View>
 
       </ScrollView>
+
+      <GaleriaWidgetsModal
+        onCerrar={() => setModalWidgetsVisible(false)}
+        visible={modalWidgetsVisible}
+      />
     </LinearGradient>
   );
 }
 
-const s = StyleSheet.create({
+const s: Record<string, any> = StyleSheet.create({
   raiz: { flex: 1 },
   contenido: { paddingBottom: 0 },
   superiorInicio: { gap: 0, marginBottom: 12 },
   
   // Header Insights
-  headerInicio: { alignItems: 'flex-start', flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20, paddingHorizontal: 20 },
+  headerInicio: { alignItems: 'flex-start', flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12, paddingHorizontal: 20 },
   headerTitulo: { flexDirection: 'row', flex: 1 },
-  headerIzq: { flex: 1, maxWidth: '60%' },
+  headerIzq: { flex: 1 },
   headerTituloPrincipal: { color: C.texto, fontFamily: 'MontserratAlternates-Bold', fontSize: 26, lineHeight: 32 },
-  headerSubtitulo: { color: C.tenue, fontFamily: 'Montserrat-Medium', fontSize: 13, lineHeight: 18, marginTop: 6, maxWidth: 170 },
+  headerSubtitulo: { color: C.tenue, fontFamily: 'Montserrat-Medium', fontSize: 13, lineHeight: 18, marginTop: 4 },
   headerDer: { alignItems: 'flex-start', flexDirection: 'row', gap: 8, marginTop: 4 },
   notificacion: { borderRadius: 22, paddingHorizontal: 10, paddingVertical: 10 },
   notificacionIcono: { height: 26, resizeMode: 'contain', width: 26 },
   
-  // Ilustracion
-  heroColDer: { position: 'absolute', right: -10, top: 45, width: '50%', zIndex: -1 },
-  ilustracionContenedor: { aspectRatio: 1, borderRadius: 20, overflow: 'hidden', transform: [{ translateX: 15 }], width: '135%' },
+  // Hero Reflexion + Ilustracion lado a lado
+  heroReflexion: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16, paddingHorizontal: 16 },
+  widgetReflexionWrap: { width: 146 },
+  widgetReflexionGlass: { alignItems: 'center', aspectRatio: 3 / 4, borderRadius: 20, gap: 8, justifyContent: 'center', padding: 12, width: '100%' },
+  heroColDer: { alignItems: 'flex-end', flex: 1, height: 195, justifyContent: 'center', marginLeft: 6, transform: [{ translateX: 16 }] },
   ilustracionHabitos: { height: '100%', width: '100%' },
+  flotanteRocaTop: { height: 32, left: 8, position: 'absolute', top: 6, width: 32, zIndex: 1 },
+  flotantePastoTop: { height: 32, position: 'absolute', right: 14, top: -4, width: 38, zIndex: 1 },
+  flotanteRocaMidLeft: { height: 26, left: -2, position: 'absolute', top: 72, width: 26, zIndex: 1 },
+  flotantePastoMidRight: { height: 32, position: 'absolute', right: -12, top: 70, width: 36, zIndex: 1 },
+  flotantePastoCenterBottom: { bottom: -6, height: 30, position: 'absolute', right: 62, width: 36, zIndex: 1 },
+  flotantePastoBottom: { bottom: 8, height: 36, left: -8, position: 'absolute', width: 44, zIndex: 1 },
+  flotanteRocaBottom: { bottom: 4, height: 34, position: 'absolute', right: 6, width: 34, zIndex: 1 },
+  imgFlotante: { height: '100%', width: '100%' },
 
-  contenidoInterior: { gap: 16, paddingHorizontal: 16, marginTop: -20 },
+  contenidoInterior: { gap: 16, marginTop: 0, paddingHorizontal: 16 },
   
   // Banner
-  bannerSuperior: { alignItems: 'center', borderRadius: 20, flexDirection: 'row', gap: 12, padding: 12 },
-  bannerIconoContenedor: { alignItems: 'center', justifyContent: 'center', width: 36, height: 36 },
-  bannerIcono: { height: 32, resizeMode: 'contain', width: 32, transform: [{ rotate: '-15deg' }] },
   bannerTextoContenedor: { flex: 1 },
   bannerTitulo: { color: C.texto, fontFamily: 'MontserratAlternates-Bold', fontSize: 15 },
   bannerSubtitulo: { color: C.tenue, fontFamily: 'Montserrat-Medium', fontSize: 10, marginTop: 2 },
   bannerChevron: { alignItems: 'center', borderRadius: 14, height: 28, justifyContent: 'center', width: 28 },
+  bannerWidgetsAcceso: { alignItems: 'center', borderRadius: 20, flexDirection: 'row', gap: 12, padding: 12 },
+  bannerWidgetsIconoContenedor: { alignItems: 'center', backgroundColor: 'rgba(37,136,76,0.12)', borderRadius: 14, height: 36, justifyContent: 'center', width: 36 },
+  badgePro: { backgroundColor: C.verde, borderRadius: 8, paddingHorizontal: 6, paddingVertical: 2 },
+  badgeProTexto: { color: '#FFF', fontFamily: 'Montserrat-Bold', fontSize: 9 },
   
   // 4 mini cards
   statsFila: { flexDirection: 'row', gap: 6, justifyContent: 'space-between' },
@@ -286,9 +574,7 @@ const s = StyleSheet.create({
   statCardMini: { alignItems: 'center', borderRadius: 16, paddingHorizontal: 2, paddingVertical: 10, gap: 2 },
   statCardValor: { color: C.texto, fontFamily: 'MontserratAlternates-Bold', fontSize: 17, marginTop: 4 },
   statCardTitulo: { color: C.tenue, fontFamily: 'Montserrat-Medium', fontSize: 9, textAlign: 'center', lineHeight: 11, minHeight: 22 },
-  statCardBadge: { flexDirection: 'row', alignItems: 'center', gap: 2, marginTop: 2 },
-  statCardBadgeTexto: { color: C.verde, fontFamily: 'Montserrat-Bold', fontSize: 9 },
-  
+
   // Columns
   columnas: { flexDirection: 'row', gap: 12 },
   columna: { flex: 1, gap: 12 },

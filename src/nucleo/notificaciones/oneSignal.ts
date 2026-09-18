@@ -1,4 +1,4 @@
-import { Alert, Platform } from 'react-native';
+import { Platform } from 'react-native';
 import { router } from 'expo-router';
 import { LogLevel, OneSignal, PushSubscriptionChangedState } from 'react-native-onesignal';
 
@@ -8,7 +8,6 @@ import { obtenerRutaNotificacion } from './rutaNotificacion';
 const APP_ID = 'b6f79a2f-9c6b-43f0-a824-9a2dcf7f0ecb';
 
 let inicializado = false;
-let dialogoMostrado = false;
 let usuarioPendiente: string | null = null;
 
 function esSuscripcionReal(id: string | null | undefined): id is string {
@@ -38,21 +37,8 @@ async function registrarDispositivo(id: string) {
   if (error) throw error;
 }
 
-function mostrarDialogoVerificacion(id: string | null | undefined) {
-  if (!esSuscripcionReal(id) || dialogoMostrado) return;
-  dialogoMostrado = true;
-
-  Alert.alert(
-    'Your OneSignal SDK integration is complete!',
-    'You can now send Push Notifications & In-App Messages through OneSignal. Tap below to enable push notifications.',
-    [{ text: 'Got it', onPress: () => { void solicitarPermisoYRegistrar(); } }],
-    { cancelable: false },
-  );
-}
-
 function alCambiarSuscripcion(evento: PushSubscriptionChangedState) {
   const id = evento.current.id;
-  mostrarDialogoVerificacion(id);
   if (esSuscripcionReal(id)) void registrarDispositivo(id).catch(() => undefined);
 }
 
@@ -71,7 +57,6 @@ export function inicializarOneSignal() {
   OneSignal.User.pushSubscription.addEventListener('change', alCambiarSuscripcion);
   OneSignal.Notifications.addEventListener('click', alAbrirNotificacion);
   void OneSignal.User.pushSubscription.getIdAsync().then((id) => {
-    mostrarDialogoVerificacion(id);
     if (esSuscripcionReal(id)) void registrarDispositivo(id).catch(() => undefined);
   });
 }

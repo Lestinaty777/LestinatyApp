@@ -1,7 +1,7 @@
 {
   "name": "app",
   "version": "1.0.0",
-  "main": "expo-router/entry",
+  "main": "index.ts",
   "dependencies": {
     "@expo/vector-icons": "^15.1.1",
     "@react-native-async-storage/async-storage": "^3.1.1",
@@ -12,6 +12,7 @@
     "expo": "~57.0.15",
     "expo-blur": "~57.0.2",
     "expo-camera": "~57.0.4",
+    "expo-clipboard": "~57.0.2",
     "expo-font": "~57.0.1",
     "expo-haptics": "^57.0.1",
     "expo-image-picker": "~57.0.16",
@@ -32,6 +33,7 @@
     "react-hook-form": "^7.86.0",
     "react-i18next": "^17.0.12",
     "react-native": "0.86.2",
+    "react-native-android-widget": "^0.22.1",
     "react-native-gesture-handler": "~2.32.0",
     "react-native-onesignal": "5.2.14",
     "react-native-purchases": "^10.9.1",

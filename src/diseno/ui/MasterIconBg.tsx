@@ -4,6 +4,7 @@ import { Image, StyleSheet, View } from 'react-native';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 
 import { MasterGlass } from './MasterGlass';
+import { Skeleton } from '../componentes/Skeleton';
 
 type MasterIconBgProps = {
   children?: ReactNode;
@@ -20,6 +21,8 @@ type MasterIconBgProps = {
    * queda verde sin importar el borde/degradado de arriba.
    */
   tinte?: string;
+  cargando?: boolean;
+  loading?: boolean;
 };
 
 // Fondo de icono glass con anillo degradado verde — extraído tal cual de la
@@ -29,11 +32,15 @@ type MasterIconBgProps = {
 export function MasterIconBg({
   children, colorBordeFin = '#539C68', colorBordeInicio = '#C5F7B6',
   degradadoFin = '#B8EDB0', degradadoInicio = '#F4FFF1',
-  fuente, size = 68, style, tinte,
+  fuente, size = 68, style, tinte, cargando, loading,
 }: MasterIconBgProps) {
   const radioExterior = Math.round(size * (18 / 68));
   const radioInterior = Math.round(size * (16 / 68));
   const tamanoIcono = Math.round(size * (48 / 68) * 1.2);
+
+  if (cargando || loading) {
+    return <Skeleton alto={size} ancho={size} radio={radioExterior} style={style} />;
+  }
 
   return (
     <View style={[mib.marco, { borderRadius: radioExterior, height: size, width: size }, style]}>

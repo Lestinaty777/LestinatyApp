@@ -80,3 +80,52 @@ export async function asignarSemillaHabito(semillaId: string, habitoId: string):
   const remoto = data as { habito_id: string; paquete_id: string };
   return { habitoId: remoto.habito_id, paqueteId: remoto.paquete_id };
 }
+
+// Regalo de bienvenida: exactamente 1 semilla gratis del paquete elegido,
+// una sola vez de por vida por cuenta. Ver comercio.otorgar_semilla_bienvenida.
+export async function otorgarSemillaBienvenida(paqueteId: string): Promise<{ paqueteId: string }> {
+  const { data, error } = await obtenerClienteSupabase().rpc('otorgar_semilla_bienvenida', { p_paquete_id: paqueteId });
+  if (error) throw error;
+  const remoto = data as { paquete_id: string };
+  return { paqueteId: remoto.paquete_id };
+}
+
+export type InfoReferidos = {
+  codigo: string;
+  totalAmigos: number;
+  amigosCompletados: number;
+  gemasGanadas: number;
+};
+
+export async function obtenerInfoReferidos(): Promise<InfoReferidos> {
+  const supabase = obtenerClienteSupabase();
+  const { data: rpcData, error: rpcError } = await supabase.rpc('obtener_resumen_referidos');
+
+  if (!rpcError && rpcData) {
+    const d = rpcData as { codigo?: string; total_amigos?: number; amigos_completados?: number; gemas_ganadas?: number };
+    return {
+      codigo: d.codigo ?? '',
+      totalAmigos: Number(d.total_amigos ?? 0),
+      amigosCompletados: Number(d.amigos_completados ?? 0),
+      gemasGanadas: Number(d.gemas_ganadas ?? 0),
+    };
+  }
+
+  // Fallback: leer perfil directamente
+  const { data: usuario } = await supabase.auth.getUser();
+  if (!usuario?.user?.id) return { codigo: '', totalAmigos: 0, amigosCompletados: 0, gemasGanadas: 0 };
+
+  const { data: perfil } = await supabase
+    .from('perfiles_usuario')
+    .select('codigo_referido')
+    .eq('id', usuario.user.id)
+    .maybeSingle();
+
+  return {
+    codigo: (perfil as { codigo_referido?: string } | null)?.codigo_referido ?? '',
+    totalAmigos: 0,
+    amigosCompletados: 0,
+    gemasGanadas: 0,
+  };
+}
+

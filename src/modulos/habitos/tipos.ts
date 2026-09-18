@@ -17,9 +17,13 @@ export type HabitoResumen = {
   completado: boolean;
 };
 
+/** Solo lo devuelven patrones/riesgo/conexiones — cuánto hay acumulado vs. cuánto hace falta para que `estado` llegue a 'listo'. Ver comercio.obtener_panel_habitos. */
+export type ProgresoSeccionPanel = { actual: number; requerido: number };
+
 export type SeccionPanelHabitos<T> = {
   estado: EstadoPanelHabitos;
   datos: T;
+  progreso?: ProgresoSeccionPanel;
 };
 
 export type PatronHabito = { diaSemana: number; completados: number; muestras: number; porcentaje: number };

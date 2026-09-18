@@ -6,18 +6,28 @@ import Animated, { cancelAnimation, Easing, useAnimatedStyle, useSharedValue, wi
 
 import { MasterGlass, Texto } from '../../src/diseno';
 import { usarEstadoAcceso } from '../../src/modulos/acceso/acceso.estado';
+import { useRegaloBienvenidaPendiente } from '../../src/modulos/onboarding/onboarding.servicio';
+import { RegaloBienvenidaPantalla } from '../../src/modulos/onboarding/pantallas/RegaloBienvenidaPantalla';
 
 export default function LayoutPrincipal() {
   const cargandoSesion = usarEstadoAcceso((estado) => estado.cargandoSesion);
   const usuario = usarEstadoAcceso((estado) => estado.usuario);
   const insets = useSafeAreaInsets();
+  const { data: regaloPendiente, isLoading: cargandoRegalo } = useRegaloBienvenidaPendiente({ enabled: !!usuario });
 
-  if (cargandoSesion) {
+  if (cargandoSesion || (usuario && cargandoRegalo)) {
     return null;
   }
 
   if (!usuario) {
     return <Redirect href="/(publico)/iniciar-sesion" />;
+  }
+
+  // Cuenta nueva que todavía no eligió su árbol de bienvenida: bloquea las
+  // pestañas hasta que elige. Se autorepara solo si cierra la app a mitad de
+  // camino — la próxima vez que abra vuelve a caer acá mismo.
+  if (regaloPendiente) {
+    return <RegaloBienvenidaPantalla />;
   }
 
   return (

@@ -10,6 +10,7 @@ import { crearTemaMapa, generarMapaProcedural, type CategoriaMapaId, type MapaPr
 import { ASSETS_AMBIENTE_UNIVERSAL, obtenerAssetBioma, obtenerAssetEtapaUnoPaquete, obtenerAssetSemillaPaquete, registroBiomas, tienePaqueteAssetsReales } from '../../algoritmo/registroBiomas';
 import { obtenerNodosMapaMock } from '../../datos/mapaEjercicio.mock';
 import type { EstadoNodoMapa, NodoMapaSendero } from '../../datos/mapaEjercicio.mock';
+import type { TipoMetaHabito } from '../../../habitos/tipos';
 import { PixelartIcon } from '../../../../diseno/iconos/PixelartIcon';
 import { LamparaSendero } from './LamparaSendero';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -22,6 +23,8 @@ type ContenedorMapaSenderosProps = {
   categoriaId: CategoriaMapaId;
   color: string;
   enfocado: boolean;
+  /** Meta/tipo del hábito real detrás de este mapa — solo para armar la descripción genérica del tooltip (categoriaId 'habitos'). Sin esto, el tooltip usa un texto genérico de "lección". */
+  infoHabito?: { meta: number; tipoMeta: TipoMetaHabito; unidad: string | null };
   /** Nodos reales a mostrar (por ejemplo, los días hacia el próximo nivel de un hábito). Si se omite, se usan los nodos mock por subcategoriaId. */
   nodos?: NodoMapaSendero[];
   /** Si se pasa, reemplaza la navegación mock de "Comenzar" del tooltip — para contextos con una acción real (ej. registrar progreso de un hábito). */
@@ -276,7 +279,7 @@ const CapaDecoracionMapa = React.memo(function CapaDecoracionMapa({
   );
 });
 
-export function ContenedorMapaSenderos({ altura, categoriaId, color, enfocado, nivel, nodos: nodosOverride, onCompletarNodo, paqueteId, progresoPastoTemprano, subcategoriaId }: ContenedorMapaSenderosProps) {
+export function ContenedorMapaSenderos({ altura, categoriaId, color, enfocado, infoHabito, nivel, nodos: nodosOverride, onCompletarNodo, paqueteId, progresoPastoTemprano, subcategoriaId }: ContenedorMapaSenderosProps) {
   const { width } = useWindowDimensions();
   const router = useRouter();
   const scrollRef = useRef<ScrollView>(null);
@@ -470,6 +473,7 @@ export function ContenedorMapaSenderos({ altura, categoriaId, color, enfocado, n
             anchoEscena={anchoEscena}
             color={color}
             estado={estadoNodoSeleccionado}
+            infoHabito={infoHabito}
             nodo={nodoSeleccionado}
             posicion={posicionNodoSeleccionado}
             onCompletar={() => completarNodo(indiceNodoSeleccionado)}
@@ -483,10 +487,21 @@ export function ContenedorMapaSenderos({ altura, categoriaId, color, enfocado, n
   );
 }
 
-function TooltipNodoSeleccionado({ anchoEscena, color, estado, nodo, posicion, onCompletar }: {
+// Texto del tooltip: un mismo mensaje para todos los nodos del hábito (no
+// hay una "lección" distinta por nodo), pero asociado a su meta real en vez
+// del texto de lección genérico de antes.
+function descripcionNodoHabito(infoHabito?: { meta: number; tipoMeta: TipoMetaHabito; unidad: string | null }): string {
+  if (!infoHabito) return 'Lección clave para poner a prueba tus habilidades y avanzar.';
+  if (infoHabito.tipoMeta === 'check') return 'Marca el hábito como cumplido para sumar el día.';
+  if (infoHabito.tipoMeta === 'duracion') return `Corre el cronómetro hasta llegar a tus ${infoHabito.meta} min de hoy.`;
+  return `Suma tus ${infoHabito.unidad ?? 'unidades'} hasta llegar a ${infoHabito.meta} para sumar el día.`;
+}
+
+function TooltipNodoSeleccionado({ anchoEscena, color, estado, infoHabito, nodo, posicion, onCompletar }: {
   anchoEscena: number;
   color: string;
   estado: EstadoNodoMapa;
+  infoHabito?: { meta: number; tipoMeta: TipoMetaHabito; unidad: string | null };
   nodo: NodoMapaSendero;
   posicion: { x: number; y: number };
   onCompletar: () => void;
@@ -533,7 +548,7 @@ function TooltipNodoSeleccionado({ anchoEscena, color, estado, nodo, posicion, o
             <IconoNodo color="#FFFFFF" size={20} />
             <Texto style={[styles.etiquetaTitulo, { color: '#FFFFFF', width: 'auto' }]}>{nodo.titulo}</Texto>
           </View>
-          <Texto style={[styles.etiquetaMeta, { color: '#FFFFFF' }]}>Lección clave para poner a prueba tus habilidades y avanzar.</Texto>
+          <Texto style={[styles.etiquetaMeta, { color: '#FFFFFF' }]}>{descripcionNodoHabito(infoHabito)}</Texto>
           <MasterButton
             style={{ marginTop: 14, width: '100%' }}
             color={colorBaseTooltip}

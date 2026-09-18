@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ChevronRight, Check, EllipsisVertical, Play, Sparkles } from 'lucide-react-native';
-import { Image, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Image, Linking, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useEffect, useState } from 'react';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
@@ -22,6 +22,7 @@ import { useSaldoGemas } from '../../tienda/useSaldoGemas';
 import { rutaParaHorizon } from '../../../nucleo/compras/horizonAcceso';
 import { useHorizon } from '../../../nucleo/compras/useHorizon';
 import { HabitoResumen, MejorRachaHabito } from '../tipos';
+import { sincronizarWidgetFoco } from '../widgets/widgetFoco.servicio';
 
 const DIAS_SEMANA_COMPLETA = [1, 2, 3, 4, 5, 6, 7];
 const ESCALA_TARJETA_HOY = 0.6;
@@ -76,6 +77,12 @@ export function HabitosPantalla() {
     return () => { activo = false; };
   }, []);
 
+  useEffect(() => {
+    if (consulta.data?.hoy.datos && horizon.data === 'activo') {
+      sincronizarWidgetFoco(consulta.data.hoy.datos);
+    }
+  }, [consulta.data?.hoy.datos, horizon.data]);
+
   function marcarSwipeDescubierto() {
     setMostrarPistaSwipe(false);
     marcarPistaSwipeSenderoVista();
@@ -129,8 +136,14 @@ export function HabitosPantalla() {
           </Animated.View>
         </View>
         <View style={s.headerDer}>
-          <Animated.View entering={entradaEncadenada(1)}><Rebote accessibilityLabel="Comprar gemas" onPress={() => router.push('/tienda')} estilo={s.statPill}><View style={s.statPillFila}><Image source={require('../../../../assets/icons/hoy/gemas.png')} style={s.gemaIcono} /><Texto style={s.statTexto}>{saldoGemas ?? 0}</Texto></View></Rebote></Animated.View>
-          <Animated.View entering={entradaEncadenada(2)}><MasterGlass style={s.notificacion}><Image source={require('../../../../assets/icons/hoy/notificaciones.png')} style={s.notificacionIcono} /></MasterGlass></Animated.View>
+          <Animated.View entering={entradaEncadenada(1)}><Rebote accessibilityLabel="Comprar gemas" onPress={() => router.push('/tienda/gemas')} estilo={s.statPill}><View style={s.statPillFila}><Image source={require('../../../../assets/icons/hoy/gemas.png')} style={s.gemaIcono} /><Texto style={s.statTexto}>{saldoGemas ?? 0}</Texto></View></Rebote></Animated.View>
+          <Animated.View entering={entradaEncadenada(2)}>
+            <Rebote accessibilityLabel="Notificaciones" onPress={() => Linking.openSettings()}>
+              <MasterGlass style={s.notificacion}>
+                <Image source={require('../../../../assets/icons/hoy/notificaciones.png')} style={s.notificacionIcono} />
+              </MasterGlass>
+            </Rebote>
+          </Animated.View>
         </View>
       </View>
       <View style={s.heroInicio}>
@@ -226,10 +239,10 @@ export function HabitosPantalla() {
       </MasterGlass>
     </Animated.View>
     <Animated.View entering={entradaEncadenada(11)} style={s.horizonAcceso}>
-      <Pressable accessibilityLabel="Explorar widgets Horizon" disabled={horizon.isLoading} onPress={abrirHorizon} style={({ pressed }) => [pressed && s.horizonAccesoPresionado, horizon.isLoading && s.horizonAccesoDeshabilitado]}>
+      <Pressable accessibilityLabel="Explorar widgets de pantalla de inicio" disabled={horizon.isLoading} onPress={abrirHorizon} style={({ pressed }) => [pressed && s.horizonAccesoPresionado, horizon.isLoading && s.horizonAccesoDeshabilitado]}>
         <MasterGlass style={s.horizonGlass}>
           <View style={s.horizonIcono}><MasterIcon color={2} name="montana" size={27} /></View>
-          <View style={s.horizonTexto}><Texto style={s.horizonTitulo}>Widgets Horizon</Texto><Texto style={s.horizonDescripcion}>{horizon.isLoading ? 'Comprobando Horizon…' : 'Lleva tus hábitos a tu inicio'}</Texto></View>
+          <View style={s.horizonTexto}><Texto style={s.horizonTitulo}>Widgets de Inicio</Texto><Texto style={s.horizonDescripcion}>{horizon.isLoading ? 'Comprobando suscripción…' : 'Lleva tus hábitos a tu pantalla de inicio'}</Texto></View>
           <ChevronRight color="#3B9858" size={21} />
         </MasterGlass>
       </Pressable>

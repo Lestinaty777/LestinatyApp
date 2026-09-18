@@ -31,7 +31,25 @@
           "disableLocation": true
         }
       ],
-      "expo-font"
+      "expo-font",
+      [
+        "react-native-android-widget",
+        {
+          "widgets": [
+            {
+              "name": "HabitoFoco",
+              "label": "Hábito foco",
+              "description": "Ancla un hábito a tu pantalla de inicio y regístralo con un toque.",
+              "minWidth": "110dp",
+              "minHeight": "110dp",
+              "targetCellWidth": 2,
+              "targetCellHeight": 2,
+              "resizeMode": "none",
+              "updatePeriodMillis": 1800000
+            }
+          ]
+        }
+      ]
     ],
     "extra": {
       "eas": {

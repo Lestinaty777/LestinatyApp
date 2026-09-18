@@ -9,9 +9,10 @@ import { Boton, MasterAnimation, MasterGlass, MasterIcon, RecuadroGlass, Texto }
 import { MasterChanger } from '../../../diseno/componentes/MasterChanger';
 import { CrearHabitoInput } from '../habitos.servicio';
 import type { TipoMetaHabito } from '../tipos';
-import { ARBUSTO_SELVA_BASE, DIAS_REQUERIDOS_POR_NIVEL, NIVEL_MAXIMO_TONO, factorTono, iconosHabitos, obtenerAssetsSelvaPorTono, tonoVerdeNivel, type AssetsSelvaTono } from '../iconosHabitos';
+import { ARBUSTO_SELVA_BASE, DIAS_REQUERIDOS_POR_NIVEL, factorTono, iconosHabitos, obtenerAssetsSelvaPorTono, type AssetsSelvaTono } from '../iconosHabitos';
 import { hapticSeguro } from '../../../nucleo/dispositivo/haptics';
 import { solicitarPermisoYRegistrar } from '../../../nucleo/notificaciones/oneSignal';
+import { actualizarPreferenciaNotificacion } from '../../configuracion/configuracion.servicio';
 import { estadoPreparacionHabito } from '../creacionPremium';
 import { preparacionEstilos as p } from '../creacionPremium.estilos';
 import { buscarPlantillasHabitos, type PlantillaHabito } from '../plantillasHabitos';
@@ -79,7 +80,15 @@ function PuntoProgreso({ activo, color }: { activo: boolean; color: string }) {
 }
 
 const BIOMA_TITULO = 'Selva viva';
-const TONOS = Array.from({ length: NIVEL_MAXIMO_TONO }, (_, indice) => indice + 1);
+// Esmeralda es el paquete gratuito por defecto de todo hábito nuevo (ver
+// migración 20260918_30) — ya no hay selector de tono verde en el wizard. El
+// preview de abajo (assetsSelva/PreparandoHabito) sigue usando el sistema
+// viejo por tono como ilustración de relleno — mismo criterio ya aceptado
+// para paquetes premium (ver comentario en `color`, más abajo): todavía no
+// hay arte real por etapa cargado en este componente de preview.
+const TONO_PREVIEW_FIJO = 1;
+const PAQUETE_GRATUITO_DEFECTO = 'esmeralda';
+const COLOR_PAQUETE_GRATUITO_DEFECTO = '#029060'; // master_pack_color real de 'esmeralda' en arboles_paquetes
 
 function ArbustoSelva({ tono, ancho, alto, estilo }: { tono: number; ancho: number; alto: number; estilo?: StyleProp<ViewStyle> }) {
   return <View style={estilo}><MasterChanger ancho={ancho} alto={alto} colorDestino={2} fuente={ARBUSTO_SELVA_BASE} oscurecido={factorTono(tono)} /></View>;
@@ -196,7 +205,8 @@ export function CrearHabitoWizard({ visible, guardando, onCerrar, onCrear }: { v
   const [tipo, setTipo] = useState<CrearHabitoInput['tipoMeta']>('cantidad'), [frecuencia, setFrecuencia] = useState<CrearHabitoInput['frecuencia']>('diaria');
   const [diasSemana, setDiasSemana] = useState<number[]>([1, 2, 3, 4, 5, 6, 7]), [vecesSemana, setVecesSemana] = useState('3');
   const [recordatorio, setRecordatorio] = useState(false), [hora, setHora] = useState('08:00'), [horaPersonalizada, setHoraPersonalizada] = useState(false), [mostrar, setMostrar] = useState(false);
-  const [tono, setTono] = useState(1), [iconoLucide, setIconoLucide] = useState(iconosHabitos[0].id);
+  const tono = TONO_PREVIEW_FIJO;
+  const [iconoLucide, setIconoLucide] = useState(iconosHabitos[0].id);
   // Semilla premium elegida (id de usuario_semillas) en vez de un tono verde
   // gratuito — null significa "usar el tono verde de siempre". Se limpia al
   // cerrar el wizard igual que el resto del estado transitorio.
@@ -225,7 +235,18 @@ export function CrearHabitoWizard({ visible, guardando, onCerrar, onCrear }: { v
   const pulso = useRef(new Animated.Value(1)).current;
   const scrollRef = useRef<ScrollView>(null);
   const desplazarAlFoco = () => setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 80);
-  useEffect(() => { if (!recordatorio) return; void solicitarPermisoYRegistrar().then((concedido) => { if (!concedido) setRecordatorio(false); }).catch(() => setRecordatorio(false)); }, [recordatorio]);
+  // El permiso nativo y el registro del dispositivo no bastan: el despachador
+  // de recordatorios (privacidad.reclamar_recordatorios_habitos) también exige
+  // que la preferencia global 'habito_recordatorio' esté habilitada — sin este
+  // paso el recordatorio del hábito quedaba activado en la UI pero nunca se
+  // enviaba ninguna notificación real.
+  useEffect(() => {
+    if (!recordatorio) return;
+    void solicitarPermisoYRegistrar().then((concedido) => {
+      if (!concedido) { setRecordatorio(false); return; }
+      void actualizarPreferenciaNotificacion('habito_recordatorio', true).catch(() => undefined);
+    }).catch(() => setRecordatorio(false));
+  }, [recordatorio]);
   useEffect(() => { if (visible) return; setPreparando(false); setProgresoPreparacion(0); setHabitoCreado(false); setErrorCrear(null); setPlantillaId(null); setBuscarPlantilla(''); setSemillaSeleccionada(null); }, [visible]);
   // Cuenta 1 en 1, nunca a saltos: sube despacio hasta 96% mientras esperamos
   // el guardado real, y solo sigue de 97 a 100 cuando ya se confirmó creado —
@@ -249,7 +270,7 @@ export function CrearHabitoWizard({ visible, guardando, onCerrar, onCrear }: { v
   // clampeado igual que en el mapa real) — la ilustración de la selva de
   // abajo sigue mostrando el tono verde por ahora: todavía no hay arte de
   // paquete premium por etapa para previsualizar acá (ver Fase 4 del plan).
-  const color = useMemo(() => paqueteSeleccionado ? colorSeguroUi(paqueteSeleccionado.masterPackColor) : tonoVerdeNivel(tono), [paqueteSeleccionado, tono]);
+  const color = useMemo(() => paqueteSeleccionado ? colorSeguroUi(paqueteSeleccionado.masterPackColor) : COLOR_PAQUETE_GRATUITO_DEFECTO, [paqueteSeleccionado]);
   const assetsSelva: AssetsSelvaTono = useMemo(() => obtenerAssetsSelvaPorTono(tono), [tono]);
   const icono = useMemo(() => iconosHabitos.find((item) => item.id === iconoLucide) ?? iconosHabitos[0], [iconoLucide]);
   const horaValida = /^([01]\d|2[0-3]):[0-5]\d$/.test(hora);
@@ -291,7 +312,7 @@ export function CrearHabitoWizard({ visible, guardando, onCerrar, onCrear }: { v
         diasSemana: frecuencia === 'dias_semana' ? diasSemana : null,
         vecesPorSemana: frecuencia === 'veces_semana' ? Math.max(1, Number(vecesSemana) || 1) : null,
         recordatorioActivo: recordatorio, horaRecordatorio: recordatorio ? hora : null, mostrarNombreNotificacion: mostrar,
-        paqueteId: `verde-${tono}`,
+        paqueteId: PAQUETE_GRATUITO_DEFECTO,
       });
       if (semillaSeleccionada) {
         await asignarSemillaHabito(semillaSeleccionada, resultado.id);
@@ -338,13 +359,10 @@ export function CrearHabitoWizard({ visible, guardando, onCerrar, onCrear }: { v
         <MasterAnimation duracion={220}>
           <EncabezadoPaso icono="idea" titulo="¿Qué hábito quieres construir?" subtitulo="Dale una identidad que te dé ganas de verlo cada día."/>
           <TextInput autoFocus value={titulo} onChangeText={setTitulo} placeholder="Ej. Meditar" style={s.input}/>
-          <View>
-            <Texto style={s.etiqueta}>Tono de tu selva</Texto>
-            <View style={s.colores}>{TONOS.map((t) => <Rebote key={t} estilo={[s.color,{backgroundColor:tonoVerdeNivel(t)},!semillaSeleccionada&&tono===t&&s.colorActivo]} onPress={() => { setTono(t); setSemillaSeleccionada(null); }} overlay={!semillaSeleccionada && tono===t && <AnilloSeleccion activo color="#FFFFFF"/>}><CheckAnimado visible={!semillaSeleccionada && tono===t}/></Rebote>)}</View>
-          </View>
           {semillasPorPaquete.length > 0 && (
             <View>
               <Texto style={s.etiqueta}>Tus semillas</Texto>
+              <Texto style={s.sub}>Elige una para usar ese árbol en este hábito — si no eliges ninguna, usamos Esmeralda (gratis).</Texto>
               <View style={s.colores}>
                 {semillasPorPaquete.map(({ paquete, semillaIds }) => {
                   const activa = semillaIds.includes(semillaSeleccionada ?? '');
@@ -353,7 +371,7 @@ export function CrearHabitoWizard({ visible, guardando, onCerrar, onCrear }: { v
                       accessibilityLabel={`Semilla de ${paquete.nombre}${semillaIds.length > 1 ? `, ${semillaIds.length} disponibles` : ''}`}
                       key={paquete.id}
                       estilo={[s.color, { backgroundColor: paquete.masterPackColor }, activa && s.colorActivo]}
-                      onPress={() => setSemillaSeleccionada(semillaIds[0])}
+                      onPress={() => setSemillaSeleccionada(activa ? null : semillaIds[0])}
                       overlay={activa && <AnilloSeleccion activo color="#FFFFFF"/>}
                     >
                       <CheckAnimado visible={activa}/>

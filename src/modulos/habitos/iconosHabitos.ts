@@ -14,6 +14,17 @@ export type { IconoRegistrado as IconoHabito } from '../../diseno/iconos/registr
 // mapaNivel7, que no tiene contraparte real porque el nivel 7 es el máximo).
 export const DIAS_REQUERIDOS_POR_NIVEL: Record<number, number> = { 2: 3, 3: 7, 4: 12, 5: 18, 6: 25, 7: 33 };
 
+// Cuántos días ya se acumularon ANTES de entrar a `nivel` — la suma de los
+// requisitos de todos los niveles previos. Alimenta la numeración continua
+// del sendero (Día 1..3 en nivel 1, Día 4..10 en nivel 2, etc.) para que el
+// primer nodo de cada nivel nuevo siga el conteo del anterior en vez de
+// reiniciar en 1.
+export function diasAcumuladosAntesDeNivel(nivel: number): number {
+  let acumulado = 0;
+  for (let n = 2; n <= nivel; n++) acumulado += DIAS_REQUERIDOS_POR_NIVEL[n] ?? 0;
+  return acumulado;
+}
+
 // OJO: el tono (1-7, oscurece este verde de más claro a más oscuro) es una
 // elección VISUAL fija de por vida del hábito — se guarda en
 // habitos_items.tono_visual al crearlo (ver migración 22) y es independiente

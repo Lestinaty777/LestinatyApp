@@ -26,7 +26,7 @@ export type CrearHabitoInput = { titulo: string; descripcion?: string; meta: num
 export async function crearHabito(input: CrearHabitoInput): Promise<{ id: string; plan_id: string }> {
   const { data, error } = await obtenerClienteSupabase().rpc('crear_habito_premium', {
     p_titulo: input.titulo.trim(), p_descripcion: input.descripcion ?? null, p_icono_lucide: input.iconoLucide ?? 'Sparkles', p_color: input.color ?? '#22C55E', p_tipo_meta: input.tipoMeta ?? 'cantidad', p_unidad: input.unidad.trim(), p_categoria: input.categoria ?? null, p_dificultad: input.dificultad ?? 'estandar', p_disparador: input.disparador ?? null, p_recompensa: input.recompensa ?? null,
-    p_frecuencia: input.frecuencia ?? 'diaria', p_dias_semana: input.diasSemana ?? null, p_veces_por_semana: input.vecesPorSemana ?? null, p_objetivo_valor: input.meta, p_recordatorio_activo: input.recordatorioActivo ?? false, p_hora_recordatorio: input.horaRecordatorio ?? null, p_mostrar_nombre_notificacion: input.mostrarNombreNotificacion ?? false, p_desde_fecha: new Date().toISOString().slice(0, 10), p_nivel_inicial: input.nivelInicial ?? 1, p_paquete_id: input.paqueteId ?? 'verde-1',
+    p_frecuencia: input.frecuencia ?? 'diaria', p_dias_semana: input.diasSemana ?? null, p_veces_por_semana: input.vecesPorSemana ?? null, p_objetivo_valor: input.meta, p_recordatorio_activo: input.recordatorioActivo ?? false, p_hora_recordatorio: input.horaRecordatorio ?? null, p_mostrar_nombre_notificacion: input.mostrarNombreNotificacion ?? false, p_desde_fecha: new Date().toISOString().slice(0, 10), p_nivel_inicial: input.nivelInicial ?? 1, p_paquete_id: input.paqueteId ?? 'esmeralda',
   });
   if (error) throw error;
   return data as { id: string; plan_id: string };

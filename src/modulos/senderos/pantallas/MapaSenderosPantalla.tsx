@@ -1,7 +1,7 @@
 import Svg, { Rect, Defs, Pattern, Path, Circle, Line } from 'react-native-svg';
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { FlatList, StyleSheet, View, useWindowDimensions, Pressable, Text as TextoRN, Image } from 'react-native';
 import { ScrollView } from 'react-native-gesture-handler';
 import { BotonTab } from '../../../nucleo/navegacion/BarraTabs';
@@ -17,7 +17,7 @@ import { hapticSeguro } from '../../../nucleo/dispositivo/haptics';
 import { TarjetaHabitoCompacta } from '../../habitos/componentes/TarjetaHabitoCompacta';
 import { WidgetRegistrarProgreso } from '../../habitos/componentes/WidgetRegistrarProgreso';
 import { useSenderoHabito } from '../../habitos/hooks/useSenderoHabito';
-import { buscarIconoHabito } from '../../habitos/iconosHabitos';
+import { buscarIconoHabito, diasAcumuladosAntesDeNivel } from '../../habitos/iconosHabitos';
 import { obtenerDetallesHabitosHoy, obtenerPanelHabitos } from '../../habitos/habitos.servicio';
 import type { HabitoResumen } from '../../habitos/tipos';
 import { useSaldoGemas } from '../../tienda/useSaldoGemas';
@@ -80,6 +80,7 @@ const cp = StyleSheet.create({
 });
 
 export function MapaSenderosPantalla() {
+  const router = useRouter();
   const parametros = useLocalSearchParams<{ habitoId?: string | string[] }>();
   const habitoIdParametro = Array.isArray(parametros.habitoId) ? parametros.habitoId[0] : parametros.habitoId;
 
@@ -133,13 +134,16 @@ export function MapaSenderosPantalla() {
   const nivelReal = sendero.consulta.data?.nivel ?? 1;
   const nivelVisible = esPruebaDiamante ? nivelVistaPrueba : nivelReal;
   const mapaNivelVisible = MAPAS_NIVELES[nivelVisible - 1] ?? MAPAS_NIVELES[0];
-  const nodosPruebaDiamante = React.useMemo(() => Array.from({ length: mapaNivelVisible.cantidadNodos }, (_, indice) => ({
-    estado: indice === 0 ? 'activo' as const : 'bloqueado' as const,
-    icono: indice === 0 ? Play : Lock,
-    id: `prueba-diamante-${nivelVisible}-${indice + 1}`,
-    subtitulo: `Nodo ${indice + 1} de ${mapaNivelVisible.cantidadNodos}`,
-    titulo: `Nodo ${indice + 1}`,
-  })), [mapaNivelVisible.cantidadNodos, nivelVisible]);
+  const nodosPruebaDiamante = React.useMemo(() => {
+    const diaInicial = diasAcumuladosAntesDeNivel(nivelVisible);
+    return Array.from({ length: mapaNivelVisible.cantidadNodos }, (_, indice) => ({
+      estado: indice === 0 ? 'activo' as const : 'bloqueado' as const,
+      icono: indice === 0 ? Play : Lock,
+      id: `prueba-diamante-${nivelVisible}-${indice + 1}`,
+      subtitulo: `Nivel ${nivelVisible} · día ${indice + 1} de ${mapaNivelVisible.cantidadNodos}`,
+      titulo: `Día ${diaInicial + indice + 1}`,
+    }));
+  }, [mapaNivelVisible.cantidadNodos, nivelVisible]);
 
   React.useEffect(() => {
     if (!esPruebaDiamante) setNivelVistaPrueba(1);
@@ -414,7 +418,7 @@ export function MapaSenderosPantalla() {
           return (
             <View style={styles.tarjetaContenedor}>
               <RecuadroGlass blur degradado={{ inicio: aclarar(colorEfectivo, 0.86), fin: aclarar(colorEfectivo, 0.5) }} style={styles.tarjetaAsignatura}>
-                <View style={{ alignItems: 'center', flexDirection: 'row', flex: 1, gap: 12, padding: 14, paddingRight: 82 }}>
+                <View style={{ alignItems: 'center', flexDirection: 'row', flex: 1, gap: 12, padding: 14, paddingRight: sendero.registrando ? 14 : 82 }}>
                   {!sendero.celebracion && !sendero.registrando && (
                     asignatura.habitoReal && iconoHabito ? (
                       <MasterIconBg
@@ -439,6 +443,7 @@ export function MapaSenderosPantalla() {
                       </View>
                     ) : sendero.registrando && asignatura.habitoReal && sendero.consulta.data ? (
                       <WidgetRegistrarProgreso
+                        colorBase={colorEfectivo}
                         guardando={sendero.registrar.isPending}
                         meta={sendero.consulta.data.habito.meta}
                         onCerrar={() => sendero.setRegistrando(false)}
@@ -509,8 +514,21 @@ export function MapaSenderosPantalla() {
                 categoriaId="habitos"
                 color={sendero.consulta.data.habito.color}
                 enfocado
+                infoHabito={{ meta: sendero.consulta.data.habito.meta, tipoMeta: sendero.consulta.data.habito.tipoMeta, unidad: sendero.consulta.data.habito.unidad }}
                 nodos={esPruebaDiamante ? nodosPruebaDiamante : sendero.nodos}
-                onCompletarNodo={esPruebaDiamante ? () => undefined : () => sendero.setRegistrando(true)}
+                onCompletarNodo={esPruebaDiamante ? () => undefined : (nodo, indice) => {
+                  hapticSeguro('accion');
+                  const diaNumero = nodo.titulo.replace(/[^0-9]/g, '') || String(indice + 1);
+                  router.push({
+                    pathname: '/senderos/mision',
+                    params: {
+                      habitoId: asignatura.habitoReal!.id,
+                      diaGlobal: diaNumero,
+                      nivel: String(nivelVisible),
+                      color: sendero.consulta.data?.habito.color ?? asignatura.color,
+                    },
+                  });
+                }}
                 subcategoriaId={asignatura.habitoReal.id}
                 // paqueteId: elección fija de por vida del hábito (qué
                 // paquete de árbol usa) — independiente del nivel real, que

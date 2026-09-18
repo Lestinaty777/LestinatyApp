@@ -1,0 +1,255 @@
+import { useState } from 'react';
+import {
+  Image,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
+  ScrollView,
+  StyleSheet,
+  useWindowDimensions,
+  View,
+} from 'react-native';
+import { useRouter } from 'expo-router';
+
+import { MasterButton, MasterGlass, MasterIcon, MasterKicker, Texto } from '../../../diseno';
+
+type CarruselHeroTiendaProps = {
+  onVerDetallesDestacado?: () => void;
+  onIrAReferidos: () => void;
+  onIrAPro?: () => void;
+};
+
+export function CarruselHeroTienda({
+  onVerDetallesDestacado,
+  onIrAReferidos,
+  onIrAPro,
+}: CarruselHeroTiendaProps) {
+  const router = useRouter();
+  const { width } = useWindowDimensions();
+  const anchoTarjeta = width - 40; // paddingHorizontal: 20 en la pantalla
+  const [slideActivo, setSlideActivo] = useState(0);
+
+  function alScroll(e: NativeSyntheticEvent<NativeScrollEvent>) {
+    const offsetX = e.nativeEvent.contentOffset.x;
+    const indice = Math.round(offsetX / anchoTarjeta);
+    if (indice >= 0 && indice <= 2 && indice !== slideActivo) {
+      setSlideActivo(indice);
+    }
+  }
+
+  function irAPro() {
+    if (onIrAPro) {
+      onIrAPro();
+    } else {
+      router.push('/habitos/widgets');
+    }
+  }
+
+  return (
+    <View style={ch.contenedor}>
+      <ScrollView
+        horizontal
+        pagingEnabled
+        showsHorizontalScrollIndicator={false}
+        onScroll={alScroll}
+        scrollEventThrottle={32}
+        decelerationRate="fast"
+        snapToInterval={anchoTarjeta + 12}
+        nestedScrollEnabled={true}
+        contentContainerStyle={[ch.scrollContenido, { paddingHorizontal: 20 }]}
+      >
+        {/* Slide 1: Árbol Destacado */}
+        <View style={{ width: anchoTarjeta, marginRight: 12 }}>
+          <MasterGlass style={ch.tarjeta}>
+            <View style={{ flexDirection: 'row' }}>
+              <View style={{ flex: 1, zIndex: 2 }}>
+                <MasterKicker icono={<MasterIcon name="hoja" color={1} size={14} />} texto="Destacado" />
+                <Texto style={ch.titulo}>Esmeralda</Texto>
+                <Texto style={ch.subtitulo}>La armonía del bosque.</Texto>
+
+                <View style={ch.puntosRareza}>
+                  {[1, 2, 3].map((i) => (
+                    <View key={i} style={[ch.punto, ch.puntoLleno]} />
+                  ))}
+                  {[4, 5].map((i) => (
+                    <View key={i} style={[ch.punto, ch.puntoVacio]} />
+                  ))}
+                </View>
+
+                <View style={{ width: 140, marginTop: 16 }}>
+                  <MasterButton color="#21A844" onPress={onVerDetallesDestacado ?? (() => {})}>
+                    Ver detalles
+                  </MasterButton>
+                </View>
+              </View>
+
+              <View style={ch.ilustracionContenedor}>
+                <Image
+                  source={require('../../../../assets/ilustraciones/senderos/biomas/arboles/selva-01.png')}
+                  style={ch.ilustracionArbol}
+                />
+              </View>
+            </View>
+          </MasterGlass>
+        </View>
+
+        {/* Slide 2: Recompensa de Gemas por Referidos */}
+        <View style={{ width: anchoTarjeta, marginRight: 12 }}>
+          <MasterGlass colorBase="#FEF08A" style={ch.tarjeta}>
+            <View style={{ flexDirection: 'row' }}>
+              <View style={{ flex: 1, zIndex: 2 }}>
+                <MasterKicker icono={<MasterIcon name="trofeo" color={3} size={14} />} texto="¡100 Gemas Gratis!" />
+                <Texto style={ch.titulo}>Invita amigos</Texto>
+                <Texto style={[ch.subtitulo, { color: '#713F12' }]}>
+                  Gana 100 gemas por cada amigo que alcance el Nivel 2 en su hábito.
+                </Texto>
+
+                <View style={{ width: 165, marginTop: 16 }}>
+                  <MasterButton
+                    color="#21A844"
+                    onPress={onIrAReferidos}
+                    iconoIzquierda={({ size }) => (
+                      <Image
+                        source={require('../../../../assets/icons/hoy/gemas.png')}
+                        style={{ width: size, height: size, resizeMode: 'contain' }}
+                      />
+                    )}
+                    iconoSize={16}
+                  >
+                    Ver mi código
+                  </MasterButton>
+                </View>
+              </View>
+
+              <View style={ch.ilustracionContenedor}>
+                <Image
+                  source={require('../../../../assets/ilustraciones/hoy/fondos/habitos.png')}
+                  style={ch.ilustracionArbol}
+                />
+              </View>
+            </View>
+          </MasterGlass>
+        </View>
+
+        {/* Slide 3: Lestinaty Pro - Widgets en tu pantalla */}
+        <View style={{ width: anchoTarjeta }}>
+          <MasterGlass colorBase="#C084FC" style={ch.tarjeta}>
+            <View style={{ flexDirection: 'row' }}>
+              <View style={{ flex: 1, zIndex: 2 }}>
+                <MasterKicker icono={<MasterIcon name="montana" color={7} size={14} />} texto="Lestinaty Pro" />
+                <Texto style={ch.titulo}>Widgets Pro</Texto>
+                <Texto style={[ch.subtitulo, { color: '#4C1D95' }]}>
+                  Acceso a widgets en la pantalla de inicio de tu celular para tus hábitos.
+                </Texto>
+
+                <View style={{ width: 155, marginTop: 16 }}>
+                  <MasterButton
+                    color="#6A29C2"
+                    onPress={irAPro}
+                    iconoIzquierda={({ size }) => (
+                      <MasterIcon name="montana" color={7} size={size} />
+                    )}
+                    iconoSize={16}
+                  >
+                    Ver widgets
+                  </MasterButton>
+                </View>
+              </View>
+
+              <View style={ch.ilustracionContenedor}>
+                <Image
+                  source={require('../../../../assets/ilustraciones/mockup.png')}
+                  style={ch.ilustracionArbol}
+                />
+              </View>
+            </View>
+          </MasterGlass>
+        </View>
+      </ScrollView>
+
+      {/* Indicadores de diapositiva (dots) */}
+      <View style={ch.filaIndicadores}>
+        {[0, 1, 2].map((idx) => (
+          <View key={idx} style={[ch.dot, slideActivo === idx ? ch.dotActivo : ch.dotInactivo]} />
+        ))}
+      </View>
+    </View>
+  );
+}
+
+const ch = StyleSheet.create({
+  contenedor: {
+    marginBottom: 16,
+  },
+  scrollContenido: {
+    gap: 0,
+  },
+  tarjeta: {
+    borderRadius: 12,
+    padding: 16,
+    overflow: 'hidden',
+    minHeight: 200,
+  },
+  titulo: {
+    fontSize: 22,
+    fontFamily: 'MontserratAlternates-Bold',
+    color: '#1A3320',
+    marginTop: 10,
+    maxWidth: '70%',
+  },
+  subtitulo: {
+    color: '#5B8C65',
+    fontFamily: 'Montserrat-Medium',
+    fontSize: 11.5,
+    marginTop: 4,
+    lineHeight: 15.5,
+    maxWidth: '70%',
+  },
+  puntosRareza: {
+    flexDirection: 'row',
+    gap: 6,
+    marginTop: 12,
+  },
+  punto: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+  },
+  puntoLleno: {
+    backgroundColor: '#21A844',
+  },
+  puntoVacio: {
+    backgroundColor: 'rgba(33,168,68,0.3)',
+  },
+  ilustracionContenedor: {
+    width: 175,
+    height: 175,
+    position: 'absolute',
+    right: -15,
+    top: -5,
+    zIndex: 1,
+  },
+  ilustracionArbol: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'contain',
+  },
+  filaIndicadores: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 10,
+  },
+  dot: {
+    height: 6,
+    borderRadius: 3,
+  },
+  dotActivo: {
+    width: 20,
+    backgroundColor: '#21A844',
+  },
+  dotInactivo: {
+    width: 6,
+    backgroundColor: 'rgba(33, 168, 68, 0.28)',
+  },
+});
