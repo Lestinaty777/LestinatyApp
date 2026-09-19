@@ -767,7 +767,7 @@ export function PerfilPantalla() {
                     ) : (
                       <Texto style={s.metricaValor}>{totalArboles}</Texto>
                     )}
-                    <Texto style={s.metricaEtiqueta}>Árboles</Texto>
+                    <Texto style={s.metricaEtiqueta}>Hábitos</Texto>
                   </View>
 
                   <View style={s.metricaDivisor} />

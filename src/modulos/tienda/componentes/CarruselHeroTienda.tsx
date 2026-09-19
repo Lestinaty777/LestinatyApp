@@ -11,15 +11,14 @@ import {
 import { useRouter } from 'expo-router';
 
 import { MasterButton, MasterGlass, MasterIcon, MasterKicker, Texto } from '../../../diseno';
+import { obtenerEtapaSietePaquete } from '../../habitos/paqueteVisual.assets';
 
 type CarruselHeroTiendaProps = {
-  onVerDetallesDestacado?: () => void;
   onIrAReferidos: () => void;
   onIrAPro?: () => void;
 };
 
 export function CarruselHeroTienda({
-  onVerDetallesDestacado,
   onIrAReferidos,
   onIrAPro,
 }: CarruselHeroTiendaProps) {
@@ -62,29 +61,14 @@ export function CarruselHeroTienda({
           <MasterGlass style={ch.tarjeta}>
             <View style={{ flexDirection: 'row' }}>
               <View style={{ flex: 1, zIndex: 2 }}>
-                <MasterKicker icono={<MasterIcon name="hoja" color={1} size={14} />} texto="Destacado" />
+                <MasterKicker icono={<MasterIcon name="hoja" color={1} size={14} />} texto="Gratis para empezar" />
                 <Texto style={ch.titulo}>Esmeralda</Texto>
-                <Texto style={ch.subtitulo}>La armonía del bosque.</Texto>
-
-                <View style={ch.puntosRareza}>
-                  {[1, 2, 3].map((i) => (
-                    <View key={i} style={[ch.punto, ch.puntoLleno]} />
-                  ))}
-                  {[4, 5].map((i) => (
-                    <View key={i} style={[ch.punto, ch.puntoVacio]} />
-                  ))}
-                </View>
-
-                <View style={{ width: 140, marginTop: 16 }}>
-                  <MasterButton color="#21A844" onPress={onVerDetallesDestacado ?? (() => {})}>
-                    Ver detalles
-                  </MasterButton>
-                </View>
+                <Texto style={ch.subtitulo}>La armonía del bosque — tu primer árbol, sin costo.</Texto>
               </View>
 
               <View style={ch.ilustracionContenedor}>
                 <Image
-                  source={require('../../../../assets/ilustraciones/senderos/biomas/arboles/selva-01.png')}
+                  source={obtenerEtapaSietePaquete('esmeralda')}
                   style={ch.ilustracionArbol}
                 />
               </View>
@@ -203,22 +187,6 @@ const ch = StyleSheet.create({
     marginTop: 4,
     lineHeight: 15.5,
     maxWidth: '70%',
-  },
-  puntosRareza: {
-    flexDirection: 'row',
-    gap: 6,
-    marginTop: 12,
-  },
-  punto: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-  },
-  puntoLleno: {
-    backgroundColor: '#21A844',
-  },
-  puntoVacio: {
-    backgroundColor: 'rgba(33,168,68,0.3)',
   },
   ilustracionContenedor: {
     width: 175,

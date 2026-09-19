@@ -90,6 +90,16 @@ export async function otorgarSemillaBienvenida(paqueteId: string): Promise<{ paq
   return { paqueteId: remoto.paquete_id };
 }
 
+// Regalo al iniciar el trial de Horizon: 1 semilla más de un árbol legendario
+// elegido — exige que el webhook de RevenueCat ya haya marcado el trial como
+// iniciado. Ver comercio.otorgar_semilla_trial_horizon.
+export async function otorgarSemillaTrialHorizon(paqueteId: string): Promise<{ paqueteId: string }> {
+  const { data, error } = await obtenerClienteSupabase().rpc('otorgar_semilla_trial_horizon', { p_paquete_id: paqueteId });
+  if (error) throw error;
+  const remoto = data as { paquete_id: string };
+  return { paqueteId: remoto.paquete_id };
+}
+
 export type InfoReferidos = {
   codigo: string;
   totalAmigos: number;

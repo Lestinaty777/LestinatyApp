@@ -20,6 +20,8 @@ import { asignarSemillaHabito, obtenerCatalogoArboles, obtenerSemillasDisponible
 import { colorSeguroUi } from '../../senderos/algoritmo/colorHsl';
 import { CLAVE_SEMILLAS_DISPONIBLES } from '../../tienda/pantallas/TiendaArbolesPantalla';
 import { TarjetaSenderoHabito } from './TarjetaSenderoHabito';
+import { obtenerEtapaSietePaquete } from '../paqueteVisual.assets';
+import { obtenerPaqueteVisualHabito } from '../paqueteVisual';
 
 const OTRO_PLANTILLA_ID = 'otro';
 const TOTAL_PASOS = 7;
@@ -79,7 +81,6 @@ function PuntoProgreso({ activo, color }: { activo: boolean; color: string }) {
   return <ReanimatedView.View style={[s.punto, estilo]} />;
 }
 
-const BIOMA_TITULO = 'Selva viva';
 // Esmeralda es el paquete gratuito por defecto de todo hábito nuevo (ver
 // migración 20260918_30) — ya no hay selector de tono verde en el wizard. El
 // preview de abajo (assetsSelva/PreparandoHabito) sigue usando el sistema
@@ -266,6 +267,14 @@ export function CrearHabitoWizard({ visible, guardando, onCerrar, onCrear }: { v
   }, [habitoCreado, onCerrar, progresoPreparacion]);
   const semillaInfo = useMemo(() => (consultaSemillas.data ?? []).find((semilla) => semilla.id === semillaSeleccionada), [consultaSemillas.data, semillaSeleccionada]);
   const paqueteSeleccionado = semillaInfo ? paquetePorId.get(semillaInfo.paqueteId) : undefined;
+  const paqueteVisual = useMemo(
+    () => obtenerPaqueteVisualHabito(paqueteSeleccionado?.id ?? PAQUETE_GRATUITO_DEFECTO),
+    [paqueteSeleccionado],
+  );
+  const arbolPaqueteVisual = useMemo(
+    () => obtenerEtapaSietePaquete(paqueteVisual.id),
+    [paqueteVisual.id],
+  );
   // El color ya refleja el paquete premium elegido (MasterPackColor,
   // clampeado igual que en el mapa real) — la ilustración de la selva de
   // abajo sigue mostrando el tono verde por ahora: todavía no hay arte de
@@ -382,8 +391,8 @@ export function CrearHabitoWizard({ visible, guardando, onCerrar, onCrear }: { v
             </View>
           )}
           <MasterGlass style={s.biomaGlass}>
-            <Image source={assetsSelva.arbolPrincipal} style={s.arbol}/>
-            <View><Texto style={[s.biomaTitulo,{color}]}>{BIOMA_TITULO}</Texto><Texto style={s.sub}>Este será el mundo visual de tu hábito.</Texto></View>
+            <Image source={arbolPaqueteVisual} style={s.arbol}/>
+            <View><Texto style={[s.biomaTitulo,{color}]}>{paqueteVisual.nombre}</Texto><Texto style={s.sub}>Este será el mundo visual de tu hábito.</Texto></View>
           </MasterGlass>
           <View>
             <Texto style={s.etiqueta}>Elige un icono</Texto>

@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ChevronRight, Check, EllipsisVertical, Play, Sparkles } from 'lucide-react-native';
 import { Image, Linking, Pressable, ScrollView, StyleSheet, View } from 'react-native';
@@ -51,10 +51,21 @@ const ACCESOS = [
 export function HabitosPantalla() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { abrirCreacion } = useLocalSearchParams<{ abrirCreacion?: string }>();
   const cliente = useQueryClient();
   const { data: saldoGemas } = useSaldoGemas();
   const horizon = useHorizon();
   const [crearAbierto, setCrearAbierto] = useState(false);
+
+  // Llegada desde "Plantar" en Mis semillas (tienda): abre el asistente de
+  // creación directo, en vez de dejar la pantalla en su estado normal sin
+  // ninguna señal de que la semilla ya está lista para usarse.
+  useEffect(() => {
+    if (abrirCreacion) {
+      setCrearAbierto(true);
+      router.setParams({ abrirCreacion: undefined });
+    }
+  }, [abrirCreacion, router]);
   const [detalleHabitoId, setDetalleHabitoId] = useState<string | null>(null);
   const [vistaPanel, setVistaPanel] = useState<VistaPanel>('hoy');
   const [registrandoId, setRegistrandoId] = useState<string | null>(null);

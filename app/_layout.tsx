@@ -7,9 +7,10 @@ import { Stack } from 'expo-router';
 import { ProveedoresApp } from '../src/nucleo/proveedor/ProveedoresApp';
 import { inicializarOneSignal } from '../src/nucleo/notificaciones/oneSignal';
 import { inicializarCompras } from '../src/nucleo/compras/revenueCat';
+import { inicializarGoogleSignIn } from '../src/modulos/acceso/googleSignIn';
 
 export default function LayoutRaiz() {
-  useEffect(() => { inicializarOneSignal(); inicializarCompras(); }, []);
+  useEffect(() => { inicializarOneSignal(); inicializarCompras(); inicializarGoogleSignIn(); }, []);
   const [fuentesCargadas] = useFonts({
     'Montserrat-Bold': require('../assets/fonts/Montserrat/static/Montserrat-Bold.ttf'),
     'Montserrat-Medium': require('../assets/fonts/Montserrat/static/Montserrat-Medium.ttf'),
@@ -34,8 +35,6 @@ export default function LayoutRaiz() {
         <Stack.Screen name="senderos/leccion" options={{ presentation: 'fullScreenModal' }} />
         <Stack.Screen name="senderos/[id]" />
         <Stack.Screen name="tienda/gemas" />
-        <Stack.Screen name="tienda/producto/[id]" />
-        <Stack.Screen name="tienda/pago" />
         <Stack.Screen name="metas/[id]" />
         <Stack.Screen name="habitos/[id]" options={{ animation: 'fade', presentation: 'transparentModal' }} />
         <Stack.Screen name="horizon" />

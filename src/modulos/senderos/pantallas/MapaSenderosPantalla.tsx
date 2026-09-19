@@ -1,15 +1,15 @@
 import Svg, { Rect, Defs, Pattern, Path, Circle, Line } from 'react-native-svg';
 import React from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { FlatList, StyleSheet, View, useWindowDimensions, Pressable, Text as TextoRN, Image } from 'react-native';
+import { Alert, FlatList, StyleSheet, View, useWindowDimensions, Pressable, Text as TextoRN, Image } from 'react-native';
 import { ScrollView } from 'react-native-gesture-handler';
 import { BotonTab } from '../../../nucleo/navegacion/BarraTabs';
 import { PixelartIcon } from '../../../diseno/iconos/PixelartIcon';
 import Animated, { useSharedValue, useAnimatedStyle, useAnimatedProps, withTiming, Easing, withSpring, withRepeat } from 'react-native-reanimated';
 import { Beaker, Users, Activity, Calculator, BookOpen, ChevronLeft, ChevronRight, Lock, Play } from 'lucide-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Shield, Terminal, Hexagon, Trophy, Leaf, Sun, Moon } from 'lucide-react-native';
+import { Trophy, Leaf, Sun, Moon } from 'lucide-react-native';
 import { ContenedorMapaSenderos } from '../../senderos/componentes/mapa/ContenedorMapaSenderos';
 import { MasterChip, MasterGlass, MasterIcon, MasterIconBg, MasterProgressbar, Texto, colores, RecuadroGlass } from '../../../diseno';
 import { colorMasterMasCercano, MasterChanger } from '../../../diseno/componentes/MasterChanger';
@@ -19,10 +19,14 @@ import { WidgetRegistrarProgreso } from '../../habitos/componentes/WidgetRegistr
 import { useSenderoHabito } from '../../habitos/hooks/useSenderoHabito';
 import { buscarIconoHabito, diasAcumuladosAntesDeNivel } from '../../habitos/iconosHabitos';
 import { obtenerDetallesHabitosHoy, obtenerPanelHabitos } from '../../habitos/habitos.servicio';
+import { EstadoVacioSenderos } from '../componentes/EstadoVacioSenderos';
 import type { HabitoResumen } from '../../habitos/tipos';
-import { useSaldoGemas } from '../../tienda/useSaldoGemas';
+import { CLAVE_SALDO_GEMAS, useSaldoGemas } from '../../tienda/useSaldoGemas';
+import { comprarSemillasArbol, obtenerCatalogoArboles } from '../../tienda/gemas.servicio';
+import { CLAVE_SEMILLAS_DISPONIBLES } from '../../tienda/pantallas/TiendaArbolesPantalla';
 import { categoriaInicialMapa, coloresSelectorCategoria, modulosPorCategoria, type CategoriaMapaMvp, type IconoModuloMapa, type ModuloCategoriaMapa } from '../datos/modulosCategorias';
 import { MAPAS_NIVELES } from '../Mapas';
+import { obtenerAssetsPaquete } from '../algoritmo/registroPaquetesArbol';
 
 const DIAS_SEMANA_COMPLETA = [1, 2, 3, 4, 5, 6, 7];
 const TAMANO_ICONO_CATEGORIA = 64;
@@ -553,7 +557,20 @@ export function MapaSenderosPantalla() {
           ) : asignatura ? (
             <ContenedorMapaSenderos key={asignatura.id} altura={alturaMapa} categoriaId={asignatura.categoriaId} color={asignatura.color} enfocado subcategoriaId={asignatura.subcategoriaId} />
           ) : (
-            <View style={styles.centroMapa}><Texto style={styles.subMapa}>{consultaHabitos.isLoading ? 'Cargando tus hábitos…' : 'Aún no tienes hábitos. Crea uno desde la pestaña Hábitos.'}</Texto></View>
+            <View style={styles.centroMapa}>
+              {consultaHabitos.isLoading ? (
+                <Texto style={styles.subMapa}>Cargando tus hábitos…</Texto>
+              ) : (
+                <EstadoVacioSenderos
+                  alCrearHabito={() => {
+                    router.push({
+                      pathname: '/(principal)/hoy',
+                      params: { abrirCreacion: '1' },
+                    });
+                  }}
+                />
+              )}
+            </View>
           )}
         </View>
       </SafeAreaView>
@@ -827,9 +844,8 @@ const styles = StyleSheet.create({
   centroMapa: {
     alignItems: 'center',
     flex: 1,
-    gap: 8,
     justifyContent: 'center',
-    padding: 24,
+    padding: 0,
   },
   subMapa: {
     color: 'rgba(0,0,0,0.45)',
@@ -846,11 +862,24 @@ const styles = StyleSheet.create({
 
 
 function PanelTienda({ saldoGemas }: { saldoGemas: number }) {
-  const articulos = [
-    { id: 1, titulo: 'Tema: Matrix', desc: 'Esquema de color negro y verde hacker.', precio: 500, color: '#2E7D32', Icono: Terminal },
-    { id: 2, titulo: 'Escudo', desc: 'Congela y salva tu racha por 24 horas.', precio: 200, color: '#B34A4A', Icono: Shield },
-    { id: 3, titulo: 'Hexágonos', desc: 'Textura de panal para tus boletos.', precio: 800, color: '#734AB3', Icono: Hexagon },
-  ];
+  const queryClient = useQueryClient();
+  // Misma queryKey que TiendaArbolesPantalla.tsx — comparten caché, el
+  // catálogo de árboles es idéntico sin importar desde dónde se pida.
+  const consultaCatalogo = useQuery({ queryKey: ['tienda', 'catalogoArboles'], queryFn: obtenerCatalogoArboles });
+  const mutacionComprar = useMutation({
+    mutationFn: comprarSemillasArbol,
+    onError: (error: Error) => {
+      Alert.alert('No se pudo comprar', error.message || 'Intentá de nuevo en un momento.');
+    },
+    onSuccess: (resultado) => {
+      hapticSeguro('confirmacion');
+      queryClient.invalidateQueries({ queryKey: CLAVE_SALDO_GEMAS });
+      queryClient.invalidateQueries({ queryKey: CLAVE_SEMILLAS_DISPONIBLES });
+      Alert.alert('¡Listo!', `Conseguiste ${resultado.semillasCompradas} semilla${resultado.semillasCompradas === 1 ? '' : 's'}. Elegila al crear tu próximo hábito.`);
+    },
+  });
+  const comprandoId = mutacionComprar.isPending ? mutacionComprar.variables ?? null : null;
+  const articulos = consultaCatalogo.data ?? [];
 
   return (
     <View style={{ flex: 1, paddingHorizontal: 20, paddingTop: 5, paddingBottom: 15 }}>
@@ -869,8 +898,8 @@ function PanelTienda({ saldoGemas }: { saldoGemas: number }) {
             </View>
           </View>
           <View>
-            <Texto style={{ fontSize: 9, color: 'rgba(0,0,0,0.5)', fontFamily: 'Montserrat-Bold', letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 0 }}>SUMINISTROS</Texto>
-            <Texto style={{ fontSize: 22, fontFamily: 'Montserrat-Bold', color: '#111111' }}>Almacén</Texto>
+            <Texto style={{ fontSize: 9, color: 'rgba(0,0,0,0.5)', fontFamily: 'Montserrat-Bold', letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 0 }}>SEMILLAS</Texto>
+            <Texto style={{ fontSize: 22, fontFamily: 'Montserrat-Bold', color: '#111111' }}>Vivero</Texto>
           </View>
         </View>
         <View style={{ alignItems: 'flex-end' }}>
@@ -882,40 +911,57 @@ function PanelTienda({ saldoGemas }: { saldoGemas: number }) {
         </View>
       </View>
 
-      {/* CARRUSEL DE PRODUCTOS */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 15, paddingBottom: 15 }} style={{ flex: 1, overflow: 'visible' }}>
-        {articulos.map(art => (
-          <Pressable key={art.id} style={({ pressed }) => [{ width: 140, height: 130 }, pressed && { transform: [{ translateY: 3 }] }]}>
-            {({ pressed }) => (
-              <>
+      {/* CARRUSEL DE ÁRBOLES */}
+      {consultaCatalogo.isLoading ? (
+        <View style={{ flexDirection: 'row', gap: 15 }}>
+          {[0, 1, 2].map((i) => (
+            <View key={i} style={{ width: 140, height: 130, borderRadius: 12, backgroundColor: 'rgba(0,0,0,0.06)' }} />
+          ))}
+        </View>
+      ) : articulos.length === 0 ? (
+        <Texto style={{ fontSize: 12, fontFamily: 'Montserrat-Medium', color: 'rgba(0,0,0,0.5)' }}>Todavía no hay árboles a la venta.</Texto>
+      ) : (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 15, paddingBottom: 15 }} style={{ flex: 1, overflow: 'visible' }}>
+          {articulos.map(art => {
+            const imagen = obtenerAssetsPaquete(art.id)?.etapas[6] ?? null;
+            const comprandoEste = comprandoId === art.id;
+            return (
+              <Pressable
+                disabled={comprandoEste}
+                key={art.id}
+                onPress={() => mutacionComprar.mutate(art.id)}
+                style={({ pressed }) => [{ width: 140, height: 130, opacity: comprandoEste ? 0.6 : 1 }, pressed && { transform: [{ translateY: 3 }] }]}
+              >
                 {/* Sombra 3D del producto */}
-                <View style={{ position: 'absolute', top: 4, left: 0, right: 0, bottom: -4, backgroundColor: oscurecer(art.color, 0.5), borderRadius: 12 }} />
-                
+                <View style={{ position: 'absolute', top: 4, left: 0, right: 0, bottom: -4, backgroundColor: oscurecer(art.masterPackColor, 0.5), borderRadius: 12 }} />
+
                 {/* Carta Frontal */}
-                <View style={[{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: art.color, borderRadius: 12, padding: 12, overflow: 'hidden' }]}>
+                <View style={[{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: art.masterPackColor, borderRadius: 12, padding: 12, overflow: 'hidden' }]}>
                   {/* Máquina de Vending Brillo / Textura */}
                   <View style={{ position: 'absolute', top: -20, right: -20, width: 60, height: 60, backgroundColor: 'rgba(255,255,255,0.1)', transform: [{ rotate: '45deg' }] }} />
-                  
-                  <View style={{ marginBottom: 'auto' }}>
-                     <art.Icono color="#FFF" size={24} />
+
+                  <View style={{ marginBottom: 'auto', alignItems: 'center' }}>
+                    {imagen ? <Image resizeMode="contain" source={imagen} style={{ width: 56, height: 56 }} /> : <Trophy color="#FFF" size={24} />}
                   </View>
-                  
+
                   <View style={{ marginTop: 'auto' }}>
-                    <Texto style={{ fontSize: 12, fontFamily: 'Montserrat-Bold', color: '#FFFFFF', marginBottom: 2 }} numberOfLines={1}>{art.titulo}</Texto>
-                    <Texto style={{ fontSize: 9, fontFamily: 'Montserrat-Medium', color: 'rgba(255,255,255,0.7)' }} numberOfLines={2}>{art.desc}</Texto>
+                    <Texto style={{ fontSize: 12, fontFamily: 'Montserrat-Bold', color: '#FFFFFF', marginBottom: 2 }} numberOfLines={1}>{art.nombre}</Texto>
+                    <Texto style={{ fontSize: 9, fontFamily: 'Montserrat-Medium', color: 'rgba(255,255,255,0.7)' }} numberOfLines={2}>
+                      {comprandoEste ? 'Comprando…' : `${art.cantidadPorCompra} semilla${art.cantidadPorCompra === 1 ? '' : 's'} por compra`}
+                    </Texto>
                   </View>
                 </View>
-                
+
                 {/* Etiqueta de Precio Brutalista */}
                 <View style={{ position: 'absolute', top: -8, right: -8, backgroundColor: '#111111', paddingHorizontal: 6, paddingVertical: 4, borderRadius: 6, borderBottomWidth: 3, borderBottomColor: '#000000', flexDirection: 'row', alignItems: 'center', gap: 4, transform: [{ rotate: '5deg' }] }}>
-                  <Hexagon size={10} color="#FFD700" fill="#FFD700" />
-                  <Texto style={{ fontSize: 11, fontFamily: 'Montserrat-Bold', color: '#FFD700' }}>{art.precio}</Texto>
+                  <Image resizeMode="contain" source={require('../../../../assets/icons/hoy/gemas.png')} style={{ height: 12, width: 12 }} />
+                  <Texto style={{ fontSize: 11, fontFamily: 'Montserrat-Bold', color: '#FFD700' }}>{art.precioGemas}</Texto>
                 </View>
-              </>
-            )}
-          </Pressable>
-        ))}
-      </ScrollView>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+      )}
     </View>
   );
 }

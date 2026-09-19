@@ -1,19 +1,25 @@
 import { Redirect, Tabs } from 'expo-router';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Image, Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { cancelAnimation, Easing, useAnimatedStyle, useSharedValue, withSequence, withTiming } from 'react-native-reanimated';
 
 import { MasterGlass, Texto } from '../../src/diseno';
 import { usarEstadoAcceso } from '../../src/modulos/acceso/acceso.estado';
-import { useRegaloBienvenidaPendiente } from '../../src/modulos/onboarding/onboarding.servicio';
+import { useRegaloBienvenidaPendiente, useRegaloTrialHorizonPendiente } from '../../src/modulos/onboarding/onboarding.servicio';
 import { RegaloBienvenidaPantalla } from '../../src/modulos/onboarding/pantallas/RegaloBienvenidaPantalla';
+import { RegaloTrialHorizonPantalla } from '../../src/modulos/onboarding/pantallas/RegaloTrialHorizonPantalla';
 
 export default function LayoutPrincipal() {
   const cargandoSesion = usarEstadoAcceso((estado) => estado.cargandoSesion);
   const usuario = usarEstadoAcceso((estado) => estado.usuario);
   const insets = useSafeAreaInsets();
   const { data: regaloPendiente, isLoading: cargandoRegalo } = useRegaloBienvenidaPendiente({ enabled: !!usuario });
+  // A diferencia del regalo de bienvenida, este no bloquea: la cuenta ya usa
+  // la app con normalidad. `cerradoEnSesion` solo evita que la X vuelva a
+  // abrirlo en la misma sesión — si sigue pendiente, reaparece la próxima vez.
+  const { data: regaloTrialPendiente } = useRegaloTrialHorizonPendiente({ enabled: !!usuario && !regaloPendiente });
+  const [cerradoEnSesion, setCerradoEnSesion] = useState(false);
 
   if (cargandoSesion || (usuario && cargandoRegalo)) {
     return null;
@@ -31,6 +37,11 @@ export default function LayoutPrincipal() {
   }
 
   return (
+    <>
+    <RegaloTrialHorizonPantalla
+      onCerrar={() => setCerradoEnSesion(true)}
+      visible={Boolean(regaloTrialPendiente) && !cerradoEnSesion}
+    />
     <Tabs
       tabBar={(props) => <BarraNavegacionPrincipal {...props} />}
       screenOptions={{
@@ -76,6 +87,7 @@ export default function LayoutPrincipal() {
         options={{ title: 'Configuración' }}
       />
     </Tabs>
+    </>
   );
 }
 

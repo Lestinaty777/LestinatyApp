@@ -34,6 +34,19 @@ vi.mock('./registroBiomas', () => {
 import { crearTemaMapa, generarMapaProcedural } from './mapaProcedural';
 
 describe('generarMapaProcedural', () => {
+  it('permite acercar el primer nodo al borde superior en vistas compactas', () => {
+    const tema = crearTemaMapa('habitos', '#22C55E', 'onboarding-compacto', 'albedo', 2, undefined, true);
+    const mapa = generarMapaProcedural({
+      ancho: 360,
+      cantidadNodos: 4,
+      desplazamientoSuperior: 60,
+      tema,
+    });
+
+    expect(mapa.nodos[0].y).toBe(60);
+    expect(mapa.nodos[1].y).toBe(172);
+  });
+
   it('compone un paisaje determinista del bioma real sin exceder su presupuesto visual', () => {
     const tema = crearTemaMapa('estudio', '#7453B6', 'sendero-anatomia');
     const primeraEscena = generarMapaProcedural({ ancho: 360, cantidadNodos: 6, tema });

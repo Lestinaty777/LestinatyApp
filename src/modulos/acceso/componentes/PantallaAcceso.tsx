@@ -1,4 +1,4 @@
-import { ComponentProps, PropsWithChildren, createContext, useContext, useEffect, useRef, useState } from 'react';
+import { ComponentProps, PropsWithChildren, ReactNode, createContext, useContext, useEffect, useRef, useState } from 'react';
 import {
   Animated,
   Image,
@@ -65,8 +65,10 @@ const TemaAccesoContexto = createContext<TemaAccesoContextoValor>({
 });
 
 type PantallaAccesoProps = PropsWithChildren<{
+  botonInferior?: ReactNode;
   subtitulo: string;
   titulo: string;
+  topPanel?: `${number}%` | number;
 }>;
 
 function limitar(valor: number, minimo: number, maximo: number) {
@@ -111,7 +113,7 @@ function TituloAcceso({ children, escala }: PropsWithChildren<{ escala: number }
   );
 }
 
-export function PantallaAcceso({ children, subtitulo, titulo }: PantallaAccesoProps) {
+export function PantallaAcceso({ botonInferior, children, subtitulo, titulo, topPanel }: PantallaAccesoProps) {
   const [imagenActual, setImagenActual] = useState(0);
   const imagenActualRef = useRef(0);
   const animacionCambioActiva = useRef(false);
@@ -124,6 +126,7 @@ export function PantallaAcceso({ children, subtitulo, titulo }: PantallaAccesoPr
   const insets = useSafeAreaInsets();
   const escala = calcularEscalaAcceso(height, width);
   const tema = temasAcceso[imagenActual];
+  const topPanelCalculado = topPanel ?? (botonInferior ? '34%' : '50%');
   const desplazamientoNubeLenta = progresoNubeLenta.interpolate({
     inputRange: [0, 1],
     outputRange: [-130, 130],
@@ -256,7 +259,7 @@ export function PantallaAcceso({ children, subtitulo, titulo }: PantallaAccesoPr
       ))}
 
       <View pointerEvents="none" style={styles.velo} />
-      <View pointerEvents="none" style={styles.neblinaInferior}>
+      <View pointerEvents="none" style={[styles.neblinaInferior, { top: topPanelCalculado }]}>
         <View style={styles.neblinaBase} />
         <Animated.View
           style={[
@@ -303,13 +306,14 @@ export function PantallaAcceso({ children, subtitulo, titulo }: PantallaAccesoPr
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={insets.top}
-        style={styles.panelInferior}
+        style={[styles.panelInferior, { top: topPanelCalculado }]}
       >
         <TouchableWithoutFeedback accessible={false} onPress={Keyboard.dismiss}>
           <ScrollView
             bounces={false}
             contentContainerStyle={[
               styles.contenido,
+              botonInferior ? styles.contenidoConBotonInferior : null,
               {
                 paddingBottom: espaciado.xl * escala + insets.bottom + 18,
                 paddingHorizontal: espaciado.xl * escala,
@@ -319,22 +323,29 @@ export function PantallaAcceso({ children, subtitulo, titulo }: PantallaAccesoPr
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
           >
-            <TituloAcceso escala={escala}>{titulo}</TituloAcceso>
-            <Text
-              style={[
-                styles.subtitulo,
-                {
-                  fontSize: 15 * escala,
-                  lineHeight: 20 * escala,
-                  marginTop: espaciado.xs * escala,
-                },
-              ]}
-            >
-              {subtitulo}
-            </Text>
-            <View style={[styles.formulario, { gap: 12 * escala, marginTop: espaciado.lg * escala }]}>
-              {children}
+            <View style={[styles.centroContenedor, botonInferior ? styles.centroContenedorActivo : null]}>
+              <TituloAcceso escala={escala}>{titulo}</TituloAcceso>
+              <Text
+                style={[
+                  styles.subtitulo,
+                  {
+                    fontSize: 15 * escala,
+                    lineHeight: 20 * escala,
+                    marginTop: espaciado.xs * escala,
+                  },
+                ]}
+              >
+                {subtitulo}
+              </Text>
+              <View style={[styles.formulario, { gap: 12 * escala, marginTop: espaciado.lg * escala }]}>
+                {children}
+              </View>
             </View>
+            {botonInferior ? (
+              <View style={[styles.pieContenedor, { gap: 10 * escala, marginTop: espaciado.md * escala }]}>
+                {botonInferior}
+              </View>
+            ) : null}
           </ScrollView>
         </TouchableWithoutFeedback>
       </KeyboardAvoidingView>
@@ -625,6 +636,19 @@ const styles = StyleSheet.create({
     paddingBottom: espaciado.xl,
     paddingHorizontal: espaciado.xl,
     paddingTop: espaciado.lg,
+  },
+  contenidoConBotonInferior: {
+    justifyContent: 'space-between',
+  },
+  centroContenedor: {
+    width: '100%',
+  },
+  centroContenedorActivo: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  pieContenedor: {
+    width: '100%',
   },
   tituloMarco: {
     position: 'relative',

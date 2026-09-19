@@ -5,14 +5,16 @@ import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
+import type { PurchasesPackage } from 'react-native-purchases';
 
 import { MasterGlass, Texto, MasterIcon, MasterIconBg, Rebote, MasterChip, MasterButton, MasterKicker, entradaEncadenada, MasterAnimation, Skeleton } from '../../../diseno';
 import { hapticSeguro } from '../../../nucleo/dispositivo/haptics';
 import { colorMasterMasCercano } from '../../../diseno/componentes/MasterChanger';
 import { obtenerAssetsPaquete } from '../../senderos/algoritmo/registroPaquetesArbol';
 import { AuroraBoreal } from '../../hoy/componentes/AuroraBoreal';
-import { comprarSemillasArbol, obtenerCatalogoArboles, obtenerSemillasDisponibles } from '../gemas.servicio';
-import type { ArbolPaquete, SemillaArbol } from '../gemas.tipos';
+import { comprarPaqueteGemas, obtenerPaquetesGemas } from '../../../nucleo/compras/revenueCat';
+import { comprarSemillasArbol, obtenerCatalogoArboles, obtenerCatalogoGemasIap, obtenerSemillasDisponibles } from '../gemas.servicio';
+import type { ArbolPaquete, PaqueteGemasIap, SemillaArbol } from '../gemas.tipos';
 import { CLAVE_SALDO_GEMAS, useSaldoGemas } from '../useSaldoGemas';
 import { TarjetaReferidosGemas } from '../componentes/TarjetaReferidosGemas';
 import { CarruselHeroTienda } from '../componentes/CarruselHeroTienda';
@@ -63,7 +65,29 @@ function EsqueletoSemillas() {
   );
 }
 
-function EsqueletoComprarGemas() {
+function ListaPaquetesGemasEsqueleto() {
+  return (
+    <>
+      {[0, 1, 2, 3].map((i) => (
+        <MasterGlass key={i} style={{ borderRadius: 12, padding: 14 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+            <Skeleton alto={52} ancho={52} radio={12} />
+            <View style={{ flex: 1, gap: 6 }}>
+              <Skeleton alto={17} ancho="50%" radio={4} />
+              <Skeleton alto={11} ancho="40%" radio={4} />
+            </View>
+            <Skeleton alto={36} ancho={90} radio={8} />
+          </View>
+        </MasterGlass>
+      ))}
+    </>
+  );
+}
+
+function EsqueletoComprarGemas({ soloLista = false }: { soloLista?: boolean }) {
+  if (soloLista) {
+    return <View style={{ gap: 16 }}><ListaPaquetesGemasEsqueleto /></View>;
+  }
   return (
     <View style={{ gap: 16 }}>
       {/* Tarjeta referidos skeleton */}
@@ -96,18 +120,7 @@ function EsqueletoComprarGemas() {
       </MasterGlass>
 
       {/* Paquetes de gemas */}
-      {[0, 1, 2, 3].map((i) => (
-        <MasterGlass key={i} style={{ borderRadius: 12, padding: 14 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
-            <Skeleton alto={52} ancho={52} radio={12} />
-            <View style={{ flex: 1, gap: 6 }}>
-              <Skeleton alto={17} ancho="50%" radio={4} />
-              <Skeleton alto={11} ancho="40%" radio={4} />
-            </View>
-            <Skeleton alto={36} ancho={90} radio={8} />
-          </View>
-        </MasterGlass>
-      ))}
+      <ListaPaquetesGemasEsqueleto />
     </View>
   );
 }
@@ -134,12 +147,9 @@ function agruparSemillas(semillas: SemillaArbol[], catalogo: ArbolPaquete[]): Gr
   });
 }
 
-const PAQUETES_GEMAS = [
-  { gemas: 100,  bonus: 0,   precio: '$0.99',  colorNum: 2, colorHex: '#4ade80', etiqueta: 'Inicio'       },
-  { gemas: 500,  bonus: 50,  precio: '$3.99',  colorNum: 3, colorHex: '#facc15', etiqueta: 'Popular'      },
-  { gemas: 1200, bonus: 200, precio: '$8.99',  colorNum: 1, colorHex: '#38bdf8', etiqueta: 'Gran valor'   },
-  { gemas: 3000, bonus: 800, precio: '$19.99', colorNum: 7, colorHex: '#a855f7', etiqueta: 'Mejor oferta' },
-] as const;
+// Colores de acento por posición — puramente visual, no vienen del catálogo
+// (que solo define cantidad de gemas y el id de producto de RevenueCat).
+const COLORES_PAQUETE_GEMAS = ['#4ade80', '#facc15', '#38bdf8', '#a855f7'];
 
 const FILTROS = ['Todos', 'Mis semillas', 'Naturaleza', 'Elementales', 'Comprar'] as const;
 type Filtro = typeof FILTROS[number];
@@ -192,6 +202,11 @@ const SeccionesContenido = memo(function SeccionesContenido({
   cambiandoTab,
   onComprar,
   onPlantar,
+  catalogoGemas,
+  paquetesRevenueCat,
+  comprandoGemasId,
+  cargandoCatalogoGemas,
+  onComprarGemas,
 }: {
   catalogo: ArbolPaquete[];
   semillas: SemillaArbol[];
@@ -201,6 +216,11 @@ const SeccionesContenido = memo(function SeccionesContenido({
   cambiandoTab?: boolean;
   onComprar: (paqueteId: string) => void;
   onPlantar: () => void;
+  catalogoGemas: PaqueteGemasIap[];
+  paquetesRevenueCat: PurchasesPackage[];
+  comprandoGemasId: string | null;
+  cargandoCatalogoGemas?: boolean;
+  onComprarGemas: (paquete: PaqueteGemasIap) => void;
 }) {
   const { filtro, setFiltro } = useFiltro();
   // "Naturaleza"/"Elementales" quedan como categorías visuales a futuro — hoy
@@ -292,29 +312,39 @@ const SeccionesContenido = memo(function SeccionesContenido({
                   </View>
                 </MasterGlass>
               </Animated.View>
-              <MasterAnimation>
-                {PAQUETES_GEMAS.map((paq, idx) => (
-                  <Rebote key={idx}>
-                    <MasterGlass colorBase={paq.colorHex} style={{ borderRadius: 12, padding: 14 }}>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
-                        <View style={{ width: 52, height: 52, borderRadius: 12, backgroundColor: 'rgba(109,40,217,0.15)', borderWidth: 1.5, borderColor: 'rgba(109,40,217,0.25)', alignItems: 'center', justifyContent: 'center' }}>
-                          <Image source={require('../../../../assets/icons/hoy/gemas.png')} style={{ width: 30, height: 30, resizeMode: 'contain' }} />
-                        </View>
-                        <View style={{ flex: 1, gap: 2 }}>
-                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                            <Texto style={{ fontFamily: 'MontserratAlternates-Bold', color: '#1A3320', fontSize: 17 }}>{paq.gemas.toLocaleString()}</Texto>
-                            {paq.bonus > 0 && <MasterKicker icono={<MasterIcon name="rayo" color={paq.colorNum as any} size={11} />} texto={`+${paq.bonus}`} />}
+              {cargandoCatalogoGemas ? (
+                <EsqueletoComprarGemas soloLista />
+              ) : catalogoGemas.length === 0 ? (
+                <Texto style={{ color: '#5B8C65', fontFamily: 'Montserrat-Medium', fontSize: 12 }}>No hay paquetes de gemas disponibles por ahora.</Texto>
+              ) : (
+                <MasterAnimation>
+                  {catalogoGemas.map((paq, idx) => {
+                    const disponible = paquetesRevenueCat.find((p) => p.product.identifier === paq.productIdRevenueCat);
+                    const precio = disponible?.product.priceString ?? (paq.precioReferenciaUsd !== null ? `~$${paq.precioReferenciaUsd.toFixed(2)}` : '—');
+                    const comprandoEsta = comprandoGemasId === paq.id;
+                    return (
+                      <Rebote key={paq.id}>
+                        <MasterGlass colorBase={COLORES_PAQUETE_GEMAS[idx % COLORES_PAQUETE_GEMAS.length]} style={{ borderRadius: 12, padding: 14 }}>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+                            <View style={{ width: 52, height: 52, borderRadius: 12, backgroundColor: 'rgba(109,40,217,0.15)', borderWidth: 1.5, borderColor: 'rgba(109,40,217,0.25)', alignItems: 'center', justifyContent: 'center' }}>
+                              <Image source={require('../../../../assets/icons/hoy/gemas.png')} style={{ width: 30, height: 30, resizeMode: 'contain' }} />
+                            </View>
+                            <View style={{ flex: 1, gap: 2 }}>
+                              <Texto style={{ fontFamily: 'MontserratAlternates-Bold', color: '#1A3320', fontSize: 17 }}>{paq.cantidadGemas.toLocaleString()} gemas</Texto>
+                              {!disponible && <Texto style={{ color: '#5B8C65', fontFamily: 'Montserrat-Medium', fontSize: 11 }}>Referencia, aún no disponible</Texto>}
+                            </View>
+                            <View style={{ width: 90 }}>
+                              <MasterButton color="#6A29C2" disabled={comprandoEsta || !disponible} onPress={() => onComprarGemas(paq)}>
+                                {comprandoEsta ? 'Comprando…' : precio}
+                              </MasterButton>
+                            </View>
                           </View>
-                          <Texto style={{ color: '#5B8C65', fontFamily: 'Montserrat-Medium', fontSize: 11 }}>{paq.etiqueta}</Texto>
-                        </View>
-                        <View style={{ width: 90 }}>
-                          <MasterButton color="#6A29C2" onPress={() => {}}>{paq.precio}</MasterButton>
-                        </View>
-                      </View>
-                    </MasterGlass>
-                  </Rebote>
-                ))}
-              </MasterAnimation>
+                        </MasterGlass>
+                      </Rebote>
+                    );
+                  })}
+                </MasterAnimation>
+              )}
             </>
           )}
         </View>
@@ -455,6 +485,17 @@ export function TiendaArbolesPantalla() {
   const { data: saldoGemas, isLoading: cargandoGemas } = useSaldoGemas();
   const consultaCatalogo = useQuery({ queryKey: ['tienda', 'catalogoArboles'], queryFn: obtenerCatalogoArboles });
   const consultaSemillas = useQuery({ queryKey: CLAVE_SEMILLAS_DISPONIBLES, queryFn: obtenerSemillasDisponibles });
+  // Misma queryKey que TiendaPantalla.tsx (/tienda/gemas) — comparten caché,
+  // el catálogo de paquetes IAP es idéntico sin importar desde dónde se pida.
+  const consultaCatalogoGemas = useQuery({ queryKey: ['tienda', 'catalogoGemasIap'], queryFn: obtenerCatalogoGemasIap });
+  const [paquetesRevenueCat, setPaquetesRevenueCat] = useState<PurchasesPackage[]>([]);
+  const [comprandoGemasId, setComprandoGemasId] = useState<string | null>(null);
+
+  useEffect(() => {
+    let vigente = true;
+    void obtenerPaquetesGemas().then((paquetes) => { if (vigente) setPaquetesRevenueCat(paquetes); });
+    return () => { vigente = false; };
+  }, []);
 
   const mutacionComprar = useMutation({
     mutationFn: comprarSemillasArbol,
@@ -469,9 +510,37 @@ export function TiendaArbolesPantalla() {
     },
   });
 
+  async function comprarGemas(paquete: PaqueteGemasIap) {
+    const paqueteRevenueCat = paquetesRevenueCat.find((p) => p.product.identifier === paquete.productIdRevenueCat);
+    if (!paqueteRevenueCat) {
+      Alert.alert('No disponible', 'Este paquete todavía no está disponible para comprar.');
+      return;
+    }
+    hapticSeguro('seleccion');
+    setComprandoGemasId(paquete.id);
+    try {
+      const resultado = await comprarPaqueteGemas(paqueteRevenueCat);
+      if (resultado.exito) {
+        hapticSeguro('confirmacion');
+        queryClient.invalidateQueries({ queryKey: CLAVE_SALDO_GEMAS });
+        setTimeout(() => queryClient.invalidateQueries({ queryKey: CLAVE_SALDO_GEMAS }), 4000);
+        Alert.alert('¡Compra recibida!', 'Tus gemas llegan en unos segundos.');
+      }
+    } catch {
+      Alert.alert('No se pudo completar', 'Intentá de nuevo en un momento.');
+    } finally {
+      setComprandoGemasId(null);
+    }
+  }
+
   function alPlantar() {
     hapticSeguro('seleccion');
-    router.push('/habitos');
+    // '/habitos' es una ruta aparte de '(principal)', sin tab bar — por eso
+    // desaparecía por completo al navegar ahí. '/(principal)/hoy' es la
+    // misma pantalla (HabitosPantalla) pero dentro del grupo con tabs.
+    // `abrirCreacion` hace que además abra el asistente de crear hábito al
+    // llegar, en vez de solo mostrar la lista sin hacer nada visible.
+    router.push({ pathname: '/(principal)/hoy', params: { abrirCreacion: '1' } });
   }
 
   const [filtroActivo, setFiltroActivo] = useState<Filtro>('Todos');
@@ -553,6 +622,11 @@ export function TiendaArbolesPantalla() {
               cambiandoTab={cambiandoTab}
               onComprar={(paqueteId) => mutacionComprar.mutate(paqueteId)}
               onPlantar={alPlantar}
+              catalogoGemas={consultaCatalogoGemas.data ?? []}
+              paquetesRevenueCat={paquetesRevenueCat}
+              comprandoGemasId={comprandoGemasId}
+              cargandoCatalogoGemas={consultaCatalogoGemas.isLoading}
+              onComprarGemas={comprarGemas}
             />
 
           </View>

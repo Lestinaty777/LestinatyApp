@@ -148,7 +148,17 @@ export function crearTemaMapa(categoriaId: CategoriaMapaId, acento: string, id: 
   };
 }
 
-export function generarMapaProcedural({ ancho, cantidadNodos, tema }: { ancho: number; cantidadNodos: number; tema: TemaMapaProcedural }): MapaProcedural {
+export function generarMapaProcedural({
+  ancho,
+  cantidadNodos,
+  desplazamientoSuperior = DESPLAZAMIENTO_SUPERIOR,
+  tema,
+}: {
+  ancho: number;
+  cantidadNodos: number;
+  desplazamientoSuperior?: number;
+  tema: TemaMapaProcedural;
+}): MapaProcedural {
   const aleatorio = crearAleatorio(`${tema.biomaId}:${tema.id}`);
   const centro = ancho / 2;
   const nodos: NodoProcedural[] = [];
@@ -165,7 +175,7 @@ export function generarMapaProcedural({ ancho, cantidadNodos, tema }: { ancho: n
     const signo = indice === 0 ? 0 : indice % 2 === 0 ? 1 : -1;
     const amplitud = indice === 0 ? 0 : 34 + Math.round(aleatorio() * 12);
     const x = centro + signo * amplitud;
-    const y = DESPLAZAMIENTO_SUPERIOR + indice * SEPARACION_NODOS;
+    const y = desplazamientoSuperior + indice * SEPARACION_NODOS;
     nodos.push({ id: `nodo-${indice}`, x, y });
     cajasProtegidas.push({ x: x - 42, y: y - 42, w: 84, h: 84 });
 
@@ -387,7 +397,7 @@ export function generarMapaProcedural({ ancho, cantidadNodos, tema }: { ancho: n
   // lámparas; también evitan pisarse entre sí (cajasAmbiente propia).
   const ambiente: AmbienteProcedural[] = [];
   const cajasAmbiente: CajaColision[] = [];
-  const altoMapa = DESPLAZAMIENTO_SUPERIOR + Math.max(0, nodos.length - 1) * SEPARACION_NODOS + 200;
+  const altoMapa = desplazamientoSuperior + Math.max(0, nodos.length - 1) * SEPARACION_NODOS + 200;
   const cantidadAmbiente = Math.round(ancho * altoMapa * AMBIENTE_DENSIDAD);
   const primerNodoY = nodos[0]?.y ?? 0;
   const ultimoNodoY = nodos[nodos.length - 1]?.y ?? 0;

@@ -2,11 +2,13 @@ import { router } from 'expo-router';
 import { Mail } from 'lucide-react-native';
 import { Controller, useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
-import { useWindowDimensions } from 'react-native';
+import { useState } from 'react';
+import { StyleSheet, View, useWindowDimensions } from 'react-native';
 
 import { CampoContrasena, CampoTexto, Texto } from '../../../diseno';
 import { usarEstadoAcceso } from '../acceso.estado';
-import { iniciarSesionConEmail } from '../acceso.servicio';
+import { iniciarSesionConEmail, iniciarSesionConGoogle } from '../acceso.servicio';
+import { BotonGoogle } from '../componentes/BotonGoogle';
 import { BotonAcceso, EnlaceAcceso, calcularEscalaAcceso, estilosAcceso, PantallaAcceso } from '../componentes/PantallaAcceso';
 import { crearEsquemaCredenciales } from '../esquemas';
 import { CredencialesAcceso } from '../tipos';
@@ -14,6 +16,8 @@ import { CredencialesAcceso } from '../tipos';
 export function IniciarSesionPantalla() {
   const { t } = useTranslation();
   const definirUsuario = usarEstadoAcceso((estado) => estado.definirUsuario);
+  const [cargandoGoogle, setCargandoGoogle] = useState(false);
+  const [errorGoogle, setErrorGoogle] = useState<string | null>(null);
   const { height, width } = useWindowDimensions();
   const escala = calcularEscalaAcceso(height, width);
   const estiloCampo = {
@@ -46,6 +50,22 @@ export function IniciarSesionPantalla() {
     },
   });
 
+  async function entrarConGoogle() {
+    setErrorGoogle(null);
+    setCargandoGoogle(true);
+    try {
+      const usuario = await iniciarSesionConGoogle();
+      if (usuario) {
+        definirUsuario(usuario);
+        router.replace('/(principal)/hoy');
+      }
+    } catch (error) {
+      setErrorGoogle(error instanceof Error ? error.message : t('validation.invalidCredentials'));
+    } finally {
+      setCargandoGoogle(false);
+    }
+  }
+
   const entrarConEmail = handleSubmit(async (valores) => {
     const esquemaCredenciales = crearEsquemaCredenciales({
       email: t('validation.email'),
@@ -75,7 +95,42 @@ export function IniciarSesionPantalla() {
   });
 
   return (
-    <PantallaAcceso titulo={t('auth.login.title')} subtitulo={t('auth.login.subtitle')}>
+    <PantallaAcceso
+      titulo={t('auth.login.title')}
+      subtitulo={t('auth.login.subtitle')}
+      botonInferior={
+        <>
+          <BotonAcceso
+            disabled={isSubmitting}
+            height={altoBoton}
+            iconoSize={21 * escala}
+            onPress={entrarConEmail}
+            paddingHorizontal={paddingHorizontalBoton}
+            textStyle={estiloTextoBoton}
+          >
+            {isSubmitting ? `${t('auth.signIn')}...` : t('auth.login.button')}
+          </BotonAcceso>
+
+          <View style={s.divisorFila}>
+            <View style={s.divisorLinea} />
+            <Texto style={s.divisorTexto}>{t('auth.orContinueWith', { defaultValue: 'o' })}</Texto>
+            <View style={s.divisorLinea} />
+          </View>
+
+          {errorGoogle ? (
+            <Texto style={[estilosAcceso.error, { fontSize: 13 * escala, lineHeight: 18 * escala }]}>{errorGoogle}</Texto>
+          ) : null}
+          <BotonGoogle cargando={cargandoGoogle} onPress={entrarConGoogle} />
+
+          <Texto style={estiloEnlaces}>
+            {t('auth.login.noAccount')}{' '}
+            <EnlaceAcceso href="/(publico)/crear-cuenta" style={{ fontSize: 13 * escala }}>
+              {t('auth.login.creatingAccount')}
+            </EnlaceAcceso>
+          </Texto>
+        </>
+      }
+    >
       <Controller
         control={control}
         name="email"
@@ -126,24 +181,12 @@ export function IniciarSesionPantalla() {
       <EnlaceAcceso href="/(publico)/recuperar-acceso" style={{ fontSize: 13 * escala }}>
         {t('auth.login.forgotPassword')}
       </EnlaceAcceso>
-
-      <BotonAcceso
-        disabled={isSubmitting}
-        height={altoBoton}
-        iconoSize={21 * escala}
-        onPress={entrarConEmail}
-        paddingHorizontal={paddingHorizontalBoton}
-        textStyle={estiloTextoBoton}
-      >
-        {isSubmitting ? `${t('auth.signIn')}...` : t('auth.login.button')}
-      </BotonAcceso>
-
-      <Texto style={estiloEnlaces}>
-        {t('auth.login.noAccount')}{' '}
-        <EnlaceAcceso href="/(publico)/crear-cuenta" style={{ fontSize: 13 * escala }}>
-          {t('auth.login.creatingAccount')}
-        </EnlaceAcceso>
-      </Texto>
     </PantallaAcceso>
   );
 }
+
+const s = StyleSheet.create({
+  divisorFila: { alignItems: 'center', flexDirection: 'row', gap: 10, marginVertical: 4 },
+  divisorLinea: { backgroundColor: 'rgba(0,0,0,0.12)', flex: 1, height: 1 },
+  divisorTexto: { color: '#898F8B', fontFamily: 'Montserrat-Medium', fontSize: 12 },
+});

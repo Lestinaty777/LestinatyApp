@@ -36,6 +36,8 @@ type ContenedorMapaSenderosProps = {
   paqueteId?: string;
   /** 0-1: qué tan crecido está el pasto en niveles 1-3 — solo aplica a categoriaId 'habitos'. */
   progresoPastoTemprano?: number;
+  /** Desplaza el primer nodo para vistas compactas, sin alterar los mapas estándar. */
+  desplazamientoSuperior?: number;
 };
 
 const separacionVertical = 112;
@@ -279,7 +281,7 @@ const CapaDecoracionMapa = React.memo(function CapaDecoracionMapa({
   );
 });
 
-export function ContenedorMapaSenderos({ altura, categoriaId, color, enfocado, infoHabito, nivel, nodos: nodosOverride, onCompletarNodo, paqueteId, progresoPastoTemprano, subcategoriaId }: ContenedorMapaSenderosProps) {
+export function ContenedorMapaSenderos({ altura, categoriaId, color, desplazamientoSuperior, enfocado, infoHabito, nivel, nodos: nodosOverride, onCompletarNodo, paqueteId, progresoPastoTemprano, subcategoriaId }: ContenedorMapaSenderosProps) {
   const { width } = useWindowDimensions();
   const router = useRouter();
   const scrollRef = useRef<ScrollView>(null);
@@ -294,7 +296,8 @@ export function ContenedorMapaSenderos({ altura, categoriaId, color, enfocado, i
   const [seleccionado, setSeleccionado] = useState(idNodoActual);
   const [conexionEnCurso, setConexionEnCurso] = useState<number | null>(null);
   const progresoConexion = useRef(new Animated.Value(0)).current;
-  const altoContenido = Math.max(altura, margenSuperior + Math.max(0, nodos.length - 1) * separacionVertical + 430);
+  const margenSuperiorEfectivo = desplazamientoSuperior ?? margenSuperior;
+  const altoContenido = Math.max(altura, margenSuperiorEfectivo + Math.max(0, nodos.length - 1) * separacionVertical + 430);
   // El lienzo de nodos y conexiones nunca se virtualiza: es interactivo y
   // continuo. Toda vista de nivel usa la misma ventana de decoración; solo
   // cambian la cantidad de nodos y las etapas disponibles.
@@ -309,7 +312,10 @@ export function ContenedorMapaSenderos({ altura, categoriaId, color, enfocado, i
   );
   const assetSemilla = paqueteId ? obtenerAssetSemillaPaquete(paqueteId) : null;
   const assetBrote = paqueteId ? obtenerAssetEtapaUnoPaquete(paqueteId) : null;
-  const mapa = useMemo(() => generarMapaProcedural({ ancho: anchoEscena, cantidadNodos: nodos.length, tema: temaMapa }), [anchoEscena, nodos.length, temaMapa]);
+  const mapa = useMemo(
+    () => generarMapaProcedural({ ancho: anchoEscena, cantidadNodos: nodos.length, desplazamientoSuperior: margenSuperiorEfectivo, tema: temaMapa }),
+    [anchoEscena, margenSuperiorEfectivo, nodos.length, temaMapa],
+  );
   const posiciones = mapa.nodos;
   const conexiones = posiciones.slice(0, -1).map((posicion, indice) => {
     const siguiente = posiciones[indice + 1];
@@ -337,7 +343,7 @@ export function ContenedorMapaSenderos({ altura, categoriaId, color, enfocado, i
   function seleccionarNodo(id: string, indice: number) {
     setSeleccionado(id);
     if (enfocado) {
-      const destino = Math.max(0, margenSuperior + indice * separacionVertical - altura * 0.34);
+      const destino = Math.max(0, margenSuperiorEfectivo + indice * separacionVertical - altura * 0.34);
       scrollRef.current?.scrollTo({ animated: true, y: destino });
     }
   }

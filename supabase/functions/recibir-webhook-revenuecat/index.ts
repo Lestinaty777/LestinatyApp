@@ -8,11 +8,15 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 type EventoRevenueCat = {
   app_user_id?: string;
+  entitlement_ids?: string[];
   environment?: 'SANDBOX' | 'PRODUCTION';
   id: string;
+  period_type?: string;
   product_id?: string;
   type: string;
 };
+
+const ENTITLEMENT_HORIZON = 'horizon';
 
 const jsonHeaders = { 'Content-Type': 'application/json' };
 const REGEX_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -66,6 +70,18 @@ Deno.serve(async (request) => {
   }
 
   const cliente = createClient(supabaseUrl, serviceRole);
+
+  // Inicio de trial de Horizon: nunca va a matchear el catálogo de gemas de
+  // abajo, así que se resuelve acá de forma explícita en vez de caer por
+  // descarte en "producto_no_es_gemas". Esta marca es la ÚNICA fuente de
+  // verdad server-side de "este usuario inició un trial" — la usa
+  // otorgar_semilla_trial_horizon() para no confiar en nada que mande el cliente.
+  if (evento.type === 'INITIAL_PURCHASE' && evento.period_type === 'TRIAL' && evento.entitlement_ids?.includes(ENTITLEMENT_HORIZON)) {
+    const { error: errorTrial } = await cliente.rpc('marcar_trial_horizon_iniciado', { p_persona_id: evento.app_user_id });
+    if (errorTrial) return responder(502, { codigo: 'trial_horizon', mensaje: 'No se pudo registrar el trial.' });
+    return responder(200, { accion: 'trial_horizon_iniciado' });
+  }
+
   const { data: paquete, error: errorPaquete } = await cliente
     .from('paquetes_gemas_iap')
     .select('cantidad_gemas')

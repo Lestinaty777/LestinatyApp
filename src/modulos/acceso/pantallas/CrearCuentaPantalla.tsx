@@ -3,11 +3,12 @@ import { Gift, Mail } from 'lucide-react-native';
 import { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
-import { StyleSheet, useWindowDimensions } from 'react-native';
+import { StyleSheet, View, useWindowDimensions } from 'react-native';
 
 import { CampoContrasena, CampoTexto, Texto, colores } from '../../../diseno';
 import { usarEstadoAcceso } from '../acceso.estado';
-import { crearCuentaConEmail, reenviarOtpRegistro, verificarRegistroConOtp } from '../acceso.servicio';
+import { crearCuentaConEmail, iniciarSesionConGoogle, reenviarOtpRegistro, verificarRegistroConOtp } from '../acceso.servicio';
+import { BotonGoogle } from '../componentes/BotonGoogle';
 import { CampoOtp } from '../componentes/CampoOtp';
 import { obtenerSegundosCooldownOtp, usarCooldownOtp } from '../cooldownOtp';
 import {
@@ -77,6 +78,8 @@ export function CrearCuentaPantalla() {
   const [emailPendiente, setEmailPendiente] = useState<string | null>(null);
   const [reenviando, setReenviando] = useState(false);
   const [paso, setPaso] = useState<'datos' | 'otp'>('datos');
+  const [cargandoGoogle, setCargandoGoogle] = useState(false);
+  const [errorGoogle, setErrorGoogle] = useState<string | null>(null);
   const cooldownReenvio = usarCooldownOtp('signup', emailPendiente);
   const {
     control: controlOtp,
@@ -90,6 +93,22 @@ export function CrearCuentaPantalla() {
       token: '',
     },
   });
+
+  async function entrarConGoogle() {
+    setErrorGoogle(null);
+    setCargandoGoogle(true);
+    try {
+      const usuario = await iniciarSesionConGoogle();
+      if (usuario) {
+        definirUsuario(usuario);
+        router.replace('/(principal)/hoy');
+      }
+    } catch (error) {
+      setErrorGoogle(error instanceof Error ? error.message : t('validation.signup'));
+    } finally {
+      setCargandoGoogle(false);
+    }
+  }
 
   const crearCuenta = handleSubmit(async (valores) => {
     const esquemaCredenciales = crearEsquemaCredenciales({
@@ -294,6 +313,17 @@ export function CrearCuentaPantalla() {
           >
             {isSubmitting ? `${t('auth.createAccount.button')}...` : t('auth.createAccount.button')}
           </BotonAcceso>
+
+          <View style={s.divisorFila}>
+            <View style={s.divisorLinea} />
+            <Texto style={s.divisorTexto}>{t('auth.orContinueWith', { defaultValue: 'o' })}</Texto>
+            <View style={s.divisorLinea} />
+          </View>
+
+          {errorGoogle ? (
+            <Texto style={[estilosAcceso.error, { fontSize: 13 * escala, lineHeight: 18 * escala }]}>{errorGoogle}</Texto>
+          ) : null}
+          <BotonGoogle cargando={cargandoGoogle} onPress={entrarConGoogle} texto="Continuar con Google" />
         </>
       ) : (
         <>
@@ -359,6 +389,12 @@ export function CrearCuentaPantalla() {
     </PantallaAcceso>
   );
 }
+
+const s = StyleSheet.create({
+  divisorFila: { alignItems: 'center', flexDirection: 'row', gap: 10, marginVertical: 4 },
+  divisorLinea: { backgroundColor: 'rgba(0,0,0,0.12)', flex: 1, height: 1 },
+  divisorTexto: { color: '#898F8B', fontFamily: 'Montserrat-Medium', fontSize: 12 },
+});
 
 const stylesOtp = StyleSheet.create({
   raiz: {

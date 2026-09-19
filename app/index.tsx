@@ -30,5 +30,5 @@ export default function Entrada() {
     return <Redirect href="/(publico)/introduccion" />;
   }
 
-  return <Redirect href="/(publico)/iniciar-sesion" />;
+  return <Redirect href="/(publico)/introduccion-acceso" />;
 }
