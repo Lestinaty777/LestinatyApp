@@ -42,6 +42,7 @@ export type DecoracionProcedural = {
   etapa?: number;
   escala: number;
   lado: LadoMapa;
+  opacidad?: number;
   x: number;
   y: number;
   volteado?: boolean;
@@ -75,6 +76,15 @@ type RolDecoracion = 'arbol-principal' | 'arbol-secundario' | 'arbol-terciario' 
 // puente viejo de un solo asset por rol) se renormaliza entre las que sí.
 const PESO_POR_PROFUNDIDAD = [0.7, 0.2, 0.1];
 
+export function obtenerOpacidadArbolPorProfundidad(profundidad: number): number {
+  return profundidad === 1 ? 0.6 : profundidad === 2 ? 0.3 : 1;
+}
+
+/** 70% → 60%, 20% → 40%, 10% → 80% para flores y arbustos. */
+export function obtenerOpacidadDetallePorSorteo(sorteo: number): number {
+  return sorteo < 0.7 ? 0.6 : sorteo < 0.9 ? 0.4 : 0.8;
+}
+
 function elegirProfundidad(aleatorio: () => number, disponibles: readonly boolean[]): number {
   const pesos = PESO_POR_PROFUNDIDAD.map((peso, indice) => (disponibles[indice] ? peso : 0));
   const total = pesos.reduce((suma, peso) => suma + peso, 0);
@@ -90,7 +100,7 @@ function elegirProfundidad(aleatorio: () => number, disponibles: readonly boolea
 const TAMANO_BASE_ASSET = 172;
 // Las etapas de paquete no se escalan al azar: cada una comunica una fase
 // concreta de crecimiento y debe conservar esa lectura en cualquier mapa.
-const TAMANO_ETAPA_POR_NIVEL: Record<number, number> = { 1: 80, 2: 90, 3: 100, 4: 110, 5: 120, 6: 130, 7: 140 };
+const TAMANO_ETAPA_POR_NIVEL: Record<number, number> = { 1: 52, 2: 72, 3: 85, 4: 110, 5: 120, 6: 130, 7: 140 };
 const SEPARACION_NODOS = 112;
 const LIMPIEZA_NODO = 68;
 // Aire breve antes del primer nodo. Un margen grande hacía que, al rematar el
@@ -106,7 +116,7 @@ const AMBIENTE_OPACIDADES = [0.3, 0.6, 1];
 // aún más despejados para que el mapa tenga respiración visual.
 const FACTOR_DENSIDAD_PASTO = 0.8;
 const REDUCCION_PASTO_EXTREMOS = 0.5;
-const FACTOR_ESCALA_ARBUSTO = 0.8;
+const FACTOR_ESCALA_ARBUSTO = 0.68;
 // Cobertura de terreno presente, pero 20% más ligera para que los árboles,
 // lámparas y nodos respiren mejor.
 const AMBIENTE_DENSIDAD = 1 / 1125;
@@ -214,7 +224,7 @@ export function generarMapaProcedural({
     ? Math.max(tema.presupuestoDecoracion, nodos.length * ARBOLES_ETAPA_POR_NODO + Math.ceil(nodos.length * PROBABILIDAD_ARBOL_INTERMEDIO) + 6)
     : tema.presupuestoDecoracion;
 
-  function colocar({ assetId, capa, escala, etapa, lado, x, y }: Omit<DecoracionProcedural, 'volteado'>) {
+  function colocar({ assetId, capa, escala, etapa, lado, opacidad, x, y }: Omit<DecoracionProcedural, 'volteado'>) {
     if (decoraciones.length >= presupuestoDecoracion) return false;
     const tamano = TAMANO_BASE_ASSET * escala;
     const caja = crearCaja(x, y, tamano);
@@ -222,7 +232,7 @@ export function generarMapaProcedural({
     const invadeNodo = nodos.some((nodo) => Math.hypot(centroDecoracion.x - nodo.x, centroDecoracion.y - nodo.y) <= LIMPIEZA_NODO);
     if (invadeNodo || hayColision(caja, cajasProtegidas) || hayColision(caja, cajasDecoracion)) return false;
 
-    decoraciones.push({ assetId, capa, escala, etapa, lado, x, y, volteado: aleatorio() > 0.5 });
+    decoraciones.push({ assetId, capa, escala, etapa, lado, opacidad, x, y, volteado: aleatorio() > 0.5 });
     cajasDecoracion.push(caja);
     return true;
   }
@@ -275,6 +285,7 @@ export function generarMapaProcedural({
         escala,
         etapa,
         lado,
+        opacidad: obtenerOpacidadArbolPorProfundidad(profundidad),
         x: lado === 'izquierda' ? -desbordeLateral : ancho - tamano + desbordeLateral,
         y,
       });
@@ -302,18 +313,19 @@ export function generarMapaProcedural({
     let arbol: AssetBioma | undefined;
     let capa: CapaDecoracion;
     let etapaArbol: number | undefined;
+    let profundidadArbol = 0;
     if (usaProfundidad) {
       const disponibles = arbolesPorProfundidad.map((lista) => lista.length > 0);
       // Los dos árboles del primer nodo son el ancla del mapa: no mezclan
       // etapas previas. Así nivel 1 usa siempre etapa 1 (80 px) y nivel 2
       // etapa 2 (90 px), en ambos costados y con el mismo tamaño.
-      const profundidad = indice === 0 && tema.tieneAssetsPaquete
+      profundidadArbol = indice === 0 && tema.tieneAssetsPaquete
         ? 0
         : elegirProfundidad(aleatorio, disponibles);
-      const lista = arbolesPorProfundidad[profundidad];
+      const lista = arbolesPorProfundidad[profundidadArbol];
       arbol = lista[Math.floor(aleatorio() * lista.length)];
-      capa = profundidad === 0 ? 'frente' : profundidad === 1 ? 'medio' : 'fondo';
-      etapaArbol = Math.max(1, (tema.nivel ?? 1) - profundidad);
+      capa = profundidadArbol === 0 ? 'frente' : profundidadArbol === 1 ? 'medio' : 'fondo';
+      etapaArbol = Math.max(1, (tema.nivel ?? 1) - profundidadArbol);
     } else {
       const arboles = indice % 3 === 0 ? arbolesPrincipales : arbolesSecundarios;
       arbol = arboles[Math.floor(aleatorio() * arboles.length)];
@@ -334,6 +346,7 @@ export function generarMapaProcedural({
       escala,
       etapa: etapaArbol,
       lado,
+      opacidad: obtenerOpacidadArbolPorProfundidad(profundidadArbol),
       // Siempre anclado a un borde: jamás cruza al centro del sendero.
       x: lado === 'izquierda' ? 8 : ancho - tamano - 8,
       y,
@@ -368,6 +381,7 @@ export function generarMapaProcedural({
         capa: 'frente',
         escala,
         lado,
+        opacidad: obtenerOpacidadDetallePorSorteo(aleatorio()),
         x: lado === 'izquierda' ? centro - 96 - factorX : centro + 62 + factorX,
         y,
       }));
@@ -385,6 +399,7 @@ export function generarMapaProcedural({
         capa: 'medio',
         escala,
         lado,
+        opacidad: obtenerOpacidadDetallePorSorteo(aleatorio()),
         x: lado === 'izquierda' ? 14 + factorX : ancho - tamano - 14 - factorX,
         y,
       }));

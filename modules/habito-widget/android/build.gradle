@@ -1,0 +1,22 @@
+plugins {
+  id 'com.android.library'
+  id 'expo-module-gradle-plugin'
+}
+
+group = 'com.lestinaty.widget'
+version = '1.0.0'
+
+android {
+  namespace "com.lestinaty.widget"
+  defaultConfig {
+    versionCode 1
+    versionName "1.0.0"
+  }
+  buildFeatures {
+    viewBinding false
+  }
+}
+
+dependencies {
+  implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1"
+}

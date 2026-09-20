@@ -2,6 +2,7 @@ import { Flame, ListChecks, Repeat2 } from 'lucide-react-native';
 import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 
 import { RecuadroGlass, Texto } from '../../../diseno';
 import { hapticSeguro } from '../../../nucleo/dispositivo/haptics';
@@ -10,16 +11,17 @@ import { RutinasPantalla } from '../../rutinas/pantallas/RutinasPantalla';
 
 type PestanaSendero = 'habitos' | 'rutinas' | 'tareas';
 
-const PESTANAS: { id: PestanaSendero; etiqueta: string; Icono: typeof Flame; color: string }[] = [
-  { id: 'habitos', etiqueta: 'Hábitos', Icono: Flame, color: '#22C55E' },
-  { id: 'rutinas', etiqueta: 'Rutinas', Icono: Repeat2, color: '#EF4444' },
-  { id: 'tareas', etiqueta: 'Tareas', Icono: ListChecks, color: '#EAB308' },
+const PESTANAS: { id: PestanaSendero; Icono: typeof Flame; color: string }[] = [
+  { id: 'habitos', Icono: Flame, color: '#22C55E' },
+  { id: 'rutinas', Icono: Repeat2, color: '#EF4444' },
+  { id: 'tareas', Icono: ListChecks, color: '#EAB308' },
 ];
 
 // Hub de senderos: un switcher arriba para moverte entre Hábitos, Rutinas y
 // Tareas. El mapa voxel (ContenedorMapaSenderos) no vive aquí — es el detalle
 // de UN sendero, no el listado. Rutinas y Tareas llegan en próximas rondas.
 export function SenderosPantalla() {
+  const { t } = useTranslation();
   const [activa, setActiva] = useState<PestanaSendero>('habitos');
 
   return (
@@ -37,7 +39,7 @@ export function SenderosPantalla() {
                     style={[s.pestana, seleccionada && { backgroundColor: `${pestana.color}18` }]}
                   >
                     <pestana.Icono color={seleccionada ? pestana.color : '#9C97AC'} size={17} strokeWidth={2.4} />
-                    <Texto style={[s.pestanaTexto, seleccionada && { color: pestana.color }]}>{pestana.etiqueta}</Texto>
+                    <Texto style={[s.pestanaTexto, seleccionada && { color: pestana.color }]}>{t(`senderos.pantalla.${pestana.id}`)}</Texto>
                   </Pressable>
                 );
               })}
@@ -47,7 +49,7 @@ export function SenderosPantalla() {
 
         {activa === 'habitos' && <HabitosPantalla />}
         {activa === 'rutinas' && <RutinasPantalla />}
-        {activa === 'tareas' && <ProximamentePane color="#EAB308" mensaje="Las tareas grandes se dividirán en un sendero de pasos concretos." titulo="Tareas" />}
+        {activa === 'tareas' && <ProximamentePane color="#EAB308" mensaje={t('senderos.pantalla.tasksDescription')} titulo={t('senderos.pantalla.tasksTitle')} />}
       </SafeAreaView>
     </View>
   );

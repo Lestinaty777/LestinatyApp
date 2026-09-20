@@ -17,5 +17,6 @@ const PAQUETES_VISUALES: Record<string, PaqueteVisualHabito> = {
 };
 
 export function obtenerPaqueteVisualHabito(paqueteId?: string | null): PaqueteVisualHabito {
-  return PAQUETES_VISUALES[paqueteId?.toLowerCase() ?? ''] ?? PAQUETES_VISUALES.esmeralda;
+  return PAQUETES_VISUALES[resolverPaqueteHabito(paqueteId)];
 }
+import { resolverPaqueteHabito } from './paqueteHabito';

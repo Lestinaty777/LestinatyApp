@@ -1,0 +1,46 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <application>
+        <receiver
+            android:name="com.lestinaty.widget.HabitoFocoWidgetProvider"
+            android:exported="true"
+            android:label="@string/widget_habito_foco_nombre">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="com.lestinaty.widget.ACTION_INCREMENTAR" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_habito_foco_info" />
+        </receiver>
+
+        <receiver
+            android:name="com.lestinaty.widget.CalendarioWidgetProvider"
+            android:exported="true"
+            android:label="@string/widget_calendario_mes_nombre">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_calendario_mes_info" />
+        </receiver>
+
+        <!-- Servicio en primer plano de la sesión de cronómetro (meditar, etc.) —
+             mantiene la notificación con Chronometer visible, incluso con la app
+             cerrada o la pantalla bloqueada. "specialUse" es el tipo genérico que
+             exige Android 14+ para casos sin un tipo dedicado (no es media,
+             ubicación, etc.) — el subtipo describe el caso de uso ante Play Store. -->
+        <service
+            android:name="com.lestinaty.widget.CronometroHabitoService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="habit-focus-timer-session" />
+        </service>
+    </application>
+</manifest>

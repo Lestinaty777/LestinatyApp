@@ -9,7 +9,7 @@ import { hapticSeguro } from '../../../nucleo/dispositivo/haptics';
 import { AuroraBoreal } from '../../hoy/componentes/AuroraBoreal';
 import { obtenerAssetsPaquete } from '../../senderos/algoritmo/registroPaquetesArbol';
 import { otorgarSemillaBienvenida } from '../../tienda/gemas.servicio';
-import { CLAVE_REGALO_BIENVENIDA } from '../onboarding.servicio';
+import { CLAVE_ABRIR_CREACION_HABITO, CLAVE_REGALO_BIENVENIDA } from '../onboarding.servicio';
 import { CarruselArbolRegalo } from '../componentes/CarruselArbolRegalo';
 
 const C = { tenue: '#648170', verde: '#25884C' };
@@ -56,7 +56,23 @@ export function RegaloBienvenidaPantalla() {
     },
     onSuccess: () => {
       hapticSeguro('confirmacion');
-      queryClient.setQueryData(CLAVE_REGALO_BIENVENIDA, false);
+      // La pregunta se hace ACÁ (antes de liberar el gate) — una vez que
+      // CLAVE_REGALO_BIENVENIDA pasa a false, _layout.tsx desmonta esta
+      // pantalla de inmediato para mostrar los tabs.
+      Alert.alert('¡Tu árbol está plantado!', '¿Querés crear tu primer hábito ahora?', [
+        {
+          onPress: () => queryClient.setQueryData(CLAVE_REGALO_BIENVENIDA, false),
+          style: 'cancel',
+          text: 'Prefiero explorar',
+        },
+        {
+          onPress: () => {
+            queryClient.setQueryData(CLAVE_ABRIR_CREACION_HABITO, true);
+            queryClient.setQueryData(CLAVE_REGALO_BIENVENIDA, false);
+          },
+          text: 'Sí, vamos',
+        },
+      ]);
     },
   });
 

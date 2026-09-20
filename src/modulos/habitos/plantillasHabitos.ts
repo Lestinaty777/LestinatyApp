@@ -1,4 +1,5 @@
 import type { CrearHabitoInput } from './habitos.servicio';
+import { i18n } from '../../servicios/i18n/i18n';
 
 export type PlantillaHabito = {
   iconoId: string;
@@ -81,10 +82,32 @@ export const PLANTILLAS_HABITOS: PlantillaHabito[] = [
   { iconoId: 'zanahoria', titulo: 'Comer verduras', tipoMeta: 'cantidad', meta: 3, unidad: 'porciones', palabrasClave: ['nutrición', 'vegetales'] },
 ];
 
+function clavePlantilla(id: string): string {
+  return id.replace(/-([a-z])/g, (_, letra: string) => letra.toUpperCase());
+}
+
+/**
+ * Los valores base mantienen la compatibilidad con hábitos ya creados, pero
+ * la lista que se presenta en el wizard siempre se resuelve en el idioma
+ * activo. También localizamos las unidades, que pasan a ser el valor inicial
+ * editable al elegir una plantilla.
+ */
+export function obtenerPlantillasHabitos(): PlantillaHabito[] {
+  return PLANTILLAS_HABITOS.map((plantilla) => {
+    const clave = clavePlantilla(plantilla.iconoId);
+    return {
+      ...plantilla,
+      titulo: i18n.t(`habitos.crearWizard.templateTitles.${clave}`),
+      unidad: plantilla.unidad ? i18n.t(`habitos.crearWizard.templateUnits.${plantilla.unidad.normalize('NFD').replace(/[\u0300-\u036f]/g, '')}`) : undefined,
+    };
+  });
+}
+
 export function buscarPlantillasHabitos(consulta: string): PlantillaHabito[] {
   const q = consulta.trim().toLowerCase();
-  if (!q) return PLANTILLAS_HABITOS;
-  return PLANTILLAS_HABITOS.filter((plantilla) =>
+  const plantillas = obtenerPlantillasHabitos();
+  if (!q) return plantillas;
+  return plantillas.filter((plantilla) =>
     plantilla.titulo.toLowerCase().includes(q) ||
     plantilla.iconoId.toLowerCase().includes(q) ||
     plantilla.palabrasClave?.some((clave) => clave.toLowerCase().includes(q)),

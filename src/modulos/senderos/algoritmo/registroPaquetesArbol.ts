@@ -248,6 +248,66 @@ const valvery: PaqueteAssetsArbol = {
   semilla: require('../../../../assets/ilustraciones/senderos/biomas/paquetes/Valvery/semilla.png'),
 };
 
+const crimsonmoon: PaqueteAssetsArbol = {
+  etapas: [
+    require('../../../../assets/ilustraciones/senderos/biomas/paquetes/unicos/CrimsonMoon/etapa1.png'),
+    require('../../../../assets/ilustraciones/senderos/biomas/paquetes/unicos/CrimsonMoon/etapa2.png'),
+    require('../../../../assets/ilustraciones/senderos/biomas/paquetes/unicos/CrimsonMoon/etapa3.png'),
+    require('../../../../assets/ilustraciones/senderos/biomas/paquetes/unicos/CrimsonMoon/etapa4.png'),
+    require('../../../../assets/ilustraciones/senderos/biomas/paquetes/unicos/CrimsonMoon/etapa5.png'),
+    require('../../../../assets/ilustraciones/senderos/biomas/paquetes/unicos/CrimsonMoon/etapa6.png'),
+    require('../../../../assets/ilustraciones/senderos/biomas/paquetes/unicos/CrimsonMoon/etapa7.png'),
+  ],
+  arbusto: require('../../../../assets/ilustraciones/senderos/biomas/paquetes/unicos/CrimsonMoon/arbusto.png'),
+  flor: require('../../../../assets/ilustraciones/senderos/biomas/paquetes/unicos/CrimsonMoon/flor.png'),
+  semilla: require('../../../../assets/ilustraciones/senderos/biomas/paquetes/unicos/CrimsonMoon/semilla.png'),
+};
+
+const eclipse: PaqueteAssetsArbol = {
+  etapas: [
+    require('../../../../assets/ilustraciones/senderos/biomas/paquetes/unicos/Eclipse/etapa1.png'),
+    require('../../../../assets/ilustraciones/senderos/biomas/paquetes/unicos/Eclipse/etapa2.png'),
+    require('../../../../assets/ilustraciones/senderos/biomas/paquetes/unicos/Eclipse/etapa3.png'),
+    require('../../../../assets/ilustraciones/senderos/biomas/paquetes/unicos/Eclipse/etapa4.png'),
+    require('../../../../assets/ilustraciones/senderos/biomas/paquetes/unicos/Eclipse/etapa5.png'),
+    require('../../../../assets/ilustraciones/senderos/biomas/paquetes/unicos/Eclipse/etapa6.png'),
+    require('../../../../assets/ilustraciones/senderos/biomas/paquetes/unicos/Eclipse/etapa7.png'),
+  ],
+  arbusto: require('../../../../assets/ilustraciones/senderos/biomas/paquetes/unicos/Eclipse/arbusto.png'),
+  flor: require('../../../../assets/ilustraciones/senderos/biomas/paquetes/unicos/Eclipse/flor.png'),
+  semilla: require('../../../../assets/ilustraciones/senderos/biomas/paquetes/unicos/Eclipse/semilla.png'),
+};
+
+const moon: PaqueteAssetsArbol = {
+  etapas: [
+    require('../../../../assets/ilustraciones/senderos/biomas/paquetes/unicos/Moon/etapa1.png'),
+    require('../../../../assets/ilustraciones/senderos/biomas/paquetes/unicos/Moon/etapa2.png'),
+    require('../../../../assets/ilustraciones/senderos/biomas/paquetes/unicos/Moon/etapa3.png'),
+    require('../../../../assets/ilustraciones/senderos/biomas/paquetes/unicos/Moon/etapa4.png'),
+    require('../../../../assets/ilustraciones/senderos/biomas/paquetes/unicos/Moon/etapa5.png'),
+    require('../../../../assets/ilustraciones/senderos/biomas/paquetes/unicos/Moon/etapa6.png'),
+    require('../../../../assets/ilustraciones/senderos/biomas/paquetes/unicos/Moon/etapa7.png'),
+  ],
+  arbusto: require('../../../../assets/ilustraciones/senderos/biomas/paquetes/unicos/Moon/arbusto.png'),
+  flor: require('../../../../assets/ilustraciones/senderos/biomas/paquetes/unicos/Moon/flor.png'),
+  semilla: require('../../../../assets/ilustraciones/senderos/biomas/paquetes/unicos/Moon/semilla.png'),
+};
+
+const vida: PaqueteAssetsArbol = {
+  etapas: [
+    require('../../../../assets/ilustraciones/senderos/biomas/paquetes/unicos/Vida/etapa1.png'),
+    require('../../../../assets/ilustraciones/senderos/biomas/paquetes/unicos/Vida/etapa2.png'),
+    require('../../../../assets/ilustraciones/senderos/biomas/paquetes/unicos/Vida/etapa3.png'),
+    require('../../../../assets/ilustraciones/senderos/biomas/paquetes/unicos/Vida/etapa4.png'),
+    require('../../../../assets/ilustraciones/senderos/biomas/paquetes/unicos/Vida/etapa5.png'),
+    require('../../../../assets/ilustraciones/senderos/biomas/paquetes/unicos/Vida/etapa6.png'),
+    require('../../../../assets/ilustraciones/senderos/biomas/paquetes/unicos/Vida/etapa7.png'),
+  ],
+  arbusto: require('../../../../assets/ilustraciones/senderos/biomas/paquetes/unicos/Vida/arbusto.png'),
+  flor: require('../../../../assets/ilustraciones/senderos/biomas/paquetes/unicos/Vida/flor.png'),
+  semilla: require('../../../../assets/ilustraciones/senderos/biomas/paquetes/unicos/Vida/semilla.png'),
+};
+
 export const PAQUETES_ARBOL: Record<string, PaqueteAssetsArbol> = {
   aurelia,
   diamante,
@@ -262,6 +322,10 @@ export const PAQUETES_ARBOL: Record<string, PaqueteAssetsArbol> = {
   nevalhi,
   sakura,
   valvery,
+  crimsonmoon,
+  eclipse,
+  moon,
+  vida,
 };
 
 export function obtenerAssetsPaquete(paqueteId: string): PaqueteAssetsArbol | undefined {

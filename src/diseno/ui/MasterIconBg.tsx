@@ -4,7 +4,9 @@ import { Image, StyleSheet, View } from 'react-native';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 
 import { MasterGlass } from './MasterGlass';
+import { MasterChanger } from '../componentes/MasterChanger';
 import { Skeleton } from '../componentes/Skeleton';
+import { useTonoMaster } from '../tema/MasterColorContext';
 
 type MasterIconBgProps = {
   children?: ReactNode;
@@ -30,10 +32,14 @@ type MasterIconBgProps = {
 // cualquier lugar del diseño que necesite ese mismo marco. Acepta una imagen
 // (fuente) o cualquier otro contenido (children, p. ej. un icono de lucide).
 export function MasterIconBg({
-  children, colorBordeFin = '#539C68', colorBordeInicio = '#C5F7B6',
-  degradadoFin = '#B8EDB0', degradadoInicio = '#F4FFF1',
+  children, colorBordeFin, colorBordeInicio,
+  degradadoFin, degradadoInicio,
   fuente, size = 68, style, tinte, cargando, loading,
 }: MasterIconBgProps) {
+  const tono = useTonoMaster();
+  // Sin colores explícitos toma los del tono activo (Esmeralda = los verdes de siempre).
+  const bordeFin = colorBordeFin ?? tono.marcoIcono.bordeFin;
+  const bordeInicio = colorBordeInicio ?? tono.marcoIcono.bordeInicio;
   const radioExterior = Math.round(size * (18 / 68));
   const radioInterior = Math.round(size * (16 / 68));
   const tamanoIcono = Math.round(size * (48 / 68) * 1.2);
@@ -47,8 +53,8 @@ export function MasterIconBg({
       <Svg height={size} pointerEvents="none" style={mib.borde} width={size}>
         <Defs>
           <LinearGradient id="masterIconBgBorde" x1="0%" x2="100%" y1="0%" y2="100%">
-            <Stop offset="0" stopColor={colorBordeInicio} />
-            <Stop offset="1" stopColor={colorBordeFin} />
+            <Stop offset="0" stopColor={bordeInicio} />
+            <Stop offset="1" stopColor={bordeFin} />
           </LinearGradient>
         </Defs>
         <Rect fill="url(#masterIconBgBorde)" height={size} rx={radioExterior} ry={radioExterior} width={size} />
@@ -59,7 +65,9 @@ export function MasterIconBg({
             compartido (lo usan muchas otras pantallas que deben seguir
             viéndose verdes). Sin `tinte`, se comporta igual que antes. */}
         {tinte && <View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: tinte, borderRadius: radioInterior, opacity: 0.4 }]} />}
-        {fuente ? <Image resizeMode="contain" source={fuente} style={{ height: tamanoIcono, width: tamanoIcono }} /> : children}
+        {fuente ? (tono.hue === undefined
+          ? <Image resizeMode="contain" source={fuente} style={{ height: tamanoIcono, width: tamanoIcono }} />
+          : <MasterChanger alto={tamanoIcono} ancho={tamanoIcono} fuente={fuente} hueDestino={tono.hue} oscurecido={tono.oscurecido} saturacion={tono.saturacion} />) : children}
       </MasterGlass>
     </View>
   );

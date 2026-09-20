@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
-import { buscarPlantillasHabitos, PLANTILLAS_HABITOS } from './plantillasHabitos';
+import { buscarPlantillasHabitos, obtenerPlantillasHabitos } from './plantillasHabitos';
 
 describe('buscarPlantillasHabitos', () => {
   it('devuelve todas las plantillas cuando no hay texto de búsqueda', () => {
-    expect(buscarPlantillasHabitos('')).toBe(PLANTILLAS_HABITOS);
+    expect(buscarPlantillasHabitos('')).toEqual(obtenerPlantillasHabitos());
   });
 
   it('encuentra por título sin importar mayúsculas/minúsculas', () => {

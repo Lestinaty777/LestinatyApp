@@ -1,6 +1,6 @@
 import type { ImageSourcePropType } from 'react-native';
 
-import { ARBUSTO_SELVA_BASE, obtenerAssetsSelvaPorTono } from '../../habitos/iconosHabitos';
+import { resolverPaqueteHabito } from '../../habitos/paqueteHabito';
 import { obtenerAssetsPaquete } from './registroPaquetesArbol';
 import type { CategoriaMapaId } from './mapaProcedural';
 
@@ -152,29 +152,17 @@ export const registroBiomas: Record<CategoriaMapaId, ReglaBioma> = {
 // un solo asset por rol, igual que siempre. Cuando el paquete SÍ tiene sus 7
 // etapas reales, se arma la mezcla de hasta 3 profundidades (actual y las 2
 // anteriores) que resuelve mapaProcedural.ts.
-function construirAssetsBiomaHabitosPuente(paqueteId: string): AssetBioma[] {
-  const tono = Number(paqueteId.replace('verde-', '')) || 1;
-  const assets = obtenerAssetsSelvaPorTono(tono);
-  return [
-    { id: 'base', fuente: assets.base, nombre: `Base Selva nivel ${tono}`, rol: 'base' },
-    { id: 'arbol-principal', fuente: assets.arbolPrincipal, nombre: `Árbol Selva 1 nivel ${tono}`, rol: 'arbol-principal' },
-    { id: 'arbol-secundario', fuente: assets.arbolSecundario, nombre: `Árbol Selva 2 nivel ${tono}`, rol: 'arbol-secundario' },
-    { id: 'arbusto', fuente: ARBUSTO_SELVA_BASE, nombre: 'Arbusto Selva', rol: 'arbusto' },
-    { id: 'flor', fuente: assets.flor, nombre: `Flor Selva nivel ${tono}`, rol: 'flor' },
-  ];
-}
-
 function construirAssetsBiomaHabitos(paqueteId: string, nivel: number): AssetBioma[] {
-  const paquete = obtenerAssetsPaquete(paqueteId);
-  if (!paquete) return construirAssetsBiomaHabitosPuente(paqueteId);
+  const paqueteIdResuelto = resolverPaqueteHabito(paqueteId);
+  const paquete = obtenerAssetsPaquete(paqueteIdResuelto)!;
 
   const nivelAcotado = Math.max(1, Math.min(7, Math.round(nivel)));
   const assets: AssetBioma[] = [
     // Sin arte de "base" propio en el paquete (10 imágenes: 7 etapas +
     // arbusto + flor + semilla) — se reusa la etapa actual como sustituto.
-    { id: 'base', fuente: paquete.etapas[nivelAcotado - 1], nombre: `${paqueteId} base nivel ${nivelAcotado}`, rol: 'base' },
-    { id: 'arbusto', fuente: paquete.arbusto, nombre: `${paqueteId} arbusto`, rol: 'arbusto' },
-    { id: 'flor', fuente: paquete.flor, nombre: `${paqueteId} flor`, rol: 'flor' },
+    { id: 'base', fuente: paquete.etapas[nivelAcotado - 1], nombre: `${paqueteIdResuelto} base nivel ${nivelAcotado}`, rol: 'base' },
+    { id: 'arbusto', fuente: paquete.arbusto, nombre: `${paqueteIdResuelto} arbusto`, rol: 'arbusto' },
+    { id: 'flor', fuente: paquete.flor, nombre: `${paqueteIdResuelto} flor`, rol: 'flor' },
   ];
 
   const rolesPorProfundidad: RolAssetBioma[] = ['arbol-principal', 'arbol-secundario', 'arbol-terciario'];
@@ -184,7 +172,7 @@ function construirAssetsBiomaHabitos(paqueteId: string, nivel: number): AssetBio
     assets.push({
       id: `${rolesPorProfundidad[profundidad]}`,
       fuente: paquete.etapas[indiceEtapa],
-      nombre: `${paqueteId} etapa ${indiceEtapa + 1}`,
+      nombre: `${paqueteIdResuelto} etapa ${indiceEtapa + 1}`,
       rol: rolesPorProfundidad[profundidad],
     });
   }
@@ -203,16 +191,16 @@ export function obtenerAssetBioma(categoriaId: CategoriaMapaId, id: string, paqu
 }
 
 /** true solo si el paquete tiene arte real (etapas/arbusto/flor/semilla) cargado — false para el puente viejo (verde-N sin migrar, premium sin arte todavía). */
-export function tienePaqueteAssetsReales(paqueteId: string): boolean {
-  return obtenerAssetsPaquete(paqueteId) !== undefined;
+export function tienePaqueteAssetsReales(_paqueteId: string): boolean {
+  return true;
 }
 
 /** La semilla del paquete (scatter ambiental, como pasto/roca pero por paquete) — null si el paquete todavía no tiene arte real. */
 export function obtenerAssetSemillaPaquete(paqueteId: string): ImageSourcePropType | null {
-  return obtenerAssetsPaquete(paqueteId)?.semilla ?? null;
+  return obtenerAssetsPaquete(resolverPaqueteHabito(paqueteId))!.semilla;
 }
 
 /** La etapa 1 (semilla/brote inicial) del paquete, para el scatter de brotes chicos cerca de los nodos — null si no tiene arte real. */
 export function obtenerAssetEtapaUnoPaquete(paqueteId: string): ImageSourcePropType | null {
-  return obtenerAssetsPaquete(paqueteId)?.etapas[0] ?? null;
+  return obtenerAssetsPaquete(resolverPaqueteHabito(paqueteId))!.etapas[0];
 }

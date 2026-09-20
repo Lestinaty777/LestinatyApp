@@ -1,186 +1,114 @@
-import React, { useEffect } from 'react';
-import { Image, Pressable, StyleSheet, View } from 'react-native';
-import Animated, {
-  Easing,
-  useAnimatedStyle,
-  useSharedValue,
-  withDelay,
-  withRepeat,
-  withSequence,
-  withTiming,
-} from 'react-native-reanimated';
-import { Plus, Sparkles, Compass, MapPin } from 'lucide-react-native';
+import React from 'react';
+import { Image, StyleSheet, View } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Sparkles, ArrowRight } from 'lucide-react-native';
 
-import { MasterButton, MasterGlass, MasterIcon, Texto } from '../../../diseno';
+import { MasterButton, MasterGlass, MasterIcon, Rebote, Texto } from '../../../diseno';
+import { AuroraBoreal } from '../../hoy/componentes/AuroraBoreal';
 import { hapticSeguro } from '../../../nucleo/dispositivo/haptics';
 
 type EstadoVacioSenderosProps = {
   alCrearHabito: () => void;
 };
 
-// Isla flotante isométrica con pedestal de bienvenida
-const BIOMA_ISLA = require('../../../../assets/ilustraciones/senderos/biomas/arboles/cerezo-01.png');
-const BROTE_ESPERA = require('../../../../assets/ilustraciones/senderos/biomas/arboles/pasto2.png');
+const C = {
+  texto: '#1A1335',
+  tenue: '#648170',
+  verde: '#25884C',
+  verdeOscuro: '#12331F',
+};
+
+const ARBUSTO_HERO = require('../../../../assets/ilustraciones/senderos/biomas/paquetes/Esmeralda/arbusto.png');
 
 export function EstadoVacioSenderos({ alCrearHabito }: EstadoVacioSenderosProps) {
-  // Animación suave de flotación de la isla (bucle infinito respiratorio)
-  const flotacionY = useSharedValue(0);
-  const rotacionSutil = useSharedValue(0);
-  const brilloEscala = useSharedValue(0.95);
-  const broteFlotacion = useSharedValue(0);
-
-  useEffect(() => {
-    flotacionY.value = withRepeat(
-      withSequence(
-        withTiming(-8, { duration: 2800, easing: Easing.inOut(Easing.quad) }),
-        withTiming(0, { duration: 2800, easing: Easing.inOut(Easing.quad) })
-      ),
-      -1,
-      true
-    );
-
-    rotacionSutil.value = withRepeat(
-      withSequence(
-        withTiming(1.2, { duration: 3200, easing: Easing.inOut(Easing.sin) }),
-        withTiming(-1.2, { duration: 3200, easing: Easing.inOut(Easing.sin) })
-      ),
-      -1,
-      true
-    );
-
-    brilloEscala.value = withRepeat(
-      withSequence(
-        withTiming(1.15, { duration: 2400, easing: Easing.inOut(Easing.ease) }),
-        withTiming(0.9, { duration: 2400, easing: Easing.inOut(Easing.ease) })
-      ),
-      -1,
-      true
-    );
-
-    broteFlotacion.value = withRepeat(
-      withSequence(
-        withDelay(300, withTiming(-5, { duration: 2200, easing: Easing.inOut(Easing.quad) })),
-        withTiming(0, { duration: 2200, easing: Easing.inOut(Easing.quad) })
-      ),
-      -1,
-      true
-    );
-  }, [broteFlotacion, brilloEscala, flotacionY, rotacionSutil]);
-
-  const estiloFlotacion = useAnimatedStyle(() => ({
-    transform: [
-      { translateY: flotacionY.value },
-      { rotate: `${rotacionSutil.value}deg` },
-    ],
-  }));
-
-  const estiloSombra = useAnimatedStyle(() => {
-    const escala = 1 - (flotacionY.value / -8) * 0.18;
-    const opacidad = 0.28 - (flotacionY.value / -8) * 0.1;
-    return {
-      opacity: opacidad,
-      transform: [{ scale: escala }],
-    };
-  });
-
-  const estiloBrilloAura = useAnimatedStyle(() => ({
-    transform: [{ scale: brilloEscala.value }],
-    opacity: 0.45 + (brilloEscala.value - 0.95) * 0.5,
-  }));
-
-  const estiloBroteFlotante = useAnimatedStyle(() => ({
-    transform: [{ translateY: broteFlotacion.value }],
-  }));
-
   return (
     <View style={styles.contenedor}>
-      {/* Halo de luz místico en el fondo */}
-      <Animated.View pointerEvents="none" style={[styles.auraFondo, estiloBrilloAura]} />
-
-      {/* Escena 3D Isométrica flotante */}
-      <View style={styles.escenaIsla}>
-        {/* Sombra proyectada en el suelo debajo de la isla */}
-        <Animated.View style={[styles.sombraSuelo, estiloSombra]} />
-
-        {/* Isla voxel flotando suavemente */}
-        <Animated.View style={[styles.islaFlotante, estiloFlotacion]}>
-          <Image
-            resizeMode="contain"
-            source={BIOMA_ISLA}
-            style={styles.imagenIsla}
-          />
-
-          {/* Insignia flotante de "Comienza aquí" sobre la isla */}
-          <Animated.View style={[styles.broteAcompanante, estiloBroteFlotante]}>
-            <MasterGlass blur compacto style={styles.chipComienza}>
-              <Sparkles color="#F59E0B" size={13} strokeWidth={2.4} />
-              <Texto style={styles.textoChipComienza}>Tu primer bioma</Texto>
-            </MasterGlass>
-          </Animated.View>
-        </Animated.View>
+      {/* Aurora boreal etérea de fondo, idéntica al Slide 5 del Onboarding */}
+      <View pointerEvents="none" style={styles.aurora}>
+        <AuroraBoreal tema="verde" />
       </View>
 
-      {/* Tarjeta de cristal con mensaje evocador y llamada a la acción */}
-      <View style={styles.tarjetaAccion}>
-        <MasterGlass blur style={styles.glassMensaje}>
-          {/* Tag temático superior */}
-          <View style={styles.tagSuperior}>
-            <View style={styles.iconoTag}>
-              <Compass color="#145C37" size={13} strokeWidth={2.5} />
+      <View style={styles.contenidoCentral}>
+        {/* Panel translúcido MasterGlass estilo Slide 5 del Onboarding */}
+        <MasterGlass blur style={styles.panel}>
+          {/* Ilustración de héroe (Arbusto Esmeralda con sombra) */}
+          <View style={styles.hero}>
+            <View style={styles.heroImagenContenedor}>
+              <Image
+                resizeMode="contain"
+                source={ARBUSTO_HERO}
+                style={styles.heroImagen}
+              />
             </View>
-            <Texto style={styles.textoTag}>MUNDO EN REPOSO</Texto>
+
+            {/* Título y subtítulo con tipografía oficial */}
+            <Texto style={styles.titulo}>Tu jardín te espera</Texto>
+            <Texto style={styles.subtitulo}>
+              Comienza creando tu primer hábito para ver nacer tu sendero y recorrer sus días.
+            </Texto>
+
+            {/* Separador de línea con degradado sutil verde */}
+            <LinearGradient
+              colors={['rgba(37,136,76,0)', 'rgba(37,136,76,0.32)', 'rgba(37,136,76,0)']}
+              end={{ x: 1, y: 0 }}
+              start={{ x: 0, y: 0 }}
+              style={styles.separador}
+            />
           </View>
 
-          {/* Título y narrativa */}
-          <Texto style={styles.titulo}>Tu sendero aún duerme</Texto>
-          <Texto style={styles.descripcion}>
-            Cada hábito que cultivas genera un árbol y abre una ruta de días con recompensas y gemas. Planta tu primer hábito para despertar el mapa.
-          </Texto>
-
-          {/* Mini-pasos ilustrativos */}
-          <View style={styles.filaPasos}>
-            <View style={styles.itemPaso}>
-              <View style={[styles.nodoPaso, { backgroundColor: 'rgba(20,92,55,0.08)' }]}>
-                <Texto style={styles.numeroPaso}>1</Texto>
+          {/* Tarjeta interna informativa con badge y beneficios */}
+          <View style={styles.cajaDetalles}>
+            <View style={styles.filaBeneficio}>
+              <View style={styles.iconoBeneficioContenedor}>
+                <MasterIcon color={2} name="idea" size={18} />
               </View>
-              <Texto style={styles.textoPaso}>Crea un hábito</Texto>
+              <View style={styles.textoBeneficioContenedor}>
+                <Texto style={styles.tituloBeneficio}>Genera tu propio árbol</Texto>
+                <Texto style={styles.descBeneficio}>Cada hábito tiene su especie viva y evoluciona con tu constancia.</Texto>
+              </View>
             </View>
 
-            <View style={styles.lineaPaso} />
+            <View style={styles.divisorInterno} />
 
-            <View style={styles.itemPaso}>
-              <View style={[styles.nodoPaso, { backgroundColor: 'rgba(20,92,55,0.08)' }]}>
-                <Texto style={styles.numeroPaso}>2</Texto>
+            <View style={styles.filaBeneficio}>
+              <View style={styles.iconoBeneficioContenedor}>
+                <MasterIcon color={2} name="flor" size={18} />
               </View>
-              <Texto style={styles.textoPaso}>Desbloquea días</Texto>
-            </View>
-
-            <View style={styles.lineaPaso} />
-
-            <View style={styles.itemPaso}>
-              <View style={[styles.nodoPaso, { backgroundColor: 'rgba(20,92,55,0.08)' }]}>
-                <Texto style={styles.numeroPaso}>3</Texto>
+              <View style={styles.textoBeneficioContenedor}>
+                <Texto style={styles.tituloBeneficio}>Desbloquea recompensas</Texto>
+                <Texto style={styles.descBeneficio}>Gana gemas y sube de nivel conforme completas tus metas diarias.</Texto>
               </View>
-              <Texto style={styles.textoPaso}>Hazlo crecer</Texto>
             </View>
           </View>
 
-          {/* Botón principal prominente estilo Duolingo / MasterButton */}
+          {/* Botón de acción principal estilo MasterButton verde */}
           <View style={styles.botonContenedor}>
             <MasterButton
-              color="#22C55E"
-              colorSombra="#15803D"
-              iconoIzquierda={Plus}
-              iconoSize={20}
+              color={C.verde}
+              iconoDerecha={({ size }) => <ArrowRight color="#FFFFFF" size={size} strokeWidth={2.8} />}
               onPress={() => {
                 hapticSeguro('accion');
                 alCrearHabito();
               }}
-              style={styles.masterBoton}
-              textStyle={styles.textoBoton}
+              style={styles.boton}
             >
-              Plantar primer hábito
+              Crear nuevo hábito
             </MasterButton>
+          </View>
+
+          {/* Fila inferior con enlace secundario de exploración o inicio */}
+          <View style={styles.filaAccionSecundaria}>
+            <MasterIcon color={2} name="brujula" size={15} />
+            <Texto style={styles.textoSecundario}>¿Listo para empezar tu viaje? </Texto>
+            <Rebote
+              accessibilityLabel="Ir a creación"
+              onPress={() => {
+                hapticSeguro('seleccion');
+                alCrearHabito();
+              }}
+            >
+              <Texto style={styles.enlaceDestacado}>Comenzar acá</Texto>
+            </Rebote>
           </View>
         </MasterGlass>
       </View>
@@ -190,174 +118,150 @@ export function EstadoVacioSenderos({ alCrearHabito }: EstadoVacioSenderosProps)
 
 const styles = StyleSheet.create({
   contenedor: {
+    flex: 1,
+    height: '100%',
+    justifyContent: 'center',
+    position: 'relative',
+    width: '100%',
+  },
+  aurora: {
+    bottom: 0,
+    left: 0,
+    position: 'absolute',
+    right: 0,
+    top: 0,
+  },
+  contenidoCentral: {
     alignItems: 'center',
     flex: 1,
     justifyContent: 'center',
     paddingHorizontal: 20,
-    paddingTop: 10,
     width: '100%',
   },
-  auraFondo: {
-    backgroundColor: 'rgba(34, 197, 94, 0.14)',
-    borderRadius: 180,
-    height: 300,
-    position: 'absolute',
-    top: '12%',
-    width: 300,
-  },
-  escenaIsla: {
+  panel: {
     alignItems: 'center',
-    height: 220,
-    justifyContent: 'center',
-    marginBottom: 6,
-    width: '100%',
-  },
-  sombraSuelo: {
-    backgroundColor: '#0F3820',
-    borderRadius: 65,
-    bottom: 12,
-    height: 24,
-    position: 'absolute',
-    width: 140,
-  },
-  islaFlotante: {
-    alignItems: 'center',
-    height: 200,
-    justifyContent: 'center',
-    position: 'relative',
-    width: 220,
-  },
-  imagenIsla: {
-    height: 190,
-    width: 190,
-  },
-  broteAcompanante: {
-    bottom: 24,
-    position: 'absolute',
-    right: 6,
-  },
-  chipComienza: {
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.92)',
-    borderColor: 'rgba(245, 158, 11, 0.35)',
-    borderRadius: 20,
-    borderWidth: 1,
-    flexDirection: 'row',
-    gap: 5,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    shadowColor: '#000000',
-    shadowOffset: { height: 2, width: 0 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-  },
-  textoChipComienza: {
-    color: '#92400E',
-    fontFamily: 'Montserrat-Bold',
-    fontSize: 10.5,
-    letterSpacing: 0.2,
-  },
-  tarjetaAccion: {
-    maxWidth: 380,
-    width: '100%',
-  },
-  glassMensaje: {
-    alignItems: 'center',
-    borderColor: 'rgba(255, 255, 255, 0.75)',
-    borderRadius: 24,
+    borderRadius: 26,
     borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.85)',
+    maxWidth: 390,
     paddingHorizontal: 22,
-    paddingVertical: 20,
+    paddingVertical: 26,
+    width: '100%',
     shadowColor: '#0D3D22',
     shadowOffset: { height: 8, width: 0 },
     shadowOpacity: 0.12,
     shadowRadius: 18,
+    elevation: 6,
   },
-  tagSuperior: {
+  hero: {
     alignItems: 'center',
-    backgroundColor: 'rgba(20, 92, 55, 0.08)',
-    borderColor: 'rgba(20, 92, 55, 0.18)',
-    borderRadius: 14,
-    borderWidth: 1,
-    flexDirection: 'row',
     gap: 6,
-    marginBottom: 10,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+    width: '100%',
   },
-  iconoTag: {
+  heroImagenContenedor: {
     alignItems: 'center',
+    height: 85,
     justifyContent: 'center',
+    marginBottom: -4,
+    width: 110,
   },
-  textoTag: {
-    color: '#145C37',
-    fontFamily: 'Montserrat-Bold',
-    fontSize: 9.5,
-    letterSpacing: 1.2,
+  heroImagen: {
+    height: 72,
+    width: 72,
   },
   titulo: {
-    color: '#12331F',
+    color: C.texto,
     fontFamily: 'MontserratAlternates-Bold',
-    fontSize: 21,
-    letterSpacing: -0.3,
-    marginBottom: 6,
+    fontSize: 23,
+    letterSpacing: -0.4,
     textAlign: 'center',
+    width: '100%',
   },
-  descripcion: {
-    color: '#4A7F5D',
+  subtitulo: {
+    color: C.tenue,
     fontFamily: 'Montserrat-Medium',
     fontSize: 13,
     lineHeight: 18.5,
-    marginBottom: 16,
+    marginTop: 2,
     textAlign: 'center',
+    width: '100%',
   },
-  filaPasos: {
+  separador: {
+    alignSelf: 'center',
+    borderRadius: 1,
+    height: 1.5,
+    marginVertical: 12,
+    width: 64,
+  },
+  cajaDetalles: {
+    backgroundColor: 'rgba(255, 255, 255, 0.45)',
+    borderColor: 'rgba(37, 136, 76, 0.14)',
+    borderRadius: 18,
+    borderWidth: 1,
+    gap: 10,
+    marginVertical: 4,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    width: '100%',
+  },
+  filaBeneficio: {
     alignItems: 'center',
     flexDirection: 'row',
-    justifyContent: 'center',
-    marginBottom: 18,
-    width: '100%',
+    gap: 12,
   },
-  itemPaso: {
+  iconoBeneficioContenedor: {
     alignItems: 'center',
-    gap: 4,
-  },
-  nodoPaso: {
-    alignItems: 'center',
-    borderColor: 'rgba(20, 92, 55, 0.2)',
+    backgroundColor: 'rgba(37, 136, 76, 0.08)',
+    borderColor: 'rgba(37, 136, 76, 0.18)',
     borderRadius: 12,
     borderWidth: 1,
-    height: 24,
+    height: 34,
     justifyContent: 'center',
-    width: 24,
+    width: 34,
   },
-  numeroPaso: {
-    color: '#145C37',
-    fontFamily: 'Montserrat-Bold',
-    fontSize: 11,
-  },
-  textoPaso: {
-    color: '#4A7F5D',
-    fontFamily: 'Montserrat-Medium',
-    fontSize: 10,
-  },
-  lineaPaso: {
-    backgroundColor: 'rgba(20, 92, 55, 0.15)',
+  textoBeneficioContenedor: {
     flex: 1,
-    height: 1.5,
-    marginBottom: 16,
-    marginHorizontal: 8,
   },
-  botonContenedor: {
+  tituloBeneficio: {
+    color: C.texto,
+    fontFamily: 'Montserrat-Bold',
+    fontSize: 12.5,
+    marginBottom: 1,
+  },
+  descBeneficio: {
+    color: C.tenue,
+    fontFamily: 'Montserrat-Medium',
+    fontSize: 11,
+    lineHeight: 15,
+  },
+  divisorInterno: {
+    backgroundColor: 'rgba(37, 136, 76, 0.09)',
+    height: 1,
     width: '100%',
   },
-  masterBoton: {
+  botonContenedor: {
+    marginTop: 14,
+    width: '100%',
+  },
+  boton: {
     height: 52,
     width: '100%',
   },
-  textoBoton: {
-    fontFamily: 'MontserratAlternates-Bold',
-    fontSize: 15.5,
-    letterSpacing: 0.3,
+  filaAccionSecundaria: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 5,
+    justifyContent: 'center',
+    marginTop: 14,
+  },
+  textoSecundario: {
+    color: C.tenue,
+    fontFamily: 'Montserrat-Medium',
+    fontSize: 12.5,
+  },
+  enlaceDestacado: {
+    color: C.verde,
+    fontFamily: 'Montserrat-Bold',
+    fontSize: 12.5,
   },
 });

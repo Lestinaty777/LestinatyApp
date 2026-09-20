@@ -4,6 +4,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
 
 import { Texto } from '../componentes/Texto';
+import { useTonoMaster } from '../tema/MasterColorContext';
 import { MasterGlass } from './MasterGlass';
 
 type MasterChipProps = {
@@ -21,6 +22,7 @@ export function MasterChip({ activo = false, icono, onPress, texto }: MasterChip
   const opacidadFondo = useSharedValue(activo ? 1 : 0);
   const escala        = useSharedValue(1);
   const primerMontaje = useRef(true);
+  const tono = useTonoMaster();
 
   useEffect(() => {
     if (primerMontaje.current) { primerMontaje.current = false; return; }
@@ -40,10 +42,10 @@ export function MasterChip({ activo = false, icono, onPress, texto }: MasterChip
       <Animated.View style={estiloEscala}>
         <MasterGlass style={mc.raiz}>
           {/* Fondo verde absoluto, siempre montado, solo cambia opacity */}
-          <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, mc.fondoVerde, estiloFondo]} />
+          <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, mc.fondoVerde, { backgroundColor: tono.chipActivo }, estiloFondo]} />
           <View style={mc.fila}>
             {icono}
-            <Texto style={[mc.texto, activo && mc.textoActivo]}>{texto}</Texto>
+            <Texto style={[mc.texto, { color: tono.chipTexto }, activo && mc.textoActivo]}>{texto}</Texto>
           </View>
         </MasterGlass>
       </Animated.View>
@@ -53,8 +55,8 @@ export function MasterChip({ activo = false, icono, onPress, texto }: MasterChip
 
 const mc = StyleSheet.create({
   raiz:        { borderRadius: 12, overflow: 'hidden' },
-  fondoVerde:  { backgroundColor: '#2F7D52', borderRadius: 12 },
+  fondoVerde:  { borderRadius: 12 },
   fila:        { alignItems: 'center', flexDirection: 'row', gap: 8, paddingHorizontal: 12, paddingVertical: 8 },
-  texto:       { color: '#4A7F5D', fontFamily: 'Montserrat-Bold', fontSize: 13 },
+  texto:       { fontFamily: 'Montserrat-Bold', fontSize: 13 },
   textoActivo: { color: '#FFFFFF' },
 });

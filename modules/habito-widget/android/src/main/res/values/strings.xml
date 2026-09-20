@@ -1,0 +1,20 @@
+<resources>
+    <string name="widget_habito_foco_nombre">Hábito foco (MasterGlass)</string>
+    <string name="widget_habito_foco_desc">Ancla tu hábito principal con estilo MasterGlass y regístralo al instante.</string>
+    <string name="widget_sin_habito_titulo">Sin hábito asignado</string>
+    <string name="widget_sin_habito_desc">Abre Lestinaty para elegir un hábito foco</string>
+    <string name="widget_pro_titulo">Lestinaty Pro</string>
+    <string name="widget_pro_desc">Desbloquea widgets y ancla tus hábitos al inicio.</string>
+    <string name="widget_pro_boton">Desbloquear</string>
+    <string name="widget_completado">¡Listo!</string>
+    <string name="widget_calendario_mes_nombre">Calendario de hábitos</string>
+    <string name="widget_calendario_mes_desc">Un vistazo al mes: qué días cumpliste al menos un hábito.</string>
+
+    <string name="cronometro_canal_nombre">Sesión de enfoque</string>
+    <string name="cronometro_canal_desc">Cronómetro de una sesión de hábito en curso (ej. meditar).</string>
+    <string name="cronometro_en_curso">Sesión de enfoque en curso</string>
+    <string name="cronometro_en_pausa">En pausa · %1$s</string>
+    <string name="cronometro_accion_pausar">Pausar</string>
+    <string name="cronometro_accion_reanudar">Reanudar</string>
+    <string name="cronometro_accion_finalizar">Finalizar</string>
+</resources>

@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { Check, Minus, Pause, Play, Plus, X } from 'lucide-react-native';
 import Animated, { FadeInDown, FadeOut } from 'react-native-reanimated';
+import { useTranslation } from 'react-i18next';
 
 import { MasterIcon, Rebote, Texto } from '../../../diseno';
 import { hapticSeguro } from '../../../nucleo/dispositivo/haptics';
@@ -33,6 +34,7 @@ export function WidgetRegistrarProgreso({
   unidad,
   valorInicial,
 }: WidgetRegistrarProgresoProps) {
+  const { t } = useTranslation();
   const hecho = valorInicial > 0;
   const color = colorBase;
 
@@ -52,13 +54,13 @@ export function WidgetRegistrarProgreso({
         <View style={s.kickerFila}>
           <View style={[s.kickerPill, { backgroundColor: `${color}15` }]}>
             <Texto style={[s.kickerTexto, { color }]}>
-              {tipoMeta === 'duracion' ? 'TIEMPO' : tipoMeta === 'cantidad' ? 'CONTEO' : 'REGISTRAR'}
+              {tipoMeta === 'duracion' ? t('habitos.progressWidget.time') : tipoMeta === 'cantidad' ? t('habitos.progressWidget.count') : t('habitos.progressWidget.register')}
             </Texto>
           </View>
           {hecho && (
             <View style={s.badgeCompletado}>
               <Check color="#21A844" size={9} strokeWidth={3} />
-              <Texto style={s.badgeCompletadoTexto}>Listo hoy</Texto>
+              <Texto style={s.badgeCompletadoTexto}>{t('habitos.progressWidget.readyToday')}</Texto>
             </View>
           )}
         </View>
@@ -67,10 +69,10 @@ export function WidgetRegistrarProgreso({
 
         <Texto numberOfLines={1} style={s.sub}>
           {tipoMeta === 'check'
-            ? (hecho ? 'Hábito registrado por hoy' : 'Toca el botón para marcar')
+            ? (hecho ? t('habitos.progressWidget.habitLogged') : t('habitos.progressWidget.tapToMark'))
             : tipoMeta === 'cantidad'
-            ? `Meta: ${meta} ${unidad || 'veces'}`
-            : `Meta: ${meta} min con cronómetro`}
+            ? t('habitos.progressWidget.goalQuantity', { meta, unit: unidad || t('habitos.progressWidget.defaultUnit') })
+            : t('habitos.progressWidget.goalDuration', { meta })}
         </Texto>
       </View>
 
@@ -104,7 +106,7 @@ export function WidgetRegistrarProgreso({
 
         {/* Botón cerrar */}
         <Rebote
-          accessibilityLabel="Cerrar registro"
+          accessibilityLabel={t('habitos.progressWidget.close')}
           hitSlop={8}
           onPress={() => {
             hapticSeguro('seleccion');
@@ -130,10 +132,11 @@ function ControlCheck({
   onGuardar: (valor: number) => void;
   valorInicial: number;
 }) {
+  const { t } = useTranslation();
   const hecho = valorInicial > 0;
   return (
     <Rebote
-      accessibilityLabel={hecho ? 'Hábito completado hoy' : 'Completar hábito'}
+      accessibilityLabel={hecho ? t('habitos.progressWidget.habitCompleted') : t('habitos.progressWidget.completeHabit')}
       deshabilitado={guardando}
       onPress={() => {
         hapticSeguro('confirmacion');
@@ -169,6 +172,7 @@ function ControlContador({
   onGuardar: (valor: number) => void;
   valorInicial: number;
 }) {
+  const { t } = useTranslation();
   const [valor, setValor] = useState(valorInicial);
   const porcentaje = Math.min(100, Math.round((valor / Math.max(1, meta)) * 100));
 
@@ -182,7 +186,7 @@ function ControlContador({
   return (
     <View style={s.contadorFila}>
       <Rebote
-        accessibilityLabel="Restar 1"
+        accessibilityLabel={t('habitos.progressWidget.subtract')}
         deshabilitado={guardando || valor <= 0}
         onPress={() => cambiar(-1)}
         estilo={[
@@ -208,7 +212,7 @@ function ControlContador({
       </View>
 
       <Rebote
-        accessibilityLabel="Sumar 1"
+        accessibilityLabel={t('habitos.progressWidget.add')}
         deshabilitado={guardando}
         onPress={() => cambiar(1)}
         estilo={[s.botonStepper, { backgroundColor: color, borderColor: color }]}
@@ -230,6 +234,7 @@ function ControlCronometro({
   onGuardar: (valor: number) => void;
   valorInicial: number;
 }) {
+  const { t } = useTranslation();
   const [segundos, setSegundos] = useState(valorInicial * 60);
   const [corriendo, setCorriendo] = useState(false);
   const intervalo = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -265,7 +270,7 @@ function ControlCronometro({
       </View>
 
       <Rebote
-        accessibilityLabel={corriendo ? 'Pausar cronómetro' : 'Iniciar cronómetro'}
+        accessibilityLabel={corriendo ? t('habitos.progressWidget.pauseTimer') : t('habitos.progressWidget.startTimer')}
         onPress={alternar}
         estilo={[s.botonStepper, { backgroundColor: 'rgba(255, 255, 255, 0.85)', borderColor: `${color}35` }]}
       >
@@ -277,7 +282,7 @@ function ControlCronometro({
       </Rebote>
 
       <Rebote
-        accessibilityLabel="Guardar tiempo"
+        accessibilityLabel={t('habitos.progressWidget.saveTime')}
         deshabilitado={guardando || segundos === 0}
         onPress={guardar}
         estilo={[

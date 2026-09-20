@@ -3,15 +3,15 @@ import { Image, StyleSheet, View } from 'react-native';
 import { Play } from 'lucide-react-native';
 import Svg, { Circle } from 'react-native-svg';
 
-import { Boton, MasterIcon, MasterIconBg, RecuadroGlass, Texto } from '../../../diseno';
-import type { AssetsSelvaTono } from '../iconosHabitos';
+import { Boton, MasterIcon, MasterIconBg, RecuadroGlass, Texto, useTonoMaster } from '../../../diseno';
+import type { AssetsPaqueteHabito } from '../paqueteVisual.assets';
 
 const DIAS_SEMANA_ETIQUETA = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
 const RADIO_ANILLO = 19;
 const CIRCUNFERENCIA_ANILLO = 2 * Math.PI * RADIO_ANILLO;
 
 export type TarjetaSenderoHabitoProps = {
-  assets: AssetsSelvaTono;
+  assets: AssetsPaqueteHabito;
   cargando?: boolean;
   ctaTexto?: string;
   descripcion?: string;
@@ -35,39 +35,42 @@ export function TarjetaSenderoHabito({
   assets, cargando = false, ctaTexto = 'Comenzar', descripcion = '', diasCompletados = [], diasProgramados,
   escalaArbol = 1, icono, meta, metaEtiqueta, nivel = 1, onPressCta, racha = 0, titulo, valorHoy = 0,
 }: TarjetaSenderoHabitoProps) {
+  // Colores del tono activo (Esmeralda fuera de un MasterColorProvider = los verdes de siempre).
+  const tono = useTonoMaster();
+  const c = tono.tarjeta;
   const fraccionProgreso = Math.max(0.06, meta > 0 ? Math.min(1, valorHoy / meta) : 0.06);
   const offsetAnillo = CIRCUNFERENCIA_ANILLO * (1 - fraccionProgreso);
 
   return (
     <View style={tp.contenedor}>
-      <RecuadroGlass blur degradado={{ inicio: '#F4FFF1', fin: '#B8EDB0' }} style={tp.raiz}>
+      <RecuadroGlass blur degradado={tono.degradadoTarjeta} style={tp.raiz}>
         <Image source={assets.arbolPrincipal} style={[tp.arbol, { transform: [{ scale: escalaArbol }] }]} />
         <MasterIconBg fuente={icono.fuente} style={tp.iconoMarco} />
         <View style={tp.texto}>
-          <Texto style={tp.titulo}>{titulo || 'Mi hábito'}</Texto>
+          <Texto style={[tp.titulo, { color: c.tinta }]}>{titulo || 'Mi hábito'}</Texto>
           <View style={tp.metaObjetivo}>
             <View style={tp.anilloMeta}>
               <Svg height={48} style={tp.anilloSvg} width={48}>
-                <Circle cx="24" cy="24" fill="none" r={RADIO_ANILLO} stroke="rgba(20,92,55,.17)" strokeWidth={4} />
-                <Circle cx="24" cy="24" fill="none" r={RADIO_ANILLO} rotation="-90" stroke="#25884C" strokeDasharray={`${CIRCUNFERENCIA_ANILLO} ${CIRCUNFERENCIA_ANILLO}`} strokeDashoffset={offsetAnillo} strokeLinecap="round" strokeWidth={4} origin="24,24" />
+                <Circle cx="24" cy="24" fill="none" r={RADIO_ANILLO} stroke={`${c.tinta}2B`} strokeWidth={4} />
+                <Circle cx="24" cy="24" fill="none" r={RADIO_ANILLO} rotation="-90" stroke={c.trazo} strokeDasharray={`${CIRCUNFERENCIA_ANILLO} ${CIRCUNFERENCIA_ANILLO}`} strokeDashoffset={offsetAnillo} strokeLinecap="round" strokeWidth={4} origin="24,24" />
               </Svg>
-              <Texto style={tp.anilloCero}>{valorHoy}</Texto>
+              <Texto style={[tp.anilloCero, { color: c.tinta }]}>{valorHoy}</Texto>
             </View>
             <View>
-              <Texto style={tp.metaEtiqueta}>Meta de hoy</Texto>
-              <Texto style={tp.metaValor}>{valorHoy}/{metaEtiqueta}</Texto>
+              <Texto style={[tp.metaEtiqueta, { color: c.tintaMedia }]}>Meta de hoy</Texto>
+              <Texto style={[tp.metaValor, { color: c.tinta }]}>{valorHoy}/{metaEtiqueta}</Texto>
             </View>
           </View>
-          {Boolean(descripcion.trim()) && <Texto numberOfLines={2} style={tp.descripcion}>{descripcion.trim()}</Texto>}
+          {Boolean(descripcion.trim()) && <Texto numberOfLines={2} style={[tp.descripcion, { color: c.tintaSuave }]}>{descripcion.trim()}</Texto>}
         </View>
         <View style={tp.metricas}>
-          <View style={tp.metrica}><MasterIcon color={2} name="racha" size={25} /><Texto style={tp.metricaTexto}>{racha} días</Texto></View>
-          <View style={tp.metrica}><MasterIcon color={2} name={`nivel${nivel}`} size={25} /><Texto style={tp.metricaTexto}>Nivel {nivel}</Texto></View>
+          <View style={tp.metrica}><MasterIcon color={2} name="racha" size={25} /><Texto style={[tp.metricaTexto, { color: c.tinta }]}>{racha} días</Texto></View>
+          <View style={tp.metrica}><MasterIcon color={2} name={`nivel${nivel}`} size={25} /><Texto style={[tp.metricaTexto, { color: c.tinta }]}>Nivel {nivel}</Texto></View>
         </View>
         <View style={tp.semana}>
           <View style={tp.semanaTitulo}>
-            <Texto style={tp.semanaTexto}>Esta semana</Texto>
-            <Texto style={tp.semanaTexto}>{diasCompletados.length}/{diasProgramados.length}</Texto>
+            <Texto style={[tp.semanaTexto, { color: c.tinta }]}>Esta semana</Texto>
+            <Texto style={[tp.semanaTexto, { color: c.tinta }]}>{diasCompletados.length}/{diasProgramados.length}</Texto>
           </View>
           <View style={tp.dias}>
             {DIAS_SEMANA_ETIQUETA.map((etiqueta, indice) => {
@@ -76,14 +79,14 @@ export function TarjetaSenderoHabito({
               const completado = diasCompletados.includes(idDia);
               return (
                 <View key={idDia} style={tp.dia}>
-                  <View style={[tp.diaCirculo, programado ? tp.diaCirculoProgramado : tp.diaCirculoNoAplica, completado && tp.diaCirculoCompletado]} />
-                  <Texto style={[tp.diaTexto, programado ? tp.diaTextoProgramado : tp.diaTextoNoAplica]}>{etiqueta}</Texto>
+                  <View style={[tp.diaCirculo, programado ? [tp.diaCirculoProgramado, { backgroundColor: `${c.trazo}40`, borderColor: `${c.trazo}57` }] : tp.diaCirculoNoAplica, completado && [tp.diaCirculoCompletado, { backgroundColor: c.trazo, borderColor: c.trazo }]]} />
+                  <Texto style={[tp.diaTexto, programado ? [tp.diaTextoProgramado, { color: c.tintaDia }] : tp.diaTextoNoAplica]}>{etiqueta}</Texto>
                 </View>
               );
             })}
           </View>
         </View>
-        <Boton color="#0D6238" disabled={cargando} iconoIzquierda={Play} onPress={onPressCta} style={tp.cta} variante="sendero">
+        <Boton color={c.boton} disabled={cargando} iconoIzquierda={Play} onPress={onPressCta} style={tp.cta} variante="sendero">
           {cargando ? 'Guardando…' : ctaTexto}
         </Boton>
       </RecuadroGlass>

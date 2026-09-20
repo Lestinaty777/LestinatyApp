@@ -4,6 +4,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { LayoutChangeEvent, StyleProp, StyleSheet, View, ViewStyle } from 'react-native';
 import Svg, { Defs, LinearGradient as GradienteSvg, Polygon, Stop } from 'react-native-svg';
 
+import { useTonoMaster } from '../tema/MasterColorContext';
+
 type MasterGlassProps = PropsWithChildren<{
   blur?: boolean;
   intensity?: number;
@@ -34,8 +36,11 @@ function mezclarHex(origen: string, destino: string, proporcion: number) {
   return `#${mezclarCanal(1)}${mezclarCanal(3)}${mezclarCanal(5)}`;
 }
 
-export function MasterGlass({ blur = false, children, colorBase, compacto = false, forma = 'rectangulo', intensity = 24, mastery = false, style, tint = 'light' }: MasterGlassProps) {
+export function MasterGlass({ blur = false, children, colorBase: colorBaseProp, compacto = false, forma = 'rectangulo', intensity = 24, mastery = false, style, tint = 'light' }: MasterGlassProps) {
   const [tamano, setTamano] = useState({ alto: 0, ancho: 0 });
+  // Sin colorBase explícito toma el del tono activo (undefined en Esmeralda = menta de siempre).
+  const tono = useTonoMaster();
+  const colorBase = colorBaseProp ?? tono.glassBase;
   const intensidadMenta = Math.min(1, Math.max(0, (tamano.alto - 52) / 348));
   
   const mentaSuave = colorBase ? mezclarHex(colorBase, '#FFFFFF', 0.95) : MENTA_SUAVE;

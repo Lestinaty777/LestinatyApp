@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Capa 1: Borde exterior de cristal reflectante (1.5dp) -->
+    <item>
+        <shape android:shape="rectangle">
+            <corners android:radius="24dp" />
+            <gradient
+                android:angle="270"
+                android:startColor="#F0FFFFFF"
+                android:centerColor="#80FFFFFF"
+                android:endColor="#80C8E3CA"
+                android:type="linear" />
+        </shape>
+    </item>
+
+    <!-- Capa 2: Relleno interior de cristal menta MasterGlass -->
+    <item
+        android:left="1.5dp"
+        android:top="1.5dp"
+        android:right="1.5dp"
+        android:bottom="1.5dp">
+        <shape android:shape="rectangle">
+            <corners android:radius="22.5dp" />
+            <gradient
+                android:angle="270"
+                android:startColor="#FAFDF9"
+                android:centerColor="#F1FBF1"
+                android:endColor="#E2F4E3"
+                android:type="linear" />
+        </shape>
+    </item>
+</layer-list>

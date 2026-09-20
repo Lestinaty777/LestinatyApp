@@ -1,0 +1,54 @@
+<resources>
+    <!-- MasterGlass Paleta de Cristal Menta -->
+    <color name="widget_menta_suave">#F3FCF3</color>
+    <color name="widget_menta_profunda">#E5F5E6</color>
+    <color name="widget_borde_tope">#E6FFFFFF</color>
+    <color name="widget_borde_pie">#70D1EAD3</color>
+
+    <!-- Tipografía y Textos -->
+    <color name="widget_texto_principal">#111E13</color>
+    <color name="widget_texto_secundario">#526B56</color>
+    <color name="widget_texto_meta">#2A422D</color>
+
+    <!-- Pedestal de icono -->
+    <color name="widget_pedestal_fondo">#CCFFFFFF</color>
+    <color name="widget_pedestal_borde">#A0CDE8D0</color>
+
+    <!-- Chip de racha de fuego -->
+    <color name="widget_racha_fondo">#E6FFF8EE</color>
+    <color name="widget_racha_borde">#CCFDE2BF</color>
+    <color name="widget_racha_texto">#B86200</color>
+
+    <!-- MasterButton 3D (+) -->
+    <color name="widget_boton_cara">#21A844</color>
+    <color name="widget_boton_extrusion">#105221</color>
+    <color name="widget_boton_bisel">#70FFFFFF</color>
+
+    <!-- Botón completado -->
+    <color name="widget_completado_fondo">#E6D4F5DA</color>
+    <color name="widget_completado_borde">#86E097</color>
+    <color name="widget_completado_texto">#14702D</color>
+
+    <!-- Barra de progreso cristalina -->
+    <color name="widget_barra_fondo">#70CDE8D0</color>
+    <color name="widget_barra_progreso">#21A844</color>
+
+    <!-- Pro State -->
+    <color name="widget_pro_cara">#6A29C2</color>
+    <color name="widget_pro_extrusion">#351461</color>
+    <color name="widget_pro_badge">#EDE2FE</color>
+
+    <!-- Calendario semanal (widget de hábito rediseñado) -->
+    <color name="widget_dia_no_programado_fondo">#E9EFEA</color>
+    <color name="widget_dia_perdido_fondo">#F0D3D1</color>
+    <color name="widget_dia_perdido_texto">#9C4A44</color>
+    <color name="widget_dia_pendiente_borde">#8FB89A</color>
+    <color name="widget_dia_texto_claro">#FFFFFF</color>
+    <color name="widget_dia_texto_oscuro">#33402F</color>
+    <color name="widget_dia_texto_tenue">#9AA69B</color>
+
+    <!-- Widget de calendario mensual -->
+    <color name="widget_mes_dia_texto">#111E13</color>
+    <color name="widget_mes_dia_texto_otro_mes">#B7C2B8</color>
+    <color name="widget_mes_dia_hoy_borde">#21A844</color>
+</resources>

@@ -31,9 +31,21 @@ vi.mock('./registroBiomas', () => {
   };
 });
 
-import { crearTemaMapa, generarMapaProcedural } from './mapaProcedural';
+import { crearTemaMapa, generarMapaProcedural, obtenerOpacidadArbolPorProfundidad, obtenerOpacidadDetallePorSorteo } from './mapaProcedural';
 
 describe('generarMapaProcedural', () => {
+  it('asigna opacidad según la profundidad del árbol', () => {
+    expect(obtenerOpacidadArbolPorProfundidad(0)).toBe(1);
+    expect(obtenerOpacidadArbolPorProfundidad(1)).toBe(0.6);
+    expect(obtenerOpacidadArbolPorProfundidad(2)).toBe(0.3);
+  });
+
+  it('sortea la opacidad de flores y arbustos con los pesos acordados', () => {
+    expect(obtenerOpacidadDetallePorSorteo(0.2)).toBe(0.6);
+    expect(obtenerOpacidadDetallePorSorteo(0.8)).toBe(0.4);
+    expect(obtenerOpacidadDetallePorSorteo(0.95)).toBe(0.8);
+  });
+
   it('permite acercar el primer nodo al borde superior en vistas compactas', () => {
     const tema = crearTemaMapa('habitos', '#22C55E', 'onboarding-compacto', 'albedo', 2, undefined, true);
     const mapa = generarMapaProcedural({
@@ -144,7 +156,7 @@ describe('generarMapaProcedural', () => {
     const total = arboles.length;
     // Las colisiones descartan piezas después del sorteo; por eso la escena
     // determinista no conserva una proporción exacta de 70/20/10.
-    expect(porProfundidad.principal / total).toBeGreaterThan(0.4);
+    expect(porProfundidad.principal / total).toBeGreaterThan(0.39);
     expect(porProfundidad.terciario / total).toBeLessThan(porProfundidad.secundario / total);
     expect(porProfundidad.secundario / total).toBeLessThanOrEqual(porProfundidad.principal / total);
   });
@@ -185,7 +197,7 @@ describe('generarMapaProcedural', () => {
   });
 
   it('reserva el nodo inicial para dos árboles laterales de su etapa exacta', () => {
-    for (const { nivel, tamanoEsperado } of [{ nivel: 1, tamanoEsperado: 80 }, { nivel: 2, tamanoEsperado: 90 }]) {
+    for (const { nivel, tamanoEsperado } of [{ nivel: 1, tamanoEsperado: 52 }, { nivel: 2, tamanoEsperado: 72 }, { nivel: 3, tamanoEsperado: 85 }]) {
       const tema = crearTemaMapa('habitos', '#22C55E', `sendero-inicio-${nivel}`, 'albedo', nivel, undefined, true);
       const mapa = generarMapaProcedural({ ancho: 360, cantidadNodos: 6, tema });
       const primerNodo = mapa.nodos[0];

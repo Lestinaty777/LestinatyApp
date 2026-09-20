@@ -1,0 +1,230 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_masterglass_bg"
+    android:orientation="vertical"
+    android:padding="14dp">
+
+    <!-- Fila superior: Pedestal de icono + Chip de racha de fuego -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <!-- Pedestal de cristal para el icono del hábito -->
+        <FrameLayout
+            android:layout_width="38dp"
+            android:layout_height="38dp"
+            android:background="@drawable/widget_icon_pedestal">
+
+            <ImageView
+                android:id="@+id/widget_icono"
+                android:layout_width="22dp"
+                android:layout_height="22dp"
+                android:layout_gravity="center"
+                android:contentDescription="Icono hábito"
+                android:src="@drawable/ic_widget_leaf" />
+        </FrameLayout>
+
+        <!-- Espacio elástico -->
+        <View
+            android:layout_width="0dp"
+            android:layout_height="1dp"
+            android:layout_weight="1" />
+
+        <!-- Chip de Racha de Fuego -->
+        <LinearLayout
+            android:id="@+id/widget_racha_chip"
+            android:layout_width="wrap_content"
+            android:layout_height="26dp"
+            android:background="@drawable/widget_streak_chip"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="8dp"
+            android:paddingEnd="10dp">
+
+            <ImageView
+                android:layout_width="14dp"
+                android:layout_height="14dp"
+                android:layout_marginEnd="4dp"
+                android:contentDescription="Fuego"
+                android:src="@drawable/ic_widget_flame" />
+
+            <TextView
+                android:id="@+id/widget_racha_texto"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="0 d"
+                android:textColor="@color/widget_racha_texto"
+                android:textSize="11sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- Ilustración grande de la etapa actual del árbol, con el botón de
+         acción (+) flotando en su esquina inferior derecha. -->
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_marginTop="4dp"
+        android:layout_weight="1">
+
+        <ImageView
+            android:id="@+id/widget_etapa_imagen"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:contentDescription="Etapa del hábito"
+            android:scaleType="fitCenter" />
+
+        <!-- MasterButton 3D interactivo con extrusión -->
+        <FrameLayout
+            android:id="@+id/widget_boton_accion"
+            android:layout_width="42dp"
+            android:layout_height="40dp"
+            android:layout_gravity="bottom|end"
+            android:background="@drawable/widget_button_3d"
+            android:clickable="true"
+            android:focusable="true">
+
+            <ImageView
+                android:id="@+id/widget_boton_icono"
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:layout_gravity="center"
+                android:layout_marginBottom="2dp"
+                android:contentDescription="Acción"
+                android:src="@drawable/ic_widget_plus" />
+        </FrameLayout>
+    </FrameLayout>
+
+    <!-- Nombre del hábito -->
+    <TextView
+        android:id="@+id/widget_titulo"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:ellipsize="end"
+        android:maxLines="1"
+        android:text="Mi Hábito"
+        android:textColor="@color/widget_texto_principal"
+        android:textSize="15sp"
+        android:textStyle="bold" />
+
+    <!-- Calendario semanal sencillo: 7 celdas, lunes a domingo. La letra de
+         cada día es fija en el XML — solo el fondo (estado) y el color de
+         texto cambian en tiempo de ejecución, así cada celda puede tener un
+         id propio sin depender de un <include> con ids hijos repetidos
+         (RemoteViews resuelve por id contra TODO el árbol, no por instancia). -->
+    <LinearLayout
+        android:id="@+id/widget_semana_fila"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/widget_dia_1"
+            android:layout_width="0dp"
+            android:layout_height="24dp"
+            android:layout_marginEnd="4dp"
+            android:layout_weight="1"
+            android:background="@drawable/widget_dia_bg_no_programado"
+            android:gravity="center"
+            android:text="L"
+            android:textColor="@color/widget_dia_texto_oscuro"
+            android:textSize="10sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/widget_dia_2"
+            android:layout_width="0dp"
+            android:layout_height="24dp"
+            android:layout_marginEnd="4dp"
+            android:layout_weight="1"
+            android:background="@drawable/widget_dia_bg_no_programado"
+            android:gravity="center"
+            android:text="M"
+            android:textColor="@color/widget_dia_texto_oscuro"
+            android:textSize="10sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/widget_dia_3"
+            android:layout_width="0dp"
+            android:layout_height="24dp"
+            android:layout_marginEnd="4dp"
+            android:layout_weight="1"
+            android:background="@drawable/widget_dia_bg_no_programado"
+            android:gravity="center"
+            android:text="X"
+            android:textColor="@color/widget_dia_texto_oscuro"
+            android:textSize="10sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/widget_dia_4"
+            android:layout_width="0dp"
+            android:layout_height="24dp"
+            android:layout_marginEnd="4dp"
+            android:layout_weight="1"
+            android:background="@drawable/widget_dia_bg_no_programado"
+            android:gravity="center"
+            android:text="J"
+            android:textColor="@color/widget_dia_texto_oscuro"
+            android:textSize="10sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/widget_dia_5"
+            android:layout_width="0dp"
+            android:layout_height="24dp"
+            android:layout_marginEnd="4dp"
+            android:layout_weight="1"
+            android:background="@drawable/widget_dia_bg_no_programado"
+            android:gravity="center"
+            android:text="V"
+            android:textColor="@color/widget_dia_texto_oscuro"
+            android:textSize="10sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/widget_dia_6"
+            android:layout_width="0dp"
+            android:layout_height="24dp"
+            android:layout_marginEnd="4dp"
+            android:layout_weight="1"
+            android:background="@drawable/widget_dia_bg_no_programado"
+            android:gravity="center"
+            android:text="S"
+            android:textColor="@color/widget_dia_texto_oscuro"
+            android:textSize="10sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/widget_dia_7"
+            android:layout_width="0dp"
+            android:layout_height="24dp"
+            android:layout_weight="1"
+            android:background="@drawable/widget_dia_bg_no_programado"
+            android:gravity="center"
+            android:text="D"
+            android:textColor="@color/widget_dia_texto_oscuro"
+            android:textSize="10sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <!-- Estado sin hábitos: reusa la barra que antes mostraba progreso -->
+    <TextView
+        android:id="@+id/widget_progreso_texto"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="2dp"
+        android:text="0 / 1"
+        android:textColor="@color/widget_texto_secundario"
+        android:textSize="12sp"
+        android:visibility="gone" />
+</LinearLayout>

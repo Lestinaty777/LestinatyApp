@@ -15,6 +15,7 @@ export type HabitoResumen = {
   meta: number;
   valorHoy: number;
   completado: boolean;
+  paqueteId?: string;
 };
 
 /** Solo lo devuelven patrones/riesgo/conexiones — cuánto hay acumulado vs. cuánto hace falta para que `estado` llegue a 'listo'. Ver comercio.obtener_panel_habitos. */

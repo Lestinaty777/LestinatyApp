@@ -1,4 +1,5 @@
 import { obtenerClienteSupabase } from '../../servicios/base-datos/supabase';
+import { zonaHorariaDispositivo } from '../../nucleo/dispositivo/fechaLocal';
 import {
   AceptacionLegal,
   ConfiguracionUsuario,
@@ -105,6 +106,26 @@ export async function actualizarPerfil(perfil: PerfilConfiguracion): Promise<Per
 
   if (error) throw error;
   return normalizarPerfil(data as FilaPerfil);
+}
+
+// Todas las funciones de fecha "de hoy" en la base de datos dependen de
+// perfiles_usuario.zona_horaria (default 'UTC', nunca detectada sola) — esto
+// la mantiene al día con la zona real del dispositivo, sin pisar el resto
+// del perfil. Se llama al iniciar sesión y al volver la app a primer plano;
+// silenciosa si falla (nunca debe bloquear el acceso) y no escribe si ya
+// coincide, para no gastar una escritura en cada chequeo.
+export async function sincronizarZonaHorariaDispositivo(): Promise<void> {
+  try {
+    const zona = zonaHorariaDispositivo();
+    const supabase = obtenerClienteSupabase();
+    const usuario = await obtenerUsuarioActual();
+    const { data, error } = await supabase.from('perfiles_usuario').select('zona_horaria').eq('id', usuario.id).single();
+    if (error) throw error;
+    if ((data as { zona_horaria: string } | null)?.zona_horaria === zona) return;
+    await supabase.from('perfiles_usuario').update({ zona_horaria: zona }).eq('id', usuario.id);
+  } catch {
+    // silencioso — un fallo acá nunca debe bloquear el inicio de sesión
+  }
 }
 
 export async function actualizarPermisosDatos(permisos: PermisosDatos): Promise<PermisosDatos> {

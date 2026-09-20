@@ -3,6 +3,13 @@ import { obtenerClienteSupabase } from '../../servicios/base-datos/supabase';
 
 export const CLAVE_REGALO_BIENVENIDA = ['onboarding', 'regaloBienvenidaPendiente'] as const;
 export const CLAVE_REGALO_TRIAL_HORIZON = ['onboarding', 'regaloTrialHorizonPendiente'] as const;
+// No es una query real (no tiene queryFn) — es solo una señal de una sola
+// lectura entre pantallas: RegaloBienvenidaPantalla la prende si el usuario
+// eligió crear su primer hábito ya mismo, HabitosPantalla la lee al montar
+// (justo cuando el gate de _layout cambia de RegaloBienvenidaPantalla a los
+// tabs) y la apaga. No se usa un param de ruta porque en ese momento el tab
+// "hoy" recién se está montando, no hay forma de "empujarle" un push seguro.
+export const CLAVE_ABRIR_CREACION_HABITO = ['onboarding', 'abrirCreacionHabito'] as const;
 
 type FilaPerfil = { regalo_bienvenida_reclamado_en: string | null };
 type FilaPerfilTrialHorizon = { horizon_trial_iniciado_en: string | null; regalo_trial_horizon_reclamado_en: string | null };

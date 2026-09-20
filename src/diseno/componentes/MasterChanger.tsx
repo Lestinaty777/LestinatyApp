@@ -7,6 +7,7 @@ import {
   ColorMatrix,
   type SkImage,
 } from '@shopify/react-native-skia';
+import { aplicarOscurecido, calcularMatrizHue, componerMatrices, matrizSaturacion } from '../tema/matrizColor';
 
 // ─── Colores Destino (Hue en grados) ─────────────────────────────────────────
 export const COLORES_MASTER = {
@@ -20,35 +21,6 @@ export const COLORES_MASTER = {
 } as const;
 
 export type ColorMaster = keyof typeof COLORES_MASTER;
-
-// ─── Algoritmo: Matriz de rotación de Hue (HSL → RGB) ────────────────────────
-// Basado en la especificación de color matrices SVG/CSS
-function calcularMatrizHue(gradosDelta: number): number[] {
-  const rad = (gradosDelta * Math.PI) / 180;
-  const cos = Math.cos(rad);
-  const sin = Math.sin(rad);
-
-  // Coeficientes de luminancia (percepción humana)
-  const lr = 0.213;
-  const lg = 0.715;
-  const lb = 0.072;
-
-  // Matriz 4x5 (formato flat de Skia/Android ColorFilter)
-  return [
-    lr + cos * (1 - lr) + sin * (-lr),   lg + cos * (-lg) + sin * (-lg),   lb + cos * (-lb) + sin * (1 - lb),   0, 0,
-    lr + cos * (-lr)    + sin * (0.143),  lg + cos * (1-lg) + sin * (0.140), lb + cos * (-lb) + sin * (-0.283), 0, 0,
-    lr + cos * (-lr)    + sin * (-(1-lr)), lg + cos * (-lg) + sin * (lg),   lb + cos * (1-lb) + sin * (lb),     0, 0,
-    0, 0, 0, 1, 0,
-  ];
-}
-
-// Escala las filas R/G/B de una matriz de color por `factor` (1 = sin cambio,
-// 0.9 = 10% más oscuro), dejando la fila de alpha intacta — se combina con la
-// rotación de hue para poder pedir "verde, 10% más oscuro" en una sola pasada.
-function aplicarOscurecido(matriz: number[], factor: number): number[] {
-  if (factor === 1) return matriz;
-  return matriz.map((valor, indice) => (indice < 15 ? valor * factor : valor));
-}
 
 /**
  * Calcula cuántos grados hay que rotar para ir del hueOrigen al hueDestino.
@@ -194,6 +166,13 @@ interface MasterChangerProps {
    * Si es undefined, muestra la imagen sin transformación.
    */
   colorDestino?: ColorMaster;
+  /**
+   * Hue destino en grados (0-360), sin restringirse a los 7 colores fijos —
+   * es lo que usa un TonoMaster de paquete. Tiene prioridad sobre `colorDestino`.
+   */
+  hueDestino?: number;
+  /** Saturación tras rotar el hue: 1 = sin cambio, 0 = grises. */
+  saturacion?: number;
   /** Cómo encaja la imagen en el canvas. Por defecto "contain" (no recorta íconos). */
   fit?: 'contain' | 'cover' | 'fill' | 'fitHeight' | 'fitWidth' | 'none' | 'scaleDown';
   /**
@@ -211,6 +190,8 @@ export function MasterChanger({
   alto,
   hueOrigen,
   colorDestino,
+  hueDestino,
+  saturacion = 1,
   fit = 'contain',
   oscurecido = 1,
 }: MasterChangerProps) {
@@ -222,10 +203,11 @@ export function MasterChanger({
   const hueEfectivo = hueOrigen ?? hueDetectado;
 
   const colorMatrix = useMemo(() => {
-    if (colorDestino === undefined && oscurecido === 1) return null;
-    const delta = colorDestino !== undefined && hueEfectivo !== null ? calcularDeltaHue(hueEfectivo, COLORES_MASTER[colorDestino].hue) : 0;
-    return aplicarOscurecido(calcularMatrizHue(delta), oscurecido);
-  }, [hueEfectivo, colorDestino, oscurecido]);
+    const hueObjetivo = hueDestino ?? (colorDestino !== undefined ? COLORES_MASTER[colorDestino].hue : undefined);
+    if (hueObjetivo === undefined && oscurecido === 1 && saturacion === 1) return null;
+    const delta = hueObjetivo !== undefined && hueEfectivo !== null ? calcularDeltaHue(hueEfectivo, hueObjetivo) : 0;
+    return aplicarOscurecido(componerMatrices(calcularMatrizHue(delta), matrizSaturacion(saturacion)), oscurecido);
+  }, [hueEfectivo, colorDestino, hueDestino, oscurecido, saturacion]);
 
   if (!imagen) return null;
 

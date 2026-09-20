@@ -1,0 +1,11 @@
+{
+  "name": "habito-widget",
+  "version": "1.0.0",
+  "description": "Widget nativo Android en Kotlin con diseño MasterGlass para Lestinaty",
+  "main": "index.ts",
+  "types": "index.ts",
+  "scripts": {},
+  "keywords": ["expo", "widget", "android", "kotlin", "masterglass"],
+  "author": "Lestinaty",
+  "license": "UNLICENSED"
+}

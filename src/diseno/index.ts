@@ -16,3 +16,6 @@ export { MasterIcon } from './iconos/MasterIcon';
 export { registroIconos, buscarIcono } from './iconos/registroIconos';
 export type { IconoRegistrado } from './iconos/registroIconos';
 export { fuenteInsignia, NIVEL_MAXIMO_INSIGNIA } from './iconos/registroInsignias';
+export { MasterColorProvider, useTonoMaster } from './tema/MasterColorContext';
+export { crearTonoMaster, TONO_ESMERALDA } from './tema/masterColor';
+export type { TonoMaster } from './tema/masterColor';

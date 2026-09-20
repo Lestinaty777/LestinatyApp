@@ -12,17 +12,23 @@ import { Boton, entradaEncadenada, MasterAnimation, MasterGlass, MasterIcon, Mas
 import { hapticSeguro } from '../../../nucleo/dispositivo/haptics';
 import { AuroraBoreal } from '../../hoy/componentes/AuroraBoreal';
 import { crearHabito, obtenerDetallesHabitosHoy, obtenerHabitoMasCercaDeNivel, obtenerHabitoMejorRacha, obtenerPanelHabitos, obtenerResumenPlanesHabitos, registrarProgresoHabito, type HabitoHoyDetalle } from '../habitos.servicio';
+import { CLAVE_ABRIR_CREACION_HABITO } from '../../onboarding/onboarding.servicio';
 import { haVistoPistaSwipeSendero, marcarPistaSwipeSenderoVista } from '../pistaSwipeSendero';
 import { CrearHabitoWizard } from '../componentes/CrearHabitoWizard';
 import { DetalleHabitoPantalla } from './DetalleHabitoPantalla';
 import { ListaRecordatoriosHabitos } from '../componentes/ListaRecordatoriosHabitos';
 import { TarjetaSenderoHabito } from '../componentes/TarjetaSenderoHabito';
-import { buscarIconoHabito, obtenerAssetsSelvaPorTono } from '../iconosHabitos';
+import { buscarIconoHabito } from '../iconosHabitos';
+import { obtenerAssetsPaqueteHabito } from '../paqueteVisual.assets';
 import { useSaldoGemas } from '../../tienda/useSaldoGemas';
 import { rutaParaHorizon } from '../../../nucleo/compras/horizonAcceso';
 import { useHorizon } from '../../../nucleo/compras/useHorizon';
 import { HabitoResumen, MejorRachaHabito } from '../tipos';
-import { sincronizarWidgetFoco } from '../widgets/widgetFoco.servicio';
+import { sincronizarWidgetFoco, suscribirIncrementoWidget } from '../widgets/widgetFoco.servicio';
+import { sincronizarWidgetCalendario } from '../widgets/widgetCalendario.servicio';
+import { sincronizarSesionesCronometroPendientes } from '../cronometro.servicio';
+import { fechaLocalHoy } from '../../../nucleo/dispositivo/fechaLocal';
+import { useTranslation } from 'react-i18next';
 
 const DIAS_SEMANA_COMPLETA = [1, 2, 3, 4, 5, 6, 7];
 const ESCALA_TARJETA_HOY = 0.6;
@@ -34,7 +40,6 @@ const ALTO_TARJETA_HABITO = 490;
 const MARGEN_SUPERIOR_TARJETA_HABITO = 12;
 
 type VistaPanel = 'hoy' | 'progresion' | 'recordatorios';
-const TITULOS_VISTA_PANEL: Record<VistaPanel, string> = { hoy: 'Hoy', progresion: 'Mis Hábitos', recordatorios: 'Recordatorios' };
 const ICONOS_VISTA_PANEL: Record<VistaPanel, string> = { hoy: 'sol', progresion: 'progreso', recordatorios: 'reloj' };
 const HISTORIAL_VACIO: boolean[] = Array(28).fill(false);
 const TONOS_RACHA = ['#78BB80', '#6CB476', '#61AC6C', '#56A462', '#4B9C58', '#41944E', '#378C45'];
@@ -42,13 +47,11 @@ const TONOS_RACHA = ['#78BB80', '#6CB476', '#61AC6C', '#56A462', '#4B9C58', '#41
 const C = { fondo: '#F3EEFA', texto: '#1A1335', tenue: '#7B7494', verde: '#22C55E', morado: '#7C3AED', barra: '#E7E1F1', glass: 'rgba(255,255,255,0.72)', glassBorde: 'rgba(255,255,255,0.85)' };
 
 const ACCESOS = [
-  { id: 'progresion', etiqueta: 'Mis Habitos', descripcion: 'Tu avance y progreso', nombreIcono: 'progreso' },
-  { id: 'creacion', etiqueta: 'Creación', descripcion: 'Arma un nuevo habito', nombreIcono: 'idea' },
-  { id: 'recordatorios', etiqueta: 'Recordatorios', descripcion: 'Que no se te olvide', nombreIcono: 'reloj' },
-  { id: 'insights', etiqueta: 'Insights', descripcion: 'Patrones y riesgo', nombreIcono: 'estadistica' },
+  { id: 'progresion', nombreIcono: 'progreso' }, { id: 'creacion', nombreIcono: 'idea' }, { id: 'recordatorios', nombreIcono: 'reloj' }, { id: 'insights', nombreIcono: 'estadistica' },
 ] as const;
 
 export function HabitosPantalla() {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { abrirCreacion } = useLocalSearchParams<{ abrirCreacion?: string }>();
@@ -56,16 +59,23 @@ export function HabitosPantalla() {
   const { data: saldoGemas } = useSaldoGemas();
   const horizon = useHorizon();
   const [crearAbierto, setCrearAbierto] = useState(false);
+  const etiquetaAcceso = (id: (typeof ACCESOS)[number]['id']) => t(`habitos.pantalla.access${id === 'progresion' ? 'Progress' : id === 'creacion' ? 'Create' : id === 'recordatorios' ? 'Reminders' : 'Insights'}`);
+  const descripcionAcceso = (id: (typeof ACCESOS)[number]['id']) => t(`habitos.pantalla.access${id === 'progresion' ? 'ProgressDescription' : id === 'creacion' ? 'CreateDescription' : id === 'recordatorios' ? 'RemindersDescription' : 'InsightsDescription'}`);
 
-  // Llegada desde "Plantar" en Mis semillas (tienda): abre el asistente de
-  // creación directo, en vez de dejar la pantalla en su estado normal sin
-  // ninguna señal de que la semilla ya está lista para usarse.
+  // Dos orígenes para el mismo "abrí el asistente ya": llegada desde
+  // "Plantar" en Mis semillas (tienda, vía param de ruta) o justo después de
+  // reclamar el árbol de regalo de bienvenida, si el usuario contestó que sí
+  // quería crear su primer hábito (vía CLAVE_ABRIR_CREACION_HABITO — en ese
+  // momento el tab "hoy" recién se está montando por primera vez, así que no
+  // hay un push de ruta al que "llegar", solo esta señal de una sola lectura).
   useEffect(() => {
-    if (abrirCreacion) {
+    const abrirTrasRegalo = cliente.getQueryData<boolean>(CLAVE_ABRIR_CREACION_HABITO);
+    if (abrirCreacion || abrirTrasRegalo) {
       setCrearAbierto(true);
-      router.setParams({ abrirCreacion: undefined });
+      if (abrirCreacion) router.setParams({ abrirCreacion: undefined });
+      if (abrirTrasRegalo) cliente.setQueryData(CLAVE_ABRIR_CREACION_HABITO, undefined);
     }
-  }, [abrirCreacion, router]);
+  }, [abrirCreacion, cliente, router]);
   const [detalleHabitoId, setDetalleHabitoId] = useState<string | null>(null);
   const [vistaPanel, setVistaPanel] = useState<VistaPanel>('hoy');
   const [registrandoId, setRegistrandoId] = useState<string | null>(null);
@@ -89,10 +99,21 @@ export function HabitosPantalla() {
   }, []);
 
   useEffect(() => {
-    if (consulta.data?.hoy.datos && horizon.data === 'activo') {
-      sincronizarWidgetFoco(consulta.data.hoy.datos);
+    if (consulta.data?.hoy.datos) {
+      sincronizarWidgetFoco(consulta.data.hoy.datos, horizon.data === 'activo');
+      sincronizarWidgetCalendario();
+      sincronizarSesionesCronometroPendientes().then((huboDrenaje) => {
+        if (huboDrenaje) cliente.invalidateQueries({ queryKey: ['habitos', 'panel'] });
+      });
     }
   }, [consulta.data?.hoy.datos, horizon.data]);
+
+  useEffect(() => {
+    const cancelar = suscribirIncrementoWidget(() => {
+      cliente.invalidateQueries({ queryKey: ['habitos', 'panel'] });
+    });
+    return cancelar;
+  }, [cliente]);
 
   function marcarSwipeDescubierto() {
     setMostrarPistaSwipe(false);
@@ -107,7 +128,7 @@ export function HabitosPantalla() {
     setRegistrandoId(habito.id);
     hapticSeguro('confirmacion');
     try {
-      await registrar.mutateAsync({ fechaLocal: new Date().toISOString().slice(0, 10), habitoId: habito.id, valor: habito.meta });
+      await registrar.mutateAsync({ fechaLocal: fechaLocalHoy(), habitoId: habito.id, valor: habito.meta });
       await Promise.all([
         cliente.invalidateQueries({ queryKey: ['habitos', 'panel'] }),
         cliente.invalidateQueries({ queryKey: ['habitos', 'detalles-hoy'] }),
@@ -139,7 +160,7 @@ export function HabitosPantalla() {
       <View style={s.headerInicio}>
         <View style={s.headerTitulo}>
           <Animated.View entering={entradaEncadenada(0)} style={s.headerIzq}>
-            <Texto style={s.headerSaludo}>Hola,</Texto>
+            <Texto style={s.headerSaludo}>{t('habitos.pantalla.greeting')}</Texto>
             <View style={s.nombreFila}>
               <Texto style={s.headerNombre}>Alejandro</Texto>
               <Image source={require('../../../../assets/icons/hoy/saludo.png')} style={s.saludoIcono} />
@@ -147,9 +168,9 @@ export function HabitosPantalla() {
           </Animated.View>
         </View>
         <View style={s.headerDer}>
-          <Animated.View entering={entradaEncadenada(1)}><Rebote accessibilityLabel="Comprar gemas" onPress={() => router.push('/tienda/gemas')} estilo={s.statPill}><View style={s.statPillFila}><Image source={require('../../../../assets/icons/hoy/gemas.png')} style={s.gemaIcono} /><Texto style={s.statTexto}>{saldoGemas ?? 0}</Texto></View></Rebote></Animated.View>
+          <Animated.View entering={entradaEncadenada(1)}><Rebote accessibilityLabel={t('habitos.pantalla.buyGems')} onPress={() => router.push('/tienda/gemas')} estilo={s.statPill}><View style={s.statPillFila}><Image source={require('../../../../assets/icons/hoy/gemas.png')} style={s.gemaIcono} /><Texto style={s.statTexto}>{saldoGemas ?? 0}</Texto></View></Rebote></Animated.View>
           <Animated.View entering={entradaEncadenada(2)}>
-            <Rebote accessibilityLabel="Notificaciones" onPress={() => Linking.openSettings()}>
+            <Rebote accessibilityLabel={t('habitos.pantalla.notifications')} onPress={() => Linking.openSettings()}>
               <MasterGlass style={s.notificacion}>
                 <Image source={require('../../../../assets/icons/hoy/notificaciones.png')} style={s.notificacionIcono} />
               </MasterGlass>
@@ -166,7 +187,7 @@ export function HabitosPantalla() {
             <MasterGlass style={s.nivelCard}>
               {consulta.isLoading ? <><Skeleton alto={26} ancho={26} radio={8} /><View style={{ flex: 1, gap: 6 }}><Skeleton alto={11} ancho="60%" /><Skeleton alto={6} radio={3} /></View></> : <>
                 <MasterIcon color={2} name="trofeo" size={26} />
-                <View style={s.nivelInfo}><View style={s.nivelTexto}><Texto style={s.nivelLabel}>Hábitos hoy</Texto><Texto style={s.nivelXP}>{completados}/{habitos.length}</Texto></View><Progreso porcentaje={porcentaje} /></View>
+                <View style={s.nivelInfo}><View style={s.nivelTexto}><Texto style={s.nivelLabel}>{t('habitos.pantalla.todayHabits')}</Texto><Texto style={s.nivelXP}>{completados}/{habitos.length}</Texto></View><Progreso porcentaje={porcentaje} /></View>
               </>}
             </MasterGlass>
           </Animated.View>
@@ -178,12 +199,12 @@ export function HabitosPantalla() {
         {ACCESOS.map((acceso, indice) => {
           return (
             <Animated.View entering={entradaEncadenada(5 + indice)} key={acceso.id} style={s.accesoTarjeta}>
-              <Rebote accessibilityLabel={acceso.etiqueta} onPress={() => abrirAcceso(acceso.id)}>
+              <Rebote accessibilityLabel={etiquetaAcceso(acceso.id)} onPress={() => abrirAcceso(acceso.id)}>
                 <MasterGlass style={s.accesoGlass}>
                   <MasterIcon color={2} name={acceso.nombreIcono} size={32} />
                   <View style={s.accesoTexto}>
-                    <Texto numberOfLines={1} style={s.accesoEtiqueta}>{acceso.etiqueta}</Texto>
-                    <Texto numberOfLines={2} style={s.accesoDescripcion}>{acceso.descripcion}</Texto>
+                    <Texto numberOfLines={1} style={s.accesoEtiqueta}>{etiquetaAcceso(acceso.id)}</Texto>
+                    <Texto numberOfLines={2} style={s.accesoDescripcion}>{descripcionAcceso(acceso.id)}</Texto>
                   </View>
                 </MasterGlass>
               </Rebote>
@@ -196,12 +217,12 @@ export function HabitosPantalla() {
         const proximidad = habito.porcentaje;
         return (
           <Animated.View entering={entradaEncadenada(9)}>
-            <Rebote accessibilityLabel={`${habito.titulo}, a punto de subir de nivel`} estilo={s.cercaniaTarjeta} onPress={() => setDetalleHabitoId(habito.id)}>
+            <Rebote accessibilityLabel={t('habitos.pantalla.nearLevelAccessibility', { title: habito.titulo })} estilo={s.cercaniaTarjeta} onPress={() => setDetalleHabitoId(habito.id)}>
               <MasterGlass style={s.cercaniaGlass}>
                 <View style={s.cercaniaIcono}><IconoHabitoVisual color={C.verde} id={habito.iconoLucide} size={22} /></View>
                 <View style={{ flex: 1 }}>
-                  <Texto style={s.cercaniaLabel}>A punto de subir de nivel</Texto>
-                  <Texto style={s.cercaniaTitulo}>{habito.titulo} · Nivel {habito.nivel} → {habito.nivel + 1}</Texto>
+                  <Texto style={s.cercaniaLabel}>{t('habitos.pantalla.nearLevel')}</Texto>
+                  <Texto style={s.cercaniaTitulo}>{t('habitos.pantalla.levelProgress', { title: habito.titulo, level: habito.nivel, nextLevel: habito.nivel + 1 })}</Texto>
                   <Progreso porcentaje={proximidad} />
                 </View>
                 <Texto style={s.cercaniaPorcentaje}>{proximidad}%</Texto>
@@ -219,11 +240,11 @@ export function HabitosPantalla() {
         {vistaPanel === 'hoy' ? (
           <EncabezadoHoy completados={completados} porcentaje={porcentaje} total={habitos.length} />
         ) : (
-          <View style={s.tituloFila}><View style={s.tituloConIcono}><MasterIcon color={2} name={ICONOS_VISTA_PANEL[vistaPanel]} size={22} /><Texto style={s.titulo}>{TITULOS_VISTA_PANEL[vistaPanel]}</Texto></View></View>
+          <View style={s.tituloFila}><View style={s.tituloConIcono}><MasterIcon color={2} name={ICONOS_VISTA_PANEL[vistaPanel]} size={22} /><Texto style={s.titulo}>{vistaPanel === 'progresion' ? t('habitos.pantalla.viewProgress') : t('habitos.pantalla.viewReminders')}</Texto></View></View>
         )}
         {vistaPanel === 'hoy' && <>
           {consulta.isLoading && <EsqueletoTimelineHoy />}
-          {consulta.isError && <Pressable onPress={() => consulta.refetch()}><Texto style={s.error}>No pudimos cargar los datos. Toca para reintentar.</Texto>{__DEV__ && <Texto style={s.errorDetalle}>{consulta.error instanceof Error ? consulta.error.message : String(consulta.error)}</Texto>}</Pressable>}
+          {consulta.isError && <Pressable onPress={() => consulta.refetch()}><Texto style={s.error}>{t('habitos.pantalla.loadError')}</Texto>{__DEV__ && <Texto style={s.errorDetalle}>{consulta.error instanceof Error ? consulta.error.message : String(consulta.error)}</Texto>}</Pressable>}
           {!consulta.isLoading && !consulta.isError && <TimelineHabitosHoy habitos={habitos} mostrarPistaSwipe={mostrarPistaSwipe} onDetalle={(id) => setDetalleHabitoId(id)} onSendero={(habito) => router.push({ pathname: '/senderos', params: { habitoId: habito.id } })} onSwipeDescubierto={marcarSwipeDescubierto} />}
         </>}
         {vistaPanel === 'progresion' && (
@@ -250,10 +271,10 @@ export function HabitosPantalla() {
       </MasterGlass>
     </Animated.View>
     <Animated.View entering={entradaEncadenada(11)} style={s.horizonAcceso}>
-      <Pressable accessibilityLabel="Explorar widgets de pantalla de inicio" disabled={horizon.isLoading} onPress={abrirHorizon} style={({ pressed }) => [pressed && s.horizonAccesoPresionado, horizon.isLoading && s.horizonAccesoDeshabilitado]}>
+      <Pressable accessibilityLabel={t('habitos.pantalla.exploreWidgets')} disabled={horizon.isLoading} onPress={abrirHorizon} style={({ pressed }) => [pressed && s.horizonAccesoPresionado, horizon.isLoading && s.horizonAccesoDeshabilitado]}>
         <MasterGlass style={s.horizonGlass}>
           <View style={s.horizonIcono}><MasterIcon color={2} name="montana" size={27} /></View>
-          <View style={s.horizonTexto}><Texto style={s.horizonTitulo}>Widgets de Inicio</Texto><Texto style={s.horizonDescripcion}>{horizon.isLoading ? 'Comprobando suscripción…' : 'Lleva tus hábitos a tu pantalla de inicio'}</Texto></View>
+          <View style={s.horizonTexto}><Texto style={s.horizonTitulo}>{t('habitos.pantalla.widgetsTitle')}</Texto><Texto style={s.horizonDescripcion}>{horizon.isLoading ? t('habitos.pantalla.checkingSubscription') : t('habitos.pantalla.widgetsDescription')}</Texto></View>
           <ChevronRight color="#3B9858" size={21} />
         </MasterGlass>
       </Pressable>
@@ -280,28 +301,30 @@ function Progreso({ porcentaje }: { porcentaje: number }) { return <MasterProgre
 // Solo es "premium" (Rebote) cuando ya hay una racha real a la que navegar —
 // mientras carga o si no existe ninguna, es una tarjeta informativa quieta.
 function RachaCard({ datos, isLoading, onPress }: { datos: MejorRachaHabito | null | undefined; isLoading: boolean; onPress: (id: string) => void }) {
+  const { t } = useTranslation();
   const contenido = isLoading ? <>
     <View style={s.rachaTop}><Skeleton alto={30} ancho={30} radio={10} /><View style={{ flex: 1, gap: 5 }}><Skeleton alto={11} ancho="70%" /><Skeleton alto={9} ancho="45%" /></View></View>
     <Skeleton alto={9} radio={2} />
   </> : <>
     <View style={s.rachaTop}>
       {datos ? <View style={s.rachaIconoFondo}><IconoHabitoVisual color={C.verde} id={datos.iconoLucide} size={22} /></View> : <MasterIcon color={2} name="rayo" size={22} />}
-      <View style={{ flex: 1 }}><Texto numberOfLines={1} style={s.rachaTitulo}>{datos ? datos.titulo : 'Sin racha activa'}</Texto><Texto style={s.rachaLabel}>Mejor racha</Texto></View>
+      <View style={{ flex: 1 }}><Texto numberOfLines={1} style={s.rachaTitulo}>{datos ? datos.titulo : t('habitos.pantalla.noStreak')}</Texto><Texto style={s.rachaLabel}>{t('habitos.pantalla.bestStreak')}</Texto></View>
       {datos && <Texto style={s.rachaDias}>{datos.racha}d</Texto>}
     </View>
     <HistorialRacha historial={datos?.historial28 ?? HISTORIAL_VACIO} />
   </>;
   if (!datos) return <MasterGlass style={s.rachaCard}>{contenido}</MasterGlass>;
-  return <Rebote accessibilityLabel={`Ver ${datos.titulo}`} onPress={() => onPress(datos.id)}><MasterGlass style={s.rachaCard}>{contenido}</MasterGlass></Rebote>;
+  return <Rebote accessibilityLabel={t('habitos.pantalla.viewHabit', { title: datos.titulo })} onPress={() => onPress(datos.id)}><MasterGlass style={s.rachaCard}>{contenido}</MasterGlass></Rebote>;
 }
 // Últimos 28 días (7x4), sin etiquetas de día — solo cumplido/no cumplido, como los cuadros de contribuciones de GitHub.
 function HistorialRacha({ historial }: { historial: boolean[] }) { return <View style={[s.historialGrid, { gap: 4 }]}>{Array.from({ length: 4 }).map((_, fila) => <View key={fila} style={[s.historialFila, { gap: 4 }]}>{historial.slice(fila * 7, fila * 7 + 7).map((cumplido, columna) => <View key={columna} style={[s.historialCuadro, { borderRadius: 4, borderWidth: 1, height: 10 }, cumplido ? [s.historialCuadroLleno, { backgroundColor: TONOS_RACHA[columna], borderColor: 'rgba(255,255,255,0.72)' }] : [s.historialCuadroVacio, { backgroundColor: '#DCEFE0', borderColor: 'rgba(255,255,255,0.82)' }]]} />)}</View>)}</View>; }
 function IconoHabitoVisual({ id, color, size }: { id?: string | null; color: string; size: number }) { const icono = buscarIconoHabito(id); return icono ? <Image source={icono.fuente} style={{ height: size, resizeMode: 'contain', width: size }} /> : <Sparkles color={color} size={size} />; }
 function TarjetaHabito({ detalle, habito, onDetalle, onRegistrar, registrando }: { detalle: HabitoHoyDetalle | undefined; habito: HabitoResumen; onDetalle: () => void; onRegistrar: () => void; registrando: boolean }) {
+  const { t } = useTranslation();
   const icono = buscarIconoHabito(habito.iconoLucide);
-  const assets = obtenerAssetsSelvaPorTono(detalle?.nivel ?? 1);
-  const metaEtiqueta = `${habito.meta} ${habito.tipoMeta === 'duracion' ? 'min' : habito.unidad || 'veces'}`;
-  const ctaTexto = habito.completado ? 'Completado — ver sendero' : 'Comenzar';
+  const assets = obtenerAssetsPaqueteHabito(undefined, detalle?.nivel ?? 1);
+  const metaEtiqueta = `${habito.meta} ${habito.tipoMeta === 'duracion' ? t('habitos.pantalla.durationUnit') : habito.unidad || t('habitos.pantalla.defaultUnit')}`;
+  const ctaTexto = habito.completado ? t('habitos.pantalla.completedViewTrail') : t('habitos.pantalla.start');
   return <Pressable onPress={onDetalle} style={s.tarjetaHabito}>
     <View style={s.tarjetaHabitoContenido}>
       <TarjetaSenderoHabito
@@ -327,7 +350,8 @@ function TarjetaHabito({ detalle, habito, onDetalle, onRegistrar, registrando }:
 // nivel) que antes vivía en Hoy — cada una espera a que la anterior termine
 // de entrar por completo (MasterAnimation encadena, no traslapa).
 function CuadriculaHabitos({ detallesPorHabito, habitos, onDetalle, onRegistrar, registrandoId }: { detallesPorHabito: Map<string, HabitoHoyDetalle>; habitos: HabitoResumen[]; onDetalle: (id: string) => void; onRegistrar: (habito: HabitoResumen) => void; registrandoId: string | null }) {
-  if (habitos.length === 0) return <EstadoVacio texto="Aún no has creado hábitos. Comienza con una pequeña acción." />;
+  const { t } = useTranslation();
+  if (habitos.length === 0) return <EstadoVacio texto={t('habitos.pantalla.noHabitsDescription')} />;
   return (
     <ScrollView contentContainerStyle={s.carruselHabitosContenido} horizontal showsHorizontalScrollIndicator={false} style={s.carruselHabitos}>
       <MasterAnimation duracion={340}>
@@ -338,20 +362,21 @@ function CuadriculaHabitos({ detallesPorHabito, habitos, onDetalle, onRegistrar,
     </ScrollView>
   );
 }
-function EstadoVacio({ texto }: { texto: string }) { return <View style={s.vacio}><Image source={require('../../../../assets/icons/hoy/habitos.png')} style={[s.iconoVacio, { tintColor: C.verde }]} /><Texto style={s.vacioTitulo}>Aún no hay hábitos</Texto><Texto style={s.vacioTexto}>{texto}</Texto></View>; }
+function EstadoVacio({ texto }: { texto: string }) { const { t } = useTranslation(); return <View style={s.vacio}><Image source={require('../../../../assets/icons/hoy/habitos.png')} style={[s.iconoVacio, { tintColor: C.verde }]} /><Texto style={s.vacioTitulo}>{t('habitos.pantalla.noHabitsTitle')}</Texto><Texto style={s.vacioTexto}>{texto}</Texto></View>; }
 
 // Encabezado del panel "Hoy": bandera verde (MasterIcon con color=2, el hue
 // del PNG no importa porque MasterChanger lo rota) + contador + barra de
 // progreso real + tagline. El "⋮" es solo decorativo por ahora (no navega a
 // nada), a propósito no es un Pressable para no fingir que hace algo.
 function EncabezadoHoy({ completados, porcentaje, total }: { completados: number; porcentaje: number; total: number }) {
+  const { t } = useTranslation();
   return (
     <View style={s.encabezadoHoy}>
       <View style={s.encabezadoHoyFila}>
         <MasterIconBg size={70}><MasterIcon color={2} name="bandera" size={50} /></MasterIconBg>
         <View style={{ flex: 1 }}>
-          <Texto style={s.encabezadoHoyTitulo}>Hoy</Texto>
-          <Texto style={s.encabezadoHoyCompletadas}>{completados}/{total} completadas</Texto>
+          <Texto style={s.encabezadoHoyTitulo}>{t('habitos.pantalla.viewToday')}</Texto>
+          <Texto style={s.encabezadoHoyCompletadas}>{t('habitos.pantalla.todayCompleted', { completed: completados, total })}</Texto>
           <View style={s.encabezadoHoyProgresoFila}>
             <MasterProgressbar altura={10} porcentaje={porcentaje} style={s.encabezadoHoyBarra} />
             <Texto style={s.encabezadoHoyPorcentaje}>{porcentaje}%</Texto>
@@ -392,8 +417,9 @@ function ParticulaSwipe({ distanciaMeta, fraccion, indice, translateX }: { dista
 }
 
 function FilaHabitoHoy({ esActivo, esUltimo, habito, mostrarPista, onDetalle, onSendero, onSwipeDescubierto }: { esActivo: boolean; esUltimo: boolean; habito: HabitoResumen; mostrarPista: boolean; onDetalle: () => void; onSendero: () => void; onSwipeDescubierto: () => void }) {
+  const { t } = useTranslation();
   const icono = buscarIconoHabito(habito.iconoLucide);
-  const metaEtiqueta = `${habito.meta} ${habito.tipoMeta === 'duracion' ? 'min' : habito.unidad || 'veces'}`;
+  const metaEtiqueta = `${habito.meta} ${habito.tipoMeta === 'duracion' ? t('habitos.pantalla.durationUnit') : habito.unidad || t('habitos.pantalla.defaultUnit')}`;
   const [anchoFila, setAnchoFila] = useState(0);
   const translateX = useSharedValue(0);
   const distanciaMeta = Math.max(60, anchoFila - MARGEN_SWIPE);
@@ -458,7 +484,7 @@ function FilaHabitoHoy({ esActivo, esUltimo, habito, mostrarPista, onDetalle, on
             <Texto numberOfLines={1} style={s.filaHoyTitulo}>{habito.titulo}</Texto>
             <Texto numberOfLines={1} style={s.filaHoySubtitulo}>{metaEtiqueta}</Texto>
           </Animated.View>
-          <Rebote accessibilityLabel="Ir al sendero" hitSlop={8} onPress={onSendero}>
+          <Rebote accessibilityLabel={t('habitos.pantalla.goToTrail')} hitSlop={8} onPress={onSendero}>
             <MasterGlass style={s.filaHoyChevron}><ChevronRight color="#145C37" size={16} /></MasterGlass>
           </Rebote>
         </MasterGlass>
@@ -478,19 +504,21 @@ function FilaHabitoHoy({ esActivo, esUltimo, habito, mostrarPista, onDetalle, on
 // hasta que el usuario toca "Entendido", no solo hasta que le atine al gesto
 // por accidente. Esa confirmación explícita es lo que de verdad lo descarta.
 function PistaSwipeBanner({ onContinuar }: { onContinuar: () => void }) {
+  const { t } = useTranslation();
   return (
     <MasterGlass style={s.pistaSwipeBanner}>
       <View style={s.pistaSwipeIcono}><ChevronRight color="#145C37" size={18} /></View>
       <View style={{ flex: 1 }}>
-        <Texto style={s.pistaSwipeTitulo}>Truco rápido</Texto>
-        <Texto style={s.pistaSwipeTexto}>Arrastra el ícono de un hábito hacia el chevron para ir directo a su sendero.</Texto>
+        <Texto style={s.pistaSwipeTitulo}>{t('habitos.pantalla.swipeTipTitle')}</Texto>
+        <Texto style={s.pistaSwipeTexto}>{t('habitos.pantalla.swipeTipDescription')}</Texto>
       </View>
-      <Rebote accessibilityLabel="Entendido" estilo={s.pistaSwipeBoton} onPress={onContinuar}><Texto style={s.pistaSwipeBotonTexto}>Entendido</Texto></Rebote>
+      <Rebote accessibilityLabel={t('habitos.pantalla.understood')} estilo={s.pistaSwipeBoton} onPress={onContinuar}><Texto style={s.pistaSwipeBotonTexto}>{t('habitos.pantalla.understood')}</Texto></Rebote>
     </MasterGlass>
   );
 }
 function TimelineHabitosHoy({ habitos, mostrarPistaSwipe, onDetalle, onSendero, onSwipeDescubierto }: { habitos: HabitoResumen[]; mostrarPistaSwipe: boolean; onDetalle: (id: string) => void; onSendero: (habito: HabitoResumen) => void; onSwipeDescubierto: () => void }) {
-  if (habitos.length === 0) return <EstadoVacio texto="Aún no has creado hábitos. Comienza con una pequeña acción." />;
+  const { t } = useTranslation();
+  if (habitos.length === 0) return <EstadoVacio texto={t('habitos.pantalla.noHabitsDescription')} />;
   const indiceActivo = habitos.findIndex((habito) => !habito.completado);
   return (
     <View>

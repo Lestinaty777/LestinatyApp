@@ -1,6 +1,8 @@
 import type { ImageSourcePropType } from 'react-native';
 
 import { obtenerPaqueteVisualHabito } from './paqueteVisual';
+import { resolverPaqueteHabito } from './paqueteHabito';
+import { obtenerAssetsPaquete } from '../senderos/algoritmo/registroPaquetesArbol';
 
 const ETAPAS_SIETE: Record<string, ImageSourcePropType> = {
   abyss: require('../../../assets/ilustraciones/senderos/biomas/paquetes/Abyss/etapa7.png'),
@@ -25,4 +27,12 @@ const ETAPAS_SIETE: Record<string, ImageSourcePropType> = {
 export function obtenerEtapaSietePaquete(paqueteId?: string | null): ImageSourcePropType {
   const paquete = obtenerPaqueteVisualHabito(paqueteId);
   return ETAPAS_SIETE[paquete.id] ?? ETAPAS_SIETE.esmeralda;
+}
+
+export type AssetsPaqueteHabito = { arbolPrincipal: ImageSourcePropType; arbolSecundario: ImageSourcePropType; arbusto: ImageSourcePropType; base: ImageSourcePropType; flor: ImageSourcePropType };
+
+export function obtenerAssetsPaqueteHabito(paqueteId?: string | null, nivel = 1): AssetsPaqueteHabito {
+  const paquete = obtenerAssetsPaquete(resolverPaqueteHabito(paqueteId))!;
+  const indice = Math.max(0, Math.min(6, Math.round(nivel) - 1));
+  return { arbolPrincipal: paquete.etapas[indice], arbolSecundario: paquete.etapas[Math.max(0, indice - 1)], arbusto: paquete.arbusto, base: paquete.etapas[indice], flor: paquete.flor };
 }

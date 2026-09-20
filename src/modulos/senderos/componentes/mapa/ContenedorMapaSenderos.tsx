@@ -15,6 +15,8 @@ import { PixelartIcon } from '../../../../diseno/iconos/PixelartIcon';
 import { LamparaSendero } from './LamparaSendero';
 import { LinearGradient } from 'expo-linear-gradient';
 import { rotarPaletaHex } from '../../algoritmo/colorHsl';
+import { resolverPaqueteHabito } from '../../../habitos/paqueteHabito';
+import { useTranslation } from 'react-i18next';
 
 import { NodoSendero } from './NodoSendero';
 
@@ -260,6 +262,7 @@ const CapaDecoracionMapa = React.memo(function CapaDecoracionMapa({
             style={[styles.decoracionBioma, {
               height: tamano,
               left: decoracion.x,
+              opacity: decoracion.opacidad ?? 1,
               top: decoracion.y,
               width: tamano,
               zIndex: zIndexPorCapa[decoracion.capa],
@@ -305,13 +308,14 @@ export function ContenedorMapaSenderos({ altura, categoriaId, color, desplazamie
   const margenDecoracion = Math.max(altura, 480);
   const anchoEscena = anchoMapa || width;
   const colorMasterAmbiente = useMemo(() => colorMasterMasCercano(color), [color]);
-  const tieneAssetsPaquete = paqueteId ? tienePaqueteAssetsReales(paqueteId) : false;
+  const paqueteVisualMapa = categoriaId === 'habitos' ? resolverPaqueteHabito(paqueteId) : paqueteId;
+  const tieneAssetsPaquete = categoriaId === 'habitos' ? tienePaqueteAssetsReales(paqueteVisualMapa ?? 'esmeralda') : false;
   const temaMapa = useMemo(
-    () => crearTemaMapa(categoriaId, color, subcategoriaId, paqueteId, nivel, progresoPastoTemprano, tieneAssetsPaquete),
-    [categoriaId, color, subcategoriaId, paqueteId, nivel, progresoPastoTemprano, tieneAssetsPaquete],
+    () => crearTemaMapa(categoriaId, color, subcategoriaId, paqueteVisualMapa, nivel, progresoPastoTemprano, tieneAssetsPaquete),
+    [categoriaId, color, subcategoriaId, paqueteVisualMapa, nivel, progresoPastoTemprano, tieneAssetsPaquete],
   );
-  const assetSemilla = paqueteId ? obtenerAssetSemillaPaquete(paqueteId) : null;
-  const assetBrote = paqueteId ? obtenerAssetEtapaUnoPaquete(paqueteId) : null;
+  const assetSemilla = paqueteVisualMapa ? obtenerAssetSemillaPaquete(paqueteVisualMapa) : null;
+  const assetBrote = paqueteVisualMapa ? obtenerAssetEtapaUnoPaquete(paqueteVisualMapa) : null;
   const mapa = useMemo(
     () => generarMapaProcedural({ ancho: anchoEscena, cantidadNodos: nodos.length, desplazamientoSuperior: margenSuperiorEfectivo, tema: temaMapa }),
     [anchoEscena, margenSuperiorEfectivo, nodos.length, temaMapa],
@@ -427,7 +431,7 @@ export function ContenedorMapaSenderos({ altura, categoriaId, color, desplazamie
           inicioVentana={limitarDecoracion ? desplazamientoMapa - margenDecoracion : Number.NEGATIVE_INFINITY}
           mapa={mapa}
           nivel={nivel}
-          paqueteId={paqueteId}
+          paqueteId={paqueteVisualMapa}
         />
         <Svg height={altoContenido} pointerEvents="none" style={[StyleSheet.absoluteFill, { zIndex: 2 }]} width={anchoEscena}>
           {conexiones.map((conexion, indice) => {
@@ -493,16 +497,6 @@ export function ContenedorMapaSenderos({ altura, categoriaId, color, desplazamie
   );
 }
 
-// Texto del tooltip: un mismo mensaje para todos los nodos del hábito (no
-// hay una "lección" distinta por nodo), pero asociado a su meta real en vez
-// del texto de lección genérico de antes.
-function descripcionNodoHabito(infoHabito?: { meta: number; tipoMeta: TipoMetaHabito; unidad: string | null }): string {
-  if (!infoHabito) return 'Lección clave para poner a prueba tus habilidades y avanzar.';
-  if (infoHabito.tipoMeta === 'check') return 'Marca el hábito como cumplido para sumar el día.';
-  if (infoHabito.tipoMeta === 'duracion') return `Corre el cronómetro hasta llegar a tus ${infoHabito.meta} min de hoy.`;
-  return `Suma tus ${infoHabito.unidad ?? 'unidades'} hasta llegar a ${infoHabito.meta} para sumar el día.`;
-}
-
 function TooltipNodoSeleccionado({ anchoEscena, color, estado, infoHabito, nodo, posicion, onCompletar }: {
   anchoEscena: number;
   color: string;
@@ -512,6 +506,7 @@ function TooltipNodoSeleccionado({ anchoEscena, color, estado, infoHabito, nodo,
   posicion: { x: number; y: number };
   onCompletar: () => void;
 }) {
+  const { t } = useTranslation();
   const anchoTooltip = 340;
   const izquierdaTooltip = anchoEscena / 2 - anchoTooltip / 2;
   const izquierdaFlecha = posicion.x - izquierdaTooltip - 10;
@@ -536,6 +531,13 @@ function TooltipNodoSeleccionado({ anchoEscena, color, estado, infoHabito, nodo,
 
   const colorBorde = 'rgba(255,255,255,0.2)';
   const tono = estado === 'bloqueado' ? { aurora: '#FFFFFF' } : TONOS_TOOLTIP_MASTER[colorMaster];
+  const descripcionNodoHabito = !infoHabito
+    ? t('senderos.map.genericDescription')
+    : infoHabito.tipoMeta === 'check'
+      ? t('senderos.map.checkDescription')
+      : infoHabito.tipoMeta === 'duracion'
+        ? t('senderos.map.durationDescription', { meta: infoHabito.meta })
+        : t('senderos.map.quantityDescription', { meta: infoHabito.meta, unit: infoHabito.unidad ?? t('senderos.map.defaultUnit') });
 
   return (
     <View pointerEvents="box-none" style={[styles.etiqueta, { left: izquierdaTooltip, top: posicion.y + 40 }]}>
@@ -554,7 +556,7 @@ function TooltipNodoSeleccionado({ anchoEscena, color, estado, infoHabito, nodo,
             <IconoNodo color="#FFFFFF" size={20} />
             <Texto style={[styles.etiquetaTitulo, { color: '#FFFFFF', width: 'auto' }]}>{nodo.titulo}</Texto>
           </View>
-          <Texto style={[styles.etiquetaMeta, { color: '#FFFFFF' }]}>{descripcionNodoHabito(infoHabito)}</Texto>
+          <Texto style={[styles.etiquetaMeta, { color: '#FFFFFF' }]}>{descripcionNodoHabito}</Texto>
           <MasterButton
             style={{ marginTop: 14, width: '100%' }}
             color={colorBaseTooltip}
@@ -562,7 +564,7 @@ function TooltipNodoSeleccionado({ anchoEscena, color, estado, infoHabito, nodo,
             onPress={onCompletar}
             iconoDerecha={estado === 'completado' ? (props) => <PixelartIcon name="chevron-right" color={props.color} size={props.size} /> : undefined}
           >
-            {estado === 'bloqueado' ? 'Bloqueado' : estado === 'completado' ? 'Repasar' : 'Comenzar'}
+            {estado === 'bloqueado' ? t('senderos.map.blocked') : estado === 'completado' ? t('senderos.map.review') : t('senderos.map.start')}
           </MasterButton>
           </View>
         </LinearGradient>

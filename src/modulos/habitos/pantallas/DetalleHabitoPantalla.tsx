@@ -6,16 +6,17 @@ import { Image, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { FadeIn, FadeOut, useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import { AnilloProgreso, Boton, HojaDeslizante, RecuadroGlass, Texto } from '../../../diseno';
-import { MasterChanger } from '../../../diseno/componentes/MasterChanger';
 import { hapticSeguro } from '../../../nucleo/dispositivo/haptics';
+import { fechaLocalHoy } from '../../../nucleo/dispositivo/fechaLocal';
 import { obtenerDetalleHabito, registrarProgresoHabito } from '../habitos.servicio';
-import { ARBUSTO_SELVA_BASE, buscarIconoHabito, factorTono, obtenerAssetsSelvaPorTono } from '../iconosHabitos';
+import { buscarIconoHabito } from '../iconosHabitos';
+import { obtenerAssetsPaqueteHabito } from '../paqueteVisual.assets';
+import { obtenerPaqueteVisualHabito } from '../paqueteVisual';
 import type { DetalleHabito } from '../tipos';
 import { CLAVE_SALDO_GEMAS } from '../../tienda/useSaldoGemas';
 
 type Celebracion = { gemasGanadas: number; nivel: number };
 
-const BIOMA_TITULO = 'Selva viva';
 
 const C={fondo:'#F3EEFA',texto:'#1A1335',tenue:'#7B7494',glass:'rgba(255,255,255,.72)',borde:'rgba(255,255,255,.85)'};
 
@@ -58,7 +59,7 @@ export function DetalleHabitoPantalla({id,onCerrar}:{id:string;onCerrar:()=>void
     cerrar={cerrar}
     d={consulta.data}
     guardando={mutacion.isPending}
-    onRegistrar={(valor)=>mutacion.mutate({habitoId:id,fechaLocal:new Date().toISOString().slice(0,10),valor})}
+    onRegistrar={(valor)=>mutacion.mutate({habitoId:id,fechaLocal:fechaLocalHoy(),valor})}
     onVerSendero={()=>{cerrar();router.push({pathname:'/senderos',params:{habitoId:id}});}}
     paddingInferior={insets.bottom+28}
    />
@@ -76,7 +77,8 @@ function Contenido({cerrar,d,guardando,onRegistrar,onVerSendero,paddingInferior}
  const h=d.habito;
  const p=Math.min(100,Math.round(h.valorHoy*100/h.meta));
  const siguiente=h.tipoMeta==='check'?(h.completado?0:1):Math.min(h.meta,h.valorHoy+1);
- const assetsSelva=obtenerAssetsSelvaPorTono(d.nivel);
+ const assetsPaquete=obtenerAssetsPaqueteHabito(h.paqueteId,d.nivel);
+ const nombrePaquete=obtenerPaqueteVisualHabito(h.paqueteId).nombre;
 
  return <ScrollView contentContainerStyle={[s.contenido,{paddingBottom:paddingInferior}]} showsVerticalScrollIndicator={false}>
   <View style={s.header}>
@@ -92,9 +94,9 @@ function Contenido({cerrar,d,guardando,onRegistrar,onVerSendero,paddingInferior}
   <Texto style={s.frase}>{h.descripcion??'Una pequeña acción para un gran cambio.'}</Texto>
 
   <Pressable accessibilityLabel="Ver tu sendero" onPress={onVerSendero} style={[s.diorama,{backgroundColor:`${h.color}14`}]}>
-   <Image resizeMode="contain" source={assetsSelva.arbolPrincipal} style={s.diorArbol}/>
-   <View style={s.diorArbusto}><MasterChanger alto={70} ancho={80} colorDestino={2} fuente={ARBUSTO_SELVA_BASE} oscurecido={factorTono(d.nivel)}/></View>
-   <Texto style={[s.diorEtiqueta,{color:h.color}]}>{BIOMA_TITULO}</Texto>
+   <Image resizeMode="contain" source={assetsPaquete.arbolPrincipal} style={s.diorArbol}/>
+   <View style={s.diorArbusto}><Image resizeMode="contain" source={assetsPaquete.arbusto} style={{ height: 70, width: 80 }}/></View>
+   <Texto style={[s.diorEtiqueta,{color:h.color}]}>{nombrePaquete}</Texto>
    <Texto style={[s.diorSendero,{color:h.color}]}>Ver mi sendero →</Texto>
   </Pressable>
 

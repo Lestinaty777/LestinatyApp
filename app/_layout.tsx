@@ -1,16 +1,22 @@
 import 'react-native-gesture-handler';
 import '../src/servicios/i18n/i18n';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import { ProveedoresApp } from '../src/nucleo/proveedor/ProveedoresApp';
+import { AnimacionApertura } from '../src/nucleo/arranque/AnimacionApertura';
 import { inicializarOneSignal } from '../src/nucleo/notificaciones/oneSignal';
 import { inicializarCompras } from '../src/nucleo/compras/revenueCat';
 import { inicializarGoogleSignIn } from '../src/modulos/acceso/googleSignIn';
 
 export default function LayoutRaiz() {
   useEffect(() => { inicializarOneSignal(); inicializarCompras(); inicializarGoogleSignIn(); }, []);
+  // Se ve en CADA apertura en frío (no es un "visto una sola vez" como el
+  // carrusel de introducción) — se superpone a todo mientras la resolución
+  // de sesión/routing de más abajo sigue trabajando por detrás, así al
+  // terminar el video la pantalla de destino ya está lista.
+  const [animacionTerminada, setAnimacionTerminada] = useState(false);
   const [fuentesCargadas] = useFonts({
     'Montserrat-Bold': require('../assets/fonts/Montserrat/static/Montserrat-Bold.ttf'),
     'Montserrat-Medium': require('../assets/fonts/Montserrat/static/Montserrat-Medium.ttf'),
@@ -40,6 +46,7 @@ export default function LayoutRaiz() {
         <Stack.Screen name="horizon" />
         <Stack.Screen name="habitos/widgets" />
       </Stack>
+      {!animacionTerminada && <AnimacionApertura onTerminar={() => setAnimacionTerminada(true)} />}
     </ProveedoresApp>
   );
 }

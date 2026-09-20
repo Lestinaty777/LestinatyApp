@@ -5,6 +5,7 @@ import { obtenerClienteSupabase, supabaseEstaConfigurado } from '../../../servic
 import { sincronizarRenovacionSesion } from '../../../servicios/base-datos/sesion';
 import { cerrarSesionOneSignal, identificarUsuarioOneSignal } from '../../../nucleo/notificaciones/oneSignal';
 import { cerrarSesionCompras, iniciarSesionCompras } from '../../../nucleo/compras/revenueCat';
+import { sincronizarZonaHorariaDispositivo } from '../../configuracion/configuracion.servicio';
 import { usarEstadoAcceso } from '../acceso.estado';
 import { mapearUsuarioSesion } from '../acceso.servicio';
 
@@ -13,7 +14,7 @@ export function ProveedorAcceso({ children }: PropsWithChildren) {
   const definirUsuario = usarEstadoAcceso((estado) => estado.definirUsuario);
   const sincronizarUsuario = (usuario: { id: string; email?: string | null } | null | undefined) => {
     definirUsuario(usuario ? mapearUsuarioSesion(usuario) : null);
-    if (usuario) { identificarUsuarioOneSignal(usuario.id); iniciarSesionCompras(usuario.id); }
+    if (usuario) { identificarUsuarioOneSignal(usuario.id); iniciarSesionCompras(usuario.id); sincronizarZonaHorariaDispositivo(); }
     else { cerrarSesionOneSignal(); cerrarSesionCompras(); }
   };
 
@@ -28,6 +29,7 @@ export function ProveedorAcceso({ children }: PropsWithChildren) {
     sincronizarRenovacionSesion(AppState.currentState, supabase.auth);
     const suscripcionApp = AppState.addEventListener('change', (estado) => {
       sincronizarRenovacionSesion(estado, supabase.auth);
+      if (estado === 'active') sincronizarZonaHorariaDispositivo();
     });
 
     supabase.auth

@@ -5,6 +5,7 @@ import Animated, { cancelAnimation, Easing, useAnimatedStyle, useSharedValue, wi
 
 import { MasterGlass } from './MasterGlass';
 import { normalizarPorcentaje } from './progreso';
+import { useTonoMaster } from '../tema/MasterColorContext';
 
 type MasterProgressbarProps = {
   altura?: number;
@@ -45,7 +46,9 @@ function Burbuja({ arriba, demora, duracion, izquierda, tamano }: BurbujaProps) 
   return <Animated.View pointerEvents="none" style={[styles.burbuja, estiloAnimado, { borderRadius: tamano / 2, height: tamano, left: izquierda as `${number}%`, top: arriba, width: tamano }]} />;
 }
 
-export function MasterProgressbar({ altura = 12, porcentaje, style, colorBase }: MasterProgressbarProps) {
+export function MasterProgressbar({ altura = 12, porcentaje, style, colorBase: colorBaseProp }: MasterProgressbarProps) {
+  const tono = useTonoMaster();
+  const colorBase = colorBaseProp ?? tono.glassBase;
   const progreso = useSharedValue(normalizarPorcentaje(porcentaje));
   const porcentajeSeguro = normalizarPorcentaje(porcentaje);
 

@@ -66,12 +66,20 @@ import {
   obtenerProgresoNivelHabito,
   registrarProgresoHabito,
 } from '../../habitos/habitos.servicio';
-import {
-  buscarIconoHabito,
-  obtenerAssetsSelvaPorTono,
-} from '../../habitos/iconosHabitos';
+import { sincronizarSesionesCronometroPendientes } from '../../habitos/cronometro.servicio';
+import { fechaLocalHoy } from '../../../nucleo/dispositivo/fechaLocal';
+import { buscarIconoHabito } from '../../habitos/iconosHabitos';
+import { obtenerAssetsPaqueteHabito } from '../../habitos/paqueteVisual.assets';
 import { CLAVE_SALDO_GEMAS, useSaldoGemas } from '../../tienda/useSaldoGemas';
 import type { TipoMetaHabito } from '../../habitos/tipos';
+import {
+  detenerCronometroNativo,
+  iniciarCronometroNativo,
+  obtenerEstadoCronometroNativo,
+  pausarCronometroNativo,
+  reanudarCronometroNativo,
+  suscribirEventoCronometro,
+} from '../../../../modules/habito-widget';
 
 const CirculoAnimado = Animated.createAnimatedComponent(Circle);
 
@@ -256,6 +264,11 @@ export function SesionMisionPantalla() {
   const [segundos, setSegundos] = useState<number>((habito?.valorHoy ?? 0) * 60);
   const [corriendo, setCorriendo] = useState<boolean>(false);
   const intervaloRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // Trackea si YA existe una sesión nativa (notificación) para este hábito —
+  // decide si el botón de play debe "iniciar" (primera vez) o "reanudar"
+  // (ya había una sesión nativa pausada), evitando reanudar algo que nunca
+  // se inició nativamente (ej. segundos>0 solo por el valorHoy ya guardado).
+  const sesionNativaActivaRef = useRef(false);
 
   useEffect(() => {
     if (habito?.valorHoy !== undefined) {
@@ -278,6 +291,49 @@ export function SesionMisionPantalla() {
       if (intervaloRef.current) clearInterval(intervaloRef.current);
     };
   }, [corriendo]);
+
+  // Al entrar (o volver) a una misión de duración, el cronómetro nativo
+  // (que sigue corriendo aunque la app se haya ido a segundo plano o la
+  // pantalla se haya cerrado) es la fuente de verdad — si hay una sesión
+  // nativa activa para ESTE hábito, la UI local se resincroniza con ella.
+  useEffect(() => {
+    if (tipoMeta !== 'duracion' || !habitoId) return;
+    let vigente = true;
+    obtenerEstadoCronometroNativo().then((estado) => {
+      if (!vigente || estado.habitoId !== habitoId) return;
+      sesionNativaActivaRef.current = estado.activo;
+      setSegundos(estado.segundos);
+      setCorriendo(estado.corriendo);
+    });
+    return () => {
+      vigente = false;
+    };
+  }, [tipoMeta, habitoId]);
+
+  // Reacciona a acciones tomadas desde la notificación (pantalla bloqueada o
+  // app en segundo plano) mientras esta pantalla sigue montada.
+  useEffect(() => {
+    if (tipoMeta !== 'duracion' || !habitoId) return () => {};
+    return suscribirEventoCronometro((evento) => {
+      if (evento.habitoId !== habitoId) return;
+      if (evento.tipo === 'pausado') {
+        setSegundos(evento.segundos);
+        setCorriendo(false);
+      } else if (evento.tipo === 'reanudado') {
+        setCorriendo(true);
+      } else if (evento.tipo === 'finalizado') {
+        sesionNativaActivaRef.current = false;
+        setCorriendo(false);
+        setSegundos(0);
+        sincronizarSesionesCronometroPendientes().then((huboDrenaje) => {
+          if (huboDrenaje) {
+            cliente.invalidateQueries({ queryKey: ['habitos', 'progreso-nivel', habitoId] });
+            cliente.invalidateQueries({ queryKey: ['habitos', 'panel'] });
+          }
+        });
+      }
+    });
+  }, [tipoMeta, habitoId, cliente]);
 
   // Aura animada viva
   const escalaAura = useSharedValue(1);
@@ -337,12 +393,12 @@ export function SesionMisionPantalla() {
     hapticSeguro('seleccion');
     mutacion.mutate({
       habitoId,
-      fechaLocal: new Date().toISOString().slice(0, 10),
+      fechaLocal: fechaLocalHoy(),
       valor: valorAGuardar,
     });
   };
 
-  const assetsSelva = obtenerAssetsSelvaPorTono(nivelActual);
+  const assetsPaquete = obtenerAssetsPaqueteHabito(habito?.paqueteId, nivelActual);
   const iconoInfo = habito ? buscarIconoHabito(habito.iconoLucide) : null;
 
   // Tiempos
@@ -468,7 +524,7 @@ export function SesionMisionPantalla() {
             <View style={s.arbolContenedor}>
               <Image
                 resizeMode="contain"
-                source={assetsSelva.arbolPrincipal}
+                source={assetsPaquete.arbolPrincipal}
                 style={s.arbolIlustracion}
               />
             </View>
@@ -716,6 +772,8 @@ export function SesionMisionPantalla() {
                       hapticSeguro('seleccion');
                       setCorriendo(false);
                       setSegundos(0);
+                      sesionNativaActivaRef.current = false;
+                      detenerCronometroNativo();
                     }}
                     estilo={s.cronoSecundarioBtn}
                   >
@@ -729,7 +787,20 @@ export function SesionMisionPantalla() {
                     deshabilitado={mutacion.isPending}
                     onPress={() => {
                       hapticSeguro('accion');
-                      setCorriendo((c) => !c);
+                      setCorriendo((c) => {
+                        const nuevoCorriendo = !c;
+                        if (nuevoCorriendo) {
+                          if (sesionNativaActivaRef.current) {
+                            reanudarCronometroNativo();
+                          } else {
+                            sesionNativaActivaRef.current = true;
+                            iniciarCronometroNativo({ color: colorTema, habitoId, segundosIniciales: segundos, titulo: habito?.titulo || '' });
+                          }
+                        } else {
+                          pausarCronometroNativo();
+                        }
+                        return nuevoCorriendo;
+                      });
                     }}
                     estilo={s.cronoPrincipalBtn}
                   >
@@ -753,6 +824,8 @@ export function SesionMisionPantalla() {
                     disabled={mutacion.isPending || segundos < 30}
                     onPress={() => {
                       setCorriendo(false);
+                      sesionNativaActivaRef.current = false;
+                      detenerCronometroNativo();
                       const mins = Math.max(1, Math.round(segundos / 60));
                       enviarRegistro(mins);
                     }}

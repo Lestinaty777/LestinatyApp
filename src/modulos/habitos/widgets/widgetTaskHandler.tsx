@@ -1,5 +1,6 @@
 import React from 'react';
 import type { WidgetTaskHandlerProps } from 'react-native-android-widget';
+import { fechaLocalHoy } from '../../../nucleo/dispositivo/fechaLocal';
 import { obtenerPanelHabitos, registrarProgresoHabito } from '../habitos.servicio';
 import type { HabitoResumen } from '../tipos';
 import { HabitoFocoWidget, WidgetSinHabitos } from './HabitoFocoWidget';
@@ -12,10 +13,6 @@ import { obtenerHabitoWidgetSeleccionadoId } from './widgetFocoAlmacen';
 const nameToWidget = {
   HabitoFoco: HabitoFocoWidget,
 } as const;
-
-function fechaLocalHoy() {
-  return new Date().toISOString().slice(0, 10);
-}
 
 /** Cuánto avanza el hábito con un solo toque en "+" del widget — mismo criterio simple que ya usaba la simulación de WidgetsHabitosPantalla. */
 function siguienteValor(habito: HabitoResumen): number {

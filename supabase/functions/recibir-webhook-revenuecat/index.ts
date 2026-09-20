@@ -77,7 +77,13 @@ Deno.serve(async (request) => {
   // verdad server-side de "este usuario inició un trial" — la usa
   // otorgar_semilla_trial_horizon() para no confiar en nada que mande el cliente.
   if (evento.type === 'INITIAL_PURCHASE' && evento.period_type === 'TRIAL' && evento.entitlement_ids?.includes(ENTITLEMENT_HORIZON)) {
-    const { error: errorTrial } = await cliente.rpc('marcar_trial_horizon_iniciado', { p_persona_id: evento.app_user_id });
+    // marcar_trial_horizon_iniciado también acredita el bono de 300 gemas
+    // (una sola vez, gracias al `found` interno) — evento.id como referencia
+    // de idempotencia, así un reintento del mismo webhook no acredita dos veces.
+    const { error: errorTrial } = await cliente.rpc('marcar_trial_horizon_iniciado', {
+      p_persona_id: evento.app_user_id,
+      p_evento_id: evento.id,
+    });
     if (errorTrial) return responder(502, { codigo: 'trial_horizon', mensaje: 'No se pudo registrar el trial.' });
     return responder(200, { accion: 'trial_horizon_iniciado' });
   }
