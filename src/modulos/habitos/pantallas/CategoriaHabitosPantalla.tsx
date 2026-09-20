@@ -10,8 +10,9 @@ import { obtenerPanelHabitos } from '../habitos.servicio';
 import { etiquetasCategoriasHabitos } from '../analitica';
 import { accesosCategoriasHabitos } from '../presentacion';
 import { CategoriaHabitosId } from '../tipos';
+import { ESCALA_ESMERALDA } from '../../../diseno/tema/escalaEsmeralda';
 
-const C = { fondo: '#F3EEFA', texto: '#1A1335', tenue: '#7B7494', morado: '#7C3AED', verde: '#22C55E' };
+const C = { fondo: '#F3EEFA', texto: '#1A1335', tenue: '#7B7494', morado: '#7C3AED', verde: ESCALA_ESMERALDA.jade.l70 };
 const iconos = { hoy: Leaf, patrones: BarChart3, conexiones: Link2, riesgo: TriangleAlert, impacto: Heart } as const;
 const subtitulos: Record<CategoriaHabitosId, string> = { hoy: 'Tu avance real de hoy.', patrones: 'Descubre cuándo tus hábitos funcionan mejor.', conexiones: 'Hábitos que se refuerzan entre sí.', riesgo: 'Identifica qué necesita atención.', impacto: 'Efectos medibles en tu rutina.' };
 

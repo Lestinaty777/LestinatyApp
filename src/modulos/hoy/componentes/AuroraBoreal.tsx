@@ -15,6 +15,8 @@ import {
   Easing,
   useDerivedValue,
 } from 'react-native-reanimated';
+import { useEscala } from '../../../diseno/tema/MasterColorContext';
+import { conAlfa } from '../../../diseno/tema/masterColor';
 
 export type TemaAurora = 'morado' | 'amarillo' | 'verde' | 'grafito' | 'rojo';
 
@@ -23,6 +25,7 @@ interface Props {
 }
 
 export function AuroraBoreal({ tema = 'morado' }: Props) {
+  const esc = useEscala();
   const p1 = useSharedValue(0);
   const p2 = useSharedValue(0);
   const p3 = useSharedValue(0);
@@ -74,9 +77,9 @@ export function AuroraBoreal({ tema = 'morado' }: Props) {
       }
     : tema === 'verde'
       ? {
-          l1: ['rgba(34, 197, 94, 0.8)', 'rgba(134, 239, 172, 0.2)'],
-          l2: ['rgba(74, 222, 128, 0.7)', 'rgba(187, 247, 208, 0.1)'],
-          l3: ['rgba(21, 128, 61, 0.6)', 'rgba(74, 222, 128, 0)'],
+          l1: [conAlfa(esc.jade.l70, 0.8), conAlfa(esc.jade.l87, 0.2)],
+          l2: [conAlfa(esc.jade.l79, 0.7), conAlfa(esc.jade.l92, 0.1)],
+          l3: [conAlfa(esc.jade.l49, 0.6), conAlfa(esc.jade.l79, 0)],
         }
       : tema === 'grafito'
         ? {

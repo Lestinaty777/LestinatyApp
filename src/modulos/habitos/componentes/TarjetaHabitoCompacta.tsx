@@ -2,6 +2,8 @@ import type { ImageSourcePropType } from 'react-native';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { MasterGlass, MasterIconBg, MasterChip, MasterIcon, Texto } from '../../../diseno';
+import { useEscala } from '../../../diseno/tema/MasterColorContext';
+import type { EscalaMaster } from '../../../diseno/tema/escalaEsmeralda';
 
 export type TarjetaHabitoCompactaProps = {
   alto?: number;
@@ -20,6 +22,7 @@ export type TarjetaHabitoCompactaProps = {
 export function TarjetaHabitoCompacta({
   alto = 92, ancho = 260, icono, nivel = 1, onPress, racha = 0, titulo
 }: TarjetaHabitoCompactaProps) {
+  const tc = useEstilosTc();
   return (
     <Pressable onPress={onPress} style={{ height: alto, width: ancho }}>
       {({ pressed }) => (
@@ -31,11 +34,11 @@ export function TarjetaHabitoCompacta({
               <View style={tc.chipsFila}>
                 <MasterChip 
                   texto={`${racha} d`}
-                  icono={<MasterIcon name="racha" color={2} size={14} />}
+                  icono={<MasterIcon name="racha" alTema size={14} />}
                 />
                 <MasterChip 
                   texto={`Nv ${nivel}`}
-                  icono={<MasterIcon name={`nivel${nivel}`} color={2} size={14} />}
+                  icono={<MasterIcon name={`nivel${nivel}`} alTema size={14} />}
                 />
               </View>
             </View>
@@ -46,7 +49,7 @@ export function TarjetaHabitoCompacta({
   );
 }
 
-const tc = StyleSheet.create({
+const crearEstilosTc = (esc: EscalaMaster) => StyleSheet.create({
   raiz: { 
     borderRadius: 16, 
     flex: 1, 
@@ -65,7 +68,7 @@ const tc = StyleSheet.create({
     justifyContent: 'center' 
   },
   titulo: { 
-    color: '#12331F', 
+    color: esc.hoja.l19, 
     fontFamily: 'MontserratAlternates-Bold', 
     fontSize: 15, 
     marginBottom: 8 
@@ -76,3 +79,15 @@ const tc = StyleSheet.create({
     gap: 6 
   }
 });
+
+const estilosPorEscalaTc = new WeakMap<EscalaMaster, ReturnType<typeof crearEstilosTc>>();
+
+function useEstilosTc() {
+  const esc = useEscala();
+  let valor = estilosPorEscalaTc.get(esc);
+  if (!valor) {
+    valor = crearEstilosTc(esc);
+    estilosPorEscalaTc.set(esc, valor);
+  }
+  return valor;
+}

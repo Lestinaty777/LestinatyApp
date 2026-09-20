@@ -50,6 +50,9 @@ import {
   senderosCompartidosMock,
 } from './compartidos';
 import { MapaCompartido } from './MapaCompartido';
+import { useEscala } from '../../../diseno/tema/MasterColorContext';
+import type { EscalaMaster } from '../../../diseno/tema/escalaEsmeralda';
+import { conAlfa } from '../../../diseno/tema/masterColor';
 
 const Bioma = biomas.inicio;
 
@@ -64,6 +67,7 @@ const iconosCategoria: Record<CategoriaSenderoCompartidoId, LucideIcon> = {
 };
 
 function LibreroSVG() {
+  const styles = useEstilosStyles();
   return (
     <View style={styles.libreroSvgContenedor} pointerEvents="none">
       <Svg height="100" width="100%" viewBox="0 0 400 100" preserveAspectRatio="none">
@@ -108,6 +112,7 @@ function Libro({
   onPress: () => void;
   sendero: SenderoCompartido;
 }) {
+  const styles = useEstilosStyles();
   const Icono = iconosCategoria[sendero.categoriaId] || Compass;
   
   const translateY = useSharedValue(0);
@@ -174,6 +179,7 @@ function Libro({
 }
 
 export function CompartidosSenderos({ onHeroDataChange }: { onHeroDataChange?: (data: any) => void }) {
+  const styles = useEstilosStyles();
   const [indiceActivo, setIndiceActivo] = useState(0);
   const [mostrarMapa, setMostrarMapa] = useState(false);
   const [itemsCargados, setItemsCargados] = useState(0);
@@ -401,10 +407,10 @@ export function CompartidosSenderos({ onHeroDataChange }: { onHeroDataChange?: (
   );
 }
 
-const styles = StyleSheet.create({
+const crearEstilosStyles = (esc: EscalaMaster) => StyleSheet.create({
   avatarCheck: {
     alignItems: 'center',
-    backgroundColor: '#34D946',
+    backgroundColor: esc.hoja.l77b,
     borderColor: '#FFF',
     borderRadius: 8,
     borderWidth: 1.5,
@@ -497,7 +503,7 @@ const styles = StyleSheet.create({
   fogataOrbita: {
     alignItems: 'center',
     backgroundColor: 'rgba(255, 255, 255, 0.52)',
-    borderColor: 'rgba(95, 193, 62, 0.18)',
+    borderColor: conAlfa(esc.lima.l70, 0.18),
     borderRadius: 30,
     borderWidth: 0.7,
     height: 80,
@@ -505,8 +511,8 @@ const styles = StyleSheet.create({
     width: 80,
   },
   fogataPulso: {
-    backgroundColor: 'rgba(95, 193, 62, 0.16)',
-    borderColor: 'rgba(95, 193, 62, 0.24)',
+    backgroundColor: conAlfa(esc.lima.l70, 0.16),
+    borderColor: conAlfa(esc.lima.l70, 0.24),
     borderRadius: 999,
     borderWidth: 1,
     height: 68,
@@ -804,3 +810,15 @@ const styles = StyleSheet.create({
     color: colores.texto,
   },
 });
+
+const estilosPorEscalaStyles = new WeakMap<EscalaMaster, ReturnType<typeof crearEstilosStyles>>();
+
+function useEstilosStyles() {
+  const esc = useEscala();
+  let valor = estilosPorEscalaStyles.get(esc);
+  if (!valor) {
+    valor = crearEstilosStyles(esc);
+    estilosPorEscalaStyles.set(esc, valor);
+  }
+  return valor;
+}

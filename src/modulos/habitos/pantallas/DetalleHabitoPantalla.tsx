@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { FadeIn, FadeOut, useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
-import { AnilloProgreso, Boton, HojaDeslizante, RecuadroGlass, Texto } from '../../../diseno';
+import { AnilloProgreso, Boton, HojaDeslizante, RecuadroGlass, Texto, MasterIcon } from '../../../diseno';
 import { hapticSeguro } from '../../../nucleo/dispositivo/haptics';
 import { fechaLocalHoy } from '../../../nucleo/dispositivo/fechaLocal';
 import { obtenerDetalleHabito, registrarProgresoHabito } from '../habitos.servicio';
@@ -70,7 +70,7 @@ export function DetalleHabitoPantalla({id,onCerrar}:{id:string;onCerrar:()=>void
 
 function IconoHabitoVisual({id,color,size}:{id?:string|null;color:string;size:number}){
  const icono=buscarIconoHabito(id);
- return icono ? <Image source={icono.fuente} style={{height:size,resizeMode:'contain',width:size}}/> : <Sparkles color={color} size={size}/>;
+ return icono ? <MasterIcon name={icono.id} size={size}/> : <Sparkles color={color} size={size}/>;
 }
 
 function Contenido({cerrar,d,guardando,onRegistrar,onVerSendero,paddingInferior}:{cerrar:()=>void;d:DetalleHabito;guardando:boolean;onRegistrar:(valor:number)=>void;onVerSendero:()=>void;paddingInferior:number}){

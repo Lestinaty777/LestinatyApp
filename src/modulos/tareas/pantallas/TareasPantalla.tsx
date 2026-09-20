@@ -23,6 +23,7 @@ import {
 import { RecuadroGlass, Texto } from '../../../diseno';
 import { hapticSeguro } from '../../../nucleo/dispositivo/haptics';
 import { AuroraBoreal } from '../../hoy/componentes/AuroraBoreal';
+import { ESCALA_ESMERALDA } from '../../../diseno/tema/escalaEsmeralda';
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // Paleta de colores (Tema Amarillo / Naranja para Tareas)
@@ -42,8 +43,8 @@ const C = {
   // Acentos (Tema principal)
   morado: '#F59E0B',          // Reutilizamos la key 'morado' pero con color amarillo/naranja
   moradoSuave: '#FEF3C7',
-  verde: '#22C55E',
-  verdeSuave: '#D1FAE5',
+  verde: ESCALA_ESMERALDA.jade.l70,
+  verdeSuave: ESCALA_ESMERALDA.jade.l95,
   naranja: '#F97316',
   naranjaSuave: '#FFEDD5',
   rojo: '#EF4444',

@@ -19,9 +19,10 @@ import {
   BookOpen,
 } from 'lucide-react-native';
 
-import { RecuadroGlass, Texto } from '../../../diseno';
+import { RecuadroGlass, Texto, MasterIcon } from '../../../diseno';
 import { hapticSeguro } from '../../../nucleo/dispositivo/haptics';
 import { AuroraBoreal } from '../componentes/AuroraBoreal';
+import { ESCALA_ESMERALDA } from '../../../diseno/tema/escalaEsmeralda';
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // Paleta de colores del mockup (tema lila / morado claro)
@@ -42,8 +43,8 @@ const C = {
   morado: '#7C3AED',          // Morado principal
   moradoSuave: '#EDE5FB',
   moradoMedio: '#B794F6',
-  verde: '#22C55E',
-  verdeSuave: '#D1FAE5',
+  verde: ESCALA_ESMERALDA.jade.l70,
+  verdeSuave: ESCALA_ESMERALDA.jade.l95,
   naranja: '#F59E0B',
   naranjaSuave: '#FEF3C7',
   rojo: '#EF4444',
@@ -84,12 +85,12 @@ type Categoria = {
 };
 
 const CATEGORIAS: Categoria[] = [
-  { id: 'estudio',  label: 'Estudio',  progreso: '2/4', color: C.morado,  colorSuave: C.moradoSuave, icono: require('../../../../assets/icons/hoy/estudio.png') },
-  { id: 'tareas',   label: 'Tareas',   progreso: '3/5', color: C.naranja, colorSuave: C.naranjaSuave, icono: require('../../../../assets/icons/hoy/tareas.png') },
-  { id: 'rutinas',  label: 'Rutinas',  progreso: '1/3', color: C.rojo,    colorSuave: C.rojoSuave, icono: require('../../../../assets/icons/hoy/rutinas.png') },
-  { id: 'habitos',  label: 'Hábitos',  progreso: '2/4', color: C.verde,   colorSuave: C.verdeSuave, icono: require('../../../../assets/icons/hoy/habitos.png') },
-  { id: 'mi-espacio', label: 'Mi espacio', progreso: '', color: C.morado, colorSuave: C.moradoSuave, icono: require('../../../../assets/icons/hoy/metas.png') },
-  { id: 'mas',      label: 'Más',      progreso: '',    color: '#7B7494', colorSuave: '#EDE5FB', icono: require('../../../../assets/icons/hoy/mas.png') },
+  { id: 'estudio',  label: 'Estudio',  progreso: '2/4', color: C.morado,  colorSuave: C.moradoSuave, icono: 'hoy/estudio' },
+  { id: 'tareas',   label: 'Tareas',   progreso: '3/5', color: C.naranja, colorSuave: C.naranjaSuave, icono: 'hoy/tareas' },
+  { id: 'rutinas',  label: 'Rutinas',  progreso: '1/3', color: C.rojo,    colorSuave: C.rojoSuave, icono: 'hoy/rutinas' },
+  { id: 'habitos',  label: 'Hábitos',  progreso: '2/4', color: C.verde,   colorSuave: C.verdeSuave, icono: 'hoy/habitos' },
+  { id: 'mi-espacio', label: 'Mi espacio', progreso: '', color: C.morado, colorSuave: C.moradoSuave, icono: 'hoy/metas' },
+  { id: 'mas',      label: 'Más',      progreso: '',    color: '#7B7494', colorSuave: '#EDE5FB', icono: 'hoy/mas' },
 ];
 
 type EstadoTarea = 'completado' | 'activo' | 'pendiente';
@@ -103,12 +104,12 @@ type Tarea = {
 };
 
 const TAREAS_HOY: Tarea[] = [
-  { id: '1', titulo: 'Leer 10 páginas',   subtitulo: 'Estudio · 15 min',    estado: 'completado', color: '#22C55E', colorSuave: '#D1FAE5' },
-  { id: '2', titulo: 'Ejercicio 30 min',  subtitulo: 'Salud · 30 min',      estado: 'completado', color: '#22C55E', colorSuave: '#D1FAE5' },
+  { id: '1', titulo: 'Leer 10 páginas',   subtitulo: 'Estudio · 15 min',    estado: 'completado', color: ESCALA_ESMERALDA.jade.l70, colorSuave: ESCALA_ESMERALDA.jade.l95 },
+  { id: '2', titulo: 'Ejercicio 30 min',  subtitulo: 'Salud · 30 min',      estado: 'completado', color: ESCALA_ESMERALDA.jade.l70, colorSuave: ESCALA_ESMERALDA.jade.l95 },
   { id: '3', titulo: 'Practicar dibujo',  subtitulo: 'Estudio · 20 min',    estado: 'activo',     color: C.morado,  colorSuave: C.moradoSuave },
   { id: '4', titulo: 'Beber agua',        subtitulo: 'Salud · Diario',      estado: 'pendiente',  color: '#3B82F6', colorSuave: '#DBEAFE' },
   { id: '5', titulo: 'Organizar espacio', subtitulo: 'Personal · 10 min',   estado: 'pendiente',  color: '#F59E0B', colorSuave: '#FEF3C7' },
-  { id: '6', titulo: 'Meditación 5 min',  subtitulo: 'Bienestar · 5 min',   estado: 'pendiente',  color: '#22C55E', colorSuave: '#D1FAE5' },
+  { id: '6', titulo: 'Meditación 5 min',  subtitulo: 'Bienestar · 5 min',   estado: 'pendiente',  color: ESCALA_ESMERALDA.jade.l70, colorSuave: ESCALA_ESMERALDA.jade.l95 },
 ];
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -250,7 +251,7 @@ function GridCategorias() {
           <RecuadroGlass style={s.categoriaGlass}>
             <View style={[s.categoriaIcono, !cat.icono && { backgroundColor: cat.colorSuave }]}>
               {cat.icono && (
-                <Image source={cat.icono} style={{ width: 38, height: 38, resizeMode: 'contain' }} />
+                <MasterIcon name={cat.icono} size={38} />
               )}
             </View>
             <Texto style={s.categoriaLabel} numberOfLines={1}>{cat.label}</Texto>

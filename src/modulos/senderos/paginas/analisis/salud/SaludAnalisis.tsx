@@ -4,6 +4,8 @@ import { SaludEstadisticas } from './tipos';
 import { AnalyticsMaster } from '../AnalyticsMaster';
 import { ContentPack } from '../arquitectura/tipos_sdui';
 import { Texto, colores } from '../../../../../diseno';
+import { useEscala } from '../../../../../diseno/tema/MasterColorContext';
+import { ESCALA_ESMERALDA } from '../../../../../diseno/tema/escalaEsmeralda';
 
 // --- MOCK CONTENT PACKS ---
 const packAgua: ContentPack = {
@@ -36,7 +38,7 @@ const packFinanzas: ContentPack = {
   id: 'pack-fin-1', goal_id: 'ahorro', habit_id: 'control-gastos',
   widget_id: 'trend-line',
   title: 'Fondo de Emergencia', subtitle: 'Tu capital disponible',
-  value_label: '', unit: '$', icon: 'trending-up', color_override: '#10b981',
+  value_label: '', unit: '$', icon: 'trending-up', color_override: ESCALA_ESMERALDA.menta.l67,
   microcopy: { onTrack: '', behind: '', done: '' }
 };
 
@@ -87,7 +89,7 @@ const packDona: ContentPack = {
   id: 'pack-dona-1', goal_id: 'nutricion', habit_id: 'macros',
   widget_id: 'segmented-donut',
   title: 'Macros Diarios', subtitle: 'Distribución calórica',
-  value_label: '', unit: 'g', icon: 'pie-chart', color_override: '#34d399', 
+  value_label: '', unit: 'g', icon: 'pie-chart', color_override: ESCALA_ESMERALDA.menta.l76, 
   microcopy: { onTrack: 'Buena carga de proteína 💪', behind: '', done: '' }
 };
 
@@ -111,6 +113,7 @@ const packGauge: ContentPack = {
 // --------------------------
 
 export function SaludAnalisis({ acento }: { acento: string; datos: SaludEstadisticas; itemsCargados: number; senderoFiltro?: any }) {
+  const esc = useEscala();
   
   return (
     <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 40 }}>
@@ -138,7 +141,7 @@ export function SaludAnalisis({ acento }: { acento: string; datos: SaludEstadist
       <AnalyticsMaster pack={packAnillo} metrics={{ actual: 450, meta: 600 }} colorCategoria={acento} />
       <AnalyticsMaster pack={packReloj} metrics={{ horaPico: 14 }} colorCategoria={acento} />
       <AnalyticsMaster pack={packBarras} metrics={{ barras: [{etiqueta: 'L', valor: 4.2}, {etiqueta: 'M', valor: 3.8}, {etiqueta: 'M', valor: 5.1}, {etiqueta: 'J', valor: 2.9}] }} colorCategoria={acento} />
-      <AnalyticsMaster pack={packDona} metrics={{ total: 200, segmentos: [{etiqueta: 'Proteína', valor: 90, color: '#34d399'}, {etiqueta: 'Carbos', valor: 70, color: '#facc15'}, {etiqueta: 'Grasas', valor: 40, color: '#fb923c'}] }} colorCategoria={acento} />
+      <AnalyticsMaster pack={packDona} metrics={{ total: 200, segmentos: [{etiqueta: 'Proteína', valor: 90, color: esc.menta.l76}, {etiqueta: 'Carbos', valor: 70, color: '#facc15'}, {etiqueta: 'Grasas', valor: 40, color: '#fb923c'}] }} colorCategoria={acento} />
       <AnalyticsMaster pack={packArana} metrics={{ categorias: [{etiqueta: 'Fuerza', valor: 80}, {etiqueta: 'Cardio', valor: 65}, {etiqueta: 'Flex', valor: 40}, {etiqueta: 'Mente', valor: 90}, {etiqueta: 'Sueño', valor: 70}] }} colorCategoria={acento} />
       <AnalyticsMaster pack={packGauge} metrics={{ score: 85 }} colorCategoria={acento} />
       <AnalyticsMaster pack={packSueno} metrics={{ semana: [8, 6.5, 4, 7, 8, 5, 8] }} colorCategoria={acento} />

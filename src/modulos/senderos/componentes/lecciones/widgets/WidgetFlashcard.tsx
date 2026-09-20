@@ -3,8 +3,10 @@ import { View, Pressable, StyleSheet } from 'react-native';
 import { Texto } from '../../../../../diseno';
 import type { ConfigFlashcard } from '../../../motor/sdui/lecciones/tiposLeccion';
 import type { WidgetLeccionProps } from '../registroLecciones';
+import { useEscala } from '../../../../../diseno/tema/MasterColorContext';
 
 export function WidgetFlashcard({ paso, onCompletado }: WidgetLeccionProps<ConfigFlashcard>) {
+  const esc = useEscala();
   const { frente, dorso } = paso.config;
   const [volteada, setVolteada] = useState(false);
 
@@ -24,7 +26,7 @@ export function WidgetFlashcard({ paso, onCompletado }: WidgetLeccionProps<Confi
           <Pressable style={[styles.botonAccion, { backgroundColor: '#ea2b2b' }]} onPress={() => onCompletado(false)}>
             <Texto style={styles.textoBoton}>No</Texto>
           </Pressable>
-          <Pressable style={[styles.botonAccion, { backgroundColor: '#58a700' }]} onPress={() => onCompletado(true)}>
+          <Pressable style={[styles.botonAccion, { backgroundColor: esc.lima.l61 }]} onPress={() => onCompletado(true)}>
             <Texto style={styles.textoBoton}>Sí</Texto>
           </Pressable>
         </View>

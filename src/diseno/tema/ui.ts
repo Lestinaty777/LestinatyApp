@@ -2,6 +2,7 @@ import { Appearance } from 'react-native';
 import { create } from 'zustand';
 
 import { colores } from '../fundamentos/colores';
+import { ESCALA_ESMERALDA } from './escalaEsmeralda';
 
 export type ModoUI = 'light' | 'dark';
 
@@ -52,7 +53,7 @@ function crearColoresUI(modo: ModoUI): ColoresUI {
     textoTenue: colores.tintaTenue,
     borde: colores.borde,
     bordeSuave: '#EFECE6',
-    sombra: '#26352C',
+    sombra: ESCALA_ESMERALDA.musgo.l21,
     inputFondo: colores.superficie,
   };
 }

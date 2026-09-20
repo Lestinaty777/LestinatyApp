@@ -1,0 +1,25 @@
+import type { TipoMetaHabito } from './tipos';
+
+export type EdicionHabito = {
+  titulo: string;
+  descripcion: string;
+  iconoLucide: string;
+  tipoMeta: TipoMetaHabito;
+  unidad: string;
+  meta: number;
+  frecuencia: 'diaria' | 'dias_semana' | 'veces_semana';
+  diasSemana: number[];
+  vecesPorSemana: number | null;
+  recordatorioActivo: boolean;
+  horaRecordatorio: string | null;
+  mostrarNombreNotificacion: boolean;
+};
+
+export function validarEdicionHabito(edicion: EdicionHabito): string | null {
+  if (!edicion.titulo.trim()) return 'Escribe un nombre para tu hábito.';
+  if (!Number.isFinite(edicion.meta) || edicion.meta <= 0) return 'La meta debe ser mayor que cero.';
+  if (edicion.frecuencia === 'dias_semana' && edicion.diasSemana.length === 0) return 'Selecciona al menos un día.';
+  if (edicion.frecuencia === 'veces_semana' && (!edicion.vecesPorSemana || edicion.vecesPorSemana < 1 || edicion.vecesPorSemana > 7)) return 'Elige entre 1 y 7 veces por semana.';
+  if (edicion.recordatorioActivo && !edicion.horaRecordatorio) return 'El recordatorio necesita una hora.';
+  return null;
+}

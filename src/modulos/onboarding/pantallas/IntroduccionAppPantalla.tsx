@@ -49,14 +49,18 @@ import { ContenedorMapaSenderos } from '../../senderos/componentes/mapa/Contened
 import type { NodoMapaSendero } from '../../senderos/datos/mapaEjercicio.mock';
 import { marcarIntroduccionAppVista } from '../introduccionApp';
 import { FormularioAccesoOnboarding } from '../componentes/FormularioAccesoOnboarding';
+import { useEscala } from '../../../diseno/tema/MasterColorContext';
+import type { EscalaMaster } from '../../../diseno/tema/escalaEsmeralda';
+import { ESCALA_ESMERALDA } from '../../../diseno/tema/escalaEsmeralda';
+import { conAlfa } from '../../../diseno/tema/masterColor';
 
 // Paleta Light de HabitosPantalla / InsightsPantalla
 const C = {
-  fondo: '#F7FDF7',
+  fondo: ESCALA_ESMERALDA.hoja.l99,
   texto: '#1A1335',
-  tenue: '#648170',
-  verde: '#25884C',
-  verdeSombra: '#12331F',
+  tenue: ESCALA_ESMERALDA.musgo.l51,
+  verde: ESCALA_ESMERALDA.jade.l50,
+  verdeSombra: ESCALA_ESMERALDA.hoja.l19,
   dorado: '#EAB308',
   morado: '#8B5CF6',
   glass: 'rgba(255,255,255,0.78)',
@@ -64,7 +68,19 @@ const C = {
 };
 
 // Variación mínima para que el énfasis se sienta orgánico, no llamativo.
-const DEGRADADO_VERDE_SUTIL = ['#2B8E4D', '#25884C', '#207F45'] as const;
+const crearTemaDEGRADADO_VERDE_SUTIL = (esc: EscalaMaster) => ([esc.jade.l50, esc.jade.l50, esc.hoja.l46] as const);
+
+const temaPorEscalaDEGRADADO_VERDE_SUTIL = new WeakMap<EscalaMaster, ReturnType<typeof crearTemaDEGRADADO_VERDE_SUTIL>>();
+
+function useTemaDEGRADADO_VERDE_SUTIL() {
+  const esc = useEscala();
+  let valor = temaPorEscalaDEGRADADO_VERDE_SUTIL.get(esc);
+  if (!valor) {
+    valor = crearTemaDEGRADADO_VERDE_SUTIL(esc);
+    temaPorEscalaDEGRADADO_VERDE_SUTIL.set(esc, valor);
+  }
+  return valor;
+}
 const DEGRADADO_MORADO_SUTIL = ['#7E22CE', '#9333EA', '#A855F7'] as const;
 
 // Elemento con física flotante suave continua
@@ -124,14 +140,14 @@ type EspecieDemoItem = {
 
 const ESPECIES_DEMO: EspecieDemoItem[] = [
   {
-    color: '#029060', nombre: 'Esmeralda', tipo: 'Bosque Vivo', emoji: '🌿', aurora: 'verde',
+    color: ESCALA_ESMERALDA.menta.l53, nombre: 'Esmeralda', tipo: 'Bosque Vivo', emoji: '🌿', aurora: 'verde',
     gema: require('../../../../assets/ilustraciones/senderos/biomas/paquetes/Esmeralda/esmeralda.png'),
     imagen: require('../../../../assets/ilustraciones/senderos/biomas/paquetes/Esmeralda/etapa7.png'),
     etapa5: require('../../../../assets/ilustraciones/senderos/biomas/paquetes/Esmeralda/etapa5.png'),
     arbusto: require('../../../../assets/ilustraciones/senderos/biomas/paquetes/Esmeralda/arbusto.png'),
     flor: require('../../../../assets/ilustraciones/senderos/biomas/paquetes/Esmeralda/flor.png'),
     semilla: require('../../../../assets/ilustraciones/senderos/biomas/paquetes/Esmeralda/semilla.png'),
-    degradadoTexto: ['#0E502B', '#1B6A3B', '#25884C'],
+    degradadoTexto: [ESCALA_ESMERALDA.jade.l29, ESCALA_ESMERALDA.jade.l38, ESCALA_ESMERALDA.jade.l50],
   },
   {
     color: '#D97706', nombre: 'Golden', tipo: 'Follaje Dorado', emoji: '✨', aurora: 'amarillo',
@@ -202,11 +218,11 @@ const BIOMAS_CARRUSEL: BiomaCarruselItem[] = [
     id: 'esmeralda',
     paqueteId: 'esmeralda',
     nombre: 'Esmeralda',
-    color: '#029060',
+    color: ESCALA_ESMERALDA.menta.l53,
     emoji: '🌿',
     aurora: 'verde',
     arbusto: require('../../../../assets/ilustraciones/senderos/biomas/paquetes/Esmeralda/arbusto.png'),
-    degradadoTexto: ['#0E502B', '#1B6A3B', '#25884C'],
+    degradadoTexto: [ESCALA_ESMERALDA.jade.l29, ESCALA_ESMERALDA.jade.l38, ESCALA_ESMERALDA.jade.l50],
     nivel: 4,
   },
   {
@@ -266,6 +282,9 @@ function construirNodosDemo(): NodoMapaSendero[] {
 }
 
 export function IntroduccionAppPantalla() {
+  const esc = useEscala();
+  const DEGRADADO_VERDE_SUTIL = useTemaDEGRADADO_VERDE_SUTIL();
+  const s = useEstilosS();
   const insets = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();
   const [slideActivo, setSlideActivo] = useState(0);
@@ -337,7 +356,7 @@ export function IntroduccionAppPantalla() {
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={s.raiz}>
       {/* Fondo Light Ambiental Unificado */}
       <LinearGradient
-        colors={['#F7FDF7', '#E8F7E9', '#D5F2D7']}
+        colors={[esc.hoja.l99, esc.hoja.l95, esc.hoja.l93]}
         end={{ x: 0, y: 1 }}
         start={{ x: 0, y: 0 }}
         style={StyleSheet.absoluteFill}
@@ -465,7 +484,7 @@ export function IntroduccionAppPantalla() {
 
             {/* Separador de línea orgánico suave */}
             <LinearGradient
-              colors={['rgba(37,136,76,0)', 'rgba(37,136,76,0.32)', 'rgba(37,136,76,0)']}
+              colors={[conAlfa(esc.jade.l50, 0), conAlfa(esc.jade.l50, 0.32), conAlfa(esc.jade.l50, 0)]}
               end={{ x: 1, y: 0 }}
               start={{ x: 0, y: 0 }}
               style={s.slide1SeparadorLinea}
@@ -537,11 +556,11 @@ export function IntroduccionAppPantalla() {
                   subcategoriaId="intro-demo"
                 />
                 <LinearGradient
-                  colors={['#F7FDF7', 'rgba(247,253,247,0)']}
+                  colors={[esc.hoja.l99, conAlfa(esc.hoja.l99, 0)]}
                   style={s.mapaDegradadoTope}
                 />
                 <LinearGradient
-                  colors={['rgba(213,242,215,0)', '#D5F2D7']}
+                  colors={[conAlfa(esc.hoja.l93, 0), esc.hoja.l93]}
                   style={s.mapaDegradadoPiso}
                 />
               </View>
@@ -857,7 +876,7 @@ export function IntroduccionAppPantalla() {
               <Image resizeMode="contain" source={require('../../../../assets/ilustraciones/senderos/biomas/paquetes/Esmeralda/arbusto.png')} style={[s.slide1ArbustoDerecho, { height: altoSubtituloHero, width: altoSubtituloHero }]} />
             </View>
             <LinearGradient
-              colors={['rgba(37,136,76,0)', 'rgba(37,136,76,0.32)', 'rgba(37,136,76,0)']}
+              colors={[conAlfa(esc.jade.l50, 0), conAlfa(esc.jade.l50, 0.32), conAlfa(esc.jade.l50, 0)]}
               end={{ x: 1, y: 0 }}
               start={{ x: 0, y: 0 }}
               style={s.slide1SeparadorLinea}
@@ -888,7 +907,7 @@ export function IntroduccionAppPantalla() {
               <Texto style={s.slide5Subtitulo}>Iniciá sesión para empezar a cultivarlo.</Texto>
 
               <LinearGradient
-                colors={['rgba(37,136,76,0)', 'rgba(37,136,76,0.32)', 'rgba(37,136,76,0)']}
+                colors={[conAlfa(esc.jade.l50, 0), conAlfa(esc.jade.l50, 0.32), conAlfa(esc.jade.l50, 0)]}
                 end={{ x: 1, y: 0 }}
                 start={{ x: 0, y: 0 }}
                 style={s.slide5Separador}
@@ -926,7 +945,7 @@ export function IntroduccionAppPantalla() {
 
         {!esUltima && (
           <MasterButton
-            color="#21A844"
+            color={esc.hoja.l61a}
             onPress={siguiente}
             iconoDerecha={({ size }) => <ChevronRight color="#FFFFFF" size={size} strokeWidth={3} />}
             style={s.botonSiguiente}
@@ -939,7 +958,7 @@ export function IntroduccionAppPantalla() {
   );
 }
 
-const s = StyleSheet.create({
+const crearEstilosS = (esc: EscalaMaster) => StyleSheet.create({
   raiz: {
     flex: 1,
   },
@@ -1154,7 +1173,7 @@ const s = StyleSheet.create({
     elevation: 4,
     height: '100%',
     overflow: 'hidden',
-    shadowColor: '#14532D',
+    shadowColor: esc.jade.l29,
     shadowOffset: { height: 8, width: 0 },
     shadowOpacity: 0.12,
     shadowRadius: 14,
@@ -1252,7 +1271,7 @@ const s = StyleSheet.create({
     width: '100%',
   },
   carruselPunto: {
-    backgroundColor: 'rgba(20, 60, 30, 0.22)',
+    backgroundColor: conAlfa(esc.hoja.l22, 0.22),
     borderRadius: 3,
     height: 6,
     width: 6,
@@ -1288,7 +1307,7 @@ const s = StyleSheet.create({
     width: '100%',
   },
   slide4LineaTimeline: {
-    backgroundColor: 'rgba(37, 136, 76, 0.38)',
+    backgroundColor: conAlfa(esc.jade.l50, 0.38),
     borderRadius: 3,
     bottom: 54,
     height: 3,
@@ -1304,7 +1323,7 @@ const s = StyleSheet.create({
     zIndex: 2,
   },
   slide4PuntoTimeline: {
-    backgroundColor: '#25884C',
+    backgroundColor: esc.jade.l50,
     borderColor: '#FFFFFF',
     borderRadius: 9,
     borderWidth: 3,
@@ -1348,7 +1367,7 @@ const s = StyleSheet.create({
   slide4EtiquetaHito: {
     alignItems: 'center',
     backgroundColor: 'rgba(255, 255, 255, 0.72)',
-    borderColor: 'rgba(37, 136, 76, 0.12)',
+    borderColor: conAlfa(esc.jade.l50, 0.12),
     borderRadius: 12,
     borderWidth: 1,
     minWidth: 62,
@@ -1465,7 +1484,7 @@ const s = StyleSheet.create({
     justifyContent: 'center',
   },
   punto: {
-    backgroundColor: 'rgba(37, 136, 76, 0.25)',
+    backgroundColor: conAlfa(esc.jade.l50, 0.25),
     borderRadius: 4,
     height: 7,
     width: 7,
@@ -1479,3 +1498,15 @@ const s = StyleSheet.create({
     width: '100%',
   },
 });
+
+const estilosPorEscalaS = new WeakMap<EscalaMaster, ReturnType<typeof crearEstilosS>>();
+
+function useEstilosS() {
+  const esc = useEscala();
+  let valor = estilosPorEscalaS.get(esc);
+  if (!valor) {
+    valor = crearEstilosS(esc);
+    estilosPorEscalaS.set(esc, valor);
+  }
+  return valor;
+}

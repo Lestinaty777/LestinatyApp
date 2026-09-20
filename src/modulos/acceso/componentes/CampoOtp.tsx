@@ -10,9 +10,12 @@ import {
 
 import { Texto, colores } from '../../../diseno';
 import { hapticSeguro } from '../../../nucleo/dispositivo/haptics';
+import { useEscala } from '../../../diseno/tema/MasterColorContext';
+import type { EscalaMaster } from '../../../diseno/tema/escalaEsmeralda';
+import { ESCALA_ESMERALDA } from '../../../diseno/tema/escalaEsmeralda';
 
 const AnimatedTextInput = Animated.createAnimatedComponent(TextInput);
-const coloresOtp = ['#3B6FD1', '#5FC13E', '#E5B82E', '#E47B25', '#D63E35', '#E1358C', '#7B3CE6'];
+const coloresOtp = ['#3B6FD1', ESCALA_ESMERALDA.lima.l70, '#E5B82E', '#E47B25', '#D63E35', '#E1358C', '#7B3CE6'];
 
 function hapticTecla() {
   hapticSeguro('accion');
@@ -27,6 +30,7 @@ type CampoOtpProps = {
 };
 
 export function CampoOtp({ error, escala, onBlur, onChange, value }: CampoOtpProps) {
+  const styles = useEstilosStyles();
   const inputs = useRef<Array<TextInput | null>>([]);
   const progresosColor = useRef(Array.from({ length: 6 }, () => new Animated.Value(0))).current;
   const coloresActuales = useRef(Array.from({ length: 6 }, (_, indice) => coloresOtp[indice % coloresOtp.length])).current;
@@ -156,7 +160,7 @@ export function CampoOtp({ error, escala, onBlur, onChange, value }: CampoOtpPro
   );
 }
 
-const styles = StyleSheet.create({
+const crearEstilosStyles = (esc: EscalaMaster) => StyleSheet.create({
   raiz: {
     gap: 8,
   },
@@ -172,7 +176,7 @@ const styles = StyleSheet.create({
     fontFamily: 'MontserratAlternates-Bold',
     padding: 0,
     textAlign: 'center',
-    shadowColor: '#26352C',
+    shadowColor: esc.musgo.l21,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.14,
     shadowRadius: 0,
@@ -183,3 +187,15 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 });
+
+const estilosPorEscalaStyles = new WeakMap<EscalaMaster, ReturnType<typeof crearEstilosStyles>>();
+
+function useEstilosStyles() {
+  const esc = useEscala();
+  let valor = estilosPorEscalaStyles.get(esc);
+  if (!valor) {
+    valor = crearEstilosStyles(esc);
+    estilosPorEscalaStyles.set(esc, valor);
+  }
+  return valor;
+}

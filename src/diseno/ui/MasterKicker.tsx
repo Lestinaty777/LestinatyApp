@@ -3,6 +3,7 @@ import { StyleSheet, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 
 import { Texto } from '../componentes/Texto';
+import { useTonoMaster } from '../tema/MasterColorContext';
 
 type MasterKickerProps = {
   icono?: ReactNode;
@@ -13,9 +14,10 @@ type MasterKickerProps = {
 // MasterGlass para evitar el useState(tamano) + onLayout + re-render que ese
 // componente dispara. Es un badge pequeño y fijo: no necesita medirse.
 export function MasterKicker({ icono, texto }: MasterKickerProps) {
+  const { degradados: g } = useTonoMaster();
   return (
     <LinearGradient
-      colors={['#2F7D52', '#148549']}
+      colors={[g.mastery.suave, g.mastery.profunda]}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
       style={s.raiz}

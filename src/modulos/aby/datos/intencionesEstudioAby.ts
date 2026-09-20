@@ -30,7 +30,7 @@ export const intencionesEstudioAby: readonly IntencionEstudioAby[] = [
     titulo: 'Tengo un examen',
   },
   {
-    color: '#3A9B68',
+    color: ESCALA_ESMERALDA.jade.l59,
     contexto: 'Define el tema y tu nivel. Aby ordena lo que necesitas dominar.',
     descripcion: 'Construye bases tema por tema.',
     icono: 'birrete',
@@ -80,3 +80,4 @@ export function subtituloIntencionEstudioAby(intencion: IntencionEstudioAbyId | 
   return intencionesEstudioAby.find((item) => item.id === intencion)?.subtitulo ?? 'Cuéntale a Lestinaty qué necesitas estudiar.';
 }
 import type { CategoriaAbyId } from './categoriasAby';
+import { ESCALA_ESMERALDA } from '../../../diseno/tema/escalaEsmeralda';

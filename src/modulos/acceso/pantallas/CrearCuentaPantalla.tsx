@@ -21,6 +21,8 @@ import {
 } from '../componentes/PantallaAcceso';
 import { crearEsquemaCredenciales, crearEsquemaOtpRegistro } from '../esquemas';
 import { CredencialesAcceso } from '../tipos';
+import { useEscala } from '../../../diseno/tema/MasterColorContext';
+import type { EscalaMaster } from '../../../diseno/tema/escalaEsmeralda';
 
 function esErrorEmailSinConfirmar(error: unknown) {
   if (!(error instanceof Error)) {
@@ -39,6 +41,7 @@ function esErrorEmailSinConfirmar(error: unknown) {
 }
 
 export function CrearCuentaPantalla() {
+  const stylesOtp = useEstilosStylesOtp();
   const { t } = useTranslation();
   const definirUsuario = usarEstadoAcceso((estado) => estado.definirUsuario);
   const { height, width } = useWindowDimensions();
@@ -396,7 +399,7 @@ const s = StyleSheet.create({
   divisorTexto: { color: '#898F8B', fontFamily: 'Montserrat-Medium', fontSize: 12 },
 });
 
-const stylesOtp = StyleSheet.create({
+const crearEstilosStylesOtp = (esc: EscalaMaster) => StyleSheet.create({
   raiz: {
     gap: 8,
   },
@@ -412,7 +415,7 @@ const stylesOtp = StyleSheet.create({
     fontFamily: 'MontserratAlternates-Bold',
     padding: 0,
     textAlign: 'center',
-    shadowColor: '#26352C',
+    shadowColor: esc.musgo.l21,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.14,
     shadowRadius: 0,
@@ -428,6 +431,18 @@ const stylesOtp = StyleSheet.create({
     textAlign: 'center',
   },
 });
+
+const estilosPorEscalaStylesOtp = new WeakMap<EscalaMaster, ReturnType<typeof crearEstilosStylesOtp>>();
+
+function useEstilosStylesOtp() {
+  const esc = useEscala();
+  let valor = estilosPorEscalaStylesOtp.get(esc);
+  if (!valor) {
+    valor = crearEstilosStylesOtp(esc);
+    estilosPorEscalaStylesOtp.set(esc, valor);
+  }
+  return valor;
+}
 
 const stylesLegales = StyleSheet.create({
   aviso: {

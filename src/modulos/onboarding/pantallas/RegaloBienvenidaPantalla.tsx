@@ -11,8 +11,11 @@ import { obtenerAssetsPaquete } from '../../senderos/algoritmo/registroPaquetesA
 import { otorgarSemillaBienvenida } from '../../tienda/gemas.servicio';
 import { CLAVE_ABRIR_CREACION_HABITO, CLAVE_REGALO_BIENVENIDA } from '../onboarding.servicio';
 import { CarruselArbolRegalo } from '../componentes/CarruselArbolRegalo';
+import { useEscala } from '../../../diseno/tema/MasterColorContext';
+import { ESCALA_ESMERALDA } from '../../../diseno/tema/escalaEsmeralda';
+import { conAlfa } from '../../../diseno/tema/masterColor';
 
-const C = { tenue: '#648170', verde: '#25884C' };
+const C = { tenue: ESCALA_ESMERALDA.musgo.l51, verde: ESCALA_ESMERALDA.jade.l50 };
 
 // Mezcla hacia blanco/negro — mismo patrón ya usado en MapaSenderosPantalla.tsx
 // (oscurecer/aclarar) para derivar tonos claros/oscuros de un color base.
@@ -40,6 +43,7 @@ function oscurecer(color: string, factor: number) {
 // animación en cadena al asentarse en una página nueva.
 
 export function RegaloBienvenidaPantalla() {
+  const esc = useEscala();
   const insets = useSafeAreaInsets();
   const queryClient = useQueryClient();
   const { width } = useWindowDimensions();
@@ -77,7 +81,7 @@ export function RegaloBienvenidaPantalla() {
   });
 
   return (
-    <LinearGradient colors={['#F7FDF7', '#E8F7E9', '#D5F2D7']} end={{ x: 0, y: 1 }} start={{ x: 0, y: 0 }} style={s.raiz}>
+    <LinearGradient colors={[esc.hoja.l99, esc.hoja.l95, esc.hoja.l93]} end={{ x: 0, y: 1 }} start={{ x: 0, y: 0 }} style={s.raiz}>
       <View pointerEvents="none" style={[s.aurora, { top: insets.top }]}>
         <AuroraBoreal tema="verde" />
       </View>
@@ -130,7 +134,7 @@ export function RegaloBienvenidaPantalla() {
                   </View>
 
                   <LinearGradient
-                    colors={['rgba(37,136,76,0)', 'rgba(37,136,76,0.32)', 'rgba(37,136,76,0)']}
+                    colors={[conAlfa(esc.jade.l50, 0), conAlfa(esc.jade.l50, 0.32), conAlfa(esc.jade.l50, 0)]}
                     end={{ x: 1, y: 0 }}
                     start={{ x: 0, y: 0 }}
                     style={s.separador}

@@ -5,8 +5,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MasterGlass, Texto } from '../../../diseno';
 import { AuroraBoreal } from '../../hoy/componentes/AuroraBoreal';
 import { FormularioAccesoOnboarding } from '../componentes/FormularioAccesoOnboarding';
+import { useEscala } from '../../../diseno/tema/MasterColorContext';
+import { ESCALA_ESMERALDA } from '../../../diseno/tema/escalaEsmeralda';
+import { conAlfa } from '../../../diseno/tema/masterColor';
 
-const C = { texto: '#1A1335', tenue: '#648170' };
+const C = { texto: '#1A1335', tenue: ESCALA_ESMERALDA.musgo.l51 };
 
 // Pantalla de reentrada en frío: cuando el dispositivo ya vio el carrusel de
 // introducción (que ahora incluye el login como su slide 5) pero la app se
@@ -15,10 +18,11 @@ const C = { texto: '#1A1335', tenue: '#648170' };
 // Esmeralda, mismo formulario (FormularioAccesoOnboarding, compartido con el
 // slide 5 del carrusel) — cero lógica de login duplicada.
 export function AccesoOnboardingPantalla() {
+  const esc = useEscala();
   const insets = useSafeAreaInsets();
 
   return (
-    <LinearGradient colors={['#F7FDF7', '#E8F7E9', '#D5F2D7']} end={{ x: 0, y: 1 }} start={{ x: 0, y: 0 }} style={s.raiz}>
+    <LinearGradient colors={[esc.hoja.l99, esc.hoja.l95, esc.hoja.l93]} end={{ x: 0, y: 1 }} start={{ x: 0, y: 0 }} style={s.raiz}>
       <View pointerEvents="none" style={s.aurora}>
         <AuroraBoreal tema="verde" />
       </View>
@@ -39,7 +43,7 @@ export function AccesoOnboardingPantalla() {
               <Texto style={s.subtitulo}>Iniciá sesión para seguir cultivando tus hábitos.</Texto>
 
               <LinearGradient
-                colors={['rgba(37,136,76,0)', 'rgba(37,136,76,0.32)', 'rgba(37,136,76,0)']}
+                colors={[conAlfa(esc.jade.l50, 0), conAlfa(esc.jade.l50, 0.32), conAlfa(esc.jade.l50, 0)]}
                 end={{ x: 1, y: 0 }}
                 start={{ x: 0, y: 0 }}
                 style={s.separador}

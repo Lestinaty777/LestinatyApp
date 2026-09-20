@@ -9,9 +9,13 @@ import {
   View,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 
 import { MasterButton, MasterGlass, MasterIcon, MasterKicker, Texto } from '../../../diseno';
 import { obtenerEtapaSietePaquete } from '../../habitos/paqueteVisual.assets';
+import { useEscala } from '../../../diseno/tema/MasterColorContext';
+import type { EscalaMaster } from '../../../diseno/tema/escalaEsmeralda';
+import { conAlfa } from '../../../diseno/tema/masterColor';
 
 type CarruselHeroTiendaProps = {
   onIrAReferidos: () => void;
@@ -22,6 +26,9 @@ export function CarruselHeroTienda({
   onIrAReferidos,
   onIrAPro,
 }: CarruselHeroTiendaProps) {
+  const esc = useEscala();
+  const ch = useEstilosCh();
+  const { t } = useTranslation();
   const router = useRouter();
   const { width } = useWindowDimensions();
   const anchoTarjeta = width - 40; // paddingHorizontal: 20 en la pantalla
@@ -61,9 +68,9 @@ export function CarruselHeroTienda({
           <MasterGlass style={ch.tarjeta}>
             <View style={{ flexDirection: 'row' }}>
               <View style={{ flex: 1, zIndex: 2 }}>
-                <MasterKicker icono={<MasterIcon name="hoja" color={1} size={14} />} texto="Gratis para empezar" />
+                <MasterKicker icono={<MasterIcon name="hoja" color={1} size={14} />} texto={t('tienda.hero.freeKicker')} />
                 <Texto style={ch.titulo}>Esmeralda</Texto>
-                <Texto style={ch.subtitulo}>La armonía del bosque — tu primer árbol, sin costo.</Texto>
+                <Texto style={ch.subtitulo}>{t('tienda.hero.esmeraldaDescription')}</Texto>
               </View>
 
               <View style={ch.ilustracionContenedor}>
@@ -81,15 +88,15 @@ export function CarruselHeroTienda({
           <MasterGlass colorBase="#FEF08A" style={ch.tarjeta}>
             <View style={{ flexDirection: 'row' }}>
               <View style={{ flex: 1, zIndex: 2 }}>
-                <MasterKicker icono={<MasterIcon name="trofeo" color={3} size={14} />} texto="¡100 Gemas Gratis!" />
-                <Texto style={ch.titulo}>Invita amigos</Texto>
+                <MasterKicker icono={<MasterIcon name="trofeo" color={3} size={14} />} texto={t('tienda.hero.referralKicker')} />
+                <Texto style={ch.titulo}>{t('tienda.hero.referralTitle')}</Texto>
                 <Texto style={[ch.subtitulo, { color: '#713F12' }]}>
-                  Gana 100 gemas por cada amigo que alcance el Nivel 2 en su hábito.
+                  {t('tienda.hero.referralDescription')}
                 </Texto>
 
                 <View style={{ width: 165, marginTop: 16 }}>
                   <MasterButton
-                    color="#21A844"
+                    color={esc.hoja.l61a}
                     onPress={onIrAReferidos}
                     iconoIzquierda={({ size }) => (
                       <Image
@@ -99,7 +106,7 @@ export function CarruselHeroTienda({
                     )}
                     iconoSize={16}
                   >
-                    Ver mi código
+                    {t('tienda.hero.viewCode')}
                   </MasterButton>
                 </View>
               </View>
@@ -119,10 +126,10 @@ export function CarruselHeroTienda({
           <MasterGlass colorBase="#C084FC" style={ch.tarjeta}>
             <View style={{ flexDirection: 'row' }}>
               <View style={{ flex: 1, zIndex: 2 }}>
-                <MasterKicker icono={<MasterIcon name="montana" color={7} size={14} />} texto="Lestinaty Pro" />
-                <Texto style={ch.titulo}>Widgets Pro</Texto>
+                <MasterKicker icono={<MasterIcon name="montana" color={7} size={14} />} texto={t('tienda.hero.proKicker')} />
+                <Texto style={ch.titulo}>{t('tienda.hero.proTitle')}</Texto>
                 <Texto style={[ch.subtitulo, { color: '#4C1D95' }]}>
-                  Acceso a widgets en la pantalla de inicio de tu celular para tus hábitos.
+                  {t('tienda.hero.proDescription')}
                 </Texto>
 
                 <View style={{ width: 155, marginTop: 16 }}>
@@ -134,7 +141,7 @@ export function CarruselHeroTienda({
                     )}
                     iconoSize={16}
                   >
-                    Ver widgets
+                    {t('tienda.hero.viewWidgets')}
                   </MasterButton>
                 </View>
               </View>
@@ -160,7 +167,7 @@ export function CarruselHeroTienda({
   );
 }
 
-const ch = StyleSheet.create({
+const crearEstilosCh = (esc: EscalaMaster) => StyleSheet.create({
   contenedor: {
     marginBottom: 16,
   },
@@ -176,12 +183,12 @@ const ch = StyleSheet.create({
   titulo: {
     fontSize: 22,
     fontFamily: 'MontserratAlternates-Bold',
-    color: '#1A3320',
+    color: esc.hoja.l19,
     marginTop: 10,
     maxWidth: '70%',
   },
   subtitulo: {
-    color: '#5B8C65',
+    color: esc.musgo.l54,
     fontFamily: 'Montserrat-Medium',
     fontSize: 11.5,
     marginTop: 4,
@@ -214,10 +221,22 @@ const ch = StyleSheet.create({
   },
   dotActivo: {
     width: 20,
-    backgroundColor: '#21A844',
+    backgroundColor: esc.hoja.l61a,
   },
   dotInactivo: {
     width: 6,
-    backgroundColor: 'rgba(33, 168, 68, 0.28)',
+    backgroundColor: conAlfa(esc.hoja.l61a, 0.28),
   },
 });
+
+const estilosPorEscalaCh = new WeakMap<EscalaMaster, ReturnType<typeof crearEstilosCh>>();
+
+function useEstilosCh() {
+  const esc = useEscala();
+  let valor = estilosPorEscalaCh.get(esc);
+  if (!valor) {
+    valor = crearEstilosCh(esc);
+    estilosPorEscalaCh.set(esc, valor);
+  }
+  return valor;
+}

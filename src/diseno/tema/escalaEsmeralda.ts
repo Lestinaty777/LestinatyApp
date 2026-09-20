@@ -1,0 +1,132 @@
+// Escala Esmeralda: los verdes de la UI, formalizados. Cada tono es un color
+// real que ya existía en la app (el más usado de su grupo); los grupos se
+// armaron por similitud perceptual con un tope de diferencia ΔE ≤ 5, así que
+// ningún color original se movió más que eso. Los tokens de los componentes
+// Master (paleta, degradados, tarjeta...) entran exactos.
+//
+// Familias por matiz/saturación: lima (<118°), hoja (118°–140°), jade
+// (140°–158°), menta (≥158°) y musgo (grises verdosos, saturación < 0.30).
+// Dentro de cada familia el nombre es `l` + luminosidad L* (de más claro a más
+// oscuro; una letra al final desambigua dos tonos con la misma L*).
+//
+// Los demás paquetes NO tienen escala propia: rotan estos mismos tonos (ver
+// masterColor.ts). Editar a mano es válido; el test de la escala vigila que
+// siga siendo consistente.
+export const ESCALA_ESMERALDA = {
+  lima: {
+    l99: '#F4FFF1',
+    l99a: '#F4FFEA',
+    l98: '#F3FAF0',
+    l94: '#D8F6D1',
+    l93: '#D5F7B2',
+    l92: '#C5F7B6',
+    l89: '#B8EDB0',
+    l87: '#B7E98C',
+    l87a: '#C8E0B8',
+    l84: '#B4DC9B',
+    l83: '#8AE280',
+    l80: '#35E51D',
+    l70: '#5FC13E',
+    l69: '#71B96B',
+    l61: '#58A700',
+    l58: '#28A116',
+    l46: '#3B7A22',
+    l40: '#2C6B1A',
+  },
+  hoja: {
+    l99: '#F7FDF7',
+    l98: '#F3FCF3',
+    l97: '#EDFAED',
+    l95: '#E5F5E6',
+    l93: '#D5F2D7',
+    l91: '#CDEFCF',
+    l90: '#C0EEBF',
+    l89: '#ADF1B3',
+    l85: '#9AE59C',
+    l82: '#4AE67D',
+    l77: '#8CCF92',
+    l77a: '#4CD964',
+    l77b: '#34D946',
+    l76: '#8CC89F',
+    l71: '#66C27A',
+    l71a: '#53C35D',
+    l69: '#58BE68',
+    l68: '#2EBF3E',
+    l67: '#6CB476',
+    l67a: '#42B766',
+    l64: '#4FAE63',
+    l64a: '#44B042',
+    l61: '#56A462',
+    l61a: '#21A844',
+    l59: '#539C68',
+    l57: '#259D33',
+    l56: '#3B9858',
+    l49: '#248723',
+    l46: '#1F7C3E',
+    l45: '#397647',
+    l45a: '#187A22',
+    l35: '#145F20',
+    l28: '#214B2D',
+    l24: '#0D4317',
+    l22: '#143D1F',
+    l19: '#1A3320',
+  },
+  jade: {
+    l95: '#D1FAE5',
+    l92: '#BBF7D0',
+    l88: '#C6E3D0',
+    l87: '#86EFAC',
+    l79: '#4ADE80',
+    l70: '#22C55E',
+    l59: '#38A169',
+    l59a: '#16A34A',
+    l56: '#1B9A4B',
+    l53: '#2F8F5B',
+    l52: '#1D8D48',
+    l50: '#25884C',
+    l49: '#1B8742',
+    l49a: '#148549',
+    l47: '#2F7D52',
+    l45: '#367651',
+    l43: '#397250',
+    l42: '#0B7432',
+    l42a: '#17733B',
+    l40: '#116C33',
+    l38: '#19673A',
+    l36: '#0D6238',
+    l34: '#145C37',
+    l34a: '#245938',
+    l29: '#0E502B',
+    l28: '#1C4A38',
+  },
+  menta: {
+    l98: '#E6FFF8',
+    l83: '#99DDC5',
+    l76: '#34D399',
+    l67: '#10B981',
+    l53: '#029060',
+  },
+  musgo: {
+    l77: '#B7C2B8',
+    l71: '#8FB89A',
+    l70: '#9BB2A1',
+    l66: '#80AA8A',
+    l58: '#77927E',
+    l54: '#5B8C65',
+    l53: '#5C8A57',
+    l51: '#648170',
+    l50: '#5A8069',
+    l49: '#4A7F5D',
+    l42: '#4E6B56',
+    l40: '#52633A',
+    l29: '#2B4A34',
+    l25: '#33402F',
+    l21: '#26352C',
+    l13: '#1E241D',
+    l10: '#111E13',
+  },
+} as const;
+
+export type EscalaMaster = {
+  [Familia in keyof typeof ESCALA_ESMERALDA]: Record<keyof (typeof ESCALA_ESMERALDA)[Familia], string>;
+};

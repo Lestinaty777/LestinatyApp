@@ -8,6 +8,7 @@ import { MAPAS_POR_NIVEL } from '../Mapas';
 import { PAQUETES_ARBOL } from '../algoritmo/registroPaquetesArbol';
 import { ContenedorMapaSenderos } from '../componentes/mapa/ContenedorMapaSenderos';
 import type { NodoMapaSendero } from '../datos/mapaEjercicio.mock';
+import { useEscala } from '../../../diseno/tema/MasterColorContext';
 
 // Herramienta de revisión visual, NO para usuarios finales — no está en
 // ningún tab, se llega a mano desde TiendaArbolesPantalla ("Vista previa de
@@ -26,6 +27,7 @@ function construirNodosPreview(cantidad: number): NodoMapaSendero[] {
 }
 
 export function VistaPreviaPaquetePantalla() {
+  const esc = useEscala();
   const paquetesDisponibles = Object.keys(PAQUETES_ARBOL);
   const [paqueteId, setPaqueteId] = useState(paquetesDisponibles[0] ?? 'aurelia');
   const [nivel, setNivel] = useState(1);
@@ -73,7 +75,7 @@ export function VistaPreviaPaquetePantalla() {
             key={`${paqueteId}-${nivel}`}
             altura={700}
             categoriaId="habitos"
-            color="#22C55E"
+            color={esc.jade.l70}
             enfocado={false}
             nivel={nivel}
             nodos={nodos}

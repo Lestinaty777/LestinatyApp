@@ -51,4 +51,7 @@
     <color name="widget_mes_dia_texto">#111E13</color>
     <color name="widget_mes_dia_texto_otro_mes">#B7C2B8</color>
     <color name="widget_mes_dia_hoy_borde">#21A844</color>
+
+    <!-- Diorama hero (widget de hábito): nombre sobre el degradado de la imagen -->
+    <color name="widget_titulo_sobre_imagen">#FFFFFF</color>
 </resources>

@@ -12,15 +12,16 @@ import { Beaker, Users, Activity, Calculator, BookOpen, ChevronLeft, ChevronRigh
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Trophy, Leaf, Sun, Moon } from 'lucide-react-native';
 import { ContenedorMapaSenderos } from '../../senderos/componentes/mapa/ContenedorMapaSenderos';
-import { MasterChip, MasterGlass, MasterIcon, MasterIconBg, MasterProgressbar, Texto, colores, RecuadroGlass } from '../../../diseno';
+import { MasterChip, MasterGlass, MasterIcon, MasterIconBg, MasterProgressbar, Texto, colores, RecuadroGlass, buscarIcono } from '../../../diseno';
 import { colorMasterMasCercano, MasterChanger } from '../../../diseno/componentes/MasterChanger';
 import { hapticSeguro } from '../../../nucleo/dispositivo/haptics';
 import { fechaLocalHoy } from '../../../nucleo/dispositivo/fechaLocal';
 import { TarjetaHabitoCompacta } from '../../habitos/componentes/TarjetaHabitoCompacta';
+import { TonoDelHabito } from '../../habitos/componentes/TonoDelHabito';
 import { WidgetRegistrarProgreso } from '../../habitos/componentes/WidgetRegistrarProgreso';
 import { useSenderoHabito } from '../../habitos/hooks/useSenderoHabito';
 import { buscarIconoHabito, diasAcumuladosAntesDeNivel } from '../../habitos/iconosHabitos';
-import { obtenerDetallesHabitosHoy, obtenerPanelHabitos } from '../../habitos/habitos.servicio';
+import { obtenerDetallesHabitosHoy, obtenerHabitosActivos } from '../../habitos/habitos.servicio';
 import { EstadoVacioSenderos } from '../componentes/EstadoVacioSenderos';
 import type { HabitoResumen } from '../../habitos/tipos';
 import { CLAVE_SALDO_GEMAS, useSaldoGemas } from '../../tienda/useSaldoGemas';
@@ -29,6 +30,9 @@ import { CLAVE_SEMILLAS_DISPONIBLES } from '../../tienda/pantallas/TiendaArboles
 import { categoriaInicialMapa, coloresSelectorCategoria, modulosPorCategoria, type CategoriaMapaMvp, type IconoModuloMapa, type ModuloCategoriaMapa } from '../datos/modulosCategorias';
 import { MAPAS_NIVELES } from '../Mapas';
 import { obtenerAssetsPaquete } from '../algoritmo/registroPaquetesArbol';
+import { useEscala } from '../../../diseno/tema/MasterColorContext';
+import type { EscalaMaster } from '../../../diseno/tema/escalaEsmeralda';
+import { conAlfa } from '../../../diseno/tema/masterColor';
 
 const DIAS_SEMANA_COMPLETA = [1, 2, 3, 4, 5, 6, 7];
 const TAMANO_ICONO_CATEGORIA = 64;
@@ -38,11 +42,18 @@ const TOTAL_NODOS_PROGRESION = MAPAS_NIVELES.reduce((total, mapa) => total + map
 
 type AsignaturaVisible = ModuloCategoriaMapa & { habitoReal?: HabitoResumen };
 
+const CLAVES_CATEGORIA: Record<CategoriaMapaMvp, { subtitulo: string; titulo: string }> = {
+  habitos: { titulo: 'senderos.map.categories.habits', subtitulo: 'senderos.map.categories.habitsSubtitle' },
+  rutinas: { titulo: 'senderos.map.categories.routines', subtitulo: 'senderos.map.categories.routinesSubtitle' },
+  tareas: { titulo: 'senderos.map.categories.tasks', subtitulo: 'senderos.map.categories.tasksSubtitle' },
+};
 
-const iconosCategoriasMapa: Record<CategoriaMapaMvp, number> = {
-  habitos: require('../../../../assets/icons/hoy/habitos.png'),
-  rutinas: require('../../../../assets/icons/hoy/rutinas.png'),
-  tareas: require('../../../../assets/icons/hoy/tareas.png'),
+
+// Nombres del registro de iconos: hoy/habitos es verde (sigue el tema), rutinas y tareas no.
+const iconosCategoriasMapa: Record<CategoriaMapaMvp, string> = {
+  habitos: 'hoy/habitos',
+  rutinas: 'hoy/rutinas',
+  tareas: 'hoy/tareas',
 };
 
 function IconoModulo({ color, nombre, size = 24 }: { color: string; nombre: IconoModuloMapa; size?: number }) {
@@ -55,25 +66,40 @@ function IconoModulo({ color, nombre, size = 24 }: { color: string; nombre: Icon
 function IconoAsignatura({ asignatura, color, size = 24 }: { asignatura: AsignaturaVisible; color: string; size?: number }) {
   if (asignatura.habitoReal) {
     const icono = buscarIconoHabito(asignatura.habitoReal.iconoLucide);
-    if (icono) return <Image resizeMode="contain" source={icono.fuente} style={{ height: size, width: size }} />;
+    if (icono) return <MasterIcon name={icono.id} size={size} />;
   }
   return <IconoModulo color={color} nombre={asignatura.icono} size={size} />;
 }
 
 
 // Panel "tus hábitos" del menú del libro — réplica del mockup de referencia.
-const cp = StyleSheet.create({
+const crearEstilosCp = (esc: EscalaMaster) => StyleSheet.create({
   headerGlass: { alignItems: 'center', borderRadius: 22, flexDirection: 'row', justifyContent: 'space-between', marginBottom: 18, padding: 16 },
   // habitos.png ya incluye su propio fondo verde — solo se dimensiona, sin View/color detrás.
   iconoLibro: { height: 64, width: 64 },
-  etiqueta: { color: '#4A7F5D', fontFamily: 'Montserrat-Bold', fontSize: 10, letterSpacing: 1.4 },
-  contador: { color: '#12331F', fontFamily: 'MontserratAlternates-Bold', fontSize: 24, marginTop: 1 },
-  pendientes: { color: '#4A7F5D', fontFamily: 'Montserrat-Medium', fontSize: 12, marginTop: 1 },
-  etiquetaHoy: { color: '#4A7F5D', fontFamily: 'Montserrat-Bold', fontSize: 10, letterSpacing: 1.2, marginBottom: 4 },
-  textoHoy: { color: '#12331F', fontFamily: 'MontserratAlternates-Bold', fontSize: 14 },
+  etiqueta: { color: esc.musgo.l49, fontFamily: 'Montserrat-Bold', fontSize: 10, letterSpacing: 1.4 },
+  contador: { color: esc.hoja.l19, fontFamily: 'MontserratAlternates-Bold', fontSize: 24, marginTop: 1 },
+  pendientes: { color: esc.musgo.l49, fontFamily: 'Montserrat-Medium', fontSize: 12, marginTop: 1 },
+  etiquetaHoy: { color: esc.musgo.l49, fontFamily: 'Montserrat-Bold', fontSize: 10, letterSpacing: 1.2, marginBottom: 4 },
+  textoHoy: { color: esc.hoja.l19, fontFamily: 'MontserratAlternates-Bold', fontSize: 14 },
 });
 
+const estilosPorEscalaCp = new WeakMap<EscalaMaster, ReturnType<typeof crearEstilosCp>>();
+
+function useEstilosCp() {
+  const esc = useEscala();
+  let valor = estilosPorEscalaCp.get(esc);
+  if (!valor) {
+    valor = crearEstilosCp(esc);
+    estilosPorEscalaCp.set(esc, valor);
+  }
+  return valor;
+}
+
 export function MapaSenderosPantalla() {
+  const esc = useEscala();
+  const cp = useEstilosCp();
+  const styles = useEstilosStyles();
   const { t } = useTranslation();
   const router = useRouter();
   const parametros = useLocalSearchParams<{ habitoId?: string | string[] }>();
@@ -94,10 +120,10 @@ export function MapaSenderosPantalla() {
     }
   };
 
-  const consultaHabitos = useQuery({ queryKey: ['habitos', 'panel'], queryFn: () => obtenerPanelHabitos() });
+  const consultaHabitos = useQuery({ queryKey: ['habitos', 'activos'], queryFn: () => obtenerHabitosActivos() });
   const consultaDetallesHoy = useQuery({ queryKey: ['habitos', 'detalles-hoy'], queryFn: () => obtenerDetallesHabitosHoy() });
   const { data: saldoGemas } = useSaldoGemas();
-  const habitosReales = consultaHabitos.data?.hoy.datos ?? [];
+  const habitosReales = consultaHabitos.data ?? [];
   const detallesPorHabito = React.useMemo(() => new Map((consultaDetallesHoy.data ?? []).map((detalle) => [detalle.habitoId, detalle])), [consultaDetallesHoy.data]);
   const habitosCompletadosHoy = habitosReales.filter((habito) => habito.completado).length;
   const asignaturasHabitos: AsignaturaVisible[] = React.useMemo(() => habitosReales.map((habito) => ({
@@ -186,13 +212,13 @@ export function MapaSenderosPantalla() {
             <View style={styles.navbarFila}>
               <Pressable onPress={() => handleToggleMenu('categories')}>
                 <View style={activeMenu === 'categories' ? styles.badgeCategoriaActivo : undefined}>
-                  <MasterIconBg fuente={iconosCategoriasMapa[categoriaActiva]} size={TAMANO_ICONO_CATEGORIA} />
+                  <MasterIconBg fuente={buscarIcono(iconosCategoriasMapa[categoriaActiva])!.fuente} hue={buscarIcono(iconosCategoriasMapa[categoriaActiva])!.hue} size={TAMANO_ICONO_CATEGORIA} />
                 </View>
               </Pressable>
 
               <View style={styles.navInfo}>
-                <Texto numberOfLines={1} style={[styles.tituloAsignatura, { color: oscurecer(coloresSelectorCategoria[categoriaActiva], 0.4) }]}>{t(`senderos.map.categories.${categoriaActiva}`)}</Texto>
-                <Texto numberOfLines={2} style={[styles.descAsignatura, { color: oscurecer(coloresSelectorCategoria[categoriaActiva], 0.6) }]}>{t(`senderos.map.categories.${categoriaActiva}Subtitle`)}</Texto>
+                <Texto numberOfLines={1} style={[styles.tituloAsignatura, { color: oscurecer(coloresSelectorCategoria[categoriaActiva], 0.4) }]}>{t(CLAVES_CATEGORIA[categoriaActiva].titulo)}</Texto>
+                <Texto numberOfLines={2} style={[styles.descAsignatura, { color: oscurecer(coloresSelectorCategoria[categoriaActiva], 0.6) }]}>{t(CLAVES_CATEGORIA[categoriaActiva].subtitulo)}</Texto>
               </View>
 
               <Pressable accessibilityLabel={t('senderos.map.accessibility.viewHabits')} onPress={() => handleToggleMenu('courses')}>
@@ -223,9 +249,9 @@ export function MapaSenderosPantalla() {
                   <View style={styles.tooltipCategoriasFila}>
                     {(Object.keys(iconosCategoriasMapa) as CategoriaMapaMvp[]).map((categoria) => {
                       const activa = categoria === categoriaActiva;
-                      const etiqueta = t(`senderos.map.categories.${categoria}`);
+                      const etiqueta = t(CLAVES_CATEGORIA[categoria].titulo);
                       return <Pressable key={categoria} accessibilityRole="button" accessibilityState={{ selected: activa }} onPress={() => cambiarCategoria(categoria)} style={({ pressed }) => [styles.tooltipCategoriaOpcion, activa && styles.tooltipCategoriaOpcionActiva, pressed && styles.tooltipCategoriaOpcionPresionada]}>
-                        <Image source={iconosCategoriasMapa[categoria]} style={styles.tooltipCategoriaIcono} />
+                        <MasterIcon name={iconosCategoriasMapa[categoria]} size={32} />
                         <Texto style={styles.tooltipCategoriaTexto}>{etiqueta}</Texto>
                       </Pressable>;
                     })}
@@ -240,7 +266,7 @@ export function MapaSenderosPantalla() {
                   <View style={{ flex: 1, paddingHorizontal: 20, paddingTop: 5, paddingBottom: 5 }}>
                     <MasterGlass blur style={cp.headerGlass}>
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
-                        <Image resizeMode="contain" source={require('../../../../assets/icons/habitos.png')} style={cp.iconoLibro} />
+                        <MasterIcon name="raiz/habitos" size={64} />
                         <View>
                           <Texto style={cp.etiqueta}>{t('senderos.map.habitsPanel.title')}</Texto>
                           <Texto style={cp.contador}>{t('senderos.map.habitsPanel.count', { count: ASIGNATURAS.length, suffix: ASIGNATURAS.length === 1 ? '' : t('senderos.map.habitsPanel.pluralSuffix') })}</Texto>
@@ -251,8 +277,8 @@ export function MapaSenderosPantalla() {
                         <Texto style={cp.etiquetaHoy}>{t('senderos.map.habitsPanel.today')}</Texto>
                         <View style={{ alignItems: 'center', height: 56, justifyContent: 'center', width: 56 }}>
                           <Svg height={56} style={{ position: 'absolute' }} width={56}>
-                            <Circle cx="28" cy="28" fill="none" r={22} stroke="rgba(20,92,55,.15)" strokeWidth={5} />
-                            <Circle cx="28" cy="28" fill="none" r={22} rotation="-90" stroke="#145C37" strokeDasharray={`${2 * Math.PI * 22} ${2 * Math.PI * 22}`} strokeDashoffset={2 * Math.PI * 22 * (1 - fraccionHoy)} strokeLinecap="round" strokeWidth={5} origin="28,28" />
+                            <Circle cx="28" cy="28" fill="none" r={22} stroke={conAlfa(esc.jade.l34, .15)} strokeWidth={5} />
+                            <Circle cx="28" cy="28" fill="none" r={22} rotation="-90" stroke={esc.jade.l34} strokeDasharray={`${2 * Math.PI * 22} ${2 * Math.PI * 22}`} strokeDashoffset={2 * Math.PI * 22 * (1 - fraccionHoy)} strokeLinecap="round" strokeWidth={5} origin="28,28" />
                           </Svg>
                           <Texto style={cp.textoHoy}>{habitosCompletadosHoy}/{habitosReales.length}</Texto>
                         </View>
@@ -271,13 +297,13 @@ export function MapaSenderosPantalla() {
                         const detalle = detallesPorHabito.get(asig.habitoReal!.id);
                         const icono = buscarIconoHabito(asig.habitoReal!.iconoLucide);
                         return (
+                          <TonoDelHabito colorPaquete={asig.habitoReal!.colorPaquete} key={asig.id} paqueteId={asig.habitoReal!.paqueteId}>
                           <TarjetaHabitoCompacta
                             alto={92}
                             ancho={anchoCarta}
                             diasCompletados={detalle?.diasCompletadosSemana ?? []}
                             diasProgramados={detalle?.diasProgramados ?? DIAS_SEMANA_COMPLETA}
-                            icono={icono ?? { fuente: require('../../../../assets/icons/ui/idea.png') }}
-                            key={asig.id}
+                            icono={icono ?? buscarIconoHabito('idea')!}
                             meta={asig.habitoReal!.meta}
                             nivel={detalle?.nivel ?? 1}
                             onPress={() => { hapticSeguro('seleccion'); setAsignaturaId(asig.id); setActiveMenu('none'); }}
@@ -285,6 +311,7 @@ export function MapaSenderosPantalla() {
                             titulo={asig.titulo}
                             valorHoy={asig.habitoReal!.valorHoy}
                           />
+                          </TonoDelHabito>
                         );
                       })}
                     </ScrollView>
@@ -434,8 +461,8 @@ export function MapaSenderosPantalla() {
                   <View style={{ flex: 1, minWidth: 0 }}>
                     {sendero.celebracion ? (
                       <View style={{ alignItems: 'center', flexDirection: 'row', gap: 8 }}>
-                        <Trophy color="#145C37" size={22} />
-                        <Texto numberOfLines={1} style={{ color: '#145C37', fontFamily: 'MontserratAlternates-Bold', fontSize: 16 }}>{t('senderos.map.levelCelebration', { gems: sendero.celebracion.gemas > 0 ? t('senderos.map.gemsReward', { gems: sendero.celebracion.gemas }) : '', level: sendero.celebracion.nivel })}</Texto>
+                        <Trophy color={esc.jade.l34} size={22} />
+                        <Texto numberOfLines={1} style={{ color: esc.jade.l34, fontFamily: 'MontserratAlternates-Bold', fontSize: 16 }}>{t('senderos.map.levelCelebration', { gems: sendero.celebracion.gemas > 0 ? t('senderos.map.gemsReward', { gems: sendero.celebracion.gemas }) : '', level: sendero.celebracion.nivel })}</Texto>
                       </View>
                     ) : sendero.registrando && asignatura.habitoReal && sendero.consulta.data ? (
                       <WidgetRegistrarProgreso
@@ -495,6 +522,7 @@ export function MapaSenderosPantalla() {
         })()}
 
         {/* Contenedor del Mapa / Estado Vacío (ocupa el espacio entre navbar y barra de navegación inferior) */}
+        <TonoDelHabito colorPaquete={sendero.consulta.data?.habito.colorPaquete} paqueteId={sendero.consulta.data?.habito.paqueteId}>
         <View style={[styles.capaMapa, !asignatura && styles.capaMapaVacia]}>
           {asignatura?.habitoReal ? (
             sendero.consulta.isLoading ? (
@@ -555,6 +583,7 @@ export function MapaSenderosPantalla() {
             </View>
           )}
         </View>
+        </TonoDelHabito>
       </SafeAreaView>
     </View>
   );
@@ -590,7 +619,7 @@ function aclarar(color: string, factor = 0.7) {
   return `#${canal(0)}${canal(2)}${canal(4)}`;
 }
 
-const styles = StyleSheet.create({
+const crearEstilosStyles = (esc: EscalaMaster) => StyleSheet.create({
   raiz: {
     backgroundColor: '#EAEAEA',
     flex: 1,
@@ -738,7 +767,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     height: 92,
     zIndex: 5,
-    shadowColor: '#0D3D22',
+    shadowColor: esc.hoja.l22,
     shadowOffset: { height: 6, width: 0 },
     shadowOpacity: 0.16,
     shadowRadius: 14,
@@ -799,14 +828,14 @@ const styles = StyleSheet.create({
   tituloAsignatura: {
     fontFamily: 'MontserratAlternates-Bold',
     fontSize: 14,
-    color: '#145C37',
+    color: esc.jade.l34,
     lineHeight: 15,
     marginBottom: 0,
   },
   descAsignatura: {
     fontFamily: 'MontserratAlternates-Medium',
     fontSize: 8,
-    color: '#4A7F5D',
+    color: esc.musgo.l49,
     lineHeight: 9,
   },
   espacioFlexible: {
@@ -845,6 +874,18 @@ const styles = StyleSheet.create({
     fontSize: 18,
   },
 });
+
+const estilosPorEscalaStyles = new WeakMap<EscalaMaster, ReturnType<typeof crearEstilosStyles>>();
+
+function useEstilosStyles() {
+  const esc = useEscala();
+  let valor = estilosPorEscalaStyles.get(esc);
+  if (!valor) {
+    valor = crearEstilosStyles(esc);
+    estilosPorEscalaStyles.set(esc, valor);
+  }
+  return valor;
+}
 
 
 function PanelTienda({ saldoGemas }: { saldoGemas: number }) {

@@ -3,6 +3,8 @@ import { Animated, StyleSheet } from 'react-native';
 import { Defs, Ellipse, LinearGradient, Path, RadialGradient, Stop, Svg } from 'react-native-svg';
 
 import { rotarPaletaHex } from '../../algoritmo/colorHsl';
+import { useEscala } from '../../../../diseno/tema/MasterColorContext';
+import { ESCALA_ESMERALDA } from '../../../../diseno/tema/escalaEsmeralda';
 
 const AnimatedEllipse = Animated.createAnimatedComponent(Ellipse);
 type ValorAnimado = Animated.Value | Animated.AnimatedInterpolation<number>;
@@ -37,10 +39,11 @@ function AcentoBlur({ color, tamano }: { color: string; tamano: number }) {
 // pálida de fondo + la elipse oscura (el socket fijo); PedestalBotonSuperior
 // es la única pieza animada — al presionar baja hacia el socket, tapando el
 // relieve 3D, igual que un botón de verdad.
-const REFERENCIA_HUE = '#21A844';
-const PALETA_BASE = ['#B4DC9B', '#DEFCDD', '#B2EEB1', '#44B042', '#248723', '#53C35D', '#21A844', '#69C068', '#28A116'] as const;
+const REFERENCIA_HUE = ESCALA_ESMERALDA.hoja.l61a;
+const PALETA_BASE = [ESCALA_ESMERALDA.lima.l84, ESCALA_ESMERALDA.lima.l94, ESCALA_ESMERALDA.lima.l89, ESCALA_ESMERALDA.hoja.l64a, ESCALA_ESMERALDA.hoja.l49, ESCALA_ESMERALDA.hoja.l71a, ESCALA_ESMERALDA.hoja.l61a, ESCALA_ESMERALDA.hoja.l69, ESCALA_ESMERALDA.lima.l58] as const;
 
 export function PedestalBase({ color, oscurecimiento, tamano = 84 }: { color: string; oscurecimiento?: ValorAnimado; tamano?: number }) {
+  const esc = useEscala();
   const [pedestalSolido, pedestalClaro, pedestalOscuro, botonMedioClaro, botonMedioOscuro, , , strokeEllipse, lineaBlur] =
     rotarPaletaHex(PALETA_BASE, REFERENCIA_HUE, color);
 
@@ -70,8 +73,8 @@ export function PedestalBase({ color, oscurecimiento, tamano = 84 }: { color: st
             <Stop offset="1" stopColor={botonMedioOscuro} />
           </LinearGradient>
           <RadialGradient cx="50%" cy="50%" id="sombraPresionadoGrad" r="50%">
-            <Stop offset="0%" stopColor="#0B5C30" stopOpacity={1} />
-            <Stop offset="100%" stopColor="#66C27A" stopOpacity={0.35} />
+            <Stop offset="0%" stopColor={esc.jade.l36} stopOpacity={1} />
+            <Stop offset="100%" stopColor={esc.hoja.l71} stopOpacity={0.35} />
           </RadialGradient>
         </Defs>
         <Ellipse cx={151} cy={130} fill="url(#botonTopeGrad)" rx={150.5} ry={129.5} stroke="white" strokeOpacity={0.2} />
@@ -113,7 +116,7 @@ export function PedestalBotonSuperior({ color, tamano = 84 }: { color: string; t
 // la paleta desbloqueada (mismo rotarPaletaHex/REFERENCIA_HUE) para que un
 // hábito azul (Diamante) también se vea pálido-azul bloqueado, no
 // pálido-verde genérico. Sin `color`, se ve exactamente igual que antes.
-const PALETA_BLOQUEADA = ['#EDFFED', '#CDFACC', '#C8E0B8', '#E2FFE2', '#C0EEBF', '#206116', '#ADF1B3', '#8AE280'] as const;
+const PALETA_BLOQUEADA = [ESCALA_ESMERALDA.lima.l99a, ESCALA_ESMERALDA.hoja.l90, ESCALA_ESMERALDA.lima.l87a, ESCALA_ESMERALDA.hoja.l93, ESCALA_ESMERALDA.hoja.l90, ESCALA_ESMERALDA.lima.l40, ESCALA_ESMERALDA.hoja.l89, ESCALA_ESMERALDA.lima.l83] as const;
 
 export function PedestalBaseBloqueada({ color, tamano = 84 }: { color?: string; tamano?: number }) {
   const [pedestalGradInicio, pedestalGradFin, solido, topeGradInicio, topeGradFin, acentoColor] = color

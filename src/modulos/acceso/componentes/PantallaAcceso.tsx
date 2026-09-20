@@ -21,6 +21,7 @@ import { Link } from 'expo-router';
 
 import { colores, espaciado } from '../../../diseno';
 import { hapticSeguro } from '../../../nucleo/dispositivo/haptics';
+import { ESCALA_ESMERALDA } from '../../../diseno/tema/escalaEsmeralda';
 
 const imagenesConstruccion = [
   require('../../../../assets/construcciones/1.png'),
@@ -36,7 +37,7 @@ const logo = require('../../../../assets/marca/lestinaty.png');
 
 const temasAcceso = [
   { principal: '#3B6FD1', lip: '#1E3E80', texto: '#2A54A6' },
-  { principal: '#5FC13E', lip: '#2C6B1A', texto: '#3B7A22' },
+  { principal: ESCALA_ESMERALDA.lima.l70, lip: ESCALA_ESMERALDA.lima.l40, texto: ESCALA_ESMERALDA.lima.l46 },
   { principal: '#E5B82E', lip: '#8C6610', texto: '#9A7412' },
   { principal: '#E47B25', lip: '#8A3F10', texto: '#A84F16' },
   { principal: '#D63E35', lip: '#7E211C', texto: '#9E2E28' },
@@ -481,7 +482,6 @@ export const estilosAcceso = StyleSheet.create({
     textTransform: 'lowercase',
   },
   enlace: {
-    color: colores.primarioTexto,
     fontFamily: 'MontserratUnderline-Bold',
   },
   enlaces: {
@@ -498,7 +498,7 @@ export const estilosAcceso = StyleSheet.create({
     textAlign: 'center',
   },
   exito: {
-    color: '#187A22',
+    color: ESCALA_ESMERALDA.hoja.l45a,
     fontFamily: 'MontserratAlternates-SemiBold',
     fontSize: 14,
     textAlign: 'center',
@@ -654,7 +654,6 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   titulo: {
-    color: colores.primarioTexto,
     fontFamily: 'Montserrat-Bold',
     fontSize: 31,
     letterSpacing: 0,

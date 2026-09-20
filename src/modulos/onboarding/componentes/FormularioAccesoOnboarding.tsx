@@ -13,8 +13,12 @@ import { CampoOtp } from '../../acceso/componentes/CampoOtp';
 import { obtenerSegundosCooldownOtp, usarCooldownOtp } from '../../acceso/cooldownOtp';
 import { crearEsquemaCredenciales, crearEsquemaOtpRegistro } from '../../acceso/esquemas';
 import { CredencialesAcceso } from '../../acceso/tipos';
+import { useEscala } from '../../../diseno/tema/MasterColorContext';
+import type { EscalaMaster } from '../../../diseno/tema/escalaEsmeralda';
+import { ESCALA_ESMERALDA } from '../../../diseno/tema/escalaEsmeralda';
+import { conAlfa } from '../../../diseno/tema/masterColor';
 
-const C = { tenue: '#648170', verde: '#25884C' };
+const C = { tenue: ESCALA_ESMERALDA.musgo.l51, verde: ESCALA_ESMERALDA.jade.l50 };
 
 const MENSAJES_VALIDACION = {
   email: 'Ingresá un correo válido.',
@@ -60,6 +64,8 @@ function esErrorEmailSinConfirmar(error: unknown) {
 // en dos lugares: la pantalla standalone (reentrada en frío) y el slide 5 del
 // carrusel de introducción.
 export function FormularioAccesoOnboarding() {
+  const esc = useEscala();
+  const s = useEstilosS();
   const definirUsuario = usarEstadoAcceso((estado) => estado.definirUsuario);
   const [modo, setModo] = useState<Modo>('login');
   const [cargandoGoogle, setCargandoGoogle] = useState(false);
@@ -280,7 +286,7 @@ export function FormularioAccesoOnboarding() {
         <>
           {esCrear ? (
             <View style={s.filaEncabezadoModo}>
-              <MasterIcon color={2} name="maceta" size={20} />
+              <MasterIcon alTema name="maceta" size={20} />
               <Texto style={s.encabezadoModo}>Creá tu cuenta</Texto>
             </View>
           ) : null}
@@ -348,7 +354,7 @@ export function FormularioAccesoOnboarding() {
               <Texto style={s.enlace}>¿Olvidaste tu contraseña?</Texto>
             </Rebote>
           ) : (
-            <Checkbox checked={terminosAceptados} colorActivo={C.verde} colorBorde="rgba(37,136,76,0.45)" onChange={setTerminosAceptados}>
+            <Checkbox checked={terminosAceptados} colorActivo={C.verde} colorBorde={conAlfa(esc.jade.l50, 0.45)} onChange={setTerminosAceptados}>
               Acepto los{' '}
               <Text onPress={() => Linking.openURL(URL_TERMINOS)} style={s.enlaceLegalInline}>Términos de uso</Text>
               {' '}y el{' '}
@@ -376,7 +382,7 @@ export function FormularioAccesoOnboarding() {
           <BotonGoogle cargando={cargandoGoogle} deshabilitado={esCrear && !terminosAceptados} onPress={entrarConGoogle} />
 
           <View style={s.filaCrearCuenta}>
-            <MasterIcon color={2} name={esCrear ? 'candado' : 'idea'} size={16} />
+            <MasterIcon alTema name={esCrear ? 'candado' : 'idea'} size={16} />
             <Texto style={s.textoCrearCuenta}>{esCrear ? '¿Ya tenés cuenta? ' : '¿No tenés cuenta? '}</Texto>
             <Rebote accessibilityLabel={esCrear ? 'Iniciar sesión' : 'Crear cuenta'} onPress={() => cambiarModo(esCrear ? 'login' : 'crear')}>
               <Texto style={[s.enlace, s.enlaceDestacado]}>{esCrear ? 'Iniciá sesión' : 'Creala acá'}</Texto>
@@ -421,7 +427,7 @@ export function FormularioAccesoOnboarding() {
   );
 }
 
-const s = StyleSheet.create({
+const crearEstilosS = (esc: EscalaMaster) => StyleSheet.create({
   formulario: { gap: 12, marginTop: 8, width: '100%' },
   filaEncabezadoModo: { alignItems: 'center', flexDirection: 'row', gap: 6, marginBottom: -2 },
   encabezadoModo: { color: '#1A1335', fontFamily: 'MontserratAlternates-Bold', fontSize: 16 },
@@ -434,9 +440,21 @@ const s = StyleSheet.create({
   enlaceLegalInline: { color: C.verde, fontFamily: 'MontserratAlternates-SemiBold' },
   boton: { height: 54, marginTop: 4 },
   divisorFila: { alignItems: 'center', flexDirection: 'row', gap: 10, marginVertical: 2 },
-  divisorLinea: { backgroundColor: 'rgba(100,129,112,0.25)', flex: 1, height: 1 },
+  divisorLinea: { backgroundColor: conAlfa(esc.musgo.l51, 0.25), flex: 1, height: 1 },
   divisorTexto: { color: C.tenue, fontFamily: 'Montserrat-Medium', fontSize: 12 },
   filaCrearCuenta: { alignItems: 'center', flexDirection: 'row', gap: 6, justifyContent: 'center', marginTop: 4 },
   textoCrearCuenta: { color: C.tenue, fontFamily: 'Montserrat-Medium', fontSize: 13 },
   otpEmail: { color: C.tenue, fontFamily: 'Montserrat-SemiBold', fontSize: 13, textAlign: 'center' },
 });
+
+const estilosPorEscalaS = new WeakMap<EscalaMaster, ReturnType<typeof crearEstilosS>>();
+
+function useEstilosS() {
+  const esc = useEscala();
+  let valor = estilosPorEscalaS.get(esc);
+  if (!valor) {
+    valor = crearEstilosS(esc);
+    estilosPorEscalaS.set(esc, valor);
+  }
+  return valor;
+}

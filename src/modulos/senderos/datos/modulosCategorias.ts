@@ -1,4 +1,5 @@
 import type { CategoriaMapaId } from '../algoritmo/mapaProcedural';
+import { ESCALA_ESMERALDA } from '../../../diseno/tema/escalaEsmeralda';
 
 export type CategoriaMapaMvp = 'habitos' | 'rutinas' | 'tareas';
 export type IconoModuloMapa = 'actividad' | 'ciencia' | 'checklist' | 'libro' | 'usuarios';
@@ -16,7 +17,7 @@ export type ModuloCategoriaMapa = {
 export const categoriaInicialMapa: CategoriaMapaMvp = 'habitos';
 
 export const coloresSelectorCategoria: Record<CategoriaMapaMvp, string> = {
-  habitos: '#22C55E',
+  habitos: ESCALA_ESMERALDA.jade.l70,
   rutinas: '#D94640',
   tareas: '#E5A900',
 };

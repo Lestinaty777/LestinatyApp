@@ -23,8 +23,12 @@ import { hapticSeguro } from '../../../nucleo/dispositivo/haptics';
 import { obtenerCatalogoArboles } from '../../tienda/gemas.servicio';
 import type { ArbolPaquete } from '../../tienda/gemas.tipos';
 import { obtenerAssetsPaquete } from '../../senderos/algoritmo/registroPaquetesArbol';
+import { useEscala } from '../../../diseno/tema/MasterColorContext';
+import type { EscalaMaster } from '../../../diseno/tema/escalaEsmeralda';
+import { ESCALA_ESMERALDA } from '../../../diseno/tema/escalaEsmeralda';
+import { conAlfa } from '../../../diseno/tema/masterColor';
 
-const C = { verde: '#25884C' };
+const C = { verde: ESCALA_ESMERALDA.jade.l50 };
 
 // Selección curada de 5 (de los 12+ legendarios reales) para el regalo de
 // bienvenida — ver el comentario junto a `paquetes` en CarruselArbolRegalo.
@@ -100,6 +104,7 @@ function mezclarHex(colorA: string, colorB: string, t: number) {
 // (no hay overflow hidden en ningún contenedor padre), así que el desenfoque
 // se difumina libremente más allá del recuadro del árbol.
 function BlurArbol({ color }: { color: string }) {
+  const s = useEstilosS();
   return (
     <Canvas pointerEvents="none" style={s.auraCanvas}>
       <Circle color={hexARgba(color, 0.4)} cx={170} cy={150} r={95}>
@@ -140,6 +145,7 @@ function PaginaArbol({
   scrollX: SharedValue<number>;
   width: number;
 }) {
+  const s = useEstilosS();
   const progreso = useDerivedValue(() => 1 - Math.min(1, Math.abs(scrollX.value / width - idx)));
 
   const estiloAura = useAnimatedStyle(() => ({
@@ -218,6 +224,7 @@ export function CarruselArbolRegalo({
   textoBotonConfirmando?: string;
   paddingBottomPie?: number;
 }) {
+  const s = useEstilosS();
   const { width } = useWindowDimensions();
   const scrollRef = useRef<ScrollView>(null);
   const [indice, setIndice] = useState(0);
@@ -328,10 +335,10 @@ export function CarruselArbolRegalo({
   );
 }
 
-const s = StyleSheet.create({
+const crearEstilosS = (esc: EscalaMaster) => StyleSheet.create({
   scroll: { flex: 1 },
   cargandoContenedor: { alignItems: 'center', flex: 1, justifyContent: 'center', paddingVertical: 48 },
-  cargando: { color: '#648170', fontFamily: 'Montserrat-Medium', fontSize: 13, textAlign: 'center' },
+  cargando: { color: esc.musgo.l51, fontFamily: 'Montserrat-Medium', fontSize: 13, textAlign: 'center' },
   pagina: { alignItems: 'center', gap: 8, justifyContent: 'center', paddingVertical: 12 },
   collage: { alignItems: 'center', gap: 8 },
   filaChica: { flexDirection: 'row', gap: 12, justifyContent: 'center' },
@@ -348,7 +355,7 @@ const s = StyleSheet.create({
   rocaDerecha: { position: 'absolute', right: -10, top: '20%', zIndex: 1 },
   rocaAbajo: { bottom: -6, position: 'absolute', right: '22%', zIndex: 1 },
   puntos: { flexDirection: 'row', gap: 6, justifyContent: 'center', marginTop: 4 },
-  punto: { backgroundColor: 'rgba(37,136,76,0.25)', borderRadius: 3.5, height: 7, width: 7 },
+  punto: { backgroundColor: conAlfa(esc.jade.l50, 0.25), borderRadius: 3.5, height: 7, width: 7 },
   puntoActivo: { width: 20 },
   // Un solo panel glass envuelve todo el bloque inferior — desde el texto
   // (título incluido) hasta el botón — en vez de que el fondo glass sea
@@ -365,3 +372,15 @@ const s = StyleSheet.create({
   },
   botonConfirmar: { height: 56, width: '100%' },
 });
+
+const estilosPorEscalaS = new WeakMap<EscalaMaster, ReturnType<typeof crearEstilosS>>();
+
+function useEstilosS() {
+  const esc = useEscala();
+  let valor = estilosPorEscalaS.get(esc);
+  if (!valor) {
+    valor = crearEstilosS(esc);
+    estilosPorEscalaS.set(esc, valor);
+  }
+  return valor;
+}

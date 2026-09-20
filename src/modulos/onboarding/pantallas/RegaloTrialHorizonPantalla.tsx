@@ -10,14 +10,17 @@ import { AuroraBoreal } from '../../hoy/componentes/AuroraBoreal';
 import { otorgarSemillaTrialHorizon } from '../../tienda/gemas.servicio';
 import { CLAVE_REGALO_TRIAL_HORIZON } from '../onboarding.servicio';
 import { SelectorArbolRegalo } from '../componentes/SelectorArbolRegalo';
+import { useEscala } from '../../../diseno/tema/MasterColorContext';
+import { ESCALA_ESMERALDA } from '../../../diseno/tema/escalaEsmeralda';
 
-const C = { texto: '#1A1335', tenue: '#648170' };
+const C = { texto: '#1A1335', tenue: ESCALA_ESMERALDA.musgo.l51 };
 
 // No bloqueante a propósito (a diferencia de RegaloBienvenidaPantalla): esta
 // cuenta ya usa la app con normalidad, forzar una pantalla completa se
 // sentiría como un secuestro de la navegación. Se puede cerrar con la X y
 // vuelve a aparecer en la próxima sesión mientras siga pendiente.
 export function RegaloTrialHorizonPantalla({ visible, onCerrar }: { visible: boolean; onCerrar: () => void }) {
+  const esc = useEscala();
   const insets = useSafeAreaInsets();
   const queryClient = useQueryClient();
 
@@ -34,7 +37,7 @@ export function RegaloTrialHorizonPantalla({ visible, onCerrar }: { visible: boo
 
   return (
     <Modal animationType="slide" onRequestClose={onCerrar} presentationStyle="pageSheet" visible={visible}>
-      <LinearGradient colors={['#F7FDF7', '#E8F7E9', '#D5F2D7']} end={{ x: 0, y: 1 }} start={{ x: 0, y: 0 }} style={s.raiz}>
+      <LinearGradient colors={[esc.hoja.l99, esc.hoja.l95, esc.hoja.l93]} end={{ x: 0, y: 1 }} start={{ x: 0, y: 0 }} style={s.raiz}>
         <View style={[s.header, { paddingTop: insets.top + 12 }]}>
           <AuroraBoreal tema="verde" />
 

@@ -80,6 +80,9 @@ import {
   reanudarCronometroNativo,
   suscribirEventoCronometro,
 } from '../../../../modules/habito-widget';
+import { useEscala } from '../../../diseno/tema/MasterColorContext';
+import { ESCALA_ESMERALDA } from '../../../diseno/tema/escalaEsmeralda';
+import { conAlfa } from '../../../diseno/tema/masterColor';
 
 const CirculoAnimado = Animated.createAnimatedComponent(Circle);
 
@@ -87,10 +90,10 @@ const CirculoAnimado = Animated.createAnimatedComponent(Circle);
 const C = {
   fondo: '#F3EEFA',
   texto: '#1A1335',
-  tenue: '#648170',
-  verde: '#25884C',
-  verdeBorde: '#38A169',
-  verdeClaro: '#E6F9EA',
+  tenue: ESCALA_ESMERALDA.musgo.l51,
+  verde: ESCALA_ESMERALDA.jade.l50,
+  verdeBorde: ESCALA_ESMERALDA.jade.l59,
+  verdeClaro: ESCALA_ESMERALDA.hoja.l95,
   rojo: '#DC2626',
   glass: 'rgba(255,255,255,0.72)',
   glassBorde: 'rgba(255,255,255,0.85)',
@@ -156,6 +159,7 @@ function DialCircularProgreso({
   grosor?: number;
   children?: React.ReactNode;
 }) {
+  const esc = useEscala();
   const radio = (tamano - grosor) / 2;
   const circunferencia = 2 * Math.PI * radio;
   const animacionProgreso = useSharedValue(0);
@@ -177,7 +181,7 @@ function DialCircularProgreso({
         <Defs>
           <SvgLinearGradient id="dialGrad" x1="0%" x2="100%" y1="0%" y2="100%">
             <Stop offset="0%" stopColor={color} />
-            <Stop offset="100%" stopColor="#38E07B" />
+            <Stop offset="100%" stopColor={esc.hoja.l82} />
           </SvgLinearGradient>
           <RadialGradient cx="50%" cy="50%" id="brilloFondo" r="50%">
             <Stop offset="0%" stopColor={`${color}16`} />
@@ -194,7 +198,7 @@ function DialCircularProgreso({
           cy={tamano / 2}
           fill="none"
           r={radio}
-          stroke="rgba(37, 136, 76, 0.12)"
+          stroke={conAlfa(esc.jade.l50, 0.12)}
           strokeWidth={grosor}
         />
 
@@ -222,6 +226,7 @@ function DialCircularProgreso({
 }
 
 export function SesionMisionPantalla() {
+  const esc = useEscala();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
@@ -412,7 +417,7 @@ export function SesionMisionPantalla() {
 
   return (
     <LinearGradient
-      colors={['#F7FDF7', '#E8F7E9', '#D5F2D7']}
+      colors={[esc.hoja.l99, esc.hoja.l95, esc.hoja.l93]}
       end={{ x: 0, y: 1 }}
       start={{ x: 0, y: 0 }}
       style={s.raiz}
@@ -479,7 +484,7 @@ export function SesionMisionPantalla() {
             <Animated.View entering={entradaEncadenada(4)}>
               <View style={s.kickerFila}>
                 <MasterKicker
-                  icono={<MasterIcon color={2} name="hoja" size={12} />}
+                  icono={<MasterIcon alTema name="hoja" size={12} />}
                   texto="MISIÓN DIARIA DE ENFOQUE"
                 />
               </View>
@@ -569,15 +574,11 @@ export function SesionMisionPantalla() {
                   colorBordeInicio="rgba(255,255,255,0.9)"
                   colorBordeFin={`${colorTema}66`}
                   degradadoInicio="#FFFFFF"
-                  degradadoFin="#E8F7EB"
+                  degradadoFin={esc.hoja.l97}
                   size={46}
                   tinte={colorTema}
                 >
-                  <Image
-                    resizeMode="contain"
-                    source={iconoInfo.fuente}
-                    style={s.iconoHabitoImg}
-                  />
+                  <MasterIcon name={iconoInfo.id} size={26} />
                 </MasterIconBg>
               </View>
             )}

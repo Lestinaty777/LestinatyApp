@@ -4,6 +4,8 @@ import { StyleProp, StyleSheet, Text, TextInput, TextInputProps, TextStyle, View
 import { bordes } from '../fundamentos/bordes';
 import { colores } from '../fundamentos/colores';
 import { espaciado } from '../fundamentos/espaciado';
+import { useEscala } from '../tema/MasterColorContext';
+import type { EscalaMaster } from '../tema/escalaEsmeralda';
 
 type IconoCampo = ComponentType<{
   color?: string;
@@ -40,6 +42,7 @@ export function CampoTexto({
   variante = 'normal',
   ...props
 }: CampoTextoProps) {
+  const styles = useEstilosStyles();
   const colorIcono = error ? colores.error : colores.tintaTenue;
   const inputStyle = style as TextStyle | TextStyle[] | undefined;
 
@@ -62,7 +65,7 @@ export function CampoTexto({
   );
 }
 
-const styles = StyleSheet.create({
+const crearEstilosStyles = (esc: EscalaMaster) => StyleSheet.create({
   raiz: {
     gap: espaciado.sm,
   },
@@ -85,7 +88,7 @@ const styles = StyleSheet.create({
   campo_flotante: {
     borderColor: 'transparent',
     minHeight: 54,
-    shadowColor: '#26352C',
+    shadowColor: esc.musgo.l21,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.14,
     shadowRadius: 0,
@@ -113,3 +116,15 @@ const styles = StyleSheet.create({
     color: colores.error,
   },
 });
+
+const estilosPorEscalaStyles = new WeakMap<EscalaMaster, ReturnType<typeof crearEstilosStyles>>();
+
+function useEstilosStyles() {
+  const esc = useEscala();
+  let valor = estilosPorEscalaStyles.get(esc);
+  if (!valor) {
+    valor = crearEstilosStyles(esc);
+    estilosPorEscalaStyles.set(esc, valor);
+  }
+  return valor;
+}

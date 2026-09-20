@@ -4,6 +4,8 @@ import Animated, { useAnimatedStyle, withSpring } from 'react-native-reanimated'
 import { Texto } from './Texto';
 import { RecuadroGlass } from './RecuadroGlass';
 import { resolverIndiceTab } from './tabChanger.estado';
+import { useEscala } from '../tema/MasterColorContext';
+import type { EscalaMaster } from '../tema/escalaEsmeralda';
 
 export function TabChanger({
   tabs = ['Categorías', 'Hábitos'],
@@ -16,6 +18,7 @@ export function TabChanger({
   defaultValue?: number;
   onTabChange?: (index: number) => void;
 }) {
+  const styles = useEstilosStyles();
   const [internalIndex, setInternalIndex] = useState(defaultValue);
   const [width, setWidth] = useState(0);
   const activeIndex = resolverIndiceTab({ value, defaultValue, interno: internalIndex, cantidad: tabs.length });
@@ -67,7 +70,7 @@ export function TabChanger({
   );
 }
 
-const styles = StyleSheet.create({
+const crearEstilosStyles = (esc: EscalaMaster) => StyleSheet.create({
   container: {
     borderRadius: 20, // Capsula
     height: 32,
@@ -84,7 +87,7 @@ const styles = StyleSheet.create({
     left: 2, // Accounting for padding
     top: 2,
     height: 26,
-    backgroundColor: '#22C55E', // Verde saturado
+    backgroundColor: esc.jade.l70, // Verde saturado
     borderRadius: 13,
   },
   tabsRow: {
@@ -108,3 +111,15 @@ const styles = StyleSheet.create({
     color: '#FFFFFF', // Blanco
   },
 });
+
+const estilosPorEscalaStyles = new WeakMap<EscalaMaster, ReturnType<typeof crearEstilosStyles>>();
+
+function useEstilosStyles() {
+  const esc = useEscala();
+  let valor = estilosPorEscalaStyles.get(esc);
+  if (!valor) {
+    valor = crearEstilosStyles(esc);
+    estilosPorEscalaStyles.set(esc, valor);
+  }
+  return valor;
+}

@@ -7,6 +7,9 @@ import { useTranslation } from 'react-i18next';
 import { MasterIcon, Rebote, Texto } from '../../../diseno';
 import { hapticSeguro } from '../../../nucleo/dispositivo/haptics';
 import type { TipoMetaHabito } from '../tipos';
+import { useEscala } from '../../../diseno/tema/MasterColorContext';
+import type { EscalaMaster } from '../../../diseno/tema/escalaEsmeralda';
+import { conAlfa } from '../../../diseno/tema/masterColor';
 
 type WidgetRegistrarProgresoProps = {
   guardando: boolean;
@@ -24,7 +27,7 @@ type WidgetRegistrarProgresoProps = {
 // glass verde o acorde al bioma), la vista de progreso general por un control
 // interactivo de registro diario ágil, tactile y elegante.
 export function WidgetRegistrarProgreso({
-  colorBase = '#21A844',
+  colorBase = esc.hoja.l61a,
   guardando,
   meta,
   onCerrar,
@@ -34,6 +37,8 @@ export function WidgetRegistrarProgreso({
   unidad,
   valorInicial,
 }: WidgetRegistrarProgresoProps) {
+  const esc = useEscala();
+  const s = useEstilosS();
   const { t } = useTranslation();
   const hecho = valorInicial > 0;
   const color = colorBase;
@@ -44,7 +49,7 @@ export function WidgetRegistrarProgreso({
       <View style={[s.iconoAura, { backgroundColor: `${color}18`, borderColor: `${color}35` }]}>
         <MasterIcon
           name={tipoMeta === 'duracion' ? 'reloj' : tipoMeta === 'cantidad' ? 'progreso' : 'hoja'}
-          color={2}
+          alTema
           size={18}
         />
       </View>
@@ -59,7 +64,7 @@ export function WidgetRegistrarProgreso({
           </View>
           {hecho && (
             <View style={s.badgeCompletado}>
-              <Check color="#21A844" size={9} strokeWidth={3} />
+              <Check color={esc.hoja.l61a} size={9} strokeWidth={3} />
               <Texto style={s.badgeCompletadoTexto}>{t('habitos.progressWidget.readyToday')}</Texto>
             </View>
           )}
@@ -114,7 +119,7 @@ export function WidgetRegistrarProgreso({
           }}
           estilo={s.cerrar}
         >
-          <X color="#2F523B" size={15} strokeWidth={2.5} />
+          <X color={esc.musgo.l29} size={15} strokeWidth={2.5} />
         </Rebote>
       </View>
     </Animated.View>
@@ -132,6 +137,7 @@ function ControlCheck({
   onGuardar: (valor: number) => void;
   valorInicial: number;
 }) {
+  const s = useEstilosS();
   const { t } = useTranslation();
   const hecho = valorInicial > 0;
   return (
@@ -172,6 +178,7 @@ function ControlContador({
   onGuardar: (valor: number) => void;
   valorInicial: number;
 }) {
+  const s = useEstilosS();
   const { t } = useTranslation();
   const [valor, setValor] = useState(valorInicial);
   const porcentaje = Math.min(100, Math.round((valor / Math.max(1, meta)) * 100));
@@ -234,6 +241,8 @@ function ControlCronometro({
   onGuardar: (valor: number) => void;
   valorInicial: number;
 }) {
+  const esc = useEscala();
+  const s = useEstilosS();
   const { t } = useTranslation();
   const [segundos, setSegundos] = useState(valorInicial * 60);
   const [corriendo, setCorriendo] = useState(false);
@@ -265,7 +274,7 @@ function ControlCronometro({
   return (
     <View style={s.cronometroFila}>
       <View style={[s.cajaTiempo, { borderColor: corriendo ? `${color}55` : 'rgba(255,255,255,0.7)' }]}>
-        <View style={[s.puntoLuz, { backgroundColor: corriendo ? '#22C55E' : '#94A3B8' }]} />
+        <View style={[s.puntoLuz, { backgroundColor: corriendo ? esc.jade.l70 : '#94A3B8' }]} />
         <Texto style={[s.tiempoTexto, { color }]}>{tiempoFormateado}</Texto>
       </View>
 
@@ -304,7 +313,7 @@ function ControlCronometro({
   );
 }
 
-const s = StyleSheet.create({
+const crearEstilosS = (esc: EscalaMaster) => StyleSheet.create({
   raiz: {
     alignItems: 'center',
     flex: 1,
@@ -342,7 +351,7 @@ const s = StyleSheet.create({
   },
   badgeCompletado: {
     alignItems: 'center',
-    backgroundColor: 'rgba(33, 168, 68, 0.14)',
+    backgroundColor: conAlfa(esc.hoja.l61a, 0.14),
     borderRadius: 6,
     flexDirection: 'row',
     gap: 3,
@@ -350,18 +359,18 @@ const s = StyleSheet.create({
     paddingVertical: 1.5,
   },
   badgeCompletadoTexto: {
-    color: '#15803D',
+    color: esc.jade.l49,
     fontFamily: 'Montserrat-Bold',
     fontSize: 8.5,
   },
   titulo: {
-    color: '#143D1F',
+    color: esc.hoja.l22,
     fontFamily: 'MontserratAlternates-Bold',
     fontSize: 14.5,
     lineHeight: 18,
   },
   sub: {
-    color: '#4A7F5D',
+    color: esc.musgo.l49,
     fontFamily: 'Montserrat-Medium',
     fontSize: 10.5,
     lineHeight: 13,
@@ -417,7 +426,7 @@ const s = StyleSheet.create({
     fontSize: 14,
   },
   contadorMeta: {
-    color: '#5B8C65',
+    color: esc.musgo.l54,
     fontFamily: 'Montserrat-Medium',
     fontSize: 10,
   },
@@ -458,3 +467,15 @@ const s = StyleSheet.create({
     letterSpacing: 0.5,
   },
 });
+
+const estilosPorEscalaS = new WeakMap<EscalaMaster, ReturnType<typeof crearEstilosS>>();
+
+function useEstilosS() {
+  const esc = useEscala();
+  let valor = estilosPorEscalaS.get(esc);
+  if (!valor) {
+    valor = crearEstilosS(esc);
+    estilosPorEscalaS.set(esc, valor);
+  }
+  return valor;
+}

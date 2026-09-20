@@ -175,19 +175,25 @@ class HabitoFocoWidgetProvider : AppWidgetProvider() {
 
             if (habitoId.isNullOrEmpty() || titulo.isNullOrEmpty()) {
                 views.setTextViewText(R.id.widget_titulo, context.getString(R.string.widget_sin_habito_titulo))
+                views.setTextColor(R.id.widget_titulo, ContextCompat.getColor(context, R.color.widget_texto_principal))
                 views.setViewVisibility(R.id.widget_progreso_texto, View.VISIBLE)
                 views.setTextViewText(R.id.widget_progreso_texto, context.getString(R.string.widget_sin_habito_desc))
                 views.setViewVisibility(R.id.widget_racha_chip, View.GONE)
                 views.setViewVisibility(R.id.widget_boton_accion, View.GONE)
                 views.setViewVisibility(R.id.widget_semana_fila, View.GONE)
+                // Sin ilustración real todavía — sin degradado tampoco, se vería
+                // como una mancha oscura flotando sobre el fondo de cristal.
+                views.setViewVisibility(R.id.widget_scrim, View.GONE)
                 views.setImageViewResource(R.id.widget_etapa_imagen, R.drawable.ic_widget_leaf)
             } else {
                 views.setViewVisibility(R.id.widget_racha_chip, View.VISIBLE)
                 views.setViewVisibility(R.id.widget_boton_accion, View.VISIBLE)
                 views.setViewVisibility(R.id.widget_semana_fila, View.VISIBLE)
+                views.setViewVisibility(R.id.widget_scrim, View.VISIBLE)
                 views.setViewVisibility(R.id.widget_progreso_texto, View.GONE)
 
                 views.setTextViewText(R.id.widget_titulo, titulo)
+                views.setTextColor(R.id.widget_titulo, ContextCompat.getColor(context, R.color.widget_titulo_sobre_imagen))
 
                 // Ilustración de la etapa actual del árbol — el nombre del
                 // recurso ya viene resuelto desde JS (Image.resolveAssetSource),

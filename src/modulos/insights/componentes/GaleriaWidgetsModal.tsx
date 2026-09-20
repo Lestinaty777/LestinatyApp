@@ -13,13 +13,17 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { X, Sparkles, CheckCircle2, Flame, Trophy, Info, Plus } from 'lucide-react-native';
 
 import { MasterGlass, Texto, Rebote, MasterIcon, MasterProgressbar } from '../../../diseno';
+import { useEscala } from '../../../diseno/tema/MasterColorContext';
+import type { EscalaMaster } from '../../../diseno/tema/escalaEsmeralda';
+import { ESCALA_ESMERALDA } from '../../../diseno/tema/escalaEsmeralda';
+import { conAlfa } from '../../../diseno/tema/masterColor';
 
 const { width: ANCHO_PANTALLA } = Dimensions.get('window');
 const C = {
   texto: '#1A1335',
-  tenue: '#648170',
-  verde: '#25884C',
-  verdeFondo: '#E8F7E9',
+  tenue: ESCALA_ESMERALDA.musgo.l51,
+  verde: ESCALA_ESMERALDA.jade.l50,
+  verdeFondo: ESCALA_ESMERALDA.hoja.l95,
   naranja: '#EA580C',
   dorado: '#EAB308',
   glass: 'rgba(255,255,255,0.85)',
@@ -34,6 +38,8 @@ interface Props {
 }
 
 export function GaleriaWidgetsModal({ visible, onCerrar }: Props) {
+  const esc = useEscala();
+  const s = useEstilosS();
   const insets = useSafeAreaInsets();
   const [widgetActivo, setWidgetActivo] = useState<TipoWidget>('racha_2x2');
 
@@ -46,7 +52,7 @@ export function GaleriaWidgetsModal({ visible, onCerrar }: Props) {
       onRequestClose={onCerrar}
     >
       <LinearGradient
-        colors={['#F7FDF7', '#E8F7E9', '#D5F2D8']}
+        colors={[esc.hoja.l99, esc.hoja.l95, esc.hoja.l93]}
         style={[s.raiz, { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 16 }]}
       >
         {/* Cabecera del Modal */}
@@ -145,6 +151,7 @@ export function GaleriaWidgetsModal({ visible, onCerrar }: Props) {
 // ─────────────────────────────────────────────────────────────
 
 function PreviewWidgetRacha2x2() {
+  const s = useEstilosS();
   return (
     <View style={s.widget2x2Wrapper}>
       <MasterGlass style={s.widget2x2Glass}>
@@ -173,6 +180,7 @@ function PreviewWidgetRacha2x2() {
 }
 
 function PreviewWidgetHabitos4x2() {
+  const s = useEstilosS();
   const habitos = [
     { id: '1', nombre: 'Meditación matutina', hecho: true, icono: 'cerebro' },
     { id: '2', nombre: 'Beber 2L de agua', hecho: true, icono: 'tomar-agua' },
@@ -184,10 +192,7 @@ function PreviewWidgetHabitos4x2() {
       <MasterGlass style={s.widget4x2Glass}>
         <View style={s.wHabitosHeader}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-            <Image
-              source={require('../../../../assets/icons/navegacion/inisghts.png')}
-              style={{ width: 20, height: 20, resizeMode: 'contain' }}
-            />
+            <MasterIcon name="navegacion/insights" size={20} />
             <Texto style={s.wHabitosTitulo}>Hábitos de Hoy</Texto>
           </View>
           <Texto style={s.wHabitosContador}>2/3</Texto>
@@ -218,14 +223,12 @@ function PreviewWidgetHabitos4x2() {
 }
 
 function PreviewWidgetAby3x2() {
+  const s = useEstilosS();
   return (
     <View style={s.widget3x2Wrapper}>
       <MasterGlass style={s.widget3x2Glass}>
         <View style={s.wAbyFila}>
-          <Image
-            source={require('../../../../assets/icons/ui/cerebro.png')}
-            style={{ width: 28, height: 28, resizeMode: 'contain', opacity: 0.9 }}
-          />
+          <View style={{ opacity: 0.9 }}><MasterIcon name="cerebro" size={28} /></View>
           <View style={{ flex: 1 }}>
             <Texto style={s.wAbyAutor}>Aby · Ángel Guía</Texto>
             <Texto style={s.wAbyCita}>
@@ -239,6 +242,7 @@ function PreviewWidgetAby3x2() {
 }
 
 function PreviewWidgetSemana4x2() {
+  const s = useEstilosS();
   const DIAS = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
   const PORCENTAJES = [80, 100, 70, 90, 60, 40, 95];
 
@@ -265,7 +269,7 @@ function PreviewWidgetSemana4x2() {
   );
 }
 
-const s = StyleSheet.create({
+const crearEstilosS = (esc: EscalaMaster) => StyleSheet.create({
   raiz: { flex: 1 },
   header: {
     alignItems: 'flex-start',
@@ -276,7 +280,7 @@ const s = StyleSheet.create({
   },
   etiquetaPro: {
     alignItems: 'center',
-    backgroundColor: 'rgba(37,136,76,0.12)',
+    backgroundColor: conAlfa(esc.jade.l50, 0.12),
     borderRadius: 12,
     flexDirection: 'row',
     gap: 4,
@@ -409,7 +413,7 @@ const s = StyleSheet.create({
   },
   guiaNumero: {
     alignItems: 'center',
-    backgroundColor: 'rgba(37,136,76,0.15)',
+    backgroundColor: conAlfa(esc.jade.l50, 0.15),
     borderRadius: 12,
     height: 22,
     justifyContent: 'center',
@@ -533,7 +537,7 @@ const s = StyleSheet.create({
     justifyContent: 'center',
   },
   wHabitoCheckVacio: {
-    borderColor: 'rgba(37,136,76,0.4)',
+    borderColor: conAlfa(esc.jade.l50, 0.4),
     borderRadius: 10,
     borderWidth: 1.5,
     height: 16,
@@ -609,7 +613,7 @@ const s = StyleSheet.create({
     gap: 4,
   },
   wSemanaBarraFondo: {
-    backgroundColor: 'rgba(37,136,76,0.12)',
+    backgroundColor: conAlfa(esc.jade.l50, 0.12),
     borderRadius: 5,
     flex: 1,
     justifyContent: 'flex-end',
@@ -627,3 +631,15 @@ const s = StyleSheet.create({
     fontSize: 8,
   },
 });
+
+const estilosPorEscalaS = new WeakMap<EscalaMaster, ReturnType<typeof crearEstilosS>>();
+
+function useEstilosS() {
+  const esc = useEscala();
+  let valor = estilosPorEscalaS.get(esc);
+  if (!valor) {
+    valor = crearEstilosS(esc);
+    estilosPorEscalaS.set(esc, valor);
+  }
+  return valor;
+}

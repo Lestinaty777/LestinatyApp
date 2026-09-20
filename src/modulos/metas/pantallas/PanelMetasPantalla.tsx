@@ -22,16 +22,17 @@ import {
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { useRouter } from 'expo-router';
 
-import { RecuadroGlass, Texto, PixelartIcon } from '../../../diseno';
+import { RecuadroGlass, Texto, PixelartIcon, MasterIcon } from '../../../diseno';
 import { hapticSeguro } from '../../../nucleo/dispositivo/haptics';
+import { ESCALA_ESMERALDA } from '../../../diseno/tema/escalaEsmeralda';
 
 // ─── Paleta Dark ─────────────────────────────────────────────────────────────
 const D = {
   fondo:         '#0D0F1A',
   texto:         '#F0F2FF',
   textoSuave:    '#8A90B4',
-  verde:         '#4ADE80',
-  verdeOscuro:   '#166534',
+  verde:         ESCALA_ESMERALDA.jade.l79,
+  verdeOscuro:   ESCALA_ESMERALDA.jade.l38,
   naranja:       '#F59E0B',
   naranjaOscuro: '#92400E',
   rojo:          '#EF4444',
@@ -166,10 +167,10 @@ type DatoCategoria = {
 };
 
 const CATEGORIAS: DatoCategoria[] = [
-  { id: 'habitos', label: 'Hábitos', progreso: '1/3', color: D.verde,  colorOscuro: D.verdeOscuro,   icono: require('../../../../assets/icons/hoy/habitos.png'), ruta: '/habitos'     },
-  { id: 'tareas',  label: 'Tareas',  progreso: '2/4', color: D.naranja, colorOscuro: D.naranjaOscuro, icono: require('../../../../assets/icons/hoy/tareas.png'), ruta: '/tareas'      },
-  { id: 'rutinas', label: 'Rutinas', progreso: '1/2', color: D.rojo,   colorOscuro: D.rojoOscuro,    icono: require('../../../../assets/icons/hoy/rutinas.png'), ruta: '/rutinas'     },
-  { id: 'metas',   label: 'Metas',   progreso: '0/1', color: D.morado,  colorOscuro: D.moradoOscuro,  icono: require('../../../../assets/icons/hoy/metas.png'), ruta: '/metas-lista' },
+  { id: 'habitos', label: 'Hábitos', progreso: '1/3', color: D.verde,  colorOscuro: D.verdeOscuro,   icono: 'hoy/habitos', ruta: '/habitos'     },
+  { id: 'tareas',  label: 'Tareas',  progreso: '2/4', color: D.naranja, colorOscuro: D.naranjaOscuro, icono: 'hoy/tareas', ruta: '/tareas'      },
+  { id: 'rutinas', label: 'Rutinas', progreso: '1/2', color: D.rojo,   colorOscuro: D.rojoOscuro,    icono: 'hoy/rutinas', ruta: '/rutinas'     },
+  { id: 'metas',   label: 'Metas',   progreso: '0/1', color: D.morado,  colorOscuro: D.moradoOscuro,  icono: 'hoy/metas', ruta: '/metas-lista' },
 ];
 
 function CardCategoria({ dato }: { dato: DatoCategoria }) {
@@ -185,7 +186,7 @@ function CardCategoria({ dato }: { dato: DatoCategoria }) {
     >
       <RecuadroGlass modo="dark" blur style={s.cardCategoria}>
         <View style={s.cardCategoriaIconoWrap}>
-          <Image source={dato.icono} style={{ width: 52, height: 52 }} resizeMode="contain" />
+          <MasterIcon name={dato.icono} size={52} />
         </View>
 
         <View style={s.cardCategoriaTextos}>

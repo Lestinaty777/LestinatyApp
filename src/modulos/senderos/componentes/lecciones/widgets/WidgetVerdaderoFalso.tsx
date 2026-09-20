@@ -3,8 +3,11 @@ import { View, Pressable, StyleSheet } from 'react-native';
 import { Texto } from '../../../../../diseno';
 import type { ConfigVerdaderoFalso } from '../../../motor/sdui/lecciones/tiposLeccion';
 import type { WidgetLeccionProps } from '../registroLecciones';
+import { useEscala } from '../../../../../diseno/tema/MasterColorContext';
+import type { EscalaMaster } from '../../../../../diseno/tema/escalaEsmeralda';
 
 export function WidgetVerdaderoFalso({ paso, onCompletado }: WidgetLeccionProps<ConfigVerdaderoFalso>) {
+  const styles = useEstilosStyles();
   const { afirmacion, esVerdadero } = paso.config;
   const [seleccion, setSeleccion] = useState<boolean | null>(null);
 
@@ -45,13 +48,13 @@ export function WidgetVerdaderoFalso({ paso, onCompletado }: WidgetLeccionProps<
   );
 }
 
-const styles = StyleSheet.create({
+const crearEstilosStyles = (esc: EscalaMaster) => StyleSheet.create({
   contenedor: { flex: 1, padding: 20, justifyContent: 'space-between' },
   tarjeta: { backgroundColor: '#F3E8FF', padding: 30, borderRadius: 16, marginTop: 20, alignItems: 'center' },
   pregunta: { fontSize: 22, fontWeight: 'bold', color: '#5B2E91', textAlign: 'center' },
   botonesColumna: { gap: 16 },
   botonOpcion: { borderWidth: 2, borderColor: '#E5E5E5', borderRadius: 16, padding: 20, alignItems: 'center' },
-  botonOpcionSeleccionadoVerdadero: { borderColor: '#58a700', backgroundColor: '#d7ffb8' },
+  botonOpcionSeleccionadoVerdadero: { borderColor: esc.lima.l61, backgroundColor: esc.lima.l93 },
   botonOpcionSeleccionadoFalso: { borderColor: '#ea2b2b', backgroundColor: '#ffdfe0' },
   textoOpcion: { fontSize: 18, color: '#333', fontWeight: 'bold' },
   textoOpcionSeleccionado: { color: '#333' },
@@ -59,3 +62,15 @@ const styles = StyleSheet.create({
   botonDeshabilitado: { backgroundColor: '#D1D5DB' },
   textoBoton: { color: 'white', fontSize: 16, fontWeight: 'bold' }
 });
+
+const estilosPorEscalaStyles = new WeakMap<EscalaMaster, ReturnType<typeof crearEstilosStyles>>();
+
+function useEstilosStyles() {
+  const esc = useEscala();
+  let valor = estilosPorEscalaStyles.get(esc);
+  if (!valor) {
+    valor = crearEstilosStyles(esc);
+    estilosPorEscalaStyles.set(esc, valor);
+  }
+  return valor;
+}

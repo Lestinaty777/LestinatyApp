@@ -15,6 +15,10 @@ import {
 } from 'lucide-react-native';
 
 import { Texto } from '../../../diseno';
+import { useEscala } from '../../../diseno/tema/MasterColorContext';
+import type { EscalaMaster } from '../../../diseno/tema/escalaEsmeralda';
+import { ESCALA_ESMERALDA } from '../../../diseno/tema/escalaEsmeralda';
+import { conAlfa } from '../../../diseno/tema/masterColor';
 
 type ChasisTelefonoAndroidProps = {
   children: ReactNode;
@@ -31,7 +35,7 @@ const APPS_FILA_SUPERIOR = [
 ] as const;
 
 const APPS_DOCK_INFERIOR = [
-  { id: 'tel', nombre: 'Teléfono', color: '#16A34A', Icono: Phone },
+  { id: 'tel', nombre: 'Teléfono', color: ESCALA_ESMERALDA.jade.l59a, Icono: Phone },
   { id: 'msg', nombre: 'Mensajes', color: '#0284C7', Icono: MessageSquare },
   { id: 'web', nombre: 'Chrome', color: '#EAB308', Icono: Globe },
   { id: 'cam', nombre: 'Cámara', color: '#DC2626', Icono: Camera },
@@ -48,6 +52,8 @@ export function ChasisTelefonoAndroid({
   ancho = 320,
   alto = 590,
 }: ChasisTelefonoAndroidProps) {
+  const esc = useEscala();
+  const ch = useEstilosCh();
   return (
     <View style={[ch.contenedorExterno, { width: ancho + 8, height: alto }]}>
       {/* Botones físicos laterales del teléfono */}
@@ -60,7 +66,7 @@ export function ChasisTelefonoAndroid({
         <View style={ch.pantallaInterior}>
           {/* Wallpaper orgánico de selva profunda / atmósfera Lestinaty */}
           <LinearGradient
-            colors={['#08170E', '#0A2A18', '#071F12', '#020C06']}
+            colors={[esc.musgo.l10, esc.hoja.l19, esc.musgo.l10, '#020C06']}
             locations={[0, 0.35, 0.7, 1]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
@@ -153,7 +159,7 @@ export function ChasisTelefonoAndroid({
   );
 }
 
-const ch = StyleSheet.create({
+const crearEstilosCh = (esc: EscalaMaster) => StyleSheet.create({
   contenedorExterno: {
     alignSelf: 'center',
     alignItems: 'center',
@@ -200,7 +206,7 @@ const ch = StyleSheet.create({
     width: 200,
     height: 200,
     borderRadius: 100,
-    backgroundColor: 'rgba(34, 197, 94, 0.16)',
+    backgroundColor: conAlfa(esc.jade.l70, 0.16),
   },
   orbLuzDorado: {
     position: 'absolute',
@@ -376,3 +382,15 @@ const ch = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.6)',
   },
 });
+
+const estilosPorEscalaCh = new WeakMap<EscalaMaster, ReturnType<typeof crearEstilosCh>>();
+
+function useEstilosCh() {
+  const esc = useEscala();
+  let valor = estilosPorEscalaCh.get(esc);
+  if (!valor) {
+    valor = crearEstilosCh(esc);
+    estilosPorEscalaCh.set(esc, valor);
+  }
+  return valor;
+}

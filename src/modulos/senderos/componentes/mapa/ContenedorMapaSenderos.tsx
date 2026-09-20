@@ -19,6 +19,9 @@ import { resolverPaqueteHabito } from '../../../habitos/paqueteHabito';
 import { useTranslation } from 'react-i18next';
 
 import { NodoSendero } from './NodoSendero';
+import { useEscala } from '../../../../diseno/tema/MasterColorContext';
+import type { EscalaMaster } from '../../../../diseno/tema/escalaEsmeralda';
+import { ESCALA_ESMERALDA } from '../../../../diseno/tema/escalaEsmeralda';
 
 type ContenedorMapaSenderosProps = {
   altura: number;
@@ -55,6 +58,7 @@ const zIndexPorCapa = { fondo: 1, medio: 3, frente: 4 } as const;
 // Skia (igual que AcentoBlur en PedestalNodo.tsx: una <View> con opacity no
 // se difumina, hace falta BlurMask sobre un <Canvas>).
 function SombraSuelo({ tamano, vegetacion = false }: { tamano: number; vegetacion?: boolean }) {
+  const esc = useEscala();
   // Las copas llevan mucho aire transparente dentro del PNG. Para árboles,
   // flores y arbustos la sombra se calcula desde su tamaño final, pero con
   // una huella de base más compacta que la de una roca o macizo de pasto.
@@ -70,7 +74,7 @@ function SombraSuelo({ tamano, vegetacion = false }: { tamano: number; vegetacio
   return (
     <Canvas pointerEvents="none" style={[StyleSheet.absoluteFill, { height: tamano, width: tamano }]}>
       <Group opacity={vegetacion ? 0.3 : 0.32}>
-        <Oval color="#0B3D1F" height={alto} width={ancho} x={x} y={y}>
+        <Oval color={esc.hoja.l22} height={alto} width={ancho} x={x} y={y}>
           <BlurMask blur={desenfoque} style="normal" />
         </Oval>
       </Group>
@@ -79,10 +83,12 @@ function SombraSuelo({ tamano, vegetacion = false }: { tamano: number; vegetacio
 }
 
 function SombraLampara() {
+  const esc = useEscala();
+  const styles = useEstilosStyles();
   return (
     <Canvas pointerEvents="none" style={styles.sombraLampara}>
       <Group opacity={0.18}>
-        <Oval color="#0B3D1F" height={5} width={34} x={4} y={53}>
+        <Oval color={esc.hoja.l22} height={5} width={34} x={4} y={53}>
           <BlurMask blur={2.4} style="normal" />
         </Oval>
       </Group>
@@ -112,7 +118,7 @@ function aclarar(color: string, factor = 0.7) {
 
 const TONOS_TOOLTIP_MASTER: Record<ColorMaster, { aurora: string; base: string; texto: string }> = {
   1: { aurora: '#60A5FA', base: '#3B82F6', texto: '#1D4ED8' },
-  2: { aurora: '#4ADE80', base: '#22C55E', texto: '#15803D' },
+  2: { aurora: ESCALA_ESMERALDA.jade.l79, base: ESCALA_ESMERALDA.jade.l70, texto: ESCALA_ESMERALDA.jade.l49 },
   3: { aurora: '#FDE047', base: '#EAB308', texto: '#A16207' },
   4: { aurora: '#FDBA74', base: '#F97316', texto: '#C2410C' },
   5: { aurora: '#FB7185', base: '#EF4444', texto: '#BE123C' },
@@ -123,6 +129,7 @@ const TONOS_TOOLTIP_MASTER: Record<ColorMaster, { aurora: string; base: string; 
 // Versión breve de la aurora de Inicio: una sola pasada al montar el tooltip.
 // Evita un loop permanente en un elemento que se abre/cierra con frecuencia.
 function AuroraTooltip({ color }: { color: string }) {
+  const styles = useEstilosStyles();
   const progreso = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -154,6 +161,7 @@ function AuroraTooltip({ color }: { color: string }) {
 // Acento curvo inspirado en el brillo inferior del PedestalNodo: conecta el
 // tooltip con el nodo sin copiar su forma circular ni competir con el texto.
 function AcentoTooltipNodo({ color }: { color: string }) {
+  const styles = useEstilosStyles();
   return (
     <Canvas pointerEvents="none" style={styles.acentoTooltipNodo}>
       <Group opacity={0.38}>
@@ -194,6 +202,7 @@ const CapaDecoracionMapa = React.memo(function CapaDecoracionMapa({
   nivel,
   paqueteId,
 }: CapaDecoracionMapaProps) {
+  const styles = useEstilosStyles();
   const estaVisible = (arriba: number, alto: number) => arriba + alto >= inicioVentana && arriba <= finVentana;
 
   return (
@@ -285,6 +294,7 @@ const CapaDecoracionMapa = React.memo(function CapaDecoracionMapa({
 });
 
 export function ContenedorMapaSenderos({ altura, categoriaId, color, desplazamientoSuperior, enfocado, infoHabito, nivel, nodos: nodosOverride, onCompletarNodo, paqueteId, progresoPastoTemprano, subcategoriaId }: ContenedorMapaSenderosProps) {
+  const styles = useEstilosStyles();
   const { width } = useWindowDimensions();
   const router = useRouter();
   const scrollRef = useRef<ScrollView>(null);
@@ -506,14 +516,16 @@ function TooltipNodoSeleccionado({ anchoEscena, color, estado, infoHabito, nodo,
   posicion: { x: number; y: number };
   onCompletar: () => void;
 }) {
+  const esc = useEscala();
+  const styles = useEstilosStyles();
   const { t } = useTranslation();
   const anchoTooltip = 340;
   const izquierdaTooltip = anchoEscena / 2 - anchoTooltip / 2;
   const izquierdaFlecha = posicion.x - izquierdaTooltip - 10;
   const IconoNodo = nodo.icono;
-  const REFERENCIA_HUE = '#21A844';
-  const PALETA_BASE = ['#B4DC9B', '#DEFCDD', '#B2EEB1', '#44B042', '#248723', '#53C35D', '#21A844', '#69C068', '#28A116'] as const;
-  const PALETA_BLOQUEADA = ['#EDFFED', '#CDFACC', '#C8E0B8', '#E2FFE2', '#C0EEBF', '#206116', '#ADF1B3', '#8AE280'] as const;
+  const REFERENCIA_HUE = esc.hoja.l61a;
+  const PALETA_BASE = [esc.lima.l84, esc.lima.l94, esc.lima.l89, esc.hoja.l64a, esc.hoja.l49, esc.hoja.l71a, esc.hoja.l61a, esc.hoja.l69, esc.lima.l58] as const;
+  const PALETA_BLOQUEADA = [esc.lima.l99a, esc.hoja.l90, esc.lima.l87a, esc.hoja.l93, esc.hoja.l90, esc.lima.l40, esc.hoja.l89, esc.lima.l83] as const;
 
   const colorBaseTooltip = estado === 'bloqueado' ? '#666666' : color;
   const colorFlechita = estado === 'bloqueado' ? '#444444' : color;
@@ -574,6 +586,7 @@ function TooltipNodoSeleccionado({ anchoEscena, color, estado, infoHabito, nodo,
 }
 
 function DecoracionSendero({ arriba, izquierda, tamano }: { arriba: number; izquierda: number; tamano: number }) {
+  const styles = useEstilosStyles();
   return (
     <View pointerEvents="none" style={[styles.decoracion, { left: izquierda, top: arriba, transform: [{ scale: tamano / 34 }], zIndex: 10 }]}>
       <SombraLampara />
@@ -589,9 +602,9 @@ function DecoracionSendero({ arriba, izquierda, tamano }: { arriba: number; izqu
   );
 }
 
-const styles = StyleSheet.create({
+const crearEstilosStyles = (esc: EscalaMaster) => StyleSheet.create({
   raiz: {
-    backgroundColor: '#c4e7c6',
+    backgroundColor: esc.hoja.l91,
   },
   contenido: {
     position: 'relative',
@@ -744,3 +757,15 @@ const styles = StyleSheet.create({
     width: 72,
   },
 });
+
+const estilosPorEscalaStyles = new WeakMap<EscalaMaster, ReturnType<typeof crearEstilosStyles>>();
+
+function useEstilosStyles() {
+  const esc = useEscala();
+  let valor = estilosPorEscalaStyles.get(esc);
+  if (!valor) {
+    valor = crearEstilosStyles(esc);
+    estilosPorEscalaStyles.set(esc, valor);
+  }
+  return valor;
+}

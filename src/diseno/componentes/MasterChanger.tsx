@@ -3,11 +3,33 @@ import type { ImageSourcePropType } from 'react-native';
 import {
   Canvas,
   Image,
-  useImage,
+  ImageShader,
   ColorMatrix,
+  Rect,
+  Shader,
+  Skia,
   type SkImage,
+  type SkRuntimeEffect,
 } from '@shopify/react-native-skia';
-import { aplicarOscurecido, calcularMatrizHue, componerMatrices, matrizSaturacion } from '../tema/matrizColor';
+import { useImagenSkiaCompartida } from '../iconos/imagenSkiaCompartida';
+import { SKSL_TINTE_HSV } from '../iconos/tinteHsv';
+import { aplicarOscurecido, calcularMatrizHue, componerMatrices, esHueVerde, matrizSaturacion, matrizSoloClaros } from '../tema/matrizColor';
+
+// Shader de teñido por píxel en HSV (ver tinteHsv.ts): conserva la saturación al cambiar de matiz,
+// que es lo que la matriz de color no puede hacer (un verde vivo pasaba a un rojo pastel). Se
+// compila una vez; si el motor no lo acepta devuelve null y se usa la matriz de siempre.
+let efectoTinte: SkRuntimeEffect | null | undefined;
+function obtenerEfectoTinte(): SkRuntimeEffect | null {
+  if (efectoTinte === undefined) {
+    try {
+      efectoTinte = Skia.RuntimeEffect.Make(SKSL_TINTE_HSV);
+    } catch {
+      efectoTinte = null;
+    }
+    if (efectoTinte === null && __DEV__) console.warn('MasterChanger: el shader de teñido HSV no compiló; se usa la matriz de color (colores más pastel).');
+  }
+  return efectoTinte;
+}
 
 // ─── Colores Destino (Hue en grados) ─────────────────────────────────────────
 export const COLORES_MASTER = {
@@ -171,8 +193,17 @@ interface MasterChangerProps {
    * es lo que usa un TonoMaster de paquete. Tiene prioridad sobre `colorDestino`.
    */
   hueDestino?: number;
-  /** Saturación tras rotar el hue: 1 = sin cambio, 0 = grises. */
+  /**
+   * Rotación de tema en grados, RELATIVA: cada icono gira lo mismo respecto a
+   * su propio hue (así conservan la variedad de verdes que tienen), y solo si
+   * su hue dominante es verde — los iconos de otro color no se tocan.
+   * Se ignora si se pide un `hueDestino` o `colorDestino` explícito.
+   */
+  deltaTema?: number;
+  /** Saturación al teñir (por hue explícito o por tema): 1 = sin cambio, 0 = grises. */
   saturacion?: number;
+  /** Como `oscurecido`, pero solo cuando el icono se tiñe (por hue explícito o por tema). */
+  oscurecidoTema?: number;
   /** Cómo encaja la imagen en el canvas. Por defecto "contain" (no recorta íconos). */
   fit?: 'contain' | 'cover' | 'fill' | 'fitHeight' | 'fitWidth' | 'none' | 'scaleDown';
   /**
@@ -191,40 +222,61 @@ export function MasterChanger({
   hueOrigen,
   colorDestino,
   hueDestino,
+  deltaTema,
   saturacion = 1,
+  oscurecidoTema = 1,
   fit = 'contain',
   oscurecido = 1,
 }: MasterChangerProps) {
-  // Skia tipa useImage de forma más estricta (DataSourceParam) de lo que
-  // realmente acepta en tiempo de ejecución (require() numérico o uri) — cast
-  // deliberado, no un error real.
-  const imagen = useImage(fuente as never);
+  const imagen = useImagenSkiaCompartida(fuente);
   const hueDetectado = useHueDominante(hueOrigen === undefined ? imagen : null);
   const hueEfectivo = hueOrigen ?? hueDetectado;
 
-  const colorMatrix = useMemo(() => {
+  // Plan de dibujo. Con teñido y shader disponible: rotación HSV por píxel, con el oscurecido del tono
+  // pesado por saturación (el blanco no se toca, solo lo que tenía color). Sin shader, o si solo se
+  // oscurece: matriz de color; con tono oscuro son dos capas (la de arriba repite solo los claros).
+  const plan = useMemo(() => {
     const hueObjetivo = hueDestino ?? (colorDestino !== undefined ? COLORES_MASTER[colorDestino].hue : undefined);
-    if (hueObjetivo === undefined && oscurecido === 1 && saturacion === 1) return null;
-    const delta = hueObjetivo !== undefined && hueEfectivo !== null ? calcularDeltaHue(hueEfectivo, hueObjetivo) : 0;
-    return aplicarOscurecido(componerMatrices(calcularMatrizHue(delta), matrizSaturacion(saturacion)), oscurecido);
-  }, [hueEfectivo, colorDestino, hueDestino, oscurecido, saturacion]);
+    const aplicaTema = hueObjetivo === undefined && deltaTema !== undefined && hueEfectivo !== null && esHueVerde(hueEfectivo);
+    const teñido = hueObjetivo !== undefined || aplicaTema;
+    const oscuridadTotal = oscurecido * (teñido ? oscurecidoTema : 1);
+    if (!teñido && oscuridadTotal === 1) return null;
+    if (!teñido) return { modo: 'matriz' as const, color: aplicarOscurecido(calcularMatrizHue(0), oscuridadTotal), claros: null };
+    const delta = hueObjetivo !== undefined ? (hueEfectivo !== null ? calcularDeltaHue(hueEfectivo, hueObjetivo) : 0) : (deltaTema as number);
+    const efecto = obtenerEfectoTinte();
+    if (efecto) return { modo: 'shader' as const, efecto, uniforms: { delta, saturacion, oscuroTema: oscurecidoTema, oscuroGlobal: oscurecido } };
+    const rotada = componerMatrices(calcularMatrizHue(delta), matrizSaturacion(saturacion));
+    return {
+      modo: 'matriz' as const,
+      color: aplicarOscurecido(rotada, oscuridadTotal),
+      claros: oscurecidoTema !== 1 ? matrizSoloClaros(aplicarOscurecido(rotada, oscurecido)) : null,
+    };
+  }, [hueEfectivo, colorDestino, hueDestino, deltaTema, oscurecido, oscurecidoTema, saturacion]);
 
   if (!imagen) return null;
 
+  if (plan?.modo === 'shader') {
+    return (
+      <Canvas opaque={false} style={{ width: ancho, height: alto }}>
+        <Rect x={0} y={0} width={ancho} height={alto}>
+          <Shader source={plan.efecto} uniforms={plan.uniforms}>
+            <ImageShader image={imagen} fit={fit} x={0} y={0} width={ancho} height={alto} />
+          </Shader>
+        </Rect>
+      </Canvas>
+    );
+  }
+
   return (
     <Canvas opaque={false} style={{ width: ancho, height: alto }}>
-      <Image
-        image={imagen}
-        x={0}
-        y={0}
-        width={ancho}
-        height={alto}
-        fit={fit}
-      >
-        {colorMatrix && (
-          <ColorMatrix matrix={colorMatrix} />
-        )}
+      <Image image={imagen} x={0} y={0} width={ancho} height={alto} fit={fit}>
+        {plan && <ColorMatrix matrix={plan.color} />}
       </Image>
+      {plan?.claros && (
+        <Image image={imagen} x={0} y={0} width={ancho} height={alto} fit={fit}>
+          <ColorMatrix matrix={plan.claros} />
+        </Image>
+      )}
     </Canvas>
   );
 }

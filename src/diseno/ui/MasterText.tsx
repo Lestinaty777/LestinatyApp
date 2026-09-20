@@ -18,7 +18,9 @@ import Svg, {
 } from 'react-native-svg';
 
 import { tipografia } from '../fundamentos/tipografia';
+import { useTonoMaster } from '../tema/MasterColorContext';
 import { obtenerColoresUI } from '../tema/ui';
+import { ESCALA_ESMERALDA } from '../tema/escalaEsmeralda';
 
 // Cargar MaskedView nativo si está disponible
 let MaskedViewComponent: ComponentType<any> | null = null;
@@ -31,8 +33,8 @@ try {
 }
 
 // Degradado verde por defecto del sistema Master (idéntico a la identidad de la app)
-export const DEGRADADO_VERDE_MASTER = ['#4AE67D', '#1B9A4B', '#116C33'] as const;
-export const COLOR_VERDE_FALLBACK = '#1B8742';
+export const DEGRADADO_VERDE_MASTER = [ESCALA_ESMERALDA.hoja.l82, ESCALA_ESMERALDA.jade.l56, ESCALA_ESMERALDA.jade.l40] as const;
+export const COLOR_VERDE_FALLBACK = ESCALA_ESMERALDA.jade.l49;
 
 export type VarianteMasterText = 'titulo' | 'subtitulo' | 'cuerpo' | 'ayuda';
 
@@ -270,8 +272,8 @@ function normalizarObjetivos(
 export function MasterText({
   children,
   gradiente,
-  coloresGradiente = DEGRADADO_VERDE_MASTER,
-  colorFallback = COLOR_VERDE_FALLBACK,
+  coloresGradiente: coloresGradienteProp,
+  colorFallback: colorFallbackProp,
   variante = 'cuerpo',
   start = { x: 0, y: 0 },
   end = { x: 1, y: 0 },
@@ -279,6 +281,10 @@ export function MasterText({
   ...resto
 }: MasterTextProps) {
   const coloresUI = obtenerColoresUI();
+  // Sin colores explícitos toma los del tono activo (Esmeralda = DEGRADADO_VERDE_MASTER / COLOR_VERDE_FALLBACK).
+  const { degradados: g } = useTonoMaster();
+  const coloresGradiente = coloresGradienteProp ?? g.texto;
+  const colorFallback = colorFallbackProp ?? g.textoSolido;
 
   const estiloBase = [
     s.base,

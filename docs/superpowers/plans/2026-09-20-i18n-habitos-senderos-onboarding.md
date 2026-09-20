@@ -71,8 +71,10 @@ expect(Object.keys(recursosI18n.es.translation).sort())
 
 - [x] **Step 1: Inventariar textos visibles, alertas y descripciones de nodo.**
 - [x] **Step 2: Registrar par ES/EN para el switcher y tooltip del mapa; reemplazarlo con `t`, interpolando metas y unidades.**
-- [ ] **Step 3: Auditar `MapaSenderosPantalla.tsx` y todo texto restante de sus componentes directos.**
-- [ ] **Step 4: Ejecutar `npx vitest run src/modulos/senderos/algoritmo/mapaProcedural.test.ts` y comprobación de TypeScript local.**
+- [x] **Step 3: Auditar `MapaSenderosPantalla.tsx` y todo texto restante de sus componentes directos.**
+- [x] **Step 4: Ejecutar `npx vitest run src/modulos/senderos/algoritmo/mapaProcedural.test.ts` y comprobación de TypeScript local.**
+
+**Resultado verificado:** `mapaProcedural.test.ts` y `recursos.test.ts`: 13 pruebas aprobadas. El typecheck conserva exclusivamente los 10 diagnósticos preexistentes de `WidgetRegistrarProgreso.tsx` y `SesionMisionPantalla.tsx`.
 
 ### Task 4: Tienda, Insights y Perfil
 

@@ -6,6 +6,8 @@ import { colores } from '../fundamentos/colores';
 import { espaciado } from '../fundamentos/espaciado';
 import { CampoTexto } from './CampoTexto';
 import { hapticSeguro } from '../../nucleo/dispositivo/haptics';
+import { useEscala } from '../tema/MasterColorContext';
+import type { EscalaMaster } from '../tema/escalaEsmeralda';
 
 type CampoContrasenaProps = Omit<TextInputProps, 'secureTextEntry'> & {
   campoStyle?: StyleProp<ViewStyle>;
@@ -42,6 +44,7 @@ export function CampoContrasena({
   variante = 'normal',
   ...props
 }: CampoContrasenaProps) {
+  const styles = useEstilosStyles();
   const [visible, setVisible] = useState(false);
   const valor = typeof value === 'string' ? value : '';
   const fuerza = useMemo(() => calcularFuerzaContrasena(valor), [valor]);
@@ -97,7 +100,7 @@ export function CampoContrasena({
   );
 }
 
-const styles = StyleSheet.create({
+const crearEstilosStyles = (esc: EscalaMaster) => StyleSheet.create({
   raiz: {
     gap: espaciado.xs,
   },
@@ -128,6 +131,18 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFC400',
   },
   fuerte: {
-    backgroundColor: '#35E51D',
+    backgroundColor: esc.lima.l80,
   },
 });
+
+const estilosPorEscalaStyles = new WeakMap<EscalaMaster, ReturnType<typeof crearEstilosStyles>>();
+
+function useEstilosStyles() {
+  const esc = useEscala();
+  let valor = estilosPorEscalaStyles.get(esc);
+  if (!valor) {
+    valor = crearEstilosStyles(esc);
+    estilosPorEscalaStyles.set(esc, valor);
+  }
+  return valor;
+}

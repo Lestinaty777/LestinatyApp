@@ -4,6 +4,14 @@
 
 export type MatrizColor = number[];
 
+// Familia verde: el rango de hue donde viven los iconos que el tema debe
+// seguir. Medido sobre assets/icons: 75 de 104 PNG caen entre 99° y 155°; el
+// resto (gemas y niveles morados, racha naranja, agenda amarilla...) tiene un
+// color con significado propio y no se toca al cambiar de tema.
+export const HUE_VERDE_MIN = 70;
+export const HUE_VERDE_MAX = 175;
+export const esHueVerde = (hue: number) => hue >= HUE_VERDE_MIN && hue <= HUE_VERDE_MAX;
+
 const LR = 0.213;
 const LG = 0.715;
 const LB = 0.072;
@@ -52,5 +60,23 @@ export function componerMatrices(primera: MatrizColor, segunda: MatrizColor): Ma
       resultado.push(suma);
     }
   }
+  return resultado;
+}
+
+// Máscara de "claros": devuelve la misma matriz pero con la fila de alfa
+// reemplazada para que el resultado solo sea visible donde el pixel original
+// es claro (blancos, brillos, tintes muy pálidos) y transparente en los
+// colores saturados. Alfa = 4·brillo − 2.4·alfa_original, recortado a 0..1 por
+// el propio filtro: un verde (brillo ≈ 0.4) sale en 0, un blanco en 1, y la
+// transición cae entre brillo 0.6 y 0.85. No usa el término de desplazamiento
+// (no depende de en qué escala lo interprete el motor) y un pixel transparente
+// (0,0,0,0) sigue siendo transparente.
+export function matrizSoloClaros(matriz: MatrizColor): MatrizColor {
+  const resultado = matriz.slice();
+  resultado[15] = 4 / 3;
+  resultado[16] = 4 / 3;
+  resultado[17] = 4 / 3;
+  resultado[18] = -2.4;
+  resultado[19] = 0;
   return resultado;
 }

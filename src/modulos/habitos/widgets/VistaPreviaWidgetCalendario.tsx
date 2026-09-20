@@ -1,6 +1,7 @@
 import { StyleSheet, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Texto } from '../../../diseno';
+import { ESCALA_ESMERALDA } from '../../../diseno/tema/escalaEsmeralda';
 
 const LETRAS_DIA = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
 const NOMBRES_MES = [
@@ -33,7 +34,7 @@ export function VistaPreviaWidgetCalendario({ anio, mes, diasCompletados }: Vist
   const celdas = Array.from({ length: 42 }, (_, indice) => indice - offsetPrimerDia + 1);
 
   return (
-    <LinearGradient colors={['#FAFDF9', '#F1FBF1', '#E2F4E3']} style={s.raiz}>
+    <LinearGradient colors={[ESCALA_ESMERALDA.hoja.l99, ESCALA_ESMERALDA.hoja.l98, ESCALA_ESMERALDA.hoja.l95]} style={s.raiz}>
       <Texto style={s.titulo}>{NOMBRES_MES[mes - 1]} {anio}</Texto>
 
       <View style={s.filaEncabezado}>
@@ -65,14 +66,14 @@ export function VistaPreviaWidgetCalendario({ anio, mes, diasCompletados }: Vist
 
 const s = StyleSheet.create({
   raiz: { borderRadius: 24, flex: 1, padding: 12 },
-  titulo: { color: '#111E13', fontFamily: 'Montserrat-Bold', fontSize: 12, marginBottom: 6 },
+  titulo: { color: ESCALA_ESMERALDA.musgo.l10, fontFamily: 'Montserrat-Bold', fontSize: 12, marginBottom: 6 },
   filaEncabezado: { flexDirection: 'row', marginBottom: 2 },
-  letraEncabezado: { color: '#B7C2B8', flex: 1, fontFamily: 'Montserrat-Bold', fontSize: 8, textAlign: 'center' },
+  letraEncabezado: { color: ESCALA_ESMERALDA.musgo.l77, flex: 1, fontFamily: 'Montserrat-Bold', fontSize: 8, textAlign: 'center' },
   grilla: { flex: 1, flexDirection: 'row', flexWrap: 'wrap' },
   celda: { alignItems: 'center', height: '16.66%', justifyContent: 'center', width: '14.28%' },
   circulo: { alignItems: 'center', aspectRatio: 1, borderRadius: 999, justifyContent: 'center', width: '78%' },
-  circuloCompletado: { backgroundColor: '#21A844' },
-  circuloHoy: { borderColor: '#21A844', borderWidth: 1 },
-  numeroTexto: { color: '#111E13', fontFamily: 'Montserrat-Medium', fontSize: 8 },
+  circuloCompletado: { backgroundColor: ESCALA_ESMERALDA.hoja.l61a },
+  circuloHoy: { borderColor: ESCALA_ESMERALDA.hoja.l61a, borderWidth: 1 },
+  numeroTexto: { color: ESCALA_ESMERALDA.musgo.l10, fontFamily: 'Montserrat-Medium', fontSize: 8 },
   numeroTextoCompletado: { color: '#FFFFFF', fontFamily: 'Montserrat-Bold' },
 });

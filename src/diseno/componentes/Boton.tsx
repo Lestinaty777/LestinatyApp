@@ -3,6 +3,7 @@ import { Pressable, StyleProp, StyleSheet, Text, TextStyle, View, ViewStyle } fr
 
 import { bordes } from '../fundamentos/bordes';
 import { colores } from '../fundamentos/colores';
+import { useColores } from '../tema/useColores';
 import { espaciado } from '../fundamentos/espaciado';
 import { hapticSeguro } from '../../nucleo/dispositivo/haptics';
 
@@ -30,7 +31,7 @@ type BotonProps = PropsWithChildren<{
 
 export function Boton({
   children,
-  color = colores.primario,
+  color: colorProp,
   disabled = false,
   iconoDerecha: IconoDerecha,
   iconoIzquierda: IconoIzquierda,
@@ -42,6 +43,8 @@ export function Boton({
   textStyle,
   variante = 'primario',
 }: BotonProps) {
+  const marca = useColores();
+  const color = colorProp ?? marca.primario;
   if (variante === 'sendero') {
     return <BotonSendero color={color} disabled={disabled} iconoIzquierda={IconoIzquierda} iconoSize={iconoSize} iconoStrokeWidth={iconoStrokeWidth} onPress={onPress} style={style}>{children}</BotonSendero>;
   }
@@ -60,6 +63,7 @@ export function Boton({
       style={({ pressed }) => [
         styles.base,
         styles[variante],
+        variante === 'primario' && { backgroundColor: marca.primario, shadowColor: marca.primarioOscuro },
         pressed && variante !== 'ghost' && { transform: [{ translateY: desplazamientoPresionado }] },
         pressed && variante === 'ghost' && styles.ghostPresionado,
         pressed && styles.sinLip,
@@ -118,9 +122,8 @@ const styles = StyleSheet.create({
     minHeight: 52,
     paddingHorizontal: espaciado.lg,
   },
+  // backgroundColor y shadowColor de la variante primaria salen de useColores() (siguen el tono).
   primario: {
-    backgroundColor: colores.primario,
-    shadowColor: colores.primarioOscuro,
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 1,
     shadowRadius: 0,

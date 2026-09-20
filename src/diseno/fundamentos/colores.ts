@@ -1,3 +1,14 @@
+import { ESCALA_ESMERALDA, type EscalaMaster } from '../tema/escalaEsmeralda';
+
+// Tokens de marca: los verdes de la app. Siguen el tono activo (ver useColores);
+// los semánticos (éxito, error, acento) NO se tiñen con el tema.
+export const coloresDeMarca = (esc: EscalaMaster) => ({
+  primario: esc.lima.l70,
+  primarioOscuro: esc.lima.l40,
+  primarioTexto: esc.lima.l46,
+  primarioSuave: esc.hoja.l98,
+});
+
 export const colores = {
   fondo: '#FAFAF8',
   fondoCalido: '#F1DACB',
@@ -5,10 +16,7 @@ export const colores = {
   tinta: '#16171B',
   tintaSuave: '#6E7079',
   tintaTenue: '#A6A8AE',
-  primario: '#5FC13E',
-  primarioOscuro: '#2C6B1A',
-  primarioTexto: '#3B7A22',
-  primarioSuave: '#EAF6EF',
+  ...coloresDeMarca(ESCALA_ESMERALDA),
   acento: '#2451B3',
   acentoOscuro: '#1E3E80',
   acentoSuave: '#EDF1FB',
@@ -18,8 +26,8 @@ export const colores = {
   error: '#B23B2E',
   errorOscuro: '#7C2A20',
   errorSuave: '#FBECEA',
-  exito: '#2F8F5B',
-  exitoSuave: '#EAF6EF',
+  exito: ESCALA_ESMERALDA.jade.l53,
+  exitoSuave: ESCALA_ESMERALDA.hoja.l98,
   lipSecundario: '#D2D2CB',
 };
 

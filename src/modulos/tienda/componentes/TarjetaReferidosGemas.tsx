@@ -2,14 +2,20 @@ import { useState } from 'react';
 import { Image, Share, StyleSheet, View } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 
 import { MasterButton, MasterGlass, MasterIcon, MasterIconBg, MasterKicker, Texto } from '../../../diseno';
 import { hapticSeguro } from '../../../nucleo/dispositivo/haptics';
 import { obtenerInfoReferidos } from '../gemas.servicio';
+import { useEscala } from '../../../diseno/tema/MasterColorContext';
+import type { EscalaMaster } from '../../../diseno/tema/escalaEsmeralda';
 
 export const CLAVE_INFO_REFERIDOS = ['tienda', 'infoReferidos'];
 
 export function TarjetaReferidosGemas() {
+  const esc = useEscala();
+  const tr = useEstilosTr();
+  const { t } = useTranslation();
   const { data: info } = useQuery({
     queryKey: CLAVE_INFO_REFERIDOS,
     queryFn: obtenerInfoReferidos,
@@ -30,7 +36,7 @@ export function TarjetaReferidosGemas() {
   async function compartirInvitacion() {
     if (!codigo) return;
     hapticSeguro('seleccion');
-    const mensaje = `¡Únete a mí en Lestinaty para transformar nuestros hábitos juntos! 🌲✨\n\nUsa mi código al registrarte: ${codigo}\n\n¡Al subir tu primer hábito a Nivel 2 ambos recibiremos 100 gemas gratis! 💎`;
+    const mensaje = t('tienda.referrals.shareMessage', { code: codigo });
     try {
       await Share.share({ message: mensaje });
     } catch {
@@ -45,10 +51,10 @@ export function TarjetaReferidosGemas() {
         <View style={{ flex: 1, gap: 4 }}>
           <MasterKicker
             icono={<MasterIcon name="trofeo" color={3} size={12} />}
-            texto="Gemas Gratis"
+            texto={t('tienda.referrals.kicker')}
           />
-          <Texto style={tr.titulo}>Invita amigos</Texto>
-          <Texto style={tr.subtitulo}>Gana 100 gemas por cada amigo que alcance el Nivel 2 en su primer hábito.</Texto>
+          <Texto style={tr.titulo}>{t('tienda.referrals.title')}</Texto>
+          <Texto style={tr.subtitulo}>{t('tienda.referrals.description')}</Texto>
         </View>
         <Image
           source={require('../../../../assets/icons/hoy/gemas.png')}
@@ -59,16 +65,16 @@ export function TarjetaReferidosGemas() {
       {/* Recuadro con el código del usuario */}
       <View style={tr.cajaCodigo}>
         <View style={{ flex: 1 }}>
-          <Texto style={tr.etiquetaCodigo}>TU CÓDIGO DE INVITACIÓN</Texto>
+          <Texto style={tr.etiquetaCodigo}>{t('tienda.referrals.codeLabel')}</Texto>
           <Texto style={tr.textoCodigo}>{codigo || '--------'}</Texto>
         </View>
         <View style={{ width: 110 }}>
           <MasterButton
-            color={copiado ? '#16A34A' : '#6A29C2'}
+            color={copiado ? esc.jade.l59a : '#6A29C2'}
             onPress={copiarCodigo}
             iconoSize={16}
           >
-            {copiado ? '¡Copiado! ✓' : 'Copiar'}
+            {copiado ? t('tienda.referrals.copied') : t('tienda.referrals.copy')}
           </MasterButton>
         </View>
       </View>
@@ -76,14 +82,14 @@ export function TarjetaReferidosGemas() {
       {/* Botón grande para compartir directo */}
       <View style={{ marginTop: 12 }}>
         <MasterButton
-          color="#21A844"
+          color={esc.hoja.l61a}
           onPress={compartirInvitacion}
           iconoIzquierda={({ size }) => (
-            <MasterIcon name="equipo" color={2} size={size} />
+            <MasterIcon name="equipo" alTema size={size} />
           )}
           iconoSize={18}
         >
-          Compartir invitación
+          {t('tienda.referrals.share')}
         </MasterButton>
       </View>
 
@@ -91,12 +97,12 @@ export function TarjetaReferidosGemas() {
       <View style={tr.filaMetricas}>
         <View style={tr.columnaMetrica}>
           <Texto style={tr.numeroMetrica}>{info?.totalAmigos ?? 0}</Texto>
-          <Texto style={tr.labelMetrica}>Amigos unidos</Texto>
+          <Texto style={tr.labelMetrica}>{t('tienda.referrals.friendsJoined')}</Texto>
         </View>
         <View style={tr.separadorMetrica} />
         <View style={tr.columnaMetrica}>
           <Texto style={tr.numeroMetrica}>{info?.amigosCompletados ?? 0}</Texto>
-          <Texto style={tr.labelMetrica}>En Nivel 2+</Texto>
+          <Texto style={tr.labelMetrica}>{t('tienda.referrals.atLevelTwo')}</Texto>
         </View>
         <View style={tr.separadorMetrica} />
         <View style={tr.columnaMetrica}>
@@ -109,14 +115,14 @@ export function TarjetaReferidosGemas() {
               {info?.gemasGanadas ?? 0}
             </Texto>
           </View>
-          <Texto style={tr.labelMetrica}>Gemas ganadas</Texto>
+          <Texto style={tr.labelMetrica}>{t('tienda.referrals.gemsEarned')}</Texto>
         </View>
       </View>
     </MasterGlass>
   );
 }
 
-const tr = StyleSheet.create({
+const crearEstilosTr = (esc: EscalaMaster) => StyleSheet.create({
   tarjeta: {
     borderRadius: 12,
     padding: 16,
@@ -130,13 +136,13 @@ const tr = StyleSheet.create({
   titulo: {
     fontFamily: 'MontserratAlternates-Bold',
     fontSize: 18,
-    color: '#1A3320',
+    color: esc.hoja.l19,
     marginTop: 4,
   },
   subtitulo: {
     fontFamily: 'Montserrat-Medium',
     fontSize: 12,
-    color: '#5B8C65',
+    color: esc.musgo.l54,
     lineHeight: 16,
   },
   gemaDecorativa: {
@@ -166,7 +172,7 @@ const tr = StyleSheet.create({
   textoCodigo: {
     fontFamily: 'MontserratAlternates-Bold',
     fontSize: 18,
-    color: '#1A3320',
+    color: esc.hoja.l19,
     letterSpacing: 2,
     marginTop: 2,
   },
@@ -192,12 +198,24 @@ const tr = StyleSheet.create({
   numeroMetrica: {
     fontFamily: 'MontserratAlternates-Bold',
     fontSize: 16,
-    color: '#1A3320',
+    color: esc.hoja.l19,
   },
   labelMetrica: {
     fontFamily: 'Montserrat-Medium',
     fontSize: 10,
-    color: '#5B8C65',
+    color: esc.musgo.l54,
     marginTop: 2,
   },
 });
+
+const estilosPorEscalaTr = new WeakMap<EscalaMaster, ReturnType<typeof crearEstilosTr>>();
+
+function useEstilosTr() {
+  const esc = useEscala();
+  let valor = estilosPorEscalaTr.get(esc);
+  if (!valor) {
+    valor = crearEstilosTr(esc);
+    estilosPorEscalaTr.set(esc, valor);
+  }
+  return valor;
+}

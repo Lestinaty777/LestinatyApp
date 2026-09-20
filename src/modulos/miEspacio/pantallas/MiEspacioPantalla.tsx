@@ -3,11 +3,12 @@ import { StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { RecuadroGlass, Texto } from '../../../diseno';
+import { ESCALA_ESMERALDA } from '../../../diseno/tema/escalaEsmeralda';
 
 const DOMINIOS = [
   { etiqueta: 'Mente', color: '#8B5CF6' },
   { etiqueta: 'Cuerpo', color: '#EF4444' },
-  { etiqueta: 'Salud', color: '#22C55E' },
+  { etiqueta: 'Salud', color: ESCALA_ESMERALDA.jade.l70 },
 ];
 
 // Cuarto lente sobre la app: agrupa hábitos, rutinas y tareas por dominio de

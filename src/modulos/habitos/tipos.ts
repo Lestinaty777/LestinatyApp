@@ -16,6 +16,8 @@ export type HabitoResumen = {
   valorHoy: number;
   completado: boolean;
   paqueteId?: string;
+  /** master_pack_color del paquete del hábito (arboles_paquetes). */
+  colorPaquete?: string;
 };
 
 /** Solo lo devuelven patrones/riesgo/conexiones — cuánto hay acumulado vs. cuánto hace falta para que `estado` llegue a 'listo'. Ver comercio.obtener_panel_habitos. */

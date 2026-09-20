@@ -43,6 +43,10 @@ import { AnalisisSenderos } from '../paginas/AnalisisSenderos';
 import { CompartidosSenderos } from '../paginas/CompartidosSenderos';
 import { EspacioTrabajoSendero } from '../paginas/EspacioTrabajoSendero';
 import { PaginaSenderosId, paginasSenderos } from '../paginas/paginasSenderos';
+import { useEscala } from '../../../diseno/tema/MasterColorContext';
+import type { EscalaMaster } from '../../../diseno/tema/escalaEsmeralda';
+import { ESCALA_ESMERALDA } from '../../../diseno/tema/escalaEsmeralda';
+import { conAlfa } from '../../../diseno/tema/masterColor';
 
 const Bioma = biomas.inicio;
 const paddingPestanas = 6;
@@ -175,7 +179,7 @@ const categoriasCarpeta: CategoriaCarpeta[] = [
     ],
   },
   {
-    acento: '#34D946',
+    acento: ESCALA_ESMERALDA.hoja.l77b,
     descripcion: 'Salud, naturaleza, nutricion y calma.',
     Icono: Leaf,
     id: 'salud',
@@ -402,12 +406,12 @@ const subcategoriasPorCategoria: Record<CategoriaSenderoId, SubcategoriaCarpeta[
     { acento: '#07295D', esCrear: true, Icono: Plus, id: 'crear', senderoIds: [], titulo: 'Nueva' },
   ],
   salud: [
-    { acento: '#34D946', Icono: Moon, id: 'sueno', senderoIds: ['sueno'], titulo: 'Sueno' },
-    { acento: '#2EBF3E', Icono: Dumbbell, id: 'ejercicio', senderoIds: ['caminar'], titulo: 'Ejercicio' },
-    { acento: '#259D33', Icono: Droplets, id: 'hidratacion', senderoIds: [], titulo: 'Agua' },
-    { acento: '#1C7D29', Icono: Utensils, id: 'nutricion', senderoIds: ['nutricion-simple'], titulo: 'Comida' },
-    { acento: '#145F20', Icono: Sparkles, id: 'mente', senderoIds: ['meditacion-diaria'], titulo: 'Mente' },
-    { acento: '#0D4317', esCrear: true, Icono: Plus, id: 'crear', senderoIds: [], titulo: 'Nueva' },
+    { acento: ESCALA_ESMERALDA.hoja.l77b, Icono: Moon, id: 'sueno', senderoIds: ['sueno'], titulo: 'Sueno' },
+    { acento: ESCALA_ESMERALDA.hoja.l68, Icono: Dumbbell, id: 'ejercicio', senderoIds: ['caminar'], titulo: 'Ejercicio' },
+    { acento: ESCALA_ESMERALDA.hoja.l57, Icono: Droplets, id: 'hidratacion', senderoIds: [], titulo: 'Agua' },
+    { acento: ESCALA_ESMERALDA.hoja.l45a, Icono: Utensils, id: 'nutricion', senderoIds: ['nutricion-simple'], titulo: 'Comida' },
+    { acento: ESCALA_ESMERALDA.hoja.l35, Icono: Sparkles, id: 'mente', senderoIds: ['meditacion-diaria'], titulo: 'Mente' },
+    { acento: ESCALA_ESMERALDA.hoja.l24, esCrear: true, Icono: Plus, id: 'crear', senderoIds: [], titulo: 'Nueva' },
   ],
   habitos: [
     { acento: '#FF3B30', Icono: Flame, id: 'constancia', senderoIds: ['constancia'], titulo: 'Racha' },
@@ -477,6 +481,7 @@ function IconoBaseColor({
   iconoSize?: number;
   size?: number;
 }) {
+  const styles = useEstilosStyles();
   return (
     <View style={[styles.iconoBaseColor, { height: size, width: size }]}>
       <Svg width={size} height={(size * 23) / 24} viewBox="-0.47 -1.16 24 23" fill="none">
@@ -503,6 +508,7 @@ function IconoBaseColor({
 }
 
 function TarjetaSenderoMini({ categoria, sendero, onAbrir }: { categoria: CategoriaCarpeta; sendero: SenderoMini; onAbrir: (sendero: SenderoMini, color: string) => void }) {
+  const styles = useEstilosStyles();
   const IconoCategoria = categoria.Icono;
   const entrada = useRef(new Animated.Value(0)).current;
   const metadataVisible = sendero.metadata.slice(0, 2);
@@ -565,6 +571,7 @@ function TarjetaSenderoMini({ categoria, sendero, onAbrir }: { categoria: Catego
 }
 
 function TarjetaSenderoVertical({ categoria, sendero, onAbrir }: { categoria: CategoriaCarpeta; sendero: SenderoMini; onAbrir: (sendero: SenderoMini, color: string) => void }) {
+  const styles = useEstilosStyles();
   const IconoCategoria = categoria.Icono;
   const entrada = useRef(new Animated.Value(0)).current;
   const metadataVisible = sendero.metadata.slice(0, 3);
@@ -632,6 +639,7 @@ function TarjetaSenderoVertical({ categoria, sendero, onAbrir }: { categoria: Ca
 }
 
 function FichaArchivador({ categoria, espacioInferior, sendero, onAbrir }: { categoria: CategoriaCarpeta; espacioInferior: number; sendero: SenderoMini; onAbrir: (sendero: SenderoMini, color: string) => void }) {
+  const styles = useEstilosStyles();
   const IconoCategoria = categoria.Icono;
   const entrada = useRef(new Animated.Value(0)).current;
 
@@ -683,6 +691,7 @@ function FichaArchivador({ categoria, espacioInferior, sendero, onAbrir }: { cat
 }
 
 function LomoArchivador({ categoria, sendero, onPress }: { categoria: CategoriaCarpeta; sendero: SenderoMini; onPress: () => void }) {
+  const styles = useEstilosStyles();
   const IconoCategoria = categoria.Icono;
 
   return (
@@ -695,6 +704,7 @@ function LomoArchivador({ categoria, sendero, onPress }: { categoria: CategoriaC
 }
 
 function ArchivadorSenderos({ categoria, senderos, onAbrir }: { categoria: CategoriaCarpeta; senderos: SenderoMini[]; onAbrir: (sendero: SenderoMini, color: string) => void }) {
+  const styles = useEstilosStyles();
   const [ancho, setAncho] = useState(0);
   const [paginaActiva, setPaginaActiva] = useState(0);
   const [frontalPorPagina, setFrontalPorPagina] = useState<Record<number, string>>({});
@@ -772,6 +782,7 @@ function FilaCategoriaCarpeta({
   onAbrir: (sendero: SenderoMini, color: string) => void;
   onPress: () => void;
 }) {
+  const styles = useEstilosStyles();
   const IconoCategoria = categoria.Icono;
   const progreso = useRef(new Animated.Value(abierta ? 1 : 0)).current;
 
@@ -855,6 +866,7 @@ function SeparadorColorCarpeta({
   animacionInterna?: boolean;
   retrasoEntrada?: number;
 }) {
+  const styles = useEstilosStyles();
   const IconoCategoria = item.Icono;
   const progreso = useRef(new Animated.Value(activo ? 1 : 0)).current;
   const visibilidad = useRef(new Animated.Value(oculto || entrada ? 0 : 1)).current;
@@ -973,6 +985,7 @@ function SeparadorSubcategoria({
   seleccionado: boolean;
   total: number;
 }) {
+  const styles = useEstilosStyles();
   const entrada = useRef(new Animated.Value(0)).current;
   const salida = useRef(new Animated.Value(1)).current;
   const [entradaTerminada, setEntradaTerminada] = useState(false);
@@ -1066,6 +1079,7 @@ function SeparadorSubcategoria({
 }
 
 function ParticulaEnfoque({ activa, color, izquierda, retraso, subida }: { activa: boolean; color: string; izquierda: `${number}%`; retraso: number; subida: number }) {
+  const styles = useEstilosStyles();
   const progreso = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -1102,6 +1116,7 @@ function ParticulaEnfoque({ activa, color, izquierda, retraso, subida }: { activ
 }
 
 function ParticulasEnfoque({ activas, color }: { activas: boolean; color: string }) {
+  const styles = useEstilosStyles();
   const particulas: Array<{ izquierda: `${number}%`; retraso: number; subida: number }> = [
     { izquierda: '20%', retraso: 0, subida: -42 },
     { izquierda: '38%', retraso: 35, subida: -62 },
@@ -1126,6 +1141,7 @@ function ParticulasEnfoque({ activas, color }: { activas: boolean; color: string
 }
 
 function MapaSubcategoria({ alturaEnfoque, categoria, color, enfocado, onMedirInicio, subcategoriaId }: { alturaEnfoque: number; categoria: CategoriaCarpeta; color: string; enfocado: boolean; onMedirInicio: (posicion: number) => void; subcategoriaId: string }) {
+  const styles = useEstilosStyles();
   const referenciaMapa = useRef<View>(null);
 
   function medirInicioMapa() {
@@ -1155,6 +1171,7 @@ function MapaSubcategoria({ alturaEnfoque, categoria, color, enfocado, onMedirIn
 }
 
 function CarpetaGiganteSenderos({ alturaMapaEnfoque, alturaObjetivoEnfoque, categoriaAbierta, categorias, elevacionEnfoque, layoutEnfoqueActivo, mapaEnfocado, mostrarAccionContextual, onAbrir, onActivarMapaEnfocado, onDesactivarMapaEnfocado, onMedirElevacionEnfoque, onMedirInicioMapa, progresoEnfoque, setCategoriaAbierta }: { alturaMapaEnfoque: number; alturaObjetivoEnfoque: number; categoriaAbierta: string; categorias: CategoriaCarpeta[]; elevacionEnfoque: number; layoutEnfoqueActivo: boolean; mapaEnfocado: boolean; mostrarAccionContextual: boolean; onAbrir: (sendero: SenderoMini, color: string) => void; onActivarMapaEnfocado: (elevacion: number) => void; onDesactivarMapaEnfocado: () => void; onMedirElevacionEnfoque: (elevacion: number) => void; onMedirInicioMapa: (posicion: number) => void; progresoEnfoque: Animated.Value; setCategoriaAbierta: React.Dispatch<React.SetStateAction<string>> }) {
+  const styles = useEstilosStyles();
   const [itemsCargados, setItemsCargados] = useState(0);
   const [subcategoriaActiva, setSubcategoriaActiva] = useState('');
   const [subcategoriasVisibles, setSubcategoriasVisibles] = useState(false);
@@ -1522,6 +1539,7 @@ function CarpetaGiganteSenderos({ alturaMapaEnfoque, alturaObjetivoEnfoque, cate
 }
 
 export function BibliotecaSenderosPantalla() {
+  const styles = useEstilosStyles();
   const { height, width } = useWindowDimensions();
   const pantallaSenderosVisible = usePathname().includes('/senderos');
   
@@ -1860,7 +1878,7 @@ export function BibliotecaSenderosPantalla() {
   );
 }
 
-const styles = StyleSheet.create({
+const crearEstilosStyles = (esc: EscalaMaster) => StyleSheet.create({
   raiz: {
     backgroundColor: '#F4E8DC',
     flex: 1,
@@ -1937,7 +1955,7 @@ const styles = StyleSheet.create({
   },
   iconoPlanta: {
     alignItems: 'center',
-    backgroundColor: 'rgba(95, 193, 62, 0.14)',
+    backgroundColor: conAlfa(esc.lima.l70, 0.14),
     borderRadius: 999,
     height: 36,
     justifyContent: 'center',
@@ -1967,8 +1985,8 @@ const styles = StyleSheet.create({
     zIndex: 2,
   },
   indicadorPestana: {
-    backgroundColor: 'rgba(95, 193, 62, 0.12)',
-    borderColor: 'rgba(95, 193, 62, 0.14)',
+    backgroundColor: conAlfa(esc.lima.l70, 0.12),
+    borderColor: conAlfa(esc.lima.l70, 0.14),
     borderRadius: 14,
     borderWidth: 0.5,
     bottom: paddingPestanas,
@@ -2188,7 +2206,7 @@ const styles = StyleSheet.create({
   },
   carpetaGiganteSello: {
     alignItems: 'center',
-    backgroundColor: 'rgba(95, 193, 62, 0.12)',
+    backgroundColor: conAlfa(esc.lima.l70, 0.12),
     borderColor: 'rgba(255, 255, 255, 0.55)',
     borderRadius: 999,
     borderWidth: 0.6,
@@ -2455,7 +2473,7 @@ const styles = StyleSheet.create({
   iconoBaseColor: {
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#1E241D',
+    shadowColor: esc.musgo.l13,
     shadowOffset: { width: 0, height: 5 },
     shadowOpacity: 0.2,
     shadowRadius: 7,
@@ -2716,7 +2734,7 @@ const styles = StyleSheet.create({
   },
   iconoContenido: {
     alignItems: 'center',
-    backgroundColor: 'rgba(95, 193, 62, 0.12)',
+    backgroundColor: conAlfa(esc.lima.l70, 0.12),
     borderRadius: 999,
     height: 34,
     justifyContent: 'center',
@@ -2747,3 +2765,15 @@ const styles = StyleSheet.create({
     lineHeight: 14,
   },
 });
+
+const estilosPorEscalaStyles = new WeakMap<EscalaMaster, ReturnType<typeof crearEstilosStyles>>();
+
+function useEstilosStyles() {
+  const esc = useEscala();
+  let valor = estilosPorEscalaStyles.get(esc);
+  if (!valor) {
+    valor = crearEstilosStyles(esc);
+    estilosPorEscalaStyles.set(esc, valor);
+  }
+  return valor;
+}

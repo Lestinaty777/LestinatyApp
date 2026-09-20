@@ -1,4 +1,5 @@
 import type { CategoriaAbyId } from '../datos/categoriasAby';
+import { ESCALA_ESMERALDA } from '../../../diseno/tema/escalaEsmeralda';
 
 export type ArbolBiomaAbyId = 'arce' | 'bosque-calido' | 'bosque-dorado' | 'cerezo-01' | 'cerezo-02' | 'pino-nevado' | 'sauce-ruinas' | 'selva';
 
@@ -14,7 +15,7 @@ const decoraciones: Record<CategoriaAbyId, DecoracionBiomaAby> = {
   habitos: { arbolInferior: 'arce', arbolSuperior: 'arce', colorPastel: '#FFF0F0' },
   relaciones: { arbolInferior: 'cerezo-01', arbolSuperior: 'cerezo-02', colorPastel: '#FFF0F5' },
   rutinas: { arbolInferior: 'pino-nevado', arbolSuperior: 'pino-nevado', colorPastel: '#ECF5FF' },
-  salud: { arbolInferior: 'selva', arbolSuperior: 'selva', colorPastel: '#EAF8EC' },
+  salud: { arbolInferior: 'selva', arbolSuperior: 'selva', colorPastel: ESCALA_ESMERALDA.hoja.l97 },
   tareas: { arbolInferior: 'bosque-dorado', arbolSuperior: 'bosque-dorado', colorPastel: '#FFF8DF' },
 };
 

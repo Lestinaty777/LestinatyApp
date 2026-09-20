@@ -1,5 +1,6 @@
 import { ImageSourcePropType } from 'react-native';
 import { registroIconos, buscarIcono } from '../../diseno/iconos/registroIconos';
+import { ESCALA_ESMERALDA } from '../../diseno/tema/escalaEsmeralda';
 
 // Los íconos de hábito viven en el registro global (src/diseno/iconos) — se
 // reexportan aquí con su nombre histórico para no tener que tocar cada
@@ -35,7 +36,7 @@ export function diasAcumuladosAntesDeNivel(nivel: number): number {
 // que existían antes (Cerezos, Arces, Sauces...) quedan como candidatos a
 // paquetes de árbol únicos vendibles en la tienda (ver plan de "paquetes de
 // bioma"), no se borran.
-const BASE_VERDE_HABITOS = '#22C55E';
+const BASE_VERDE_HABITOS = ESCALA_ESMERALDA.jade.l70;
 // 7 tonos: 1 = saturado actual, 2..7 = -5%,-10%,-15%,-20%,-25%,-30%.
 export const FACTORES_TONO = [1, 0.95, 0.9, 0.85, 0.8, 0.75, 0.7];
 export const NIVEL_MAXIMO_TONO = FACTORES_TONO.length;

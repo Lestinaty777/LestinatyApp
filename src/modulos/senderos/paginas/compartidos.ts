@@ -1,4 +1,5 @@
 import { PaginaSenderos } from './tipos';
+import { ESCALA_ESMERALDA } from '../../../diseno/tema/escalaEsmeralda';
 
 export const paginaSenderosCompartidos: PaginaSenderos = {
   subtitulo: 'Invita personas y conserva en un solo lugar los caminos que estan construyendo juntos.',
@@ -51,7 +52,7 @@ export type SenderoCompartido = {
 
 export const senderosCompartidosMock: SenderoCompartido[] = [
   {
-    acento: '#34D946',
+    acento: ESCALA_ESMERALDA.hoja.l77b,
     categoria: 'Salud',
     categoriaId: 'salud',
     descripcion: 'Paseo activo y desconexión diaria para oxigenar cuerpo y mente.',
@@ -63,7 +64,7 @@ export const senderosCompartidosMock: SenderoCompartido[] = [
     mensajeMotivacional: 'Esperando a Sofía para sellar la racha de hoy 🌱',
     miembros: [
       {
-        colorAvatar: '#34D946',
+        colorAvatar: ESCALA_ESMERALDA.hoja.l77b,
         completadoHoy: true,
         esUsuarioActual: true,
         horaCompletado: '08:30 AM',
@@ -214,7 +215,7 @@ export const senderosCompartidosMock: SenderoCompartido[] = [
         ramaElegida: 'Rama Enfoque',
       },
       {
-        colorAvatar: '#34D946',
+        colorAvatar: ESCALA_ESMERALDA.hoja.l77b,
         completadoHoy: true,
         esUsuarioActual: false,
         horaCompletado: '07:00 AM',
@@ -320,7 +321,7 @@ export const senderosCompartidosMock: SenderoCompartido[] = [
     mensajeMotivacional: 'Estamos atrasados este mes 🚨',
     miembros: [
       { colorAvatar: '#5AC8FA', completadoHoy: false, esUsuarioActual: true, id: 'user-1', iniciales: 'YO', nombre: 'Tú', ramaElegida: 'Rápida' },
-      { colorAvatar: '#4CD964', completadoHoy: false, esUsuarioActual: false, id: 'user-13', iniciales: 'RO', nombre: 'Roomie', ramaElegida: 'Detallada' },
+      { colorAvatar: ESCALA_ESMERALDA.hoja.l77a, completadoHoy: false, esUsuarioActual: false, id: 'user-13', iniciales: 'RO', nombre: 'Roomie', ramaElegida: 'Detallada' },
     ],
     nodoActualNumero: 1,
     progresoPorcentaje: 12,

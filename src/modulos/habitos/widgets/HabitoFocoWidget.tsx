@@ -2,6 +2,8 @@
 import React from 'react';
 import type { ImageRequireSource } from 'react-native';
 import { FlexWidget, ImageWidget, TextWidget } from 'react-native-android-widget';
+import { ESCALA_ESMERALDA } from '../../../diseno/tema/escalaEsmeralda';
+import { conAlfa } from '../../../diseno/tema/masterColor';
 
 const ICONO_PLANTA = require('../../../../assets/icons/ui/planta.png') as ImageRequireSource;
 
@@ -65,7 +67,7 @@ export function HabitoFocoWidget({
 }: HabitoFocoWidgetProps) {
   // El widget siempre guarda un hex válido (mismo color que MasterButton usa
   // en el resto de la app) — se afirma el tipo acá en vez de en cada uso.
-  const colorSeguro = (color || '#21A844') as `#${string}`;
+  const colorSeguro = (color || ESCALA_ESMERALDA.hoja.l61a) as `#${string}`;
 
   // Paleta de cristal adaptativa basada en MasterGlass.tsx:
   // El cristal refleja blanco puro en la parte superior y se funde suavemente
@@ -156,13 +158,13 @@ export function HabitoFocoWidget({
           text={titulo}
           truncate="END"
           maxLines={1}
-          style={{ fontSize: 13.5, fontWeight: 'bold', color: '#132E1B' }}
+          style={{ fontSize: 13.5, fontWeight: 'bold', color: ESCALA_ESMERALDA.hoja.l19 }}
         />
         <TextWidget
           text={completado ? '✓ ¡Meta lograda hoy!' : `${actual} de ${meta} ${unidad}`}
           style={{
             fontSize: 10.5,
-            color: completado ? '#15803D' : '#3F724D',
+            color: completado ? ESCALA_ESMERALDA.jade.l49 : ESCALA_ESMERALDA.jade.l43,
             fontWeight: completado ? 'bold' : 'normal',
             marginTop: 2,
           }}
@@ -179,8 +181,8 @@ export function HabitoFocoWidget({
           borderWidth: 1,
           borderColor: 'rgba(255, 255, 255, 0.85)',
           backgroundGradient: {
-            from: '#E3F2E5',
-            to: '#EEF8EF',
+            from: ESCALA_ESMERALDA.hoja.l95,
+            to: ESCALA_ESMERALDA.lima.l98,
             orientation: 'LEFT_RIGHT',
           },
           overflow: 'hidden',
@@ -210,7 +212,7 @@ export function HabitoFocoWidget({
             maxLines={1}
             style={{
               fontSize: 9.5,
-              color: completado ? '#1E6B34' : '#4E7E5A',
+              color: completado ? ESCALA_ESMERALDA.jade.l40 : ESCALA_ESMERALDA.musgo.l49,
               fontWeight: completado ? 'bold' : 'normal',
             }}
           />
@@ -255,17 +257,17 @@ export function HabitoFocoWidget({
               height: 28,
               borderRadius: 14,
               borderWidth: 1.2,
-              borderColor: 'rgba(34, 197, 94, 0.45)',
+              borderColor: conAlfa(ESCALA_ESMERALDA.jade.l70, 0.45),
               backgroundGradient: {
-                from: 'rgba(240, 253, 244, 0.95)',
-                to: 'rgba(220, 252, 231, 0.85)',
+                from: conAlfa(ESCALA_ESMERALDA.hoja.l98, 0.95),
+                to: conAlfa(ESCALA_ESMERALDA.jade.l95, 0.85),
                 orientation: 'TOP_BOTTOM',
               },
               alignItems: 'center',
               justifyContent: 'center',
             }}
           >
-            <TextWidget text="✓" style={{ color: '#16A34A', fontSize: 13, fontWeight: 'bold' }} />
+            <TextWidget text="✓" style={{ color: ESCALA_ESMERALDA.jade.l59a, fontSize: 13, fontWeight: 'bold' }} />
           </FlexWidget>
         )}
       </FlexWidget>
@@ -286,10 +288,10 @@ export function WidgetSinHabitos({ mensaje = 'Crea tu primer hábito en Lestinat
         borderRadius: 22,
         borderWidth: 1.6,
         borderColor: 'rgba(255, 255, 255, 0.92)',
-        borderBottomColor: 'rgba(140, 207, 146, 0.5)',
+        borderBottomColor: conAlfa(ESCALA_ESMERALDA.hoja.l77, 0.5),
         backgroundGradient: {
           from: '#FFFFFF',
-          to: '#E5F5E6',
+          to: ESCALA_ESMERALDA.hoja.l95,
           orientation: 'TOP_BOTTOM',
         },
         padding: 15,
@@ -303,10 +305,10 @@ export function WidgetSinHabitos({ mensaje = 'Crea tu primer hábito en Lestinat
           borderRadius: 14,
           borderWidth: 1.2,
           borderColor: 'rgba(255, 255, 255, 0.95)',
-          borderBottomColor: 'rgba(33, 168, 68, 0.25)',
+          borderBottomColor: conAlfa(ESCALA_ESMERALDA.hoja.l61a, 0.25),
           backgroundGradient: {
-            from: '#EAF7EC',
-            to: '#D2EED8',
+            from: ESCALA_ESMERALDA.hoja.l97,
+            to: ESCALA_ESMERALDA.hoja.l93,
             orientation: 'TOP_BOTTOM',
           },
           alignItems: 'center',
@@ -320,13 +322,13 @@ export function WidgetSinHabitos({ mensaje = 'Crea tu primer hábito en Lestinat
       <FlexWidget style={{ flexDirection: 'column', alignItems: 'center' }}>
         <TextWidget
           text="Comienza tu sendero"
-          style={{ fontSize: 13, fontWeight: 'bold', color: '#132E1B' }}
+          style={{ fontSize: 13, fontWeight: 'bold', color: ESCALA_ESMERALDA.hoja.l19 }}
         />
         <TextWidget
           text={mensaje}
           maxLines={2}
           truncate="END"
-          style={{ fontSize: 10, color: '#437751', textAlign: 'center', marginTop: 2 }}
+          style={{ fontSize: 10, color: ESCALA_ESMERALDA.jade.l43, textAlign: 'center', marginTop: 2 }}
         />
       </FlexWidget>
 
@@ -334,13 +336,13 @@ export function WidgetSinHabitos({ mensaje = 'Crea tu primer hábito en Lestinat
         style={{
           borderRadius: 10,
           borderWidth: 1,
-          borderColor: 'rgba(33, 168, 68, 0.3)',
-          backgroundColor: 'rgba(33, 168, 68, 0.12)',
+          borderColor: conAlfa(ESCALA_ESMERALDA.hoja.l61a, 0.3),
+          backgroundColor: conAlfa(ESCALA_ESMERALDA.hoja.l61a, 0.12),
           paddingHorizontal: 10,
           paddingVertical: 4,
         }}
       >
-        <TextWidget text="Toca para abrir ↗" style={{ fontSize: 9.5, color: '#1D7838', fontWeight: 'bold' }} />
+        <TextWidget text="Toca para abrir ↗" style={{ fontSize: 9.5, color: ESCALA_ESMERALDA.hoja.l46, fontWeight: 'bold' }} />
       </FlexWidget>
     </FlexWidget>
   );

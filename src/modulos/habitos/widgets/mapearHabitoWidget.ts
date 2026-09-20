@@ -2,6 +2,7 @@ import type { ImageRequireSource } from 'react-native';
 import { buscarIconoHabito } from '../iconosHabitos';
 import type { HabitoResumen } from '../tipos';
 import type { HabitoFocoWidgetProps } from './HabitoFocoWidget';
+import { ESCALA_ESMERALDA } from '../../../diseno/tema/escalaEsmeralda';
 
 // Los widgets siempre muestran un ícono real de assets/icons/ui — nunca un
 // avatar con la inicial del título. Se carga con un require() literal (no vía
@@ -17,7 +18,7 @@ export function construirPropsHabitoFoco(habito: HabitoResumen, racha = 0): Habi
   const icono = buscarIconoHabito(habito.iconoLucide);
   return {
     actual: habito.valorHoy,
-    color: habito.color || '#21A844',
+    color: habito.color || ESCALA_ESMERALDA.hoja.l61a,
     completado: habito.completado,
     habitoId: habito.id,
     iconoFuente: icono ? (icono.fuente as unknown as ImageRequireSource) : ICONO_POR_DEFECTO,

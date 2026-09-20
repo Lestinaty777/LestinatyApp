@@ -1,14 +1,16 @@
 import { Redirect, Tabs } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Image, Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { cancelAnimation, Easing, useAnimatedStyle, useSharedValue, withSequence, withTiming } from 'react-native-reanimated';
 
-import { MasterGlass, Texto } from '../../src/diseno';
+import { MasterGlass, MasterIcon, Texto } from '../../src/diseno';
 import { usarEstadoAcceso } from '../../src/modulos/acceso/acceso.estado';
 import { useRegaloBienvenidaPendiente, useRegaloTrialHorizonPendiente } from '../../src/modulos/onboarding/onboarding.servicio';
 import { RegaloBienvenidaPantalla } from '../../src/modulos/onboarding/pantallas/RegaloBienvenidaPantalla';
 import { RegaloTrialHorizonPantalla } from '../../src/modulos/onboarding/pantallas/RegaloTrialHorizonPantalla';
+import { useEscala } from '../../src/diseno/tema/MasterColorContext';
+import type { EscalaMaster } from '../../src/diseno/tema/escalaEsmeralda';
 
 export default function LayoutPrincipal() {
   const cargandoSesion = usarEstadoAcceso((estado) => estado.cargandoSesion);
@@ -99,17 +101,19 @@ const DESTINOS_BARRA = [
   { etiqueta: 'Perfil', ruta: 'direccion' },
 ] as const;
 
-const ICONOS_NAVEGACION: Record<string, number> = {
-  direccion: require('../../assets/icons/navegacion/perfil.png'),
-  hoy: require('../../assets/icons/navegacion/hoy.png'),
-  insights: require('../../assets/icons/navegacion/inisghts.png'),
-  senderos: require('../../assets/icons/navegacion/explorar.png'),
-  tienda: require('../../assets/icons/navegacion/tienda.png'),
+// Nombres del registro de iconos (registroIconos.ts): son verdes, así que siguen el tema.
+const ICONOS_NAVEGACION: Record<string, string> = {
+  direccion: 'navegacion/perfil',
+  hoy: 'navegacion/hoy',
+  insights: 'navegacion/insights',
+  senderos: 'navegacion/explorar',
+  tienda: 'navegacion/tienda',
 };
 
 const INDICE_DESTINO: Record<string, number> = { direccion: 4, hoy: 0, insights: 3, senderos: 1, tienda: 2 };
 
 function BarraNavegacionPrincipal({ navigation, state, style }: { navigation: any; state: { index: number; routes: Array<{ key: string; name: string }> }; style?: any }) {
+  const styles = useEstilosStyles();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const rutaActiva = state.routes[state.index]?.name;
@@ -154,7 +158,7 @@ function BarraNavegacionPrincipal({ navigation, state, style }: { navigation: an
           if (central) return <View key={ruta} style={styles.espacioCentral} />;
           return (
             <Pressable accessibilityRole="tab" accessibilityState={{ selected: activo }} key={ruta} onPress={() => abrir(ruta)} style={styles.destino}>
-              <Image resizeMode="contain" source={ICONOS_NAVEGACION[ruta]} style={styles.iconoNavegacion} />
+              <MasterIcon name={ICONOS_NAVEGACION[ruta]} size={30} />
               <Texto style={[styles.etiqueta, activo && styles.etiquetaActiva]}>{etiqueta}</Texto>
               {activo && <View style={styles.indicador} />}
             </Pressable>
@@ -166,7 +170,7 @@ function BarraNavegacionPrincipal({ navigation, state, style }: { navigation: an
       </MasterGlass>
 
       <Pressable accessibilityLabel="Tienda" accessibilityRole="tab" accessibilityState={{ selected: rutaActiva === 'tienda' }} onPress={() => abrir('tienda')} style={styles.botonCentral}>
-        <MasterGlass forma="heptagono" mastery style={styles.circuloCentral}><View style={styles.contenedorIconoCentral}><Image resizeMode="contain" source={ICONOS_NAVEGACION.tienda} style={styles.iconoNavegacionCentral} /></View></MasterGlass>
+        <MasterGlass forma="heptagono" mastery style={styles.circuloCentral}><View style={styles.contenedorIconoCentral}><MasterIcon name={ICONOS_NAVEGACION.tienda} size={43} /></View></MasterGlass>
         <Texto style={[styles.etiquetaCentral, rutaActiva === 'tienda' && styles.etiquetaActiva]}>Tienda</Texto>
       </Pressable>
     </View>
@@ -174,7 +178,7 @@ function BarraNavegacionPrincipal({ navigation, state, style }: { navigation: an
   );
 }
 
-const styles = StyleSheet.create({
+const crearEstilosStyles = (esc: EscalaMaster) => StyleSheet.create({
   areaSegura: { justifyContent: 'flex-end', position: 'absolute', bottom: 0, left: 0, right: 0 },
   barra: { flexDirection: 'row', height: 72 },
   botonCentral: { alignItems: 'center', height: 104, justifyContent: 'flex-start', left: '40%', position: 'absolute', top: -2, width: '20%' },
@@ -183,14 +187,24 @@ const styles = StyleSheet.create({
   contenedorIconoCentral: { alignItems: 'center', flex: 1, justifyContent: 'center' },
   destino: { alignItems: 'center', flex: 1, height: 72, justifyContent: 'center', paddingTop: 3 },
   espacioCentral: { flex: 1 },
-  etiqueta: { color: '#20653A', fontFamily: 'MontserratAlternates-Bold', fontSize: 10, marginTop: 1 },
-  etiquetaActiva: { color: '#124C29' },
-  etiquetaCentral: { color: '#20653A', fontFamily: 'MontserratAlternates-Bold', fontSize: 10, marginTop: 1 },
-  indicador: { backgroundColor: '#208A42', borderRadius: 4, bottom: 5, height: 5, position: 'absolute', width: 5 },
-  iconoNavegacion: { height: 30, width: 30 },
-  iconoNavegacionCentral: { height: 43, width: 43 },
+  etiqueta: { color: esc.jade.l38, fontFamily: 'MontserratAlternates-Bold', fontSize: 10, marginTop: 1 },
+  etiquetaActiva: { color: esc.jade.l29 },
+  etiquetaCentral: { color: esc.jade.l38, fontFamily: 'MontserratAlternates-Bold', fontSize: 10, marginTop: 1 },
+  indicador: { backgroundColor: esc.jade.l49, borderRadius: 4, bottom: 5, height: 5, position: 'absolute', width: 5 },
   olaMastery: { flex: 1 },
   olaTienda: { bottom: 2, height: 5, left: '4%', position: 'absolute', right: '4%', transformOrigin: 'center', zIndex: 1 },
   recuadroActivo: { flex: 1 },
   recuadroActivoAnimado: { bottom: 8, height: 56, left: 0, position: 'absolute', zIndex: 0 },
 });
+
+const estilosPorEscalaStyles = new WeakMap<EscalaMaster, ReturnType<typeof crearEstilosStyles>>();
+
+function useEstilosStyles() {
+  const esc = useEscala();
+  let valor = estilosPorEscalaStyles.get(esc);
+  if (!valor) {
+    valor = crearEstilosStyles(esc);
+    estilosPorEscalaStyles.set(esc, valor);
+  }
+  return valor;
+}

@@ -6,7 +6,10 @@ import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { MasterGlass } from './MasterGlass';
 import { MasterChanger } from '../componentes/MasterChanger';
 import { Skeleton } from '../componentes/Skeleton';
+import { rutaDeIcono } from '../iconos/rutaIcono';
 import { useTonoMaster } from '../tema/MasterColorContext';
+import { useEscala } from '../tema/MasterColorContext';
+import type { EscalaMaster } from '../tema/escalaEsmeralda';
 
 type MasterIconBgProps = {
   children?: ReactNode;
@@ -15,6 +18,8 @@ type MasterIconBgProps = {
   degradadoFin?: string;
   degradadoInicio?: string;
   fuente?: ImageSourcePropType;
+  /** Hue medido del PNG (viene del registro de iconos): evita decodificarlo para saber si el tema lo afecta. */
+  hue?: number;
   size?: number;
   style?: StyleProp<ViewStyle>;
   /**
@@ -34,8 +39,9 @@ type MasterIconBgProps = {
 export function MasterIconBg({
   children, colorBordeFin, colorBordeInicio,
   degradadoFin, degradadoInicio,
-  fuente, size = 68, style, tinte, cargando, loading,
+  fuente, hue, size = 68, style, tinte, cargando, loading,
 }: MasterIconBgProps) {
+  const mib = useEstilosMib();
   const tono = useTonoMaster();
   // Sin colores explícitos toma los del tono activo (Esmeralda = los verdes de siempre).
   const bordeFin = colorBordeFin ?? tono.marcoIcono.bordeFin;
@@ -65,16 +71,28 @@ export function MasterIconBg({
             compartido (lo usan muchas otras pantallas que deben seguir
             viéndose verdes). Sin `tinte`, se comporta igual que antes. */}
         {tinte && <View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: tinte, borderRadius: radioInterior, opacity: 0.4 }]} />}
-        {fuente ? (tono.hue === undefined
+        {fuente ? (rutaDeIcono({ deltaHue: tono.deltaHue, hue }) === 'imagen'
           ? <Image resizeMode="contain" source={fuente} style={{ height: tamanoIcono, width: tamanoIcono }} />
-          : <MasterChanger alto={tamanoIcono} ancho={tamanoIcono} fuente={fuente} hueDestino={tono.hue} oscurecido={tono.oscurecido} saturacion={tono.saturacion} />) : children}
+          : <MasterChanger alto={tamanoIcono} ancho={tamanoIcono} deltaTema={tono.deltaHue} fuente={fuente} hueOrigen={hue} oscurecidoTema={tono.oscurecido} saturacion={tono.saturacion} />) : children}
       </MasterGlass>
     </View>
   );
 }
 
-const mib = StyleSheet.create({
-  marco: { alignSelf: 'flex-start', elevation: 3, padding: 2, position: 'relative', shadowColor: '#176836', shadowOffset: { height: 4, width: 3 }, shadowOpacity: 0.16, shadowRadius: 7 },
+const crearEstilosMib = (esc: EscalaMaster) => StyleSheet.create({
+  marco: { alignSelf: 'flex-start', elevation: 3, padding: 2, position: 'relative', shadowColor: esc.jade.l38, shadowOffset: { height: 4, width: 3 }, shadowOpacity: 0.16, shadowRadius: 7 },
   borde: { left: 0, position: 'absolute', top: 0 },
   glass: { alignItems: 'center', flex: 1, justifyContent: 'center' },
 });
+
+const estilosPorEscalaMib = new WeakMap<EscalaMaster, ReturnType<typeof crearEstilosMib>>();
+
+function useEstilosMib() {
+  const esc = useEscala();
+  let valor = estilosPorEscalaMib.get(esc);
+  if (!valor) {
+    valor = crearEstilosMib(esc);
+    estilosPorEscalaMib.set(esc, valor);
+  }
+  return valor;
+}

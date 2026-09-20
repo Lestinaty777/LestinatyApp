@@ -2,10 +2,15 @@ import React from 'react';
 import { Image, StyleSheet, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Sparkles, ArrowRight } from 'lucide-react-native';
+import { useTranslation } from 'react-i18next';
 
 import { MasterButton, MasterGlass, MasterIcon, Rebote, Texto } from '../../../diseno';
 import { AuroraBoreal } from '../../hoy/componentes/AuroraBoreal';
 import { hapticSeguro } from '../../../nucleo/dispositivo/haptics';
+import { useEscala } from '../../../diseno/tema/MasterColorContext';
+import type { EscalaMaster } from '../../../diseno/tema/escalaEsmeralda';
+import { ESCALA_ESMERALDA } from '../../../diseno/tema/escalaEsmeralda';
+import { conAlfa } from '../../../diseno/tema/masterColor';
 
 type EstadoVacioSenderosProps = {
   alCrearHabito: () => void;
@@ -13,14 +18,17 @@ type EstadoVacioSenderosProps = {
 
 const C = {
   texto: '#1A1335',
-  tenue: '#648170',
-  verde: '#25884C',
-  verdeOscuro: '#12331F',
+  tenue: ESCALA_ESMERALDA.musgo.l51,
+  verde: ESCALA_ESMERALDA.jade.l50,
+  verdeOscuro: ESCALA_ESMERALDA.hoja.l19,
 };
 
 const ARBUSTO_HERO = require('../../../../assets/ilustraciones/senderos/biomas/paquetes/Esmeralda/arbusto.png');
 
 export function EstadoVacioSenderos({ alCrearHabito }: EstadoVacioSenderosProps) {
+  const esc = useEscala();
+  const styles = useEstilosStyles();
+  const { t } = useTranslation();
   return (
     <View style={styles.contenedor}>
       {/* Aurora boreal etérea de fondo, idéntica al Slide 5 del Onboarding */}
@@ -42,14 +50,12 @@ export function EstadoVacioSenderos({ alCrearHabito }: EstadoVacioSenderosProps)
             </View>
 
             {/* Título y subtítulo con tipografía oficial */}
-            <Texto style={styles.titulo}>Tu jardín te espera</Texto>
-            <Texto style={styles.subtitulo}>
-              Comienza creando tu primer hábito para ver nacer tu sendero y recorrer sus días.
-            </Texto>
+            <Texto style={styles.titulo}>{t('senderos.emptyState.title')}</Texto>
+            <Texto style={styles.subtitulo}>{t('senderos.emptyState.description')}</Texto>
 
             {/* Separador de línea con degradado sutil verde */}
             <LinearGradient
-              colors={['rgba(37,136,76,0)', 'rgba(37,136,76,0.32)', 'rgba(37,136,76,0)']}
+              colors={[conAlfa(esc.jade.l50, 0), conAlfa(esc.jade.l50, 0.32), conAlfa(esc.jade.l50, 0)]}
               end={{ x: 1, y: 0 }}
               start={{ x: 0, y: 0 }}
               style={styles.separador}
@@ -60,11 +66,11 @@ export function EstadoVacioSenderos({ alCrearHabito }: EstadoVacioSenderosProps)
           <View style={styles.cajaDetalles}>
             <View style={styles.filaBeneficio}>
               <View style={styles.iconoBeneficioContenedor}>
-                <MasterIcon color={2} name="idea" size={18} />
+                <MasterIcon alTema name="idea" size={18} />
               </View>
               <View style={styles.textoBeneficioContenedor}>
-                <Texto style={styles.tituloBeneficio}>Genera tu propio árbol</Texto>
-                <Texto style={styles.descBeneficio}>Cada hábito tiene su especie viva y evoluciona con tu constancia.</Texto>
+                <Texto style={styles.tituloBeneficio}>{t('senderos.emptyState.growTree')}</Texto>
+                <Texto style={styles.descBeneficio}>{t('senderos.emptyState.growTreeDescription')}</Texto>
               </View>
             </View>
 
@@ -72,11 +78,11 @@ export function EstadoVacioSenderos({ alCrearHabito }: EstadoVacioSenderosProps)
 
             <View style={styles.filaBeneficio}>
               <View style={styles.iconoBeneficioContenedor}>
-                <MasterIcon color={2} name="flor" size={18} />
+                <MasterIcon alTema name="flor" size={18} />
               </View>
               <View style={styles.textoBeneficioContenedor}>
-                <Texto style={styles.tituloBeneficio}>Desbloquea recompensas</Texto>
-                <Texto style={styles.descBeneficio}>Gana gemas y sube de nivel conforme completas tus metas diarias.</Texto>
+                <Texto style={styles.tituloBeneficio}>{t('senderos.emptyState.unlockRewards')}</Texto>
+                <Texto style={styles.descBeneficio}>{t('senderos.emptyState.unlockRewardsDescription')}</Texto>
               </View>
             </View>
           </View>
@@ -92,22 +98,22 @@ export function EstadoVacioSenderos({ alCrearHabito }: EstadoVacioSenderosProps)
               }}
               style={styles.boton}
             >
-              Crear nuevo hábito
+              {t('senderos.emptyState.createHabit')}
             </MasterButton>
           </View>
 
           {/* Fila inferior con enlace secundario de exploración o inicio */}
           <View style={styles.filaAccionSecundaria}>
-            <MasterIcon color={2} name="brujula" size={15} />
-            <Texto style={styles.textoSecundario}>¿Listo para empezar tu viaje? </Texto>
+            <MasterIcon alTema name="brujula" size={15} />
+            <Texto style={styles.textoSecundario}>{t('senderos.emptyState.ready')}</Texto>
             <Rebote
-              accessibilityLabel="Ir a creación"
+              accessibilityLabel={t('senderos.emptyState.goToCreation')}
               onPress={() => {
                 hapticSeguro('seleccion');
                 alCrearHabito();
               }}
             >
-              <Texto style={styles.enlaceDestacado}>Comenzar acá</Texto>
+              <Texto style={styles.enlaceDestacado}>{t('senderos.emptyState.startHere')}</Texto>
             </Rebote>
           </View>
         </MasterGlass>
@@ -116,7 +122,7 @@ export function EstadoVacioSenderos({ alCrearHabito }: EstadoVacioSenderosProps)
   );
 }
 
-const styles = StyleSheet.create({
+const crearEstilosStyles = (esc: EscalaMaster) => StyleSheet.create({
   contenedor: {
     flex: 1,
     height: '100%',
@@ -147,7 +153,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 22,
     paddingVertical: 26,
     width: '100%',
-    shadowColor: '#0D3D22',
+    shadowColor: esc.hoja.l22,
     shadowOffset: { height: 8, width: 0 },
     shadowOpacity: 0.12,
     shadowRadius: 18,
@@ -195,7 +201,7 @@ const styles = StyleSheet.create({
   },
   cajaDetalles: {
     backgroundColor: 'rgba(255, 255, 255, 0.45)',
-    borderColor: 'rgba(37, 136, 76, 0.14)',
+    borderColor: conAlfa(esc.jade.l50, 0.14),
     borderRadius: 18,
     borderWidth: 1,
     gap: 10,
@@ -211,8 +217,8 @@ const styles = StyleSheet.create({
   },
   iconoBeneficioContenedor: {
     alignItems: 'center',
-    backgroundColor: 'rgba(37, 136, 76, 0.08)',
-    borderColor: 'rgba(37, 136, 76, 0.18)',
+    backgroundColor: conAlfa(esc.jade.l50, 0.08),
+    borderColor: conAlfa(esc.jade.l50, 0.18),
     borderRadius: 12,
     borderWidth: 1,
     height: 34,
@@ -235,7 +241,7 @@ const styles = StyleSheet.create({
     lineHeight: 15,
   },
   divisorInterno: {
-    backgroundColor: 'rgba(37, 136, 76, 0.09)',
+    backgroundColor: conAlfa(esc.jade.l50, 0.09),
     height: 1,
     width: '100%',
   },
@@ -265,3 +271,15 @@ const styles = StyleSheet.create({
     fontSize: 12.5,
   },
 });
+
+const estilosPorEscalaStyles = new WeakMap<EscalaMaster, ReturnType<typeof crearEstilosStyles>>();
+
+function useEstilosStyles() {
+  const esc = useEscala();
+  let valor = estilosPorEscalaStyles.get(esc);
+  if (!valor) {
+    valor = crearEstilosStyles(esc);
+    estilosPorEscalaStyles.set(esc, valor);
+  }
+  return valor;
+}

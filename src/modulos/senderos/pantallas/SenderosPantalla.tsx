@@ -8,11 +8,12 @@ import { RecuadroGlass, Texto } from '../../../diseno';
 import { hapticSeguro } from '../../../nucleo/dispositivo/haptics';
 import { HabitosPantalla } from '../../habitos/pantallas/HabitosPantalla';
 import { RutinasPantalla } from '../../rutinas/pantallas/RutinasPantalla';
+import { ESCALA_ESMERALDA } from '../../../diseno/tema/escalaEsmeralda';
 
 type PestanaSendero = 'habitos' | 'rutinas' | 'tareas';
 
 const PESTANAS: { id: PestanaSendero; Icono: typeof Flame; color: string }[] = [
-  { id: 'habitos', Icono: Flame, color: '#22C55E' },
+  { id: 'habitos', Icono: Flame, color: ESCALA_ESMERALDA.jade.l70 },
   { id: 'rutinas', Icono: Repeat2, color: '#EF4444' },
   { id: 'tareas', Icono: ListChecks, color: '#EAB308' },
 ];

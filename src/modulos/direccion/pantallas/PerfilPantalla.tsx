@@ -5,7 +5,7 @@ import {
   Check,
   ChevronRight,
 } from 'lucide-react-native';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -35,11 +35,15 @@ import {
   Rebote,
   Skeleton,
   Texto,
+  conAlfa,
+  useEscala,
+  type EscalaMaster,
 } from '../../../diseno';
 import { hapticSeguro } from '../../../nucleo/dispositivo/haptics';
 import { useHorizon } from '../../../nucleo/compras/useHorizon';
 import { restaurarHorizon } from '../../../nucleo/compras/horizon';
 import { AuroraBoreal } from '../../hoy/componentes/AuroraBoreal';
+import { SelectorTemaPrueba } from '../componentes/SelectorTemaPrueba';
 import { useSaldoGemas } from '../../tienda/useSaldoGemas';
 import {
   actualizarPerfil,
@@ -133,6 +137,13 @@ const ETIQUETAS_AVISO: Record<string, string> = {
   hoy_racha_recuperable: 'Sugerencia para recuperar tu racha',
 };
 
+// Los estilos dependen del tono activo: la escala es la de Esmeralda tal cual
+// o la misma escala rotada al matiz del paquete elegido.
+function useEstilosPerfil() {
+  const esc = useEscala();
+  return useMemo(() => crearEstilos(esc), [esc]);
+}
+
 function etiquetarAviso(codigo: string): string {
   return ETIQUETAS_AVISO[codigo] ?? codigo.replaceAll('_', ' ');
 }
@@ -149,6 +160,7 @@ const PERMISOS_CONFIG: Array<{ llave: LlavePermiso; titulo: string; descripcion:
 
 // ── Esqueletos de Carga para Perfil ──────────────────────────────────────────
 function EsqueletoHeroCard() {
+  const s = useEstilosPerfil();
   return (
     <MasterGlass style={s.heroCard}>
       <View style={s.heroFilaPrincipal}>
@@ -179,6 +191,7 @@ function EsqueletoHeroCard() {
 }
 
 function EsqueletoMiEspacio() {
+  const s = useEstilosPerfil();
   return (
     <View style={s.tabContenido}>
       {/* Tarjeta 1: Widgets */}
@@ -229,6 +242,7 @@ function EsqueletoMiEspacio() {
 }
 
 function EsqueletoInsignias() {
+  const s = useEstilosPerfil();
   return (
     <View style={s.tabContenido}>
       <View style={s.logrosHeader}>
@@ -257,6 +271,7 @@ function EsqueletoInsignias() {
 }
 
 function EsqueletoAjustes() {
+  const s = useEstilosPerfil();
   return (
     <View style={s.tabContenido}>
       {/* Grupo 1: Avisos */}
@@ -330,6 +345,8 @@ function EsqueletoAjustes() {
 }
 
 export function PerfilPantalla() {
+  const s = useEstilosPerfil();
+  const esc = useEscala();
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const clienteQuery = useQueryClient();
@@ -580,7 +597,7 @@ export function PerfilPantalla() {
 
   return (
     <LinearGradient
-      colors={['#F7FDF7', '#E8F7E9', '#D5F2D8']}
+      colors={[esc.hoja.l99, esc.hoja.l95, esc.hoja.l93]}
       start={{ x: 0, y: 0 }}
       end={{ x: 0, y: 1 }}
       style={s.raiz}
@@ -597,10 +614,7 @@ export function PerfilPantalla() {
             <Animated.View entering={entradaEncadenada(0)} style={s.headerIzq}>
               <Texto style={s.headerSaludo}>Espacio personal,</Texto>
               <View style={s.nombreFila}>
-                <Image
-                  source={require('../../../../assets/icons/navegacion/perfil.png')}
-                  style={s.saludoIcono}
-                />
+                <MasterIcon name="navegacion/perfil" size={34} />
                 <Texto style={s.headerNombre}>Perfil</Texto>
               </View>
             </Animated.View>
@@ -845,7 +859,7 @@ export function PerfilPantalla() {
                       </View>
 
                       <MasterButton
-                        color="#21A844"
+                        color={esc.hoja.l61a}
                         iconoIzquierda={({ size }) => <MasterIcon name="computadora" size={size} />}
                         onPress={() => {
                           hapticSeguro('seleccion');
@@ -861,11 +875,11 @@ export function PerfilPantalla() {
                   <Animated.View entering={entradaEncadenada(1)}>
                     <MasterGlass style={[s.tarjetaModulo, esPro ? s.tarjetaProActiva : s.tarjetaProOferta]}>
                       <View style={s.moduloHeader}>
-                        <View style={[s.moduloIconoAura, { backgroundColor: esPro ? 'rgba(33, 168, 68, 0.15)' : 'rgba(106, 41, 194, 0.15)' }]}>
+                        <View style={[s.moduloIconoAura, { backgroundColor: esPro ? conAlfa(esc.hoja.l61a, 0.15) : 'rgba(106, 41, 194, 0.15)' }]}>
                           <MasterIcon name="trofeo" size={26} />
                         </View>
                         <View style={{ flex: 1 }}>
-                          <Texto {...PROPS_TEXTO_UNA_LINEA} style={[s.moduloTitulo, { color: esPro ? '#143D1F' : '#2D1B4E' }]}>
+                          <Texto {...PROPS_TEXTO_UNA_LINEA} style={[s.moduloTitulo, { color: esPro ? esc.hoja.l22 : '#2D1B4E' }]}>
                             {esPro ? 'Membresía Lestinaty Pro Activa' : 'Desbloquea Lestinaty Pro'}
                           </Texto>
                           <Texto {...PROPS_TEXTO_UNA_LINEA} style={s.moduloSubtitulo}>
@@ -910,7 +924,7 @@ export function PerfilPantalla() {
                       </View>
 
                       <MasterButton
-                        color="#21A844"
+                        color={esc.hoja.l61a}
                         onPress={() => {
                           hapticSeguro('seleccion');
                           router.push('/tienda');
@@ -962,7 +976,7 @@ export function PerfilPantalla() {
                                 <Texto
                                   style={[
                                     s.badgeNivelInsigniaTexto,
-                                    { color: desbloqueada ? '#15803D' : '#888888' },
+                                    { color: desbloqueada ? esc.jade.l49 : '#888888' },
                                   ]}
                                 >
                                   Nv. {insignia.nivel}
@@ -1009,6 +1023,7 @@ export function PerfilPantalla() {
                 <EsqueletoAjustes />
               ) : (
                 <View style={s.tabContenido}>
+                  <SelectorTemaPrueba />
                   {/* 1. Notificaciones y Avisos */}
                   <Animated.View entering={entradaEncadenada(0)} style={s.grupoAjustes}>
                     <Texto style={s.grupoAjustesTitulo}>AVISOS Y RECORDATORIOS</Texto>
@@ -1028,7 +1043,7 @@ export function PerfilPantalla() {
                             <Switch
                               value={aviso.habilitada}
                               onValueChange={(val) => alternarAviso(aviso.codigo, val)}
-                              trackColor={{ false: '#D8D8D2', true: '#21A844' }}
+                              trackColor={{ false: '#D8D8D2', true: esc.hoja.l61a }}
                               thumbColor="#FFFFFF"
                             />
                           </View>
@@ -1050,7 +1065,7 @@ export function PerfilPantalla() {
                             Permisos de notificaciones del dispositivo
                           </Texto>
                         </View>
-                        <ChevronRight color="#5B8C65" size={18} />
+                        <ChevronRight color={esc.musgo.l54} size={18} />
                       </Pressable>
                     </MasterGlass>
                   </Animated.View>
@@ -1074,7 +1089,7 @@ export function PerfilPantalla() {
                             <Switch
                               value={Boolean(configuracion?.permisos[p.llave])}
                               onValueChange={(val) => alternarPermiso(p.llave, val)}
-                              trackColor={{ false: '#D8D8D2', true: '#21A844' }}
+                              trackColor={{ false: '#D8D8D2', true: esc.hoja.l61a }}
                               thumbColor="#FFFFFF"
                             />
                           </View>
@@ -1103,7 +1118,7 @@ export function PerfilPantalla() {
                                   : 'Copia portátil de tu historial y progreso'}
                               </Texto>
                             </View>
-                            <ChevronRight color="#5B8C65" size={18} />
+                            <ChevronRight color={esc.musgo.l54} size={18} />
                           </Pressable>
                         );
                       })()}
@@ -1133,7 +1148,7 @@ export function PerfilPantalla() {
                                   : 'Pide que revisemos o corrijamos información tuya'}
                               </Texto>
                             </View>
-                            <ChevronRight color="#5B8C65" size={18} />
+                            <ChevronRight color={esc.musgo.l54} size={18} />
                           </Pressable>
                         );
                       })()}
@@ -1165,7 +1180,7 @@ export function PerfilPantalla() {
                           <Texto
                             style={[
                               s.badgeSuscripcionTexto,
-                              { color: esPro ? '#21A844' : '#6A29C2' },
+                              { color: esPro ? esc.hoja.l61a : '#6A29C2' },
                             ]}
                           >
                             {esPro ? 'PRO' : 'GRATIS'}
@@ -1190,7 +1205,7 @@ export function PerfilPantalla() {
                             Cancelar, renovar o cambiar método de pago
                           </Texto>
                         </View>
-                        <ChevronRight color="#5B8C65" size={18} />
+                        <ChevronRight color={esc.musgo.l54} size={18} />
                       </Pressable>
 
                       <View style={s.divisorAjustes} />
@@ -1202,7 +1217,7 @@ export function PerfilPantalla() {
                       >
                         <View style={s.iconoRanura}>
                           {restaurandoCompras ? (
-                            <ActivityIndicator color="#3B9858" size="small" />
+                            <ActivityIndicator color={esc.hoja.l56} size="small" />
                           ) : (
                             <MasterIcon name="reciclar" size={32} />
                           )}
@@ -1215,7 +1230,7 @@ export function PerfilPantalla() {
                             Recuperar compras registradas en Google Play
                           </Texto>
                         </View>
-                        <ChevronRight color="#5B8C65" size={18} />
+                        <ChevronRight color={esc.musgo.l54} size={18} />
                       </Pressable>
                     </MasterGlass>
                   </Animated.View>
@@ -1239,7 +1254,7 @@ export function PerfilPantalla() {
                             soporte@lestinaty.com
                           </Texto>
                         </View>
-                        <ChevronRight color="#5B8C65" size={18} />
+                        <ChevronRight color={esc.musgo.l54} size={18} />
                       </Pressable>
 
                       <View style={s.divisorAjustes} />
@@ -1259,7 +1274,7 @@ export function PerfilPantalla() {
                             Aprende a sacar el máximo provecho
                           </Texto>
                         </View>
-                        <ChevronRight color="#5B8C65" size={18} />
+                        <ChevronRight color={esc.musgo.l54} size={18} />
                       </Pressable>
                     </MasterGlass>
                   </Animated.View>
@@ -1283,7 +1298,7 @@ export function PerfilPantalla() {
                             Cómo protegemos y tratamos tus datos
                           </Texto>
                         </View>
-                        <ChevronRight color="#5B8C65" size={18} />
+                        <ChevronRight color={esc.musgo.l54} size={18} />
                       </Pressable>
 
                       <View style={s.divisorAjustes} />
@@ -1303,7 +1318,7 @@ export function PerfilPantalla() {
                             Condiciones del servicio y compras
                           </Texto>
                         </View>
-                        <ChevronRight color="#5B8C65" size={18} />
+                        <ChevronRight color={esc.musgo.l54} size={18} />
                       </Pressable>
 
                       <View style={s.divisorAjustes} />
@@ -1323,7 +1338,7 @@ export function PerfilPantalla() {
                             Avisos legales de librerías utilizadas
                           </Texto>
                         </View>
-                        <ChevronRight color="#5B8C65" size={18} />
+                        <ChevronRight color={esc.musgo.l54} size={18} />
                       </Pressable>
                     </MasterGlass>
                   </Animated.View>
@@ -1352,7 +1367,7 @@ export function PerfilPantalla() {
                             Recibir enlace de restablecimiento seguro
                           </Texto>
                         </View>
-                        <ChevronRight color="#5B8C65" size={18} />
+                        <ChevronRight color={esc.musgo.l54} size={18} />
                       </Pressable>
 
                       <View style={s.divisorAjustes} />
@@ -1416,7 +1431,7 @@ export function PerfilPantalla() {
   );
 }
 
-const s = StyleSheet.create({
+const crearEstilos = (esc: EscalaMaster) => StyleSheet.create({
   raiz: {
     flex: 1,
   },
@@ -1486,8 +1501,8 @@ const s = StyleSheet.create({
     boxShadow: '0 2px 6px rgba(0, 0, 0, 0.04)',
   },
   statPillPro: {
-    backgroundColor: 'rgba(234, 250, 237, 0.85)',
-    borderColor: 'rgba(33, 168, 68, 0.35)',
+    backgroundColor: conAlfa(esc.hoja.l97, 0.85),
+    borderColor: conAlfa(esc.hoja.l61a, 0.35),
   },
   statPillFila: {
     alignItems: 'center',
@@ -1510,7 +1525,7 @@ const s = StyleSheet.create({
     fontSize: 13,
   },
   proTextoActivo: {
-    color: '#21A844',
+    color: esc.hoja.l61a,
   },
   scrollContenido: {
     paddingHorizontal: 20,
@@ -1521,7 +1536,7 @@ const s = StyleSheet.create({
     borderRadius: 24,
     padding: 18,
     gap: 16,
-    boxShadow: '0 8px 24px rgba(33, 168, 68, 0.08)',
+    boxShadow: `0 8px 24px ${conAlfa(esc.hoja.l61a, 0.08)}`,
   },
   heroFilaPrincipal: {
     flexDirection: 'row',
@@ -1535,9 +1550,9 @@ const s = StyleSheet.create({
     width: 72,
     height: 72,
     borderRadius: 36,
-    backgroundColor: 'rgba(33, 168, 68, 0.14)',
+    backgroundColor: conAlfa(esc.hoja.l61a, 0.14),
     borderWidth: 2,
-    borderColor: 'rgba(33, 168, 68, 0.35)',
+    borderColor: conAlfa(esc.hoja.l61a, 0.35),
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1550,7 +1565,7 @@ const s = StyleSheet.create({
     position: 'absolute',
     bottom: -4,
     right: -4,
-    backgroundColor: '#21A844',
+    backgroundColor: esc.hoja.l61a,
     borderRadius: 10,
     paddingHorizontal: 6,
     paddingVertical: 2,
@@ -1574,7 +1589,7 @@ const s = StyleSheet.create({
   nombreUsuario: {
     fontFamily: 'MontserratAlternates-Bold',
     fontSize: 20,
-    color: '#143D1F',
+    color: esc.hoja.l22,
   },
   btnEditarNombre: {
     padding: 4,
@@ -1589,14 +1604,14 @@ const s = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#21A844',
+    backgroundColor: esc.hoja.l61a,
     alignItems: 'center',
     justifyContent: 'center',
   },
   emailUsuario: {
     fontFamily: 'Montserrat-Medium',
     fontSize: 12,
-    color: '#5B8C65',
+    color: esc.musgo.l54,
   },
   rangoFila: {
     flexDirection: 'row',
@@ -1608,12 +1623,12 @@ const s = StyleSheet.create({
     width: 7,
     height: 7,
     borderRadius: 3.5,
-    backgroundColor: '#21A844',
+    backgroundColor: esc.hoja.l61a,
   },
   rangoTexto: {
     fontFamily: 'Montserrat-Medium',
     fontSize: 11,
-    color: '#245938',
+    color: esc.jade.l34a,
   },
   metricasFila: {
     flexDirection: 'row',
@@ -1624,7 +1639,7 @@ const s = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 8,
     borderWidth: 1,
-    borderColor: 'rgba(33, 168, 68, 0.15)',
+    borderColor: conAlfa(esc.hoja.l61a, 0.15),
   },
   metricaItem: {
     alignItems: 'center',
@@ -1639,17 +1654,17 @@ const s = StyleSheet.create({
   metricaValor: {
     fontFamily: 'MontserratAlternates-Bold',
     fontSize: 14,
-    color: '#143D1F',
+    color: esc.hoja.l22,
   },
   metricaEtiqueta: {
     fontFamily: 'Montserrat-Medium',
     fontSize: 10,
-    color: '#5B8C65',
+    color: esc.musgo.l54,
   },
   metricaDivisor: {
     width: 1,
     height: 28,
-    backgroundColor: 'rgba(33, 168, 68, 0.15)',
+    backgroundColor: conAlfa(esc.hoja.l61a, 0.15),
   },
   chipsContenedor: {
     flexDirection: 'row',
@@ -1672,19 +1687,19 @@ const s = StyleSheet.create({
     width: 42,
     height: 42,
     borderRadius: 14,
-    backgroundColor: 'rgba(33, 168, 68, 0.14)',
+    backgroundColor: conAlfa(esc.hoja.l61a, 0.14),
     alignItems: 'center',
     justifyContent: 'center',
   },
   moduloTitulo: {
     fontFamily: 'MontserratAlternates-Bold',
     fontSize: 14,
-    color: '#143D1F',
+    color: esc.hoja.l22,
   },
   moduloSubtitulo: {
     fontFamily: 'Montserrat-Medium',
     fontSize: 11.5,
-    color: '#5B8C65',
+    color: esc.musgo.l54,
     lineHeight: 16,
     marginTop: 2,
   },
@@ -1693,20 +1708,20 @@ const s = StyleSheet.create({
     gap: 8,
   },
   widgetMiniBadge: {
-    backgroundColor: 'rgba(33, 168, 68, 0.12)',
+    backgroundColor: conAlfa(esc.hoja.l61a, 0.12),
     borderRadius: 10,
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderWidth: 1,
-    borderColor: 'rgba(33, 168, 68, 0.25)',
+    borderColor: conAlfa(esc.hoja.l61a, 0.25),
   },
   widgetMiniBadgeTexto: {
     fontFamily: 'MontserratAlternates-Bold',
     fontSize: 10.5,
-    color: '#15803D',
+    color: esc.jade.l49,
   },
   tarjetaProActiva: {
-    borderColor: 'rgba(33, 168, 68, 0.35)',
+    borderColor: conAlfa(esc.hoja.l61a, 0.35),
   },
   tarjetaProOferta: {
     borderColor: 'rgba(106, 41, 194, 0.25)',
@@ -1719,12 +1734,12 @@ const s = StyleSheet.create({
   logrosTitulo: {
     fontFamily: 'MontserratAlternates-Bold',
     fontSize: 15,
-    color: '#143D1F',
+    color: esc.hoja.l22,
   },
   logrosSubtitulo: {
     fontFamily: 'Montserrat-Medium',
     fontSize: 12,
-    color: '#5B8C65',
+    color: esc.musgo.l54,
   },
   insigniasGrid: {
     gap: 10,
@@ -1753,7 +1768,7 @@ const s = StyleSheet.create({
     paddingVertical: 3,
   },
   badgeNivelDesbloqueada: {
-    backgroundColor: 'rgba(33, 168, 68, 0.16)',
+    backgroundColor: conAlfa(esc.hoja.l61a, 0.16),
   },
   badgeNivelBloqueada: {
     backgroundColor: 'rgba(0, 0, 0, 0.08)',
@@ -1765,13 +1780,13 @@ const s = StyleSheet.create({
   insigniaTitulo: {
     fontFamily: 'MontserratAlternates-Bold',
     fontSize: 13.5,
-    color: '#143D1F',
+    color: esc.hoja.l22,
     marginTop: 2,
   },
   insigniaDesc: {
     fontFamily: 'Montserrat-Medium',
     fontSize: 11,
-    color: '#5B8C65',
+    color: esc.musgo.l54,
     lineHeight: 15,
   },
   insigniaMetaFila: {
@@ -1791,7 +1806,7 @@ const s = StyleSheet.create({
     fontFamily: 'MontserratAlternates-Bold',
     fontSize: 11,
     letterSpacing: 1.2,
-    color: '#5B8C65',
+    color: esc.musgo.l54,
     marginLeft: 4,
   },
   tarjetaAjustes: {
@@ -1808,18 +1823,18 @@ const s = StyleSheet.create({
   toggleTitulo: {
     fontFamily: 'MontserratAlternates-Bold',
     fontSize: 13,
-    color: '#143D1F',
+    color: esc.hoja.l22,
     textTransform: 'capitalize',
   },
   toggleDesc: {
     fontFamily: 'Montserrat-Medium',
     fontSize: 11,
-    color: '#5B8C65',
+    color: esc.musgo.l54,
     marginTop: 2,
   },
   divisorAjustes: {
     height: 1,
-    backgroundColor: 'rgba(33, 168, 68, 0.1)',
+    backgroundColor: conAlfa(esc.hoja.l61a, 0.1),
     marginHorizontal: 16,
   },
   filaEnlace: {
@@ -1844,12 +1859,12 @@ const s = StyleSheet.create({
   filaEnlaceTexto: {
     fontFamily: 'MontserratAlternates-Bold',
     fontSize: 13,
-    color: '#143D1F',
+    color: esc.hoja.l22,
   },
   filaEnlaceSubtexto: {
     fontFamily: 'Montserrat-Medium',
     fontSize: 11,
-    color: '#5B8C65',
+    color: esc.musgo.l54,
     marginTop: 2,
   },
   filaEnlacePeligroTexto: {
@@ -1862,7 +1877,7 @@ const s = StyleSheet.create({
     marginRight: 2,
   },
   badgeSuscripcionActiva: {
-    backgroundColor: 'rgba(33, 168, 68, 0.15)',
+    backgroundColor: conAlfa(esc.hoja.l61a, 0.15),
   },
   badgeSuscripcionInactiva: {
     backgroundColor: 'rgba(100, 116, 139, 0.12)',
@@ -1879,17 +1894,17 @@ const s = StyleSheet.create({
   pieVersionTexto: {
     fontFamily: 'MontserratAlternates-Bold',
     fontSize: 12,
-    color: '#4E6B56',
+    color: esc.musgo.l42,
   },
   pieVersionSubtexto: {
     fontFamily: 'Montserrat-Medium',
     fontSize: 10.5,
-    color: '#7E9986',
+    color: esc.musgo.l58,
   },
   pieVersionLema: {
     fontFamily: 'Montserrat-Regular',
     fontSize: 10,
-    color: '#A3B8AA',
+    color: esc.musgo.l70,
     marginTop: 2,
   },
 });

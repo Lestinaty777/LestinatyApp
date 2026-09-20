@@ -14,4 +14,13 @@ describe('recursosI18n', () => {
     expect(recursosI18n.es.translation.habitos.crearWizard?.actions.createHabit).toBe('Crear mi hábito');
     expect(recursosI18n.en.translation.habitos.crearWizard?.actions.createHabit).toBe('Create my habit');
   });
+
+  it('declara todas las claves dinámicas de categorías del mapa', () => {
+    const claves = ['habits', 'habitsSubtitle', 'routines', 'routinesSubtitle', 'tasks', 'tasksSubtitle'];
+
+    for (const clave of claves) {
+      expect(recursosI18n.es.translation.senderos.map.categories[clave as keyof typeof recursosI18n.es.translation.senderos.map.categories]).toBeTruthy();
+      expect(recursosI18n.en.translation.senderos.map.categories[clave as keyof typeof recursosI18n.en.translation.senderos.map.categories]).toBeTruthy();
+    }
+  });
 });

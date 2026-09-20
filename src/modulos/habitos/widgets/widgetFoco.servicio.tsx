@@ -16,6 +16,7 @@ import type { HabitoResumen } from '../tipos';
 import { HabitoFocoWidget, WidgetSinHabitos } from './HabitoFocoWidget';
 import { construirPropsHabitoFoco, elegirHabitoFoco } from './mapearHabitoWidget';
 import { guardarHabitoWidgetSeleccionado, obtenerHabitoWidgetSeleccionadoId } from './widgetFocoAlmacen';
+import { ESCALA_ESMERALDA } from '../../../diseno/tema/escalaEsmeralda';
 
 export const NOMBRE_WIDGET_HABITO_FOCO = 'HabitoFoco';
 
@@ -39,7 +40,7 @@ export async function sincronizarWidgetFoco(habitos: HabitoResumen[], esPro = tr
 
       await sincronizarHabitoNativo({
         actual: habito.valorHoy,
-        color: habito.color || '#21A844',
+        color: habito.color || ESCALA_ESMERALDA.hoja.l61a,
         completado: habito.completado,
         diasCompletadosSemana: detalle?.diasCompletadosSemana ?? [],
         diasProgramados: detalle?.diasProgramados ?? [],

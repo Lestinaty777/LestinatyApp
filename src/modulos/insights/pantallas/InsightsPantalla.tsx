@@ -15,23 +15,29 @@ import { useSaldoGemas } from '../../tienda/useSaldoGemas';
 import { GaleriaWidgetsModal } from '../componentes/GaleriaWidgetsModal';
 import { SeccionProgresoDatos } from '../componentes/SeccionProgresoDatos';
 import { elegirReflexionAby } from '../reflexionAby';
+import { useEscala } from '../../../diseno/tema/MasterColorContext';
+import type { EscalaMaster } from '../../../diseno/tema/escalaEsmeralda';
+import { ESCALA_ESMERALDA } from '../../../diseno/tema/escalaEsmeralda';
+import { conAlfa } from '../../../diseno/tema/masterColor';
 
-const C = { texto: '#1A1335', tenue: '#648170', verde: '#25884C', rojo: '#DC2626', glass: 'rgba(255,255,255,0.72)', glassBorde: 'rgba(255,255,255,0.85)' };
+const C = { texto: '#1A1335', tenue: ESCALA_ESMERALDA.musgo.l51, verde: ESCALA_ESMERALDA.jade.l50, rojo: '#DC2626', glass: 'rgba(255,255,255,0.72)', glassBorde: 'rgba(255,255,255,0.85)' };
 
 const DIAS_SEMANA_ETIQUETA = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
 const NOMBRES_DIA_SEMANA = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 
 function IconoHabitoChico({ id, color, size = 18 }: { id?: string | null; color: string; size?: number }) { 
   const icono = buscarIconoHabito(id); 
-  return icono ? <Image source={icono.fuente} style={{ height: size, resizeMode: 'contain', width: size }} /> : <View style={{ height: size, width: size, borderRadius: size/2, backgroundColor: color }} />; 
+  return icono ? <MasterIcon name={icono.id} size={size} /> : <View style={{ height: size, width: size, borderRadius: size/2, backgroundColor: color }} />; 
 }
 
 function EsqueletoPatrones() {
+  const esc = useEscala();
+  const s = useEstilosS();
   return (
     <View style={s.barras}>
       {DIAS_SEMANA_ETIQUETA.map((etiqueta, indice) => (
         <View key={indice} style={s.barraColumna}>
-          <View style={[s.barraFondo, { justifyContent: 'flex-end', backgroundColor: 'rgba(37,136,76,0.06)' }]}>
+          <View style={[s.barraFondo, { justifyContent: 'flex-end', backgroundColor: conAlfa(esc.jade.l50, 0.06) }]}>
             <Skeleton alto={[28, 56, 38, 72, 44, 62, 34][indice]} ancho="100%" radio={4} />
           </View>
           <Texto style={s.barraTexto}>{etiqueta}</Texto>
@@ -42,6 +48,7 @@ function EsqueletoPatrones() {
 }
 
 function EsqueletoConexiones() {
+  const s = useEstilosS();
   return (
     <View style={s.listaCompacta}>
       {[0, 1, 2].map((i) => (
@@ -59,6 +66,7 @@ function EsqueletoConexiones() {
 }
 
 function EsqueletoRiesgo() {
+  const s = useEstilosS();
   return (
     <View style={s.listaCompacta}>
       {[0, 1, 2].map((i) => (
@@ -73,6 +81,7 @@ function EsqueletoRiesgo() {
 }
 
 function EsqueletoColumnasInsights() {
+  const s = useEstilosS();
   return (
     <View style={s.columnas}>
       <View style={s.columna}>
@@ -124,11 +133,12 @@ function EsqueletoColumnasInsights() {
 }
 
 function SeccionPatrones({ cargando, datos, estado, progreso }: { cargando: boolean; datos: PatronHabito[]; estado: EstadoPanelHabitos; progreso?: ProgresoSeccionPanel }) {
+  const s = useEstilosS();
   const diasConDatos = datos.filter((item) => item.muestras > 0).length;
   return (
     <MasterGlass style={s.seccionColumna}>
       <View style={s.seccionHeaderCompacto}>
-        <MasterIconBg size={32}><MasterIcon color={2} name="calendario" size={16} /></MasterIconBg>
+        <MasterIconBg size={32}><MasterIcon alTema name="calendario" size={16} /></MasterIconBg>
         <View style={{ flex: 1 }}>
           <Texto style={s.seccionTituloCompacto}>Tu semana</Texto>
           <Texto style={s.seccionSubtituloCompacto}>{estado === 'listo' ? `${diasConDatos}/7 días con registros` : 'Reuniendo tu historial'}</Texto>
@@ -161,10 +171,11 @@ function SeccionPatrones({ cargando, datos, estado, progreso }: { cargando: bool
 type HabitoBasico = { titulo: string; color: string; iconoLucide: string };
 
 function SeccionConexiones({ cargando, datos, estado, habitosPorId, progreso }: { cargando: boolean; datos: ConexionHabito[]; estado: EstadoPanelHabitos; habitosPorId: Map<string, HabitoBasico>; progreso?: ProgresoSeccionPanel }) {
+  const s = useEstilosS();
   return (
     <MasterGlass style={s.seccionColumna}>
       <View style={s.seccionHeaderCompacto}>
-        <MasterIconBg size={32}><MasterIcon color={2} name="hoja" size={16} /></MasterIconBg>
+        <MasterIconBg size={32}><MasterIcon alTema name="hoja" size={16} /></MasterIconBg>
         <Texto style={s.seccionTituloCompacto}>Se cumplen juntos</Texto>
       </View>
       <Texto style={s.seccionSubtituloCompacto}>Hábitos que sueles completar el mismo día.</Texto>
@@ -198,6 +209,7 @@ function SeccionConexiones({ cargando, datos, estado, habitosPorId, progreso }: 
 }
 
 function SeccionRiesgo({ cargando, datos, estado, progreso }: { cargando: boolean; datos: RiesgoHabito[]; estado: EstadoPanelHabitos; progreso?: ProgresoSeccionPanel }) {
+  const s = useEstilosS();
   return (
     <MasterGlass style={s.seccionColumna}>
       <View style={s.seccionHeaderCompacto}>
@@ -229,6 +241,8 @@ function SeccionRiesgo({ cargando, datos, estado, progreso }: { cargando: boolea
 }
 
 function SeccionDiaFuerte({ cargando, datos, estado, progreso }: { cargando: boolean; datos: PatronHabito[]; estado: EstadoPanelHabitos; progreso?: ProgresoSeccionPanel }) {
+  const esc = useEscala();
+  const s = useEstilosS();
   const diasConMuestras = datos.filter((item) => item.muestras > 0);
   const mejorDia = diasConMuestras.reduce<PatronHabito | null>((mejor, item) => (!mejor || item.porcentaje > mejor.porcentaje ? item : mejor), null);
   const indiceMejorDia = mejorDia ? mejorDia.diaSemana - 1 : -1;
@@ -236,7 +250,7 @@ function SeccionDiaFuerte({ cargando, datos, estado, progreso }: { cargando: boo
   return (
     <MasterGlass style={s.seccionColumna}>
        <View style={s.seccionHeaderCompacto}>
-         <MasterIconBg size={32}><MasterIcon color={2} name="trofeo" size={16} /></MasterIconBg>
+         <MasterIconBg size={32}><MasterIcon alTema name="trofeo" size={16} /></MasterIconBg>
          <Texto style={s.seccionTituloCompacto}>Día más fuerte</Texto>
        </View>
        <Texto style={s.seccionSubtituloCompacto}>{estado === 'listo' && mejorDia ? `Tus mejores días son los ${NOMBRES_DIA_SEMANA[indiceMejorDia]}.` : 'Todavía no hay un día que destaque.'}</Texto>
@@ -252,8 +266,8 @@ function SeccionDiaFuerte({ cargando, datos, estado, progreso }: { cargando: boo
               const porcentaje = Math.max(10, patron?.porcentaje ?? 0);
               return (
                 <View key={indice} style={s.barraColumna}>
-                  <View style={[s.barraFondo, { backgroundColor: esMejor ? 'rgba(37,136,76,.15)' : 'rgba(37,136,76,.06)' }]}>
-                    <View style={[s.barraLlena, { height: `${porcentaje}%`, backgroundColor: esMejor ? C.verde : '#8CC89F' }]} />
+                  <View style={[s.barraFondo, { backgroundColor: esMejor ? conAlfa(esc.jade.l50, .15) : conAlfa(esc.jade.l50, .06) }]}>
+                    <View style={[s.barraLlena, { height: `${porcentaje}%`, backgroundColor: esMejor ? C.verde : esc.hoja.l76 }]} />
                   </View>
                   <Texto style={[s.barraTexto, esMejor && { color: C.verde, fontFamily: 'Montserrat-Bold' }]}>{etiqueta}</Texto>
                 </View>
@@ -308,10 +322,11 @@ function ElementoFlotanteSuave({
 }
 
 function WidgetReflexion({ mensaje }: { mensaje: string }) {
+  const s = useEstilosS();
   return (
     <View style={s.widgetReflexionWrap}>
       <MasterGlass style={s.widgetReflexionGlass}>
-        <Image source={require('../../../../assets/icons/ui/cerebro.png')} style={{ width: 32, height: 32, resizeMode: 'contain', opacity: 0.9 }} />
+        <View style={{ opacity: 0.9 }}><MasterIcon name="cerebro" size={32} /></View>
         <Texto style={{ fontFamily: 'Montserrat-Medium', fontSize: 9, color: C.tenue, textAlign: 'center', lineHeight: 13, paddingHorizontal: 2 }}>
           "{mensaje}"
           <Texto style={{ fontFamily: 'Montserrat-Bold', fontSize: 8 }}>{'\n\n'}— Aby</Texto>
@@ -322,6 +337,8 @@ function WidgetReflexion({ mensaje }: { mensaje: string }) {
 }
 
 export function InsightsPantalla() {
+  const esc = useEscala();
+  const s = useEstilosS();
   const insets = useSafeAreaInsets();
   const consulta = useQuery({ queryKey: ['habitos', 'panel'], queryFn: () => obtenerPanelHabitos() });
   const consultaMejorRacha = useQuery({ queryKey: ['habitos', 'mejor-racha'], queryFn: () => obtenerHabitoMejorRacha() });
@@ -349,7 +366,7 @@ export function InsightsPantalla() {
   ];
 
   return (
-    <LinearGradient colors={['#F7FDF7', '#E8F7E9', '#CDEFCF']} end={{ x: 0, y: 1 }} start={{ x: 0, y: 0 }} style={s.raiz}>
+    <LinearGradient colors={[esc.hoja.l99, esc.hoja.l95, esc.hoja.l91]} end={{ x: 0, y: 1 }} start={{ x: 0, y: 0 }} style={s.raiz}>
       <ScrollView contentContainerStyle={[s.contenido, { paddingBottom: insets.bottom + 100 }]} showsVerticalScrollIndicator={false}>
         
         <View style={[s.superiorInicio, { paddingTop: insets.top + 32 }]}>
@@ -359,7 +376,7 @@ export function InsightsPantalla() {
             <View style={s.headerTitulo}>
               <Animated.View entering={entradaEncadenada(0)} style={s.headerIzq}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                  <Image source={require('../../../../assets/icons/navegacion/inisghts.png')} style={{ width: 34, height: 34, resizeMode: 'contain' }} />
+                  <MasterIcon name="navegacion/insights" size={34} />
                   <Texto style={s.headerTituloPrincipal}>Tus Insights</Texto>
                 </View>
                 <Texto style={s.headerSubtitulo}>Analiza tu progreso y descubre patrones.</Texto>
@@ -526,7 +543,7 @@ export function InsightsPantalla() {
   );
 }
 
-const s: Record<string, any> = StyleSheet.create({
+const crearEstilosS = (esc: EscalaMaster): Record<string, any> => StyleSheet.create({
   raiz: { flex: 1 },
   contenido: { paddingBottom: 0 },
   superiorInicio: { gap: 0, marginBottom: 12 },
@@ -564,7 +581,7 @@ const s: Record<string, any> = StyleSheet.create({
   bannerSubtitulo: { color: C.tenue, fontFamily: 'Montserrat-Medium', fontSize: 10, marginTop: 2 },
   bannerChevron: { alignItems: 'center', borderRadius: 14, height: 28, justifyContent: 'center', width: 28 },
   bannerWidgetsAcceso: { alignItems: 'center', borderRadius: 20, flexDirection: 'row', gap: 12, padding: 12 },
-  bannerWidgetsIconoContenedor: { alignItems: 'center', backgroundColor: 'rgba(37,136,76,0.12)', borderRadius: 14, height: 36, justifyContent: 'center', width: 36 },
+  bannerWidgetsIconoContenedor: { alignItems: 'center', backgroundColor: conAlfa(esc.jade.l50, 0.12), borderRadius: 14, height: 36, justifyContent: 'center', width: 36 },
   badgePro: { backgroundColor: C.verde, borderRadius: 8, paddingHorizontal: 6, paddingVertical: 2 },
   badgeProTexto: { color: '#FFF', fontFamily: 'Montserrat-Bold', fontSize: 9 },
   
@@ -588,7 +605,7 @@ const s: Record<string, any> = StyleSheet.create({
   // Mini Bars (Tu Semana / Día Fuerte)
   barras: { flexDirection: 'row', gap: 4, height: 90, justifyContent: 'space-between', marginTop: 12 },
   barraColumna: { alignItems: 'center', flex: 1, gap: 4, justifyContent: 'flex-end' },
-  barraFondo: { backgroundColor: 'rgba(37,136,76,.1)', borderRadius: 6, flex: 1, justifyContent: 'flex-end', overflow: 'hidden', width: '85%' },
+  barraFondo: { backgroundColor: conAlfa(esc.jade.l50, .1), borderRadius: 6, flex: 1, justifyContent: 'flex-end', overflow: 'hidden', width: '85%' },
   barraLlena: { backgroundColor: C.verde, borderRadius: 6, width: '100%' },
   barraTexto: { color: C.tenue, fontFamily: 'Montserrat-Medium', fontSize: 8 },
   
@@ -604,3 +621,15 @@ const s: Record<string, any> = StyleSheet.create({
   estadoContenedor: { paddingVertical: 12 },
   estadoTexto: { color: C.tenue, fontFamily: 'Montserrat-Medium', fontSize: 10, textAlign: 'center' },
 });
+
+const estilosPorEscalaS = new WeakMap<EscalaMaster, ReturnType<typeof crearEstilosS>>();
+
+function useEstilosS() {
+  const esc = useEscala();
+  let valor = estilosPorEscalaS.get(esc);
+  if (!valor) {
+    valor = crearEstilosS(esc);
+    estilosPorEscalaS.set(esc, valor);
+  }
+  return valor;
+}

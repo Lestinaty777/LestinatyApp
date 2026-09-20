@@ -1,3 +1,4 @@
+import { ESCALA_ESMERALDA } from '../../../diseno/tema/escalaEsmeralda';
 export type CategoriaAbyId = 'rutinas' | 'salud' | 'tareas' | 'finanzas' | 'habitos' | 'relaciones' | 'estudio';
 
 export type CategoriaAby = {
@@ -10,7 +11,7 @@ export type CategoriaAby = {
 
 export const categoriasAby: readonly CategoriaAby[] = [
   { color: '#4F9EEB', icono: 'ciclo', id: 'rutinas', mensaje: 'Quiero crear una rutina', titulo: 'Rutinas' },
-  { color: '#4FAE63', icono: 'hoja', id: 'salud', mensaje: 'Quiero cuidar mi salud', titulo: 'Salud' },
+  { color: ESCALA_ESMERALDA.hoja.l64, icono: 'hoja', id: 'salud', mensaje: 'Quiero cuidar mi salud', titulo: 'Salud' },
   { color: '#E5B52A', icono: 'tareas', id: 'tareas', mensaje: 'Quiero organizar mis tareas', titulo: 'Tareas' },
   { color: '#EE8A35', icono: 'cerdito', id: 'finanzas', mensaje: 'Quiero ordenar mis finanzas', titulo: 'Finanzas' },
   { color: '#D94C4C', icono: 'fuego', id: 'habitos', mensaje: 'Quiero construir un habito', titulo: 'Habitos' },

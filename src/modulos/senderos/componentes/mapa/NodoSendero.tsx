@@ -1,6 +1,7 @@
 import type { LucideIcon } from 'lucide-react-native';
 import React, { useEffect, useRef } from 'react';
 import { Animated, Easing, Pressable, StyleSheet, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 import type { EstadoNodoMapa } from '../../datos/mapaEjercicio.mock';
 import { hapticSeguro } from '../../../../nucleo/dispositivo/haptics';
@@ -35,6 +36,7 @@ const TAMANO_PEDESTAL = 84;
 const DESPLAZAMIENTO_PRESS = 21.5 * (TAMANO_PEDESTAL / 307);
 
 export function NodoSendero({ Icono, asentado, color, estado, onCompletar, onPress, escalaEscena = 1, seleccionado }: NodoSenderoProps) {
+  const { t } = useTranslation();
   const halo = useRef(new Animated.Value(0)).current;
   const asentamiento = useRef(new Animated.Value(asentado ? 1 : 0)).current;
   const inspeccion = useRef(new Animated.Value(0)).current;
@@ -77,7 +79,7 @@ export function NodoSendero({ Icono, asentado, color, estado, onCompletar, onPre
   return (
     <View style={[styles.raiz, { transform: [{ scale: escalaEscena }] }]}>
       <Pressable
-        accessibilityLabel={bloqueado ? 'Inspeccionar paso bloqueado' : 'Abrir paso'}
+        accessibilityLabel={bloqueado ? t('senderos.nodeAccessibility.blocked') : t('senderos.nodeAccessibility.open')}
         accessibilityRole="button"
         onPress={() => {
           hapticSeguro('seleccion');

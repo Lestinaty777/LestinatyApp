@@ -9,12 +9,27 @@ import { hapticSeguro } from '../dispositivo/haptics';
 import { usarAccionBarraSenderos } from '../../modulos/senderos/estado/accionBarraSenderos.estado';
 import { usarEstadoVisualAby } from '../../modulos/aby/estado/abyVisual.estado';
 import { colorEnvioCategoriaAby } from '../../modulos/aby/datos/categoriasAby';
+import { useEscala } from '../../diseno/tema/MasterColorContext';
+import type { EscalaMaster } from '../../diseno/tema/escalaEsmeralda';
+import { conAlfa } from '../../diseno/tema/masterColor';
 
 type NombreIconoTab = 'aby' | 'configuracion' | 'hoy' | 'insights' | 'metas' | 'mi_espacio' | 'ruta' | 'senderos' | 'tienda' | 'top_book' | 'top_calendar' | 'top_sparkle' | 'top_store';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 const colorActivo = biomas.inicio.Paleta.primaryDark;
-const colorActivoGlass = 'rgba(82, 99, 58, 0.82)';
+const crearTemaColorActivoGlass = (esc: EscalaMaster) => (conAlfa(esc.musgo.l40, 0.82));
+
+const temaPorEscalaColorActivoGlass = new WeakMap<EscalaMaster, ReturnType<typeof crearTemaColorActivoGlass>>();
+
+function useTemaColorActivoGlass() {
+  const esc = useEscala();
+  let valor = temaPorEscalaColorActivoGlass.get(esc);
+  if (!valor) {
+    valor = crearTemaColorActivoGlass(esc);
+    temaPorEscalaColorActivoGlass.set(esc, valor);
+  }
+  return valor;
+}
 const colorInactivo = '#76736D';
 const radioGlassTab = 10;
 const tamanoIconoTab = 26;
@@ -36,6 +51,8 @@ function obtenerIcono(nombre: Exclude<NombreIconoTab, 'aby'>): Icon {
 }
 
 export function IconoTab({ accionContextual, acentoAby = '#141414', focused, nombre }: { accionContextual?: { color: string } | null; acentoAby?: string; focused: boolean; nombre: NombreIconoTab }) {
+  const colorActivoGlass = useTemaColorActivoGlass();
+  const styles = useEstilosStyles();
   const progreso = useRef(new Animated.Value(focused ? 1 : 0)).current;
 
   useEffect(() => {
@@ -126,6 +143,7 @@ export function IconoTab({ accionContextual, acentoAby = '#141414', focused, nom
 }
 
 export function BotonTab({ accessibilityState, accionContextual, onPress, ref: _ref, ...props }: any) {
+  const styles = useEstilosStyles();
   const escala = useRef(new Animated.Value(1)).current;
 
   function presionar() {
@@ -184,7 +202,7 @@ export const iconosTabs: Record<string, NombreIconoTab> = {
   tienda: 'aby',
 };
 
-const styles = StyleSheet.create({
+const crearEstilosStyles = (esc: EscalaMaster) => StyleSheet.create({
   boton: {
     alignItems: 'center',
     flex: 1,
@@ -270,7 +288,7 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
   },
   indicador: {
-    backgroundColor: 'rgba(82, 99, 58, 0.72)',
+    backgroundColor: conAlfa(esc.musgo.l40, 0.72),
     borderRadius: 999,
     bottom: 1,
     height: 2,
@@ -295,3 +313,15 @@ const styles = StyleSheet.create({
     width: 40,
   },
 });
+
+const estilosPorEscalaStyles = new WeakMap<EscalaMaster, ReturnType<typeof crearEstilosStyles>>();
+
+function useEstilosStyles() {
+  const esc = useEscala();
+  let valor = estilosPorEscalaStyles.get(esc);
+  if (!valor) {
+    valor = crearEstilosStyles(esc);
+    estilosPorEscalaStyles.set(esc, valor);
+  }
+  return valor;
+}

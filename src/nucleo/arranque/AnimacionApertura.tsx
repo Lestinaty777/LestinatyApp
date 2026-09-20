@@ -16,6 +16,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MasterButton, MasterIcon, MasterText, Texto } from '../../diseno';
 import { usarEstadoAcceso } from '../../modulos/acceso/acceso.estado';
 import { AuroraBoreal } from '../../modulos/hoy/componentes/AuroraBoreal';
+import { ESCALA_ESMERALDA } from '../../diseno/tema/escalaEsmeralda';
+import { conAlfa } from '../../diseno/tema/masterColor';
 
 const VIDEO_APERTURA = require('../../../assets/marca/arbusto.mp4');
 const ARBUSTO_ESMERALDA = require('../../../assets/ilustraciones/senderos/biomas/paquetes/Esmeralda/arbusto.png');
@@ -39,8 +41,8 @@ const SEGUNDOS_ANTES_DEL_FIN_PARA_BIENVENIDA = 5;
 // sin esto, sacar el overlay era un corte seco de un frame al otro.
 const SALIDA_MS = 420;
 
-const DEGRADADO_VERDE_SUTIL = ['#2B8E4D', '#25884C', '#207F45'] as const;
-const FONDO_MENTA = ['#F7FDF7', '#E8F7E9', '#D5F2D7'] as const;
+const DEGRADADO_VERDE_SUTIL = [ESCALA_ESMERALDA.jade.l50, ESCALA_ESMERALDA.jade.l50, ESCALA_ESMERALDA.hoja.l46] as const;
+const FONDO_MENTA = [ESCALA_ESMERALDA.hoja.l99, ESCALA_ESMERALDA.hoja.l95, ESCALA_ESMERALDA.hoja.l93] as const;
 // Mismo degradado (esquina sup-izq → inf-der) horneado en el fondo de
 // arbusto.mp4 — muestreado directo del video en 3 momentos distintos del
 // clip (arranca, mitad, casi al final) y da prácticamente el mismo valor en
@@ -48,7 +50,7 @@ const FONDO_MENTA = ['#F7FDF7', '#E8F7E9', '#D5F2D7'] as const;
 // esquinas redondeadas dejan ver un triangulito del fondo de atrás — con
 // estos mismos colores ahí detrás, ese triangulito calza matemáticamente con
 // el degradado del video en vez de mostrar el mint plano de FONDO_MENTA.
-const COLORES_FONDO_VIDEO = ['#C6E3D0', '#99DDC5'] as const;
+const COLORES_FONDO_VIDEO = [ESCALA_ESMERALDA.jade.l88, ESCALA_ESMERALDA.menta.l83] as const;
 
 // Ciclo de nombres para llenar las 49 celdas de la grid — se repite, no hace
 // falta que sean 49 íconos distintos.
@@ -269,7 +271,7 @@ export function AnimacionApertura({ onTerminar }: { onTerminar: () => void }) {
 
             {mostrarBoton && (
               <View style={s.botonEnvoltorio}>
-                <MasterButton color="#25884C" iconoDerecha={ArrowRight} onPress={salir} style={s.boton}>
+                <MasterButton color={ESCALA_ESMERALDA.jade.l50} iconoDerecha={ArrowRight} onPress={salir} style={s.boton}>
                   Comenzar
                 </MasterButton>
               </View>
@@ -304,9 +306,9 @@ const s = StyleSheet.create({
   filaAccento: { alignItems: 'center', flexDirection: 'row', gap: 8, justifyContent: 'center' },
   arbustoAccento: {},
   accentoGradiente: { fontFamily: 'MontserratAlternates-Bold' },
-  separador: { backgroundColor: 'rgba(37,136,76,0.32)', borderRadius: 1, height: 1.5, marginVertical: 12, width: 64 },
+  separador: { backgroundColor: conAlfa(ESCALA_ESMERALDA.jade.l50, 0.32), borderRadius: 1, height: 1.5, marginVertical: 12, width: 64 },
   subtituloBienvenida: {
-    color: '#648170',
+    color: ESCALA_ESMERALDA.musgo.l51,
     fontFamily: 'Montserrat-Medium',
     fontSize: 15,
     lineHeight: 22,

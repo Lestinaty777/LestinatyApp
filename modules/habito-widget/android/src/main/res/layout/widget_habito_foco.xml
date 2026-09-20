@@ -5,50 +5,48 @@
     android:layout_height="match_parent"
     android:background="@drawable/widget_masterglass_bg"
     android:orientation="vertical"
-    android:padding="14dp">
+    android:padding="10dp">
 
-    <!-- Fila superior: Pedestal de icono + Chip de racha de fuego -->
-    <LinearLayout
+    <!-- Diorama hero: la ilustración de la etapa domina el widget. Racha y
+         botón de acción flotan sobre sus esquinas superiores en vez de
+         ocupar una fila propia, y el nombre del hábito se escribe sobre un
+         degradado oscuro al pie de la imagen, tipo póster. -->
+    <FrameLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:gravity="center_vertical"
-        android:orientation="horizontal">
+        android:layout_height="0dp"
+        android:layout_weight="1">
 
-        <!-- Pedestal de cristal para el icono del hábito -->
-        <FrameLayout
-            android:layout_width="38dp"
-            android:layout_height="38dp"
-            android:background="@drawable/widget_icon_pedestal">
+        <ImageView
+            android:id="@+id/widget_etapa_imagen"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:contentDescription="Etapa del hábito"
+            android:scaleType="fitCenter" />
 
-            <ImageView
-                android:id="@+id/widget_icono"
-                android:layout_width="22dp"
-                android:layout_height="22dp"
-                android:layout_gravity="center"
-                android:contentDescription="Icono hábito"
-                android:src="@drawable/ic_widget_leaf" />
-        </FrameLayout>
-
-        <!-- Espacio elástico -->
+        <!-- Degradado inferior para que el nombre sea legible sobre la imagen -->
         <View
-            android:layout_width="0dp"
-            android:layout_height="1dp"
-            android:layout_weight="1" />
+            android:id="@+id/widget_scrim"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:layout_gravity="bottom"
+            android:background="@drawable/widget_scrim_etapa" />
 
-        <!-- Chip de Racha de Fuego -->
+        <!-- Chip de racha de fuego, flotando sobre la esquina superior izquierda -->
         <LinearLayout
             android:id="@+id/widget_racha_chip"
             android:layout_width="wrap_content"
-            android:layout_height="26dp"
+            android:layout_height="24dp"
+            android:layout_gravity="top|start"
+            android:layout_margin="6dp"
             android:background="@drawable/widget_streak_chip"
             android:gravity="center_vertical"
             android:orientation="horizontal"
-            android:paddingStart="8dp"
-            android:paddingEnd="10dp">
+            android:paddingStart="7dp"
+            android:paddingEnd="9dp">
 
             <ImageView
-                android:layout_width="14dp"
-                android:layout_height="14dp"
+                android:layout_width="12dp"
+                android:layout_height="12dp"
                 android:layout_marginEnd="4dp"
                 android:contentDescription="Fuego"
                 android:src="@drawable/ic_widget_flame" />
@@ -59,59 +57,45 @@
                 android:layout_height="wrap_content"
                 android:text="0 d"
                 android:textColor="@color/widget_racha_texto"
-                android:textSize="11sp"
+                android:textSize="10sp"
                 android:textStyle="bold" />
         </LinearLayout>
-    </LinearLayout>
 
-    <!-- Ilustración grande de la etapa actual del árbol, con el botón de
-         acción (+) flotando en su esquina inferior derecha. -->
-    <FrameLayout
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_marginTop="4dp"
-        android:layout_weight="1">
-
-        <ImageView
-            android:id="@+id/widget_etapa_imagen"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:contentDescription="Etapa del hábito"
-            android:scaleType="fitCenter" />
-
-        <!-- MasterButton 3D interactivo con extrusión -->
+        <!-- MasterButton 3D interactivo con extrusión, esquina superior derecha -->
         <FrameLayout
             android:id="@+id/widget_boton_accion"
-            android:layout_width="42dp"
-            android:layout_height="40dp"
-            android:layout_gravity="bottom|end"
+            android:layout_width="34dp"
+            android:layout_height="34dp"
+            android:layout_gravity="top|end"
+            android:layout_margin="6dp"
             android:background="@drawable/widget_button_3d"
             android:clickable="true"
             android:focusable="true">
 
             <ImageView
                 android:id="@+id/widget_boton_icono"
-                android:layout_width="20dp"
-                android:layout_height="20dp"
+                android:layout_width="18dp"
+                android:layout_height="18dp"
                 android:layout_gravity="center"
-                android:layout_marginBottom="2dp"
                 android:contentDescription="Acción"
                 android:src="@drawable/ic_widget_plus" />
         </FrameLayout>
-    </FrameLayout>
 
-    <!-- Nombre del hábito -->
-    <TextView
-        android:id="@+id/widget_titulo"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="6dp"
-        android:ellipsize="end"
-        android:maxLines="1"
-        android:text="Mi Hábito"
-        android:textColor="@color/widget_texto_principal"
-        android:textSize="15sp"
-        android:textStyle="bold" />
+        <!-- Nombre del hábito, sobre el degradado -->
+        <TextView
+            android:id="@+id/widget_titulo"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:paddingHorizontal="8dp"
+            android:paddingBottom="8dp"
+            android:text="Mi Hábito"
+            android:textColor="@color/widget_titulo_sobre_imagen"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+    </FrameLayout>
 
     <!-- Calendario semanal sencillo: 7 celdas, lunes a domingo. La letra de
          cada día es fija en el XML — solo el fondo (estado) y el color de
@@ -217,7 +201,7 @@
             android:textStyle="bold" />
     </LinearLayout>
 
-    <!-- Estado sin hábitos: reusa la barra que antes mostraba progreso -->
+    <!-- Estado sin hábitos -->
     <TextView
         android:id="@+id/widget_progreso_texto"
         android:layout_width="match_parent"

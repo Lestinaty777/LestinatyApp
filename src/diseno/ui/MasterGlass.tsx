@@ -21,10 +21,6 @@ type MasterGlassProps = PropsWithChildren<{
   colorBase?: string;
 }>;
 
-const MENTA_SUAVE = '#f3fcf3';
-const MENTA_PROFUNDA = '#e5f5e6';
-const MASTERY_SUAVE = '#2F7D52';
-const MASTERY_PROFUNDA = '#148549';
 const RADIO_MASTER_GLASS = 12;
 
 function mezclarHex(origen: string, destino: string, proporcion: number) {
@@ -36,22 +32,23 @@ function mezclarHex(origen: string, destino: string, proporcion: number) {
   return `#${mezclarCanal(1)}${mezclarCanal(3)}${mezclarCanal(5)}`;
 }
 
-export function MasterGlass({ blur = false, children, colorBase: colorBaseProp, compacto = false, forma = 'rectangulo', intensity = 24, mastery = false, style, tint = 'light' }: MasterGlassProps) {
+export function MasterGlass({ blur = false, children, colorBase, compacto = false, forma = 'rectangulo', intensity = 24, mastery = false, style, tint = 'light' }: MasterGlassProps) {
   const [tamano, setTamano] = useState({ alto: 0, ancho: 0 });
-  // Sin colorBase explícito toma el del tono activo (undefined en Esmeralda = menta de siempre).
-  const tono = useTonoMaster();
-  const colorBase = colorBaseProp ?? tono.glassBase;
+  // Las bases del degradado salen del tono activo (Esmeralda = el menta de siempre).
+  // Un colorBase explícito (p. ej. el color de un paquete concreto) las reemplaza
+  // por una receta de mezcla con blanco/negro.
+  const { degradados: g } = useTonoMaster();
   const intensidadMenta = Math.min(1, Math.max(0, (tamano.alto - 52) / 348));
-  
-  const mentaSuave = colorBase ? mezclarHex(colorBase, '#FFFFFF', 0.95) : MENTA_SUAVE;
-  const mentaProfunda = colorBase ? mezclarHex(colorBase, '#FFFFFF', 0.85) : MENTA_PROFUNDA;
-  const masterySuave = colorBase ? mezclarHex(colorBase, '#000000', 0.1) : MASTERY_SUAVE;
-  const masteryProfunda = colorBase ? mezclarHex(colorBase, '#000000', 0.3) : MASTERY_PROFUNDA;
+
+  const mentaSuave = colorBase ? mezclarHex(colorBase, '#FFFFFF', 0.95) : g.menta.suave;
+  const mentaProfunda = colorBase ? mezclarHex(colorBase, '#FFFFFF', 0.85) : g.menta.profunda;
+  const masterySuave = colorBase ? mezclarHex(colorBase, '#000000', 0.1) : g.mastery.suave;
+  const masteryProfunda = colorBase ? mezclarHex(colorBase, '#000000', 0.3) : g.mastery.profunda;
 
   const colorSuave = mastery ? masterySuave : compacto ? mezclarHex(mentaSuave, mentaProfunda, 0.4) : mentaSuave;
   const colorProfundo = mastery ? masteryProfunda : compacto ? mezclarHex(mentaProfunda, '#000000', 0.1) : mentaProfunda;
   const colorCuerpo = mezclarHex(colorSuave, colorProfundo, 0.35 + intensidadMenta * 0.65);
-  const colorPie = mastery ? mezclarHex(colorCuerpo, '#000000', 0.3) : mezclarHex(colorCuerpo, colorBase ? colorBase : '#8CCF92', 0.2);
+  const colorPie = mastery ? mezclarHex(colorCuerpo, '#000000', 0.3) : mezclarHex(colorCuerpo, colorBase ? colorBase : g.menta.pie, 0.2);
   
   const colorTope = mastery ? colorSuave : compacto ? mezclarHex(colorSuave, '#FFFFFF', 0.6) : mezclarHex(colorSuave, '#FFFFFF', 0.8);
   const coloresExteriores: [string, string, string] = mastery
@@ -75,9 +72,9 @@ export function MasterGlass({ blur = false, children, colorBase: colorBaseProp, 
   const interior = [styles.interior, { borderRadius: Math.max(0, RADIO_MASTER_GLASS - grosorBorde), margin: grosorBorde }];
 
   if (forma === 'heptagono') {
-    const borde = mastery ? '#1D8D48' : '#CDEFCF';
-    const centro = mastery ? '#42B766' : colorCuerpo;
-    const pie = mastery ? '#17733B' : colorPie;
+    const borde = mastery ? g.heptagono.bordeMastery : g.heptagono.borde;
+    const centro = mastery ? g.heptagono.centroMastery : colorCuerpo;
+    const pie = mastery ? g.heptagono.pieMastery : colorPie;
     return (
       <View onLayout={medirContenedor} style={[styles.heptagonoRaiz, style]}>
         <Svg height="100%" preserveAspectRatio="xMidYMid meet" style={StyleSheet.absoluteFill} viewBox="0 0 72 72" width="100%">
@@ -94,7 +91,7 @@ export function MasterGlass({ blur = false, children, colorBase: colorBaseProp, 
   }
 
   return (
-    <LinearGradient colors={coloresExteriores} end={finBorde} locations={ubicacionesBorde} onLayout={medirContenedor} start={{ x: 0, y: 0 }} style={[styles.raiz, style, styles.radioFijo]}>
+    <LinearGradient colors={coloresExteriores} end={finBorde} locations={ubicacionesBorde} onLayout={medirContenedor} start={{ x: 0, y: 0 }} style={[styles.raiz, { boxShadow: `1px 3px 7px ${g.sombra}26` }, style, styles.radioFijo]}>
       {blur ? <BlurView intensity={intensity} pointerEvents="none" tint={tint} style={interior} /> : <View pointerEvents="none" style={interior} />}
       <LinearGradient colors={[colorTope, colorTope, colorCuerpo, colorCuerpo, colorPie]} end={{ x: 0, y: 1 }} locations={[0, ubicacion(franjaSuperior), ubicacion(finTransicionSuperior), ubicacion(inicioTransicionInferior), 1]} pointerEvents="none" start={{ x: 0, y: 0 }} style={interior} />
       {children}
@@ -105,7 +102,6 @@ export function MasterGlass({ blur = false, children, colorBase: colorBaseProp, 
 const styles = StyleSheet.create({
   raiz: {
     borderRadius: RADIO_MASTER_GLASS,
-    boxShadow: '1px 3px 7px rgba(11, 116, 50, 0.15)',
     // boxShadow (a diferencia del shadow* clásico de RN) no necesita
     // overflow:'visible' para pintarse fuera de la caja — con 'visible' aquí,
     // cualquier contenido absoluto que le pasemos como children (como el

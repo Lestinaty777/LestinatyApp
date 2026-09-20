@@ -8,8 +8,12 @@ import { colorMasterMasCercano } from '../../../diseno/componentes/MasterChanger
 import { hapticSeguro } from '../../../nucleo/dispositivo/haptics';
 import { obtenerCatalogoArboles } from '../../tienda/gemas.servicio';
 import { obtenerAssetsPaquete, PAQUETES_ARBOL } from '../../senderos/algoritmo/registroPaquetesArbol';
+import { useEscala } from '../../../diseno/tema/MasterColorContext';
+import type { EscalaMaster } from '../../../diseno/tema/escalaEsmeralda';
+import { ESCALA_ESMERALDA } from '../../../diseno/tema/escalaEsmeralda';
+import { conAlfa } from '../../../diseno/tema/masterColor';
 
-const C = { texto: '#1A1335', verde: '#25884C' };
+const C = { texto: '#1A1335', verde: ESCALA_ESMERALDA.jade.l50 };
 
 // Compartido entre RegaloBienvenidaPantalla y RegaloTrialHorizonPantalla —
 // ambos son "elegí 1 árbol y te lo regalamos", solo cambia el texto de
@@ -29,6 +33,8 @@ export function SelectorArbolRegalo({
   textoBotonConfirmando?: string;
   paddingBottomPie?: number;
 }) {
+  const esc = useEscala();
+  const s = useEstilosS();
   const [elegido, setElegido] = useState<string | null>(null);
 
   const consultaCatalogo = useQuery({ queryKey: ['tienda', 'catalogoArboles'], queryFn: obtenerCatalogoArboles });
@@ -110,7 +116,7 @@ export function SelectorArbolRegalo({
 
       <View style={[s.pie, { paddingBottom: paddingBottomPie }]}>
         <MasterButton
-          color={paqueteSeleccionado?.masterPackColor || '#21A844'}
+          color={paqueteSeleccionado?.masterPackColor || esc.hoja.l61a}
           disabled={!elegido || confirmando}
           onPress={confirmar}
           style={s.botonConfirmar}
@@ -126,11 +132,11 @@ export function SelectorArbolRegalo({
   );
 }
 
-const s = StyleSheet.create({
+const crearEstilosS = (esc: EscalaMaster) => StyleSheet.create({
   scroll: { flex: 1 },
   grilla: { paddingHorizontal: 16, paddingTop: 14 },
   cargandoContenedor: { alignItems: 'center', justifyContent: 'center', paddingVertical: 48 },
-  cargando: { color: '#648170', fontFamily: 'Montserrat-Medium', fontSize: 13, textAlign: 'center' },
+  cargando: { color: esc.musgo.l51, fontFamily: 'Montserrat-Medium', fontSize: 13, textAlign: 'center' },
   filas: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, justifyContent: 'center', paddingBottom: 90 },
   tarjetaEnvoltura: { width: '47%' },
   tarjeta: {
@@ -155,8 +161,8 @@ const s = StyleSheet.create({
   },
   badgeGratis: {
     alignSelf: 'flex-start',
-    backgroundColor: 'rgba(37, 136, 76, 0.15)',
-    borderColor: 'rgba(37, 136, 76, 0.3)',
+    backgroundColor: conAlfa(esc.jade.l50, 0.15),
+    borderColor: conAlfa(esc.jade.l50, 0.3),
     borderRadius: 8,
     borderWidth: 1,
     paddingHorizontal: 7,
@@ -196,3 +202,15 @@ const s = StyleSheet.create({
     width: '100%',
   },
 });
+
+const estilosPorEscalaS = new WeakMap<EscalaMaster, ReturnType<typeof crearEstilosS>>();
+
+function useEstilosS() {
+  const esc = useEscala();
+  let valor = estilosPorEscalaS.get(esc);
+  if (!valor) {
+    valor = crearEstilosS(esc);
+    estilosPorEscalaS.set(esc, valor);
+  }
+  return valor;
+}

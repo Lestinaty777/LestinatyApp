@@ -68,7 +68,7 @@ export const recursosI18n = {
         viewToday: 'Today', viewProgress: 'My Habits', viewReminders: 'Reminders', loadError: 'We could not load the data. Tap to retry.',
         exploreWidgets: 'Explore home screen widgets', widgetsTitle: 'Home Widgets', checkingSubscription: 'Checking subscription…', widgetsDescription: 'Bring your habits to your home screen',
         noStreak: 'No active streak', bestStreak: 'Best streak', viewHabit: 'View {{title}}', completedViewTrail: 'Completed — view trail', start: 'Start',
-        noHabitsTitle: 'There are no habits yet', noHabitsDescription: 'You have not created habits yet. Start with a small action.', todayCompleted: '{{completed}}/{{total}} completed', goToTrail: 'Go to trail',
+        noHabitsTitle: 'There are no habits yet', noHabitsDescription: 'You have not created habits yet. Start with a small action.', noTodayHabitsTitle: 'You have no habits today', noTodayHabitsDescription: 'Your next scheduled habits will appear here.', todayCompleted: '{{completed}}/{{total}} completed', goToTrail: 'Go to trail',
         swipeTipTitle: 'Quick tip', swipeTipDescription: 'Drag a habit icon toward the chevron to go directly to its trail.', understood: 'Got it', durationUnit: 'min', defaultUnit: 'times',
       }, crearWizard: {
         stepCounter: '{{current}} of {{total}}', cancel: 'Cancel', continue: 'Continue',
@@ -122,9 +122,21 @@ export const recursosI18n = {
       } },
       senderos: {
         pantalla: { habits: 'Habits', routines: 'Routines', tasks: 'Tasks', tasksTitle: 'Tasks', tasksDescription: 'Big tasks will be broken down into a path of concrete steps.' },
+        emptyState: { title: 'Your garden is waiting', description: 'Start by creating your first habit to see your trail come to life and walk through its days.', growTree: 'Grow your own tree', growTreeDescription: 'Every habit has a living species that evolves with your consistency.', unlockRewards: 'Unlock rewards', unlockRewardsDescription: 'Earn gems and level up as you complete your daily goals.', createHabit: 'Create a new habit', ready: 'Ready to begin your journey? ', startHere: 'Start here', goToCreation: 'Go to creation' },
+        nodeAccessibility: { blocked: 'Inspect locked step', open: 'Open step' },
         map: { genericDescription: 'A key lesson to put your skills to the test and move forward.', checkDescription: 'Mark the habit as complete to add the day.', durationDescription: 'Run the timer until you reach today’s {{meta}} min.', quantityDescription: 'Add {{unit}} until you reach {{meta}} to add the day.', defaultUnit: 'units', blocked: 'Locked', review: 'Review', start: 'Start', categories: { habits: 'Habits', habitsSubtitle: 'Small steps, big changes.', routines: 'Routines', routinesSubtitle: 'Simple sequences, every day.', tasks: 'Tasks', tasksSubtitle: 'Big projects, concrete steps.', change: 'CHANGE CATEGORY' }, accessibility: { viewHabits: 'View habits', viewGems: 'View gem balance', previousLevel: 'View previous level', nextLevel: 'View next level' }, loadingTrail: 'Loading your trail…', trailError: 'We could not open this trail.', maximumLevel: 'Maximum level reached!', loadingHabits: 'Loading your habits…', levelCelebration: 'Level {{level}}!{{gems}}', gemsReward: ' +{{gems}} gems', nodeSubtitle: 'Level {{level}} · day {{day}} of {{total}}', nodeTitle: 'Day {{day}}', habitsPanel: { title: 'YOUR HABITS', count: '{{count}} habit{{suffix}}', pending: '{{count}} pending today', today: 'TODAY', inventory: 'ACTIVE INVENTORY', modules: '{{count}} modules', globalProgress: 'GLOBAL PROGRESS', accessPass: 'ACCESS PASS', number: 'No. 0{{id}}', pluralSuffix: 's' }, nursery: { seeds: 'SEEDS', title: 'Nursery', balance: 'FUNDS (CREDITS)', empty: 'There are no trees for sale yet.', buying: 'Buying…', seedCount: '{{count}} seed{{suffix}}', purchaseErrorTitle: 'Could not buy', purchaseError: 'Try again in a moment.', purchaseSuccessTitle: 'Done!', purchaseSuccess: 'You got {{count}} seed{{suffix}}. Choose it when creating your next habit.', pluralSuffix: 's' } },
       },
-      tienda: {},
+      tienda: {
+        hero: {
+          freeKicker: 'Free to get started', esmeraldaDescription: 'The harmony of the forest — your first tree, at no cost.', referralKicker: '100 Free Gems!', referralTitle: 'Invite friends', referralDescription: 'Earn 100 gems for every friend who reaches Level 2 in their habit.', viewCode: 'View my code', proKicker: 'Lestinaty Pro', proTitle: 'Pro Widgets', proDescription: 'Access home screen widgets for your habits.', viewWidgets: 'View widgets',
+        },
+        referrals: {
+          kicker: 'Free Gems', title: 'Invite friends', description: 'Earn 100 gems for every friend who reaches Level 2 in their first habit.', codeLabel: 'YOUR INVITATION CODE', copied: 'Copied! ✓', copy: 'Copy', share: 'Share invitation', friendsJoined: 'Friends joined', atLevelTwo: 'At Level 2+', gemsEarned: 'Gems earned', shareMessage: 'Join me on Lestinaty to transform our habits together! 🌲✨\n\nUse my code when you sign up: {{code}}\n\nWhen you take your first habit to Level 2, we will both receive 100 free gems! 💎',
+        },
+        screen: {
+          title: 'Store', subtitle: 'Unique trees for a better you', filters: { all: 'All', mySeeds: 'My seeds', nature: 'Nature', elementals: 'Elementals', buy: 'Buy' }, seeds: { title: 'My Seeds', emptyTitle: 'You do not have seeds yet', emptyDescription: 'Buy a legendary or unique tree to get your first seeds.', available: '×{{count}} available', plant: 'Plant' },
+        },
+      },
       insights: {},
       perfil: {},
       arranque: {},
@@ -201,7 +213,7 @@ export const recursosI18n = {
         viewToday: 'Hoy', viewProgress: 'Mis Hábitos', viewReminders: 'Recordatorios', loadError: 'No pudimos cargar los datos. Toca para reintentar.',
         exploreWidgets: 'Explorar widgets de pantalla de inicio', widgetsTitle: 'Widgets de Inicio', checkingSubscription: 'Comprobando suscripción…', widgetsDescription: 'Lleva tus hábitos a tu pantalla de inicio',
         noStreak: 'Sin racha activa', bestStreak: 'Mejor racha', viewHabit: 'Ver {{title}}', completedViewTrail: 'Completado — ver sendero', start: 'Comenzar',
-        noHabitsTitle: 'Aún no hay hábitos', noHabitsDescription: 'Aún no has creado hábitos. Comienza con una pequeña acción.', todayCompleted: '{{completed}}/{{total}} completadas', goToTrail: 'Ir al sendero',
+        noHabitsTitle: 'Aún no hay hábitos', noHabitsDescription: 'Aún no has creado hábitos. Comienza con una pequeña acción.', noTodayHabitsTitle: 'Hoy no tienes hábitos', noTodayHabitsDescription: 'Tus próximos hábitos programados aparecerán aquí.', todayCompleted: '{{completed}}/{{total}} completadas', goToTrail: 'Ir al sendero',
         swipeTipTitle: 'Truco rápido', swipeTipDescription: 'Arrastra el ícono de un hábito hacia el chevron para ir directo a su sendero.', understood: 'Entendido', durationUnit: 'min', defaultUnit: 'veces',
       }, crearWizard: {
         stepCounter: '{{current}} de {{total}}', cancel: 'Cancelar', continue: 'Continuar',
@@ -255,9 +267,21 @@ export const recursosI18n = {
       } },
       senderos: {
         pantalla: { habits: 'Hábitos', routines: 'Rutinas', tasks: 'Tareas', tasksTitle: 'Tareas', tasksDescription: 'Las tareas grandes se dividirán en un sendero de pasos concretos.' },
+        emptyState: { title: 'Tu jardín te espera', description: 'Comienza creando tu primer hábito para ver nacer tu sendero y recorrer sus días.', growTree: 'Genera tu propio árbol', growTreeDescription: 'Cada hábito tiene su especie viva y evoluciona con tu constancia.', unlockRewards: 'Desbloquea recompensas', unlockRewardsDescription: 'Gana gemas y sube de nivel conforme completas tus metas diarias.', createHabit: 'Crear nuevo hábito', ready: '¿Listo para empezar tu viaje? ', startHere: 'Comenzar acá', goToCreation: 'Ir a creación' },
+        nodeAccessibility: { blocked: 'Inspeccionar paso bloqueado', open: 'Abrir paso' },
         map: { genericDescription: 'Lección clave para poner a prueba tus habilidades y avanzar.', checkDescription: 'Marca el hábito como cumplido para sumar el día.', durationDescription: 'Corre el cronómetro hasta llegar a tus {{meta}} min de hoy.', quantityDescription: 'Suma tus {{unit}} hasta llegar a {{meta}} para sumar el día.', defaultUnit: 'unidades', blocked: 'Bloqueado', review: 'Repasar', start: 'Comenzar', categories: { habits: 'Hábitos', habitsSubtitle: 'Pequeños pasos, grandes cambios.', routines: 'Rutinas', routinesSubtitle: 'Secuencias simples, todos los días.', tasks: 'Tareas', tasksSubtitle: 'Proyectos grandes, pasos concretos.', change: 'CAMBIAR CATEGORÍA' }, accessibility: { viewHabits: 'Ver hábitos', viewGems: 'Ver saldo de gemas', previousLevel: 'Ver nivel anterior', nextLevel: 'Ver nivel siguiente' }, loadingTrail: 'Cargando tu sendero…', trailError: 'No pudimos abrir este sendero.', maximumLevel: '¡Nivel máximo alcanzado!', loadingHabits: 'Cargando tus hábitos…', levelCelebration: '¡Nivel {{level}}!{{gems}}', gemsReward: ' +{{gems}} gemas', nodeSubtitle: 'Nivel {{level}} · día {{day}} de {{total}}', nodeTitle: 'Día {{day}}', habitsPanel: { title: 'TUS HÁBITOS', count: '{{count}} hábito{{suffix}}', pending: '{{count}} pendientes hoy', today: 'HOY', inventory: 'INVENTARIO ACTIVO', modules: '{{count}} Módulos', globalProgress: 'PROGRESO GLOBAL', accessPass: 'PASE DE ACCESO', number: 'Nº 0{{id}}', pluralSuffix: 's' }, nursery: { seeds: 'SEMILLAS', title: 'Vivero', balance: 'FONDOS (CRÉDITOS)', empty: 'Todavía no hay árboles a la venta.', buying: 'Comprando…', seedCount: '{{count}} semilla{{suffix}}', purchaseErrorTitle: 'No se pudo comprar', purchaseError: 'Intentá de nuevo en un momento.', purchaseSuccessTitle: '¡Listo!', purchaseSuccess: 'Conseguiste {{count}} semilla{{suffix}}. Elegila al crear tu próximo hábito.', pluralSuffix: 's' } },
       },
-      tienda: {},
+      tienda: {
+        hero: {
+          freeKicker: 'Gratis para empezar', esmeraldaDescription: 'La armonía del bosque — tu primer árbol, sin costo.', referralKicker: '¡100 Gemas Gratis!', referralTitle: 'Invita amigos', referralDescription: 'Gana 100 gemas por cada amigo que alcance el Nivel 2 en su hábito.', viewCode: 'Ver mi código', proKicker: 'Lestinaty Pro', proTitle: 'Widgets Pro', proDescription: 'Acceso a widgets en la pantalla de inicio de tu celular para tus hábitos.', viewWidgets: 'Ver widgets',
+        },
+        referrals: {
+          kicker: 'Gemas Gratis', title: 'Invita amigos', description: 'Gana 100 gemas por cada amigo que alcance el Nivel 2 en su primer hábito.', codeLabel: 'TU CÓDIGO DE INVITACIÓN', copied: '¡Copiado! ✓', copy: 'Copiar', share: 'Compartir invitación', friendsJoined: 'Amigos unidos', atLevelTwo: 'En Nivel 2+', gemsEarned: 'Gemas ganadas', shareMessage: '¡Únete a mí en Lestinaty para transformar nuestros hábitos juntos! 🌲✨\n\nUsa mi código al registrarte: {{code}}\n\n¡Al subir tu primer hábito a Nivel 2 ambos recibiremos 100 gemas gratis! 💎',
+        },
+        screen: {
+          title: 'Tienda', subtitle: 'Árboles únicos para un mejor tú', filters: { all: 'Todos', mySeeds: 'Mis semillas', nature: 'Naturaleza', elementals: 'Elementales', buy: 'Comprar' }, seeds: { title: 'Mis Semillas', emptyTitle: 'Todavía no tenés semillas', emptyDescription: 'Comprá un árbol legendario o único para conseguir tus primeras semillas.', available: '×{{count}} disponibles', plant: 'Plantar' },
+        },
+      },
       insights: {},
       perfil: {},
       arranque: {},

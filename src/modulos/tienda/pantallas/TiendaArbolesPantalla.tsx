@@ -6,6 +6,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import type { PurchasesPackage } from 'react-native-purchases';
+import { useTranslation } from 'react-i18next';
 
 import { MasterGlass, Texto, MasterIcon, MasterIconBg, Rebote, MasterChip, MasterButton, MasterKicker, entradaEncadenada, MasterAnimation, Skeleton } from '../../../diseno';
 import { hapticSeguro } from '../../../nucleo/dispositivo/haptics';
@@ -18,6 +19,9 @@ import type { ArbolPaquete, PaqueteGemasIap, SemillaArbol } from '../gemas.tipos
 import { CLAVE_SALDO_GEMAS, useSaldoGemas } from '../useSaldoGemas';
 import { TarjetaReferidosGemas } from '../componentes/TarjetaReferidosGemas';
 import { CarruselHeroTienda } from '../componentes/CarruselHeroTienda';
+import { useEscala } from '../../../diseno/tema/MasterColorContext';
+import type { EscalaMaster } from '../../../diseno/tema/escalaEsmeralda';
+import { ESCALA_ESMERALDA } from '../../../diseno/tema/escalaEsmeralda';
 
 export const CLAVE_SEMILLAS_DISPONIBLES = ['tienda', 'semillasDisponibles'];
 
@@ -143,13 +147,13 @@ function agruparSemillas(semillas: SemillaArbol[], catalogo: ArbolPaquete[]): Gr
   for (const semilla of semillas) porPaquete.set(semilla.paqueteId, (porPaquete.get(semilla.paqueteId) ?? 0) + 1);
   return Array.from(porPaquete.entries()).map(([paqueteId, cantidad]) => {
     const info = catalogo.find((p) => p.id === paqueteId);
-    return { cantidad, masterPackColor: info?.masterPackColor ?? '#4ade80', nombre: info?.nombre ?? paqueteId, paqueteId };
+    return { cantidad, masterPackColor: info?.masterPackColor ?? ESCALA_ESMERALDA.jade.l79, nombre: info?.nombre ?? paqueteId, paqueteId };
   });
 }
 
 // Colores de acento por posición — puramente visual, no vienen del catálogo
 // (que solo define cantidad de gemas y el id de producto de RevenueCat).
-const COLORES_PAQUETE_GEMAS = ['#4ade80', '#facc15', '#38bdf8', '#a855f7'];
+const COLORES_PAQUETE_GEMAS = [ESCALA_ESMERALDA.jade.l79, '#facc15', '#38bdf8', '#a855f7'];
 
 const FILTROS = ['Todos', 'Mis semillas', 'Naturaleza', 'Elementales', 'Comprar'] as const;
 type Filtro = typeof FILTROS[number];
@@ -180,7 +184,7 @@ function BarraFiltros({ activo, onCambio }: { activo: Filtro; onCambio: (f: Filt
         <MasterChip
           key={f}
           activo={activo === f}
-          icono={<MasterIcon name={ICONO_FILTRO[f]} color={2} size={18} />}
+          icono={<MasterIcon name={ICONO_FILTRO[f]} alTema size={18} />}
           onPress={() => onCambio(f)}
           texto={f}
         />
@@ -222,6 +226,8 @@ const SeccionesContenido = memo(function SeccionesContenido({
   cargandoCatalogoGemas?: boolean;
   onComprarGemas: (paquete: PaqueteGemasIap) => void;
 }) {
+  const esc = useEscala();
+  const { t } = useTranslation();
   const { filtro, setFiltro } = useFiltro();
   // "Naturaleza"/"Elementales" quedan como categorías visuales a futuro — hoy
   // el catálogo no tiene un campo de tema propio, así que por ahora muestran
@@ -238,16 +244,16 @@ const SeccionesContenido = memo(function SeccionesContenido({
       {filtro === 'Mis semillas' && (
         <View style={{ gap: 16, marginBottom: 32, paddingHorizontal: 20 }}>
           <Animated.View entering={entradaEncadenada(0)} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-            <MasterIconBg size={32}><MasterIcon name="maceta" color={2} size={18} /></MasterIconBg>
-            <Texto style={{ fontSize: 18, fontFamily: 'MontserratAlternates-Bold', color: '#1A3320' }}>Mis Semillas</Texto>
+            <MasterIconBg size={32}><MasterIcon name="maceta" alTema size={18} /></MasterIconBg>
+            <Texto style={{ fontSize: 18, fontFamily: 'MontserratAlternates-Bold', color: esc.hoja.l19 }}>{t('tienda.screen.seeds.title')}</Texto>
           </Animated.View>
           {cargandoSemillas || cambiandoTab ? (
             <EsqueletoSemillas />
           ) : gruposSemillas.length === 0 ? (
             <MasterGlass style={{ borderRadius: 12, padding: 20, alignItems: 'center', gap: 6 }}>
-              <MasterIcon name="maceta" color={2} size={28} />
-              <Texto style={{ fontFamily: 'MontserratAlternates-Bold', color: '#1A3320', fontSize: 14 }}>Todavía no tenés semillas</Texto>
-              <Texto style={{ color: '#5B8C65', fontFamily: 'Montserrat-Medium', fontSize: 12, textAlign: 'center' }}>Comprá un árbol legendario o único para conseguir tus primeras semillas.</Texto>
+              <MasterIcon name="maceta" alTema size={28} />
+              <Texto style={{ fontFamily: 'MontserratAlternates-Bold', color: esc.hoja.l19, fontSize: 14 }}>{t('tienda.screen.seeds.emptyTitle')}</Texto>
+              <Texto style={{ color: esc.musgo.l54, fontFamily: 'Montserrat-Medium', fontSize: 12, textAlign: 'center' }}>{t('tienda.screen.seeds.emptyDescription')}</Texto>
             </MasterGlass>
           ) : (
             <MasterAnimation>
@@ -259,14 +265,14 @@ const SeccionesContenido = memo(function SeccionesContenido({
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
                         {imagen && <Image source={imagen} style={{ width: 64, height: 64, resizeMode: 'contain' }} />}
                         <View style={{ flex: 1 }}>
-                          <Texto style={{ fontFamily: 'MontserratAlternates-Bold', color: '#1A3320', fontSize: 15 }}>{grupo.nombre}</Texto>
+                          <Texto style={{ fontFamily: 'MontserratAlternates-Bold', color: esc.hoja.l19, fontSize: 15 }}>{grupo.nombre}</Texto>
                           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 }}>
                             <MasterIcon name="maceta" color={colorMasterMasCercano(grupo.masterPackColor)} size={16} />
-                            <Texto style={{ color: '#5B8C65', fontFamily: 'Montserrat-Medium', fontSize: 13 }}>×{grupo.cantidad} disponibles</Texto>
+                            <Texto style={{ color: esc.musgo.l54, fontFamily: 'Montserrat-Medium', fontSize: 13 }}>{t('tienda.screen.seeds.available', { count: grupo.cantidad })}</Texto>
                           </View>
                         </View>
                         <View style={{ width: 100 }}>
-                          <MasterButton color="#21A844" onPress={onPlantar}>Plantar</MasterButton>
+                          <MasterButton color={esc.hoja.l61a} onPress={onPlantar}>{t('tienda.screen.seeds.plant')}</MasterButton>
                         </View>
                       </View>
                     </MasterGlass>
@@ -294,8 +300,8 @@ const SeccionesContenido = memo(function SeccionesContenido({
               <Animated.View entering={entradaEncadenada(1)} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8 }}>
                 <MasterIconBg size={32}><MasterIcon name="rayo" color={3} size={18} /></MasterIconBg>
                 <View>
-                  <Texto style={{ fontSize: 18, fontFamily: 'MontserratAlternates-Bold', color: '#1A3320' }}>Tienda de Gemas</Texto>
-                  <Texto style={{ fontSize: 11, fontFamily: 'Montserrat-Medium', color: '#5B8C65' }}>Recarga inmediata con dinero real</Texto>
+                  <Texto style={{ fontSize: 18, fontFamily: 'MontserratAlternates-Bold', color: esc.hoja.l19 }}>Tienda de Gemas</Texto>
+                  <Texto style={{ fontSize: 11, fontFamily: 'Montserrat-Medium', color: esc.musgo.l54 }}>Recarga inmediata con dinero real</Texto>
                 </View>
               </Animated.View>
 
@@ -305,9 +311,9 @@ const SeccionesContenido = memo(function SeccionesContenido({
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
                     <Image source={require('../../../../assets/icons/hoy/gemas.png')} style={{ width: 48, height: 48, resizeMode: 'contain' }} />
                     <View style={{ flex: 1 }}>
-                      <MasterKicker icono={<MasterIcon name="hoja" color={2} size={12} />} texto="Oferta especial" />
-                      <Texto style={{ fontFamily: 'MontserratAlternates-Bold', color: '#1A3320', fontSize: 16, marginTop: 6 }}>¡Bono del 50%!</Texto>
-                      <Texto style={{ color: '#5B8C65', fontFamily: 'Montserrat-Medium', fontSize: 11, marginTop: 2 }}>Solo por tiempo limitado</Texto>
+                      <MasterKicker icono={<MasterIcon name="hoja" alTema size={12} />} texto="Oferta especial" />
+                      <Texto style={{ fontFamily: 'MontserratAlternates-Bold', color: esc.hoja.l19, fontSize: 16, marginTop: 6 }}>¡Bono del 50%!</Texto>
+                      <Texto style={{ color: esc.musgo.l54, fontFamily: 'Montserrat-Medium', fontSize: 11, marginTop: 2 }}>Solo por tiempo limitado</Texto>
                     </View>
                   </View>
                 </MasterGlass>
@@ -315,7 +321,7 @@ const SeccionesContenido = memo(function SeccionesContenido({
               {cargandoCatalogoGemas ? (
                 <EsqueletoComprarGemas soloLista />
               ) : catalogoGemas.length === 0 ? (
-                <Texto style={{ color: '#5B8C65', fontFamily: 'Montserrat-Medium', fontSize: 12 }}>No hay paquetes de gemas disponibles por ahora.</Texto>
+                <Texto style={{ color: esc.musgo.l54, fontFamily: 'Montserrat-Medium', fontSize: 12 }}>No hay paquetes de gemas disponibles por ahora.</Texto>
               ) : (
                 <MasterAnimation>
                   {catalogoGemas.map((paq, idx) => {
@@ -330,8 +336,8 @@ const SeccionesContenido = memo(function SeccionesContenido({
                               <Image source={require('../../../../assets/icons/hoy/gemas.png')} style={{ width: 30, height: 30, resizeMode: 'contain' }} />
                             </View>
                             <View style={{ flex: 1, gap: 2 }}>
-                              <Texto style={{ fontFamily: 'MontserratAlternates-Bold', color: '#1A3320', fontSize: 17 }}>{paq.cantidadGemas.toLocaleString()} gemas</Texto>
-                              {!disponible && <Texto style={{ color: '#5B8C65', fontFamily: 'Montserrat-Medium', fontSize: 11 }}>Referencia, aún no disponible</Texto>}
+                              <Texto style={{ fontFamily: 'MontserratAlternates-Bold', color: esc.hoja.l19, fontSize: 17 }}>{paq.cantidadGemas.toLocaleString()} gemas</Texto>
+                              {!disponible && <Texto style={{ color: esc.musgo.l54, fontFamily: 'Montserrat-Medium', fontSize: 11 }}>Referencia, aún no disponible</Texto>}
                             </View>
                             <View style={{ width: 90 }}>
                               <MasterButton color="#6A29C2" disabled={comprandoEsta || !disponible} onPress={() => onComprarGemas(paq)}>
@@ -357,17 +363,17 @@ const SeccionesContenido = memo(function SeccionesContenido({
           <View style={{ gap: 16, marginBottom: 32 }}>
             <Animated.View entering={entradaEncadenada(0)} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                <MasterIconBg size={32}><MasterIcon name="trofeo" color={2} size={18} /></MasterIconBg>
-                <Texto style={{ fontSize: 18, fontFamily: 'MontserratAlternates-Bold', color: '#1A3320' }}>
+                <MasterIconBg size={32}><MasterIcon name="trofeo" alTema size={18} /></MasterIconBg>
+                <Texto style={{ fontSize: 18, fontFamily: 'MontserratAlternates-Bold', color: esc.hoja.l19 }}>
                   {filtro === 'Todos' ? 'Árboles Legendarios' : `Árboles Legendarios (${filtro})`}
                 </Texto>
               </View>
-              <Texto style={{ color: '#5B8C65', fontFamily: 'Montserrat-Medium', fontSize: 12 }}>Más populares ⌄</Texto>
+              <Texto style={{ color: esc.musgo.l54, fontFamily: 'Montserrat-Medium', fontSize: 12 }}>Más populares ⌄</Texto>
             </Animated.View>
             {cargandoCatalogo || cambiandoTab ? (
               <EsqueletoCarruselArboles />
             ) : arbolesLeg.length === 0 ? (
-              <Texto style={{ paddingHorizontal: 20, color: '#5B8C65', fontFamily: 'Montserrat-Medium', fontSize: 12 }}>Todavía no hay árboles legendarios a la venta.</Texto>
+              <Texto style={{ paddingHorizontal: 20, color: esc.musgo.l54, fontFamily: 'Montserrat-Medium', fontSize: 12 }}>Todavía no hay árboles legendarios a la venta.</Texto>
             ) : (
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 16, paddingHorizontal: 20 }}>
                 {arbolesLeg.map((arbol, idx) => {
@@ -381,8 +387,8 @@ const SeccionesContenido = memo(function SeccionesContenido({
                             <MasterIcon name="trofeo" color={colorMaster} size={28} />
                           </View>
                           {imagen && <Image source={imagen} style={{ width: '100%', height: 120, resizeMode: 'contain', marginTop: 10 }} />}
-                          <Texto style={{ textAlign: 'center', fontFamily: 'MontserratAlternates-Bold', color: '#1A3320', marginTop: 12 }}>{arbol.nombre}</Texto>
-                          <Texto style={{ textAlign: 'center', fontFamily: 'Montserrat-Medium', fontSize: 10, color: '#5B8C65', marginTop: 2 }} numberOfLines={1}>{arbol.cantidadPorCompra} semillas por compra</Texto>
+                          <Texto style={{ textAlign: 'center', fontFamily: 'MontserratAlternates-Bold', color: esc.hoja.l19, marginTop: 12 }}>{arbol.nombre}</Texto>
+                          <Texto style={{ textAlign: 'center', fontFamily: 'Montserrat-Medium', fontSize: 10, color: esc.musgo.l54, marginTop: 2 }} numberOfLines={1}>{arbol.cantidadPorCompra} semillas por compra</Texto>
                           <View style={{ marginTop: 16 }}>
                             <MasterButton
                               color="#6A29C2"
@@ -407,17 +413,17 @@ const SeccionesContenido = memo(function SeccionesContenido({
           <View style={{ gap: 16, marginBottom: 16 }}>
             <Animated.View entering={entradaEncadenada(4)} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                <MasterIconBg size={32}><MasterIcon name="hoja3" color={2} size={18} /></MasterIconBg>
-                <Texto style={{ fontSize: 18, fontFamily: 'MontserratAlternates-Bold', color: '#1A3320' }}>
+                <MasterIconBg size={32}><MasterIcon name="hoja3" alTema size={18} /></MasterIconBg>
+                <Texto style={{ fontSize: 18, fontFamily: 'MontserratAlternates-Bold', color: esc.hoja.l19 }}>
                   {filtro === 'Todos' ? 'Árboles Únicos' : `Árboles Únicos (${filtro})`}
                 </Texto>
               </View>
-              <Texto style={{ color: '#5B8C65', fontFamily: 'Montserrat-Medium', fontSize: 12 }}>Ver todos ⌄</Texto>
+              <Texto style={{ color: esc.musgo.l54, fontFamily: 'Montserrat-Medium', fontSize: 12 }}>Ver todos ⌄</Texto>
             </Animated.View>
             {cargandoCatalogo || cambiandoTab ? (
               <EsqueletoCarruselArboles />
             ) : arbolesUni.length === 0 ? (
-              <Texto style={{ paddingHorizontal: 20, color: '#5B8C65', fontFamily: 'Montserrat-Medium', fontSize: 12 }}>Todavía no hay árboles únicos a la venta.</Texto>
+              <Texto style={{ paddingHorizontal: 20, color: esc.musgo.l54, fontFamily: 'Montserrat-Medium', fontSize: 12 }}>Todavía no hay árboles únicos a la venta.</Texto>
             ) : (
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 16, paddingHorizontal: 20 }}>
                 {arbolesUni.map((arbol, idx) => {
@@ -431,8 +437,8 @@ const SeccionesContenido = memo(function SeccionesContenido({
                             <MasterIcon name="hoja3" color={colorMaster} size={28} />
                           </View>
                           {imagen && <Image source={imagen} style={{ width: '100%', height: 120, resizeMode: 'contain', marginTop: 10 }} />}
-                          <Texto style={{ textAlign: 'center', fontFamily: 'MontserratAlternates-Bold', color: '#1A3320', marginTop: 12 }}>{arbol.nombre}</Texto>
-                          <Texto style={{ textAlign: 'center', fontFamily: 'Montserrat-Medium', fontSize: 10, color: '#5B8C65', marginTop: 2 }} numberOfLines={1}>{arbol.cantidadPorCompra} semilla por compra</Texto>
+                          <Texto style={{ textAlign: 'center', fontFamily: 'MontserratAlternates-Bold', color: esc.hoja.l19, marginTop: 12 }}>{arbol.nombre}</Texto>
+                          <Texto style={{ textAlign: 'center', fontFamily: 'Montserrat-Medium', fontSize: 10, color: esc.musgo.l54, marginTop: 2 }} numberOfLines={1}>{arbol.cantidadPorCompra} semilla por compra</Texto>
                           <View style={{ marginTop: 16 }}>
                             <MasterButton
                               color="#6A29C2"
@@ -459,13 +465,13 @@ const SeccionesContenido = memo(function SeccionesContenido({
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
                 <View style={{ flex: 1, gap: 4 }}>
                   <MasterKicker icono={<MasterIcon name="trofeo" color={3} size={11} />} texto="¡100 Gemas Gratis!" />
-                  <Texto style={{ fontFamily: 'MontserratAlternates-Bold', fontSize: 16, color: '#1A3320', marginTop: 4 }}>¿Necesitas más gemas?</Texto>
-                  <Texto style={{ fontFamily: 'Montserrat-Medium', fontSize: 11, color: '#5B8C65', lineHeight: 15 }}>Invita amigos a Lestinaty. Cuando suban su primer hábito a Nivel 2, ambos ganarán 100 gemas.</Texto>
+                  <Texto style={{ fontFamily: 'MontserratAlternates-Bold', fontSize: 16, color: esc.hoja.l19, marginTop: 4 }}>¿Necesitas más gemas?</Texto>
+                  <Texto style={{ fontFamily: 'Montserrat-Medium', fontSize: 11, color: esc.musgo.l54, lineHeight: 15 }}>Invita amigos a Lestinaty. Cuando suban su primer hábito a Nivel 2, ambos ganarán 100 gemas.</Texto>
                 </View>
                 <Image source={require('../../../../assets/icons/hoy/gemas.png')} style={{ width: 42, height: 42, resizeMode: 'contain' }} />
               </View>
               <View style={{ marginTop: 12 }}>
-                <MasterButton color="#21A844" onPress={() => setFiltro('Comprar')} iconoSize={16}>
+                <MasterButton color={esc.hoja.l61a} onPress={() => setFiltro('Comprar')} iconoSize={16}>
                   Ver mi código de referido
                 </MasterButton>
               </View>
@@ -479,6 +485,9 @@ const SeccionesContenido = memo(function SeccionesContenido({
 
 // ── Pantalla principal ───────────────────────────────────────────────────────
 export function TiendaArbolesPantalla() {
+  const esc = useEscala();
+  const { t } = useTranslation();
+  const s = useEstilosS();
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -567,7 +576,7 @@ export function TiendaArbolesPantalla() {
 
   return (
     <FiltroCtx.Provider value={contextoFiltro}>
-      <LinearGradient colors={['#F7FDF7', '#E8F7E9', '#CDEFCF']} end={{ x: 0, y: 1 }} start={{ x: 0, y: 0 }} style={s.raiz}>
+      <LinearGradient colors={[esc.hoja.l99, esc.hoja.l95, esc.hoja.l91]} end={{ x: 0, y: 1 }} start={{ x: 0, y: 0 }} style={s.raiz}>
         <ScrollView contentContainerStyle={[s.contenido, { paddingBottom: insets.bottom + 100 }]} showsVerticalScrollIndicator={false}>
           <View style={[s.superiorInicio, { paddingTop: insets.top + 32 }]}>
             <AuroraBoreal tema="verde" />
@@ -577,10 +586,10 @@ export function TiendaArbolesPantalla() {
               <View style={s.headerTitulo}>
                 <Animated.View entering={entradaEncadenada(0)} style={s.headerIzq}>
                   <View style={s.nombreFila}>
-                    <Texto style={s.headerNombre}>Tienda</Texto>
-                    <Image source={require('../../../../assets/icons/ui/planta.png')} style={s.saludoIcono} />
+                    <Texto style={s.headerNombre}>{t('tienda.screen.title')}</Texto>
+                    <MasterIcon name="planta" size={28} />
                   </View>
-                  <Texto style={s.headerSaludo}>Árboles únicos para un mejor tú</Texto>
+                  <Texto style={s.headerSaludo}>{t('tienda.screen.subtitle')}</Texto>
                 </Animated.View>
               </View>
               <View style={s.headerDer}>
@@ -640,7 +649,7 @@ const sf = StyleSheet.create({
   barra: { gap: 10, paddingHorizontal: 20, marginBottom: 24 },
 });
 
-const s = StyleSheet.create({
+const crearEstilosS = (esc: EscalaMaster) => StyleSheet.create({
   raiz:             { flex: 1 },
   contenido:        { paddingBottom: 0 },
   superiorInicio:   { gap: 0 },
@@ -650,7 +659,7 @@ const s = StyleSheet.create({
   nombreFila:       { alignItems: 'center', flexDirection: 'row', gap: 8 },
   headerNombre:     { color: C.texto, fontFamily: 'MontserratAlternates-Bold', fontSize: 32, lineHeight: 36 },
   saludoIcono:      { height: 28, resizeMode: 'contain', width: 28 },
-  headerSaludo:     { color: '#4A7F5D', fontFamily: 'Montserrat-Medium', fontSize: 14, lineHeight: 17, marginTop: 4 },
+  headerSaludo:     { color: esc.musgo.l49, fontFamily: 'Montserrat-Medium', fontSize: 14, lineHeight: 17, marginTop: 4 },
   headerDer:        { alignItems: 'center', flexDirection: 'row', gap: 8, marginTop: 4 },
   statPill:         { backgroundColor: C.glass, borderColor: C.glassBorde, borderRadius: 20, borderWidth: 1, paddingHorizontal: 10, paddingVertical: 6 },
   statPillFila:     { alignItems: 'center', flexDirection: 'row', gap: 4 },
@@ -659,3 +668,15 @@ const s = StyleSheet.create({
   notificacion:     { borderRadius: 22, paddingHorizontal: 10, paddingVertical: 10 },
   notificacionIcono:{ height: 30, resizeMode: 'contain', width: 30 },
 });
+
+const estilosPorEscalaS = new WeakMap<EscalaMaster, ReturnType<typeof crearEstilosS>>();
+
+function useEstilosS() {
+  const esc = useEscala();
+  let valor = estilosPorEscalaS.get(esc);
+  if (!valor) {
+    valor = crearEstilosS(esc);
+    estilosPorEscalaS.set(esc, valor);
+  }
+  return valor;
+}

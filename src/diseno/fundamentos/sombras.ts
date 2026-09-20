@@ -1,3 +1,4 @@
+import { ESCALA_ESMERALDA } from '../tema/escalaEsmeralda';
 export const sombras = {
   tarjeta: {
     elevation: 2,
@@ -8,7 +9,7 @@ export const sombras = {
   },
   lipPrimario: {
     elevation: 4,
-    shadowColor: '#2C6B1A',
+    shadowColor: ESCALA_ESMERALDA.lima.l40,
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 1,
     shadowRadius: 0,

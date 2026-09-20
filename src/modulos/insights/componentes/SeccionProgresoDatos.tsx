@@ -1,8 +1,9 @@
 import { StyleSheet, View } from 'react-native';
 import { MasterProgressbar, Texto } from '../../../diseno';
 import type { ProgresoSeccionPanel } from '../../habitos/tipos';
+import { ESCALA_ESMERALDA } from '../../../diseno/tema/escalaEsmeralda';
 
-const C = { tenue: '#648170' };
+const C = { tenue: ESCALA_ESMERALDA.musgo.l51 };
 
 // Se muestra en vez de un esqueleto infinito cuando una sección del panel
 // (patrones/riesgo/conexiones) todavía no llegó a 'listo' — con el número

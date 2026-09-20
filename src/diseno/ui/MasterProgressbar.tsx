@@ -6,6 +6,9 @@ import Animated, { cancelAnimation, Easing, useAnimatedStyle, useSharedValue, wi
 import { MasterGlass } from './MasterGlass';
 import { normalizarPorcentaje } from './progreso';
 import { useTonoMaster } from '../tema/MasterColorContext';
+import { useEscala } from '../tema/MasterColorContext';
+import type { EscalaMaster } from '../tema/escalaEsmeralda';
+import { conAlfa } from '../tema/masterColor';
 
 type MasterProgressbarProps = {
   altura?: number;
@@ -35,6 +38,7 @@ function mezclarColor(hex: string, porcentaje: number, haciaBlanco: boolean) {
 }
 
 function Burbuja({ arriba, demora, duracion, izquierda, tamano }: BurbujaProps) {
+  const styles = useEstilosStyles();
   const desplazamiento = useSharedValue(-tamano);
 
   useEffect(() => {
@@ -46,9 +50,10 @@ function Burbuja({ arriba, demora, duracion, izquierda, tamano }: BurbujaProps) 
   return <Animated.View pointerEvents="none" style={[styles.burbuja, estiloAnimado, { borderRadius: tamano / 2, height: tamano, left: izquierda as `${number}%`, top: arriba, width: tamano }]} />;
 }
 
-export function MasterProgressbar({ altura = 12, porcentaje, style, colorBase: colorBaseProp }: MasterProgressbarProps) {
-  const tono = useTonoMaster();
-  const colorBase = colorBaseProp ?? tono.glassBase;
+export function MasterProgressbar({ altura = 12, porcentaje, style, colorBase }: MasterProgressbarProps) {
+  const styles = useEstilosStyles();
+  // Sin colorBase explícito usa los degradados del tono activo (Esmeralda = los verdes de siempre).
+  const { degradados: g } = useTonoMaster();
   const progreso = useSharedValue(normalizarPorcentaje(porcentaje));
   const porcentajeSeguro = normalizarPorcentaje(porcentaje);
 
@@ -61,11 +66,11 @@ export function MasterProgressbar({ altura = 12, porcentaje, style, colorBase: c
 
   const coloresGradiente: [string, string, ...string[]] = colorBase
     ? [mezclarColor(colorBase, 0.2, false), colorBase, mezclarColor(colorBase, 0.4, true)]
-    : ['#1F7C3E', '#58BE68', '#9AE59C'];
+    : g.progreso;
 
   const coloresFondo: [string, string, ...string[]] = colorBase
     ? [mezclarColor(colorBase, 0.85, true), mezclarColor(colorBase, 0.92, true)]
-    : ['#edfaed', '#f4ffea'];
+    : g.progresoFondo;
 
   return (
     <MasterGlass style={[styles.marco, { borderRadius: radio, height: altura }, style]}>
@@ -85,10 +90,22 @@ export function MasterProgressbar({ altura = 12, porcentaje, style, colorBase: c
   );
 }
 
-const styles = StyleSheet.create({
+const crearEstilosStyles = (esc: EscalaMaster) => StyleSheet.create({
   burbuja: { backgroundColor: 'rgba(255,255,255,0.48)', position: 'absolute' },
   liquido: { flex: 1, overflow: 'hidden' },
-  marco: { boxShadow: '0px 3px 6px rgba(11, 116, 50, 0.16)', overflow: 'hidden', width: '100%' },
+  marco: { boxShadow: `0px 3px 6px ${conAlfa(esc.jade.l42, 0.16)}`, overflow: 'hidden', width: '100%' },
   pista: { flex: 1, overflow: 'hidden' },
   relleno: { height: '100%', overflow: 'hidden' },
 });
+
+const estilosPorEscalaStyles = new WeakMap<EscalaMaster, ReturnType<typeof crearEstilosStyles>>();
+
+function useEstilosStyles() {
+  const esc = useEscala();
+  let valor = estilosPorEscalaStyles.get(esc);
+  if (!valor) {
+    valor = crearEstilosStyles(esc);
+    estilosPorEscalaStyles.set(esc, valor);
+  }
+  return valor;
+}
