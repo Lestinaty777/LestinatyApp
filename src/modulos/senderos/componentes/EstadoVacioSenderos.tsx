@@ -11,6 +11,7 @@ import { useEscala } from '../../../diseno/tema/MasterColorContext';
 import type { EscalaMaster } from '../../../diseno/tema/escalaEsmeralda';
 import { ESCALA_ESMERALDA } from '../../../diseno/tema/escalaEsmeralda';
 import { conAlfa } from '../../../diseno/tema/masterColor';
+import { useAssetsPaqueteTema } from '../../habitos/usePaqueteTema';
 
 type EstadoVacioSenderosProps = {
   alCrearHabito: () => void;
@@ -23,9 +24,9 @@ const C = {
   verdeOscuro: ESCALA_ESMERALDA.hoja.l19,
 };
 
-const ARBUSTO_HERO = require('../../../../assets/ilustraciones/senderos/biomas/paquetes/Esmeralda/arbusto.png');
 
 export function EstadoVacioSenderos({ alCrearHabito }: EstadoVacioSenderosProps) {
+  const tema = useAssetsPaqueteTema();
   const esc = useEscala();
   const styles = useEstilosStyles();
   const { t } = useTranslation();
@@ -44,7 +45,7 @@ export function EstadoVacioSenderos({ alCrearHabito }: EstadoVacioSenderosProps)
             <View style={styles.heroImagenContenedor}>
               <Image
                 resizeMode="contain"
-                source={ARBUSTO_HERO}
+                source={tema.arbusto}
                 style={styles.heroImagen}
               />
             </View>

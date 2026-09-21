@@ -50,6 +50,7 @@ export type DetalleHabito = {
   totalAcumulado: number;
   mejorDia: string | null;
   progresoSemana: { fecha: string; etiqueta: string; progreso: number; valor: number; meta: number }[];
+  programacion: { frecuencia: 'diaria' | 'dias_semana' | 'veces_semana'; diasSemana: number[]; vecesPorSemana: number | null; recordatorioActivo: boolean; horaRecordatorio: string | null; mostrarNombreNotificacion: boolean };
 };
 
 export type PlanHabitoResumen = {

@@ -23,6 +23,8 @@ import { RecuadroGlass, Texto, MasterIcon } from '../../../diseno';
 import { hapticSeguro } from '../../../nucleo/dispositivo/haptics';
 import { AuroraBoreal } from '../componentes/AuroraBoreal';
 import { ESCALA_ESMERALDA } from '../../../diseno/tema/escalaEsmeralda';
+import { useAssetsPaqueteTema } from '../../habitos/usePaqueteTema';
+import { INTERCAMBIAR_BANDERA_Y_ARBUSTO } from '../../habitos/pruebaIntercambio';
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // Paleta de colores del mockup (tema lila / morado claro)
@@ -313,13 +315,15 @@ function CardSendero() {
 
 // ─── Timeline "Hoy" (Columna izquierda) ──────────────────────────────────────
 function TimelineHoy() {
+  const tema = useAssetsPaqueteTema();
   return (
     <RecuadroGlass style={s.timelineGlass}>
       {/* Header dentro del contenedor glass */}
       <View style={s.timelineHeader}>
-        <Image 
-          source={require('../../../../assets/icons/hoy/hoy.png')}
-          style={{ width: 32, height: 32, resizeMode: 'contain' }}
+        {/* PRUEBA TEMPORAL: ver pruebaIntercambio.ts */}
+        <Image
+          source={INTERCAMBIAR_BANDERA_Y_ARBUSTO ? tema.arbusto : require('../../../../assets/icons/hoy/hoy.png')}
+          style={{ width: INTERCAMBIAR_BANDERA_Y_ARBUSTO ? 44 : 32, height: INTERCAMBIAR_BANDERA_Y_ARBUSTO ? 44 : 32, resizeMode: 'contain' }}
         />
         <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6, flex: 1, paddingBottom: 2 }}>
           <Texto style={s.timelineTitulo}>Hoy</Texto>

@@ -13,6 +13,7 @@ export { sombras } from './fundamentos/sombras';
 export * from './iconos/PixelIcon';
 export * from './iconos/PixelartIcon';
 export { MasterIcon } from './iconos/MasterIcon';
+export { ImagenTema } from './iconos/ImagenTema';
 export { registroIconos, buscarIcono } from './iconos/registroIconos';
 export type { IconoRegistrado } from './iconos/registroIconos';
 export { fuenteInsignia, NIVEL_MAXIMO_INSIGNIA } from './iconos/registroInsignias';

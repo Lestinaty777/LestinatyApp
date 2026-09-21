@@ -6,11 +6,17 @@ import android.appwidget.AppWidgetProvider
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.LinearGradient
+import android.graphics.Paint
+import android.graphics.RectF
+import android.graphics.Shader
 import android.net.Uri
 import android.os.Build
 import android.view.View
 import android.widget.RemoteViews
-import androidx.core.content.ContextCompat
 import org.json.JSONArray
 import org.json.JSONObject
 import java.text.SimpleDateFormat
@@ -33,48 +39,87 @@ class HabitoFocoWidgetProvider : AppWidgetProvider() {
     override fun onReceive(context: Context, intent: Intent) {
         super.onReceive(context, intent)
 
-        if (intent.action == ACTION_INCREMENTAR) {
-            manejarIncremento(context)
-            actualizarTodosLosWidgets(context)
+        when (intent.action) {
+            ACTION_INCREMENTAR -> manejarIncremento(context)
+            ACTION_ANTERIOR -> moverIndice(context, -1)
+            ACTION_SIGUIENTE -> moverIndice(context, 1)
+            else -> return
         }
+        actualizarTodosLosWidgets(context)
     }
 
     companion object {
         const val PREFS_NAME = "LestinatyHabitoWidgetPrefs"
         const val ACTION_INCREMENTAR = "com.lestinaty.widget.ACTION_INCREMENTAR"
+        const val ACTION_ANTERIOR = "com.lestinaty.widget.ACTION_ANTERIOR"
+        const val ACTION_SIGUIENTE = "com.lestinaty.widget.ACTION_SIGUIENTE"
 
-        // Claves SharedPreferences
-        const val KEY_HABITO_ID = "habito_id"
-        const val KEY_TITULO = "titulo"
-        const val KEY_COLOR = "color"
-        const val KEY_ACTUAL = "actual"
-        const val KEY_META = "meta"
-        const val KEY_UNIDAD = "unidad"
-        const val KEY_COMPLETADO = "completado"
-        const val KEY_RACHA = "racha"
+        // Claves SharedPreferences — el widget navega entre TODOS los hábitos
+        // de hoy con los chevrones, así que se guarda la lista completa (no
+        // un solo "foco") más el índice que se está mostrando ahora mismo.
+        const val KEY_LISTA_HABITOS = "lista_habitos_hoy"
+        const val KEY_INDICE_ACTUAL = "indice_actual"
         const val KEY_ES_PRO = "es_pro"
-        const val KEY_TIPO_META = "tipo_meta"
         const val KEY_INCREMENTOS_PENDIENTES = "incrementos_pendientes"
-        const val KEY_NIVEL = "nivel"
-        const val KEY_IMAGEN_ETAPA = "imagen_etapa_recurso"
-        const val KEY_DIAS_PROGRAMADOS = "dias_programados"
-        const val KEY_DIAS_COMPLETADOS = "dias_completados_semana"
 
-        // Ids de las 7 celdas del calendario semanal, lunes(1)..domingo(7) —
-        // mismo orden/convención que HabitoHoyDetalle en el lado JS.
-        private val IDS_DIA_SEMANA = intArrayOf(
-            R.id.widget_dia_1, R.id.widget_dia_2, R.id.widget_dia_3, R.id.widget_dia_4,
-            R.id.widget_dia_5, R.id.widget_dia_6, R.id.widget_dia_7
-        )
-
-        private fun jsonAListaInt(raw: String?): List<Int> {
-            if (raw.isNullOrEmpty()) return emptyList()
+        private fun listaHabitos(prefs: android.content.SharedPreferences): JSONArray {
             return try {
-                val arr = JSONArray(raw)
-                (0 until arr.length()).map { arr.getInt(it) }
+                JSONArray(prefs.getString(KEY_LISTA_HABITOS, "[]") ?: "[]")
             } catch (_: Exception) {
-                emptyList()
+                JSONArray()
             }
+        }
+
+        private fun indiceValido(indice: Int, total: Int): Int {
+            if (total <= 0) return 0
+            return ((indice % total) + total) % total
+        }
+
+        private fun colorOTransparente(hex: String): Int? = try {
+            if (hex.isEmpty()) null else Color.parseColor(hex)
+        } catch (_: Exception) {
+            null
+        }
+
+        // Fondo MasterGlass ya rotado al tono del paquete (los 3 colores
+        // vienen calculados desde JS con la misma matemática de HSL que usa
+        // el resto de la UI — ver crearTonoMaster en masterColor.ts). No se
+        // puede mutar el Drawable estático en vivo (RemoteViews no acepta
+        // referencias a objetos, solo ids de recursos o Bitmaps), así que se
+        // dibuja a un Bitmap con Canvas/LinearGradient nativos de Android —
+        // sin Skia, sin dependencias nuevas. Tamaño fijo (no por-instancia):
+        // el widget no permite resize (ver widget_habito_foco_info.xml), así
+        // que las esquinas redondeadas nunca se estiran de forma distinta.
+        private const val ANCHO_FONDO_DP = 250f
+        private const val ALTO_FONDO_DP = 110f
+
+        private fun crearFondoGlass(context: Context, claro: Int, medio: Int, oscuro: Int): Bitmap {
+            val densidad = context.resources.displayMetrics.density
+            val ancho = max(1, (ANCHO_FONDO_DP * densidad).roundToInt())
+            val alto = max(1, (ALTO_FONDO_DP * densidad).roundToInt())
+            val bitmap = Bitmap.createBitmap(ancho, alto, Bitmap.Config.ARGB_8888)
+            val canvas = Canvas(bitmap)
+            val radio = alto * 0.22f
+            val inset = 1.5f * densidad
+            val rect = RectF(inset, inset, ancho - inset, alto - inset)
+
+            val pincelRelleno = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                shader = LinearGradient(
+                    0f, 0f, ancho.toFloat(), alto.toFloat(),
+                    intArrayOf(claro, medio, oscuro), floatArrayOf(0f, 0.55f, 1f),
+                    Shader.TileMode.CLAMP
+                )
+            }
+            canvas.drawRoundRect(rect, radio, radio, pincelRelleno)
+
+            val pincelBorde = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                style = Paint.Style.STROKE
+                strokeWidth = 1.5f * densidad
+                color = 0x40FFFFFF
+            }
+            canvas.drawRoundRect(rect, radio, radio, pincelBorde)
+
+            return bitmap
         }
 
         fun actualizarTodosLosWidgets(context: Context) {
@@ -87,18 +132,31 @@ class HabitoFocoWidgetProvider : AppWidgetProvider() {
             }
         }
 
+        private fun moverIndice(context: Context, delta: Int) {
+            val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            val lista = listaHabitos(prefs)
+            if (lista.length() <= 1) return
+            val actual = prefs.getInt(KEY_INDICE_ACTUAL, 0)
+            prefs.edit().putInt(KEY_INDICE_ACTUAL, indiceValido(actual + delta, lista.length())).apply()
+        }
+
         private fun manejarIncremento(context: Context) {
             val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
             val esPro = prefs.getBoolean(KEY_ES_PRO, true)
             if (!esPro) return
 
-            val habitoId = prefs.getString(KEY_HABITO_ID, null) ?: return
-            val completado = prefs.getBoolean(KEY_COMPLETADO, false)
+            val lista = listaHabitos(prefs)
+            if (lista.length() == 0) return
+            val indice = indiceValido(prefs.getInt(KEY_INDICE_ACTUAL, 0), lista.length())
+            val item = lista.getJSONObject(indice)
+
+            val habitoId = item.getString("habitoId")
+            val completado = item.optBoolean("completado", false)
             if (completado) return
 
-            val meta = prefs.getInt(KEY_META, 1)
-            val actual = prefs.getInt(KEY_ACTUAL, 0)
-            val tipoMeta = prefs.getString(KEY_TIPO_META, "cantidad")
+            val meta = item.optInt("meta", 1)
+            val actual = item.optInt("actual", 0)
+            val tipoMeta = item.optString("tipoMeta", "cantidad")
 
             val nuevoValor = if (tipoMeta == "check") {
                 meta
@@ -106,19 +164,17 @@ class HabitoFocoWidgetProvider : AppWidgetProvider() {
                 val paso = if (meta >= 10) max(1, (meta / 8.0).roundToInt()) else 1
                 min(meta, actual + paso)
             }
-
             val nuevoCompletado = nuevoValor >= meta
 
-            // Guardar progreso actualizado de forma instantánea
-            prefs.edit()
-                .putInt(KEY_ACTUAL, nuevoValor)
-                .putBoolean(KEY_COMPLETADO, nuevoCompletado)
-                .apply()
+            // Actualiza el ítem dentro de la lista guardada (offline-first,
+            // instantáneo) y lo deja tal cual hasta que la próxima sincronización
+            // real desde la app confirme el valor definitivo.
+            item.put("actual", nuevoValor)
+            item.put("completado", nuevoCompletado)
+            lista.put(indice, item)
+            prefs.edit().putString(KEY_LISTA_HABITOS, lista.toString()).apply()
 
-            // Registrar incremento en la cola de sincronización para Supabase
             encolarIncrementoParaSupabase(context, habitoId, nuevoValor)
-
-            // Notificar al módulo si React Native está activo
             HabitoWidgetModule.emitirIncremento(habitoId, nuevoValor)
         }
 
@@ -162,104 +218,86 @@ class HabitoFocoWidgetProvider : AppWidgetProvider() {
                 return proViews
             }
 
-            // Usuario Pro con hábito activo
             val views = RemoteViews(context.packageName, R.layout.widget_habito_foco)
+            val lista = listaHabitos(prefs)
 
-            val habitoId = prefs.getString(KEY_HABITO_ID, null)
-            val titulo = prefs.getString(KEY_TITULO, null)
-            val completado = prefs.getBoolean(KEY_COMPLETADO, false)
-            val racha = prefs.getInt(KEY_RACHA, 0)
-            val imagenEtapaRecurso = prefs.getString(KEY_IMAGEN_ETAPA, null)
-            val diasProgramados = jsonAListaInt(prefs.getString(KEY_DIAS_PROGRAMADOS, "[]"))
-            val diasCompletados = jsonAListaInt(prefs.getString(KEY_DIAS_COMPLETADOS, "[]"))
-
-            if (habitoId.isNullOrEmpty() || titulo.isNullOrEmpty()) {
-                views.setTextViewText(R.id.widget_titulo, context.getString(R.string.widget_sin_habito_titulo))
-                views.setTextColor(R.id.widget_titulo, ContextCompat.getColor(context, R.color.widget_texto_principal))
+            if (lista.length() == 0) {
+                views.setImageViewResource(R.id.widget_fondo, R.drawable.widget_masterglass_bg)
+                views.setViewVisibility(R.id.widget_contenido_variable, View.GONE)
+                views.setViewVisibility(R.id.widget_chevron_izquierda, View.GONE)
+                views.setViewVisibility(R.id.widget_chevron_derecha, View.GONE)
                 views.setViewVisibility(R.id.widget_progreso_texto, View.VISIBLE)
                 views.setTextViewText(R.id.widget_progreso_texto, context.getString(R.string.widget_sin_habito_desc))
-                views.setViewVisibility(R.id.widget_racha_chip, View.GONE)
-                views.setViewVisibility(R.id.widget_boton_accion, View.GONE)
-                views.setViewVisibility(R.id.widget_semana_fila, View.GONE)
-                // Sin ilustración real todavía — sin degradado tampoco, se vería
-                // como una mancha oscura flotando sobre el fondo de cristal.
-                views.setViewVisibility(R.id.widget_scrim, View.GONE)
-                views.setImageViewResource(R.id.widget_etapa_imagen, R.drawable.ic_widget_leaf)
             } else {
-                views.setViewVisibility(R.id.widget_racha_chip, View.VISIBLE)
-                views.setViewVisibility(R.id.widget_boton_accion, View.VISIBLE)
-                views.setViewVisibility(R.id.widget_semana_fila, View.VISIBLE)
-                views.setViewVisibility(R.id.widget_scrim, View.VISIBLE)
+                val indice = indiceValido(prefs.getInt(KEY_INDICE_ACTUAL, 0), lista.length())
+                val item = lista.getJSONObject(indice)
+
+                views.setViewVisibility(R.id.widget_contenido_variable, View.VISIBLE)
                 views.setViewVisibility(R.id.widget_progreso_texto, View.GONE)
+                // Con un solo hábito no hay entre qué navegar.
+                val hayVarios = lista.length() > 1
+                views.setViewVisibility(R.id.widget_chevron_izquierda, if (hayVarios) View.VISIBLE else View.GONE)
+                views.setViewVisibility(R.id.widget_chevron_derecha, if (hayVarios) View.VISIBLE else View.GONE)
+
+                val titulo = item.optString("titulo", "")
+                val actual = item.optInt("actual", 0)
+                val meta = max(1, item.optInt("meta", 1))
 
                 views.setTextViewText(R.id.widget_titulo, titulo)
-                views.setTextColor(R.id.widget_titulo, ContextCompat.getColor(context, R.color.widget_titulo_sobre_imagen))
+                views.setProgressBar(R.id.widget_barra, 100, min(100, actual * 100 / meta), false)
 
-                // Ilustración de la etapa actual del árbol — el nombre del
-                // recurso ya viene resuelto desde JS (Image.resolveAssetSource),
-                // así que no hay que reconstruir rutas de carpetas por paquete.
-                val idImagen = imagenEtapaRecurso
+                // Ícono real del hábito (el elegido en el asistente) e
+                // ilustración de la etapa actual — ambos ya vienen resueltos
+                // desde JS como nombre de recurso (Image.resolveAssetSource),
+                // así el lado nativo no reconstruye rutas de assets.
+                val idIcono = item.optString("iconoRecurso", null)
+                    ?.let { context.resources.getIdentifier(it, "drawable", context.packageName) }
+                    ?.takeIf { it != 0 }
+                views.setImageViewResource(R.id.widget_icono_habito, idIcono ?: R.drawable.ic_widget_leaf)
+
+                val idImagen = item.optString("imagenEtapaRecurso", null)
                     ?.let { context.resources.getIdentifier(it, "drawable", context.packageName) }
                     ?.takeIf { it != 0 }
                 views.setImageViewResource(R.id.widget_etapa_imagen, idImagen ?: R.drawable.ic_widget_leaf)
 
-                // Chip de racha de fuego
-                views.setTextViewText(R.id.widget_racha_texto, "$racha d")
-
-                // Estado del botón 3D / Completado
-                if (completado) {
-                    views.setInt(R.id.widget_boton_accion, "setBackgroundResource", R.drawable.widget_button_completed)
-                    views.setImageViewResource(R.id.widget_boton_icono, R.drawable.ic_widget_check)
+                // Fondo MasterGlass y tinte del ícono, ambos ya rotados al
+                // tono del paquete (mismo cálculo que usa el resto de la UI,
+                // hecho en JS) — acá solo se dibuja/aplica.
+                val claro = colorOTransparente(item.optString("fondoClaro", ""))
+                val medio = colorOTransparente(item.optString("fondoMedio", ""))
+                val oscuro = colorOTransparente(item.optString("fondoOscuro", ""))
+                if (claro != null && medio != null && oscuro != null) {
+                    views.setImageViewBitmap(R.id.widget_fondo, crearFondoGlass(context, claro, medio, oscuro))
                 } else {
-                    views.setInt(R.id.widget_boton_accion, "setBackgroundResource", R.drawable.widget_button_3d)
-                    views.setImageViewResource(R.id.widget_boton_icono, R.drawable.ic_widget_plus)
+                    views.setImageViewResource(R.id.widget_fondo, R.drawable.widget_masterglass_bg)
                 }
 
-                // Calendario semanal: lunes(1)..domingo(7), mismo día "de hoy"
-                // que fechaLocal()/getDay() calcula del lado JS.
-                val hoyIndice = (java.util.Calendar.getInstance().get(java.util.Calendar.DAY_OF_WEEK) + 5) % 7 // 0=lunes..6=domingo
-                for (offset in 0 until 7) {
-                    val idDia = offset + 1
-                    val estaProgramado = diasProgramados.contains(idDia)
-                    val estaCompletado = diasCompletados.contains(idDia)
-                    val esPasado = offset < hoyIndice
-                    val viewId = IDS_DIA_SEMANA[offset]
-
-                    when {
-                        !estaProgramado -> {
-                            views.setInt(viewId, "setBackgroundResource", R.drawable.widget_dia_bg_no_programado)
-                            views.setTextColor(viewId, ContextCompat.getColor(context, R.color.widget_dia_texto_tenue))
-                        }
-                        estaCompletado -> {
-                            views.setInt(viewId, "setBackgroundResource", R.drawable.widget_dia_bg_completado)
-                            views.setTextColor(viewId, ContextCompat.getColor(context, R.color.widget_dia_texto_claro))
-                        }
-                        esPasado -> {
-                            views.setInt(viewId, "setBackgroundResource", R.drawable.widget_dia_bg_perdido)
-                            views.setTextColor(viewId, ContextCompat.getColor(context, R.color.widget_dia_perdido_texto))
-                        }
-                        else -> {
-                            views.setInt(viewId, "setBackgroundResource", R.drawable.widget_dia_bg_pendiente)
-                            views.setTextColor(viewId, ContextCompat.getColor(context, R.color.widget_dia_texto_oscuro))
-                        }
-                    }
+                // Sin color válido, el ícono se queda con su color natural del
+                // PNG — no hace falta "limpiar" nada porque cada RemoteViews
+                // se construye de cero, sin filtro previo que arrastrar.
+                val colorIcono = colorOTransparente(item.optString("iconoAcento", ""))
+                if (colorIcono != null) {
+                    views.setInt(R.id.widget_icono_habito, "setColorFilter", colorIcono)
                 }
             }
 
-            // PendingIntent para el botón de acción (+)
             val flags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             } else {
                 PendingIntent.FLAG_UPDATE_CURRENT
             }
 
-            val intentIncremento = Intent(context, HabitoFocoWidgetProvider::class.java).apply {
-                setAction(ACTION_INCREMENTAR)
+            fun pendingAccion(accion: String, requestCode: Int): PendingIntent {
+                val intent = Intent(context, HabitoFocoWidgetProvider::class.java).apply { setAction(accion) }
+                return PendingIntent.getBroadcast(context, requestCode, intent, flags)
             }
-            val pendingIncremento = PendingIntent.getBroadcast(context, 201, intentIncremento, flags)
-            views.setOnClickPendingIntent(R.id.widget_boton_accion, pendingIncremento)
 
-            // PendingIntent para abrir la app al tocar el cuerpo del widget
+            // Tocar la barra registra avance del hábito que se está mostrando ahora.
+            views.setOnClickPendingIntent(R.id.widget_barra, pendingAccion(ACTION_INCREMENTAR, 201))
+            views.setOnClickPendingIntent(R.id.widget_chevron_izquierda, pendingAccion(ACTION_ANTERIOR, 203))
+            views.setOnClickPendingIntent(R.id.widget_chevron_derecha, pendingAccion(ACTION_SIGUIENTE, 204))
+
+            // Tocar el resto del widget (ícono, título, ilustración) abre la app.
             val intentAbrir = Intent(Intent.ACTION_VIEW, Uri.parse("app://habitos")).apply {
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }

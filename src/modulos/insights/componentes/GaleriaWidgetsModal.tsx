@@ -17,6 +17,7 @@ import { useEscala } from '../../../diseno/tema/MasterColorContext';
 import type { EscalaMaster } from '../../../diseno/tema/escalaEsmeralda';
 import { ESCALA_ESMERALDA } from '../../../diseno/tema/escalaEsmeralda';
 import { conAlfa } from '../../../diseno/tema/masterColor';
+import { useTranslation } from 'react-i18next';
 
 const { width: ANCHO_PANTALLA } = Dimensions.get('window');
 const C = {
@@ -38,6 +39,7 @@ interface Props {
 }
 
 export function GaleriaWidgetsModal({ visible, onCerrar }: Props) {
+  const { t } = useTranslation();
   const esc = useEscala();
   const s = useEstilosS();
   const insets = useSafeAreaInsets();
@@ -60,12 +62,12 @@ export function GaleriaWidgetsModal({ visible, onCerrar }: Props) {
           <View>
             <View style={s.etiquetaPro}>
               <Sparkles color={C.verde} size={13} />
-              <Texto style={s.etiquetaProTexto}>Android & Home Screen</Texto>
+              <Texto style={s.etiquetaProTexto}>{t('insights.gallery.tag')}</Texto>
             </View>
-            <Texto style={s.titulo}>Widgets de Inicio</Texto>
-            <Texto style={s.subtitulo}>Lleva tu progreso directo a la pantalla de tu celular.</Texto>
+            <Texto style={s.titulo}>{t('insights.gallery.title')}</Texto>
+            <Texto style={s.subtitulo}>{t('insights.gallery.subtitle')}</Texto>
           </View>
-          <TouchableOpacity accessibilityLabel="Cerrar" onPress={onCerrar} style={s.botonCerrar}>
+          <TouchableOpacity accessibilityLabel={t('insights.gallery.closeAccessibility')} onPress={onCerrar} style={s.botonCerrar}>
             <X color={C.texto} size={20} />
           </TouchableOpacity>
         </View>
@@ -74,10 +76,10 @@ export function GaleriaWidgetsModal({ visible, onCerrar }: Props) {
         <View style={s.pillsContenedor}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.pillsScroll}>
             {[
-              { id: 'racha_2x2', etiqueta: 'Racha (2x2)' },
-              { id: 'habitos_4x2', etiqueta: 'Hábitos Hoy (4x2)' },
-              { id: 'aby_3x2', etiqueta: 'Reflexión Aby (3x2)' },
-              { id: 'semana_4x2', etiqueta: 'Semanal (4x2)' },
+              { id: 'racha_2x2', etiqueta: t('insights.gallery.tabs.streak') },
+              { id: 'habitos_4x2', etiqueta: t('insights.gallery.tabs.habits') },
+              { id: 'aby_3x2', etiqueta: t('insights.gallery.tabs.aby') },
+              { id: 'semana_4x2', etiqueta: t('insights.gallery.tabs.weekly') },
             ].map((p) => {
               const activo = widgetActivo === p.id;
               return (
@@ -112,33 +114,37 @@ export function GaleriaWidgetsModal({ visible, onCerrar }: Props) {
               {widgetActivo === 'semana_4x2' && <PreviewWidgetSemana4x2 />}
             </View>
 
-            <Texto style={s.pieSimulador}>Vista previa en pantalla de inicio de Android</Texto>
+            <Texto style={s.pieSimulador}>{t('insights.gallery.previewFooter')}</Texto>
           </View>
 
           {/* Guía rápida de instalación */}
           <MasterGlass style={s.guiaCard}>
             <View style={s.guiaHeader}>
               <Info color={C.verde} size={18} />
-              <Texto style={s.guiaTitulo}>¿Cómo agregarlo en tu Android?</Texto>
+              <Texto style={s.guiaTitulo}>{t('insights.gallery.guideTitle')}</Texto>
             </View>
             <View style={s.guiaPaso}>
               <View style={s.guiaNumero}><Texto style={s.guiaNumeroTexto}>1</Texto></View>
-              <Texto style={s.guiaTexto}>Ve a la pantalla de inicio de tu celular y mantén presionado un espacio vacío.</Texto>
+              <Texto style={s.guiaTexto}>{t('insights.gallery.guideStep1')}</Texto>
             </View>
             <View style={s.guiaPaso}>
               <View style={s.guiaNumero}><Texto style={s.guiaNumeroTexto}>2</Texto></View>
-              <Texto style={s.guiaTexto}>Toca en <Texto style={{ fontFamily: 'Montserrat-Bold' }}>Widgets</Texto> y busca esta app en la lista.</Texto>
+              <Texto style={s.guiaTexto}>
+                {t('insights.gallery.guideStep2Prefix')}
+                <Texto style={{ fontFamily: 'Montserrat-Bold' }}>{t('insights.gallery.guideStep2Widgets')}</Texto>
+                {t('insights.gallery.guideStep2Suffix')}
+              </Texto>
             </View>
             <View style={s.guiaPaso}>
               <View style={s.guiaNumero}><Texto style={s.guiaNumeroTexto}>3</Texto></View>
-              <Texto style={s.guiaTexto}>Arrastra el widget que quieras al tamaño que prefieras.</Texto>
+              <Texto style={s.guiaTexto}>{t('insights.gallery.guideStep3')}</Texto>
             </View>
           </MasterGlass>
 
           {/* Botón de acción */}
           <Rebote estilo={s.botonAccion} onPress={onCerrar}>
             <Plus color="#FFF" size={18} />
-            <Texto style={s.botonAccionTexto}>Configurar en pantalla de inicio</Texto>
+            <Texto style={s.botonAccionTexto}>{t('insights.gallery.actionButton')}</Texto>
           </Rebote>
         </ScrollView>
       </LinearGradient>
@@ -151,6 +157,7 @@ export function GaleriaWidgetsModal({ visible, onCerrar }: Props) {
 // ─────────────────────────────────────────────────────────────
 
 function PreviewWidgetRacha2x2() {
+  const { t } = useTranslation();
   const s = useEstilosS();
   return (
     <View style={s.widget2x2Wrapper}>
@@ -162,13 +169,13 @@ function PreviewWidgetRacha2x2() {
           />
           <View style={s.wRachaBadge}>
             <Texto style={s.wRachaDias}>12</Texto>
-            <Texto style={s.wRachaLabel}>días</Texto>
+            <Texto style={s.wRachaLabel}>{t('insights.gallery.previewStreak.days')}</Texto>
           </View>
         </View>
 
         <View style={s.wRachaMedio}>
-          <Texto style={s.wRachaTitulo}>Racha Imparable</Texto>
-          <Texto style={s.wRachaSub}>4 de 5 hábitos hoy</Texto>
+          <Texto style={s.wRachaTitulo}>{t('insights.gallery.previewStreak.title')}</Texto>
+          <Texto style={s.wRachaSub}>{t('insights.gallery.previewStreak.habitsToday')}</Texto>
         </View>
 
         <View style={s.wRachaBarra}>
@@ -180,11 +187,12 @@ function PreviewWidgetRacha2x2() {
 }
 
 function PreviewWidgetHabitos4x2() {
+  const { t } = useTranslation();
   const s = useEstilosS();
   const habitos = [
-    { id: '1', nombre: 'Meditación matutina', hecho: true, icono: 'cerebro' },
-    { id: '2', nombre: 'Beber 2L de agua', hecho: true, icono: 'tomar-agua' },
-    { id: '3', nombre: 'Lectura 20 minutos', hecho: false, icono: 'estudiar' },
+    { id: '1', nombre: t('insights.gallery.previewHabits.habit1'), hecho: true, icono: 'cerebro' },
+    { id: '2', nombre: t('insights.gallery.previewHabits.habit2'), hecho: true, icono: 'tomar-agua' },
+    { id: '3', nombre: t('insights.gallery.previewHabits.habit3'), hecho: false, icono: 'estudiar' },
   ];
 
   return (
@@ -193,7 +201,7 @@ function PreviewWidgetHabitos4x2() {
         <View style={s.wHabitosHeader}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
             <MasterIcon name="navegacion/insights" size={20} />
-            <Texto style={s.wHabitosTitulo}>Hábitos de Hoy</Texto>
+            <Texto style={s.wHabitosTitulo}>{t('insights.gallery.previewHabits.title')}</Texto>
           </View>
           <Texto style={s.wHabitosContador}>2/3</Texto>
         </View>
@@ -223,6 +231,7 @@ function PreviewWidgetHabitos4x2() {
 }
 
 function PreviewWidgetAby3x2() {
+  const { t } = useTranslation();
   const s = useEstilosS();
   return (
     <View style={s.widget3x2Wrapper}>
@@ -230,10 +239,8 @@ function PreviewWidgetAby3x2() {
         <View style={s.wAbyFila}>
           <View style={{ opacity: 0.9 }}><MasterIcon name="cerebro" size={28} /></View>
           <View style={{ flex: 1 }}>
-            <Texto style={s.wAbyAutor}>Aby · Ángel Guía</Texto>
-            <Texto style={s.wAbyCita}>
-              "No te castigues por los días perdidos. La gracia está en la humildad de recoger los eslabones rotos."
-            </Texto>
+            <Texto style={s.wAbyAutor}>{t('insights.gallery.previewAby.author')}</Texto>
+            <Texto style={s.wAbyCita}>{t('insights.gallery.previewAby.quote')}</Texto>
           </View>
         </View>
       </MasterGlass>
@@ -242,16 +249,17 @@ function PreviewWidgetAby3x2() {
 }
 
 function PreviewWidgetSemana4x2() {
+  const { t } = useTranslation();
   const s = useEstilosS();
-  const DIAS = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
+  const DIAS = t('insights.gallery.previewWeekly.dayLabels', { returnObjects: true }) as string[];
   const PORCENTAJES = [80, 100, 70, 90, 60, 40, 95];
 
   return (
     <View style={s.widget4x2Wrapper}>
       <MasterGlass style={s.widget4x2Glass}>
         <View style={s.wSemanaHeader}>
-          <Texto style={s.wSemanaTitulo}>Constancia Semanal</Texto>
-          <Texto style={s.wSemanaValor}>78% avg</Texto>
+          <Texto style={s.wSemanaTitulo}>{t('insights.gallery.previewWeekly.title')}</Texto>
+          <Texto style={s.wSemanaValor}>{t('insights.gallery.previewWeekly.average')}</Texto>
         </View>
 
         <View style={s.wSemanaBarras}>

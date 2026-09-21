@@ -14,6 +14,7 @@ import { colorMasterMasCercano } from '../../../diseno/componentes/MasterChanger
 import { obtenerAssetsPaquete } from '../../senderos/algoritmo/registroPaquetesArbol';
 import { AuroraBoreal } from '../../hoy/componentes/AuroraBoreal';
 import { comprarPaqueteGemas, obtenerPaquetesGemas } from '../../../nucleo/compras/revenueCat';
+import { CLAVE_PAQUETES_DESBLOQUEADOS } from '../usePaquetesDesbloqueados';
 import { comprarSemillasArbol, obtenerCatalogoArboles, obtenerCatalogoGemasIap, obtenerSemillasDisponibles } from '../gemas.servicio';
 import type { ArbolPaquete, PaqueteGemasIap, SemillaArbol } from '../gemas.tipos';
 import { CLAVE_SALDO_GEMAS, useSaldoGemas } from '../useSaldoGemas';
@@ -173,6 +174,14 @@ const useFiltro = () => useContext(FiltroCtx);
 
 // ── Barra de filtros ─────────────────────────────────────────────────────────
 function BarraFiltros({ activo, onCambio }: { activo: Filtro; onCambio: (f: Filtro) => void }) {
+  const { t } = useTranslation();
+  const etiquetas: Record<Filtro, string> = {
+    Todos: t('tienda.screen.filters.all'),
+    'Mis semillas': t('tienda.screen.filters.mySeeds'),
+    Naturaleza: t('tienda.screen.filters.nature'),
+    Elementales: t('tienda.screen.filters.elementals'),
+    Comprar: t('tienda.screen.filters.buy'),
+  };
   return (
     <ScrollView
       horizontal
@@ -186,7 +195,7 @@ function BarraFiltros({ activo, onCambio }: { activo: Filtro; onCambio: (f: Filt
           activo={activo === f}
           icono={<MasterIcon name={ICONO_FILTRO[f]} alTema size={18} />}
           onPress={() => onCambio(f)}
-          texto={f}
+          texto={etiquetas[f]}
         />
       ))}
     </ScrollView>
@@ -300,8 +309,8 @@ const SeccionesContenido = memo(function SeccionesContenido({
               <Animated.View entering={entradaEncadenada(1)} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8 }}>
                 <MasterIconBg size={32}><MasterIcon name="rayo" color={3} size={18} /></MasterIconBg>
                 <View>
-                  <Texto style={{ fontSize: 18, fontFamily: 'MontserratAlternates-Bold', color: esc.hoja.l19 }}>Tienda de Gemas</Texto>
-                  <Texto style={{ fontSize: 11, fontFamily: 'Montserrat-Medium', color: esc.musgo.l54 }}>Recarga inmediata con dinero real</Texto>
+                  <Texto style={{ fontSize: 18, fontFamily: 'MontserratAlternates-Bold', color: esc.hoja.l19 }}>{t('tienda.screen.gems.title')}</Texto>
+                  <Texto style={{ fontSize: 11, fontFamily: 'Montserrat-Medium', color: esc.musgo.l54 }}>{t('tienda.screen.gems.subtitle')}</Texto>
                 </View>
               </Animated.View>
 
@@ -311,9 +320,9 @@ const SeccionesContenido = memo(function SeccionesContenido({
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
                     <Image source={require('../../../../assets/icons/hoy/gemas.png')} style={{ width: 48, height: 48, resizeMode: 'contain' }} />
                     <View style={{ flex: 1 }}>
-                      <MasterKicker icono={<MasterIcon name="hoja" alTema size={12} />} texto="Oferta especial" />
-                      <Texto style={{ fontFamily: 'MontserratAlternates-Bold', color: esc.hoja.l19, fontSize: 16, marginTop: 6 }}>¡Bono del 50%!</Texto>
-                      <Texto style={{ color: esc.musgo.l54, fontFamily: 'Montserrat-Medium', fontSize: 11, marginTop: 2 }}>Solo por tiempo limitado</Texto>
+                      <MasterKicker icono={<MasterIcon name="hoja" alTema size={12} />} texto={t('tienda.screen.gems.offer')} />
+                      <Texto style={{ fontFamily: 'MontserratAlternates-Bold', color: esc.hoja.l19, fontSize: 16, marginTop: 6 }}>{t('tienda.screen.gems.bonus')}</Texto>
+                      <Texto style={{ color: esc.musgo.l54, fontFamily: 'Montserrat-Medium', fontSize: 11, marginTop: 2 }}>{t('tienda.screen.gems.limitedTime')}</Texto>
                     </View>
                   </View>
                 </MasterGlass>
@@ -321,7 +330,7 @@ const SeccionesContenido = memo(function SeccionesContenido({
               {cargandoCatalogoGemas ? (
                 <EsqueletoComprarGemas soloLista />
               ) : catalogoGemas.length === 0 ? (
-                <Texto style={{ color: esc.musgo.l54, fontFamily: 'Montserrat-Medium', fontSize: 12 }}>No hay paquetes de gemas disponibles por ahora.</Texto>
+                <Texto style={{ color: esc.musgo.l54, fontFamily: 'Montserrat-Medium', fontSize: 12 }}>{t('tienda.screen.gems.empty')}</Texto>
               ) : (
                 <MasterAnimation>
                   {catalogoGemas.map((paq, idx) => {
@@ -337,11 +346,11 @@ const SeccionesContenido = memo(function SeccionesContenido({
                             </View>
                             <View style={{ flex: 1, gap: 2 }}>
                               <Texto style={{ fontFamily: 'MontserratAlternates-Bold', color: esc.hoja.l19, fontSize: 17 }}>{paq.cantidadGemas.toLocaleString()} gemas</Texto>
-                              {!disponible && <Texto style={{ color: esc.musgo.l54, fontFamily: 'Montserrat-Medium', fontSize: 11 }}>Referencia, aún no disponible</Texto>}
+                              {!disponible && <Texto style={{ color: esc.musgo.l54, fontFamily: 'Montserrat-Medium', fontSize: 11 }}>{t('tienda.screen.gems.unavailableReference')}</Texto>}
                             </View>
                             <View style={{ width: 90 }}>
                               <MasterButton color="#6A29C2" disabled={comprandoEsta || !disponible} onPress={() => onComprarGemas(paq)}>
-                                {comprandoEsta ? 'Comprando…' : precio}
+                                {comprandoEsta ? t('tienda.screen.gems.buying') : precio}
                               </MasterButton>
                             </View>
                           </View>
@@ -365,15 +374,15 @@ const SeccionesContenido = memo(function SeccionesContenido({
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                 <MasterIconBg size={32}><MasterIcon name="trofeo" alTema size={18} /></MasterIconBg>
                 <Texto style={{ fontSize: 18, fontFamily: 'MontserratAlternates-Bold', color: esc.hoja.l19 }}>
-                  {filtro === 'Todos' ? 'Árboles Legendarios' : `Árboles Legendarios (${filtro})`}
+                  {t('tienda.screen.trees.legendary', { filter: filtro === 'Todos' ? '' : t('tienda.screen.trees.filter', { filter: filtro }) })}
                 </Texto>
               </View>
-              <Texto style={{ color: esc.musgo.l54, fontFamily: 'Montserrat-Medium', fontSize: 12 }}>Más populares ⌄</Texto>
+              <Texto style={{ color: esc.musgo.l54, fontFamily: 'Montserrat-Medium', fontSize: 12 }}>{t('tienda.screen.trees.popular')}</Texto>
             </Animated.View>
             {cargandoCatalogo || cambiandoTab ? (
               <EsqueletoCarruselArboles />
             ) : arbolesLeg.length === 0 ? (
-              <Texto style={{ paddingHorizontal: 20, color: esc.musgo.l54, fontFamily: 'Montserrat-Medium', fontSize: 12 }}>Todavía no hay árboles legendarios a la venta.</Texto>
+              <Texto style={{ paddingHorizontal: 20, color: esc.musgo.l54, fontFamily: 'Montserrat-Medium', fontSize: 12 }}>{t('tienda.screen.trees.legendaryEmpty')}</Texto>
             ) : (
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 16, paddingHorizontal: 20 }}>
                 {arbolesLeg.map((arbol, idx) => {
@@ -388,7 +397,7 @@ const SeccionesContenido = memo(function SeccionesContenido({
                           </View>
                           {imagen && <Image source={imagen} style={{ width: '100%', height: 120, resizeMode: 'contain', marginTop: 10 }} />}
                           <Texto style={{ textAlign: 'center', fontFamily: 'MontserratAlternates-Bold', color: esc.hoja.l19, marginTop: 12 }}>{arbol.nombre}</Texto>
-                          <Texto style={{ textAlign: 'center', fontFamily: 'Montserrat-Medium', fontSize: 10, color: esc.musgo.l54, marginTop: 2 }} numberOfLines={1}>{arbol.cantidadPorCompra} semillas por compra</Texto>
+                          <Texto style={{ textAlign: 'center', fontFamily: 'Montserrat-Medium', fontSize: 10, color: esc.musgo.l54, marginTop: 2 }} numberOfLines={1}>{t('tienda.screen.trees.seedsPerPurchase', { count: arbol.cantidadPorCompra, suffix: arbol.cantidadPorCompra === 1 ? '' : t('tienda.screen.trees.pluralSuffix') })}</Texto>
                           <View style={{ marginTop: 16 }}>
                             <MasterButton
                               color="#6A29C2"
@@ -397,7 +406,7 @@ const SeccionesContenido = memo(function SeccionesContenido({
                               iconoIzquierda={({ size }) => <Image source={require('../../../../assets/icons/hoy/gemas.png')} style={{ width: size, height: size }} />}
                               iconoSize={18}
                             >
-                              {comprando === arbol.id ? 'Comprando…' : arbol.precioGemas.toString()}
+                              {comprando === arbol.id ? t('tienda.screen.trees.buying') : arbol.precioGemas.toString()}
                             </MasterButton>
                           </View>
                         </MasterGlass>
@@ -415,15 +424,15 @@ const SeccionesContenido = memo(function SeccionesContenido({
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                 <MasterIconBg size={32}><MasterIcon name="hoja3" alTema size={18} /></MasterIconBg>
                 <Texto style={{ fontSize: 18, fontFamily: 'MontserratAlternates-Bold', color: esc.hoja.l19 }}>
-                  {filtro === 'Todos' ? 'Árboles Únicos' : `Árboles Únicos (${filtro})`}
+                  {t('tienda.screen.trees.unique', { filter: filtro === 'Todos' ? '' : t('tienda.screen.trees.filter', { filter: filtro }) })}
                 </Texto>
               </View>
-              <Texto style={{ color: esc.musgo.l54, fontFamily: 'Montserrat-Medium', fontSize: 12 }}>Ver todos ⌄</Texto>
+              <Texto style={{ color: esc.musgo.l54, fontFamily: 'Montserrat-Medium', fontSize: 12 }}>{t('tienda.screen.trees.viewAll')}</Texto>
             </Animated.View>
             {cargandoCatalogo || cambiandoTab ? (
               <EsqueletoCarruselArboles />
             ) : arbolesUni.length === 0 ? (
-              <Texto style={{ paddingHorizontal: 20, color: esc.musgo.l54, fontFamily: 'Montserrat-Medium', fontSize: 12 }}>Todavía no hay árboles únicos a la venta.</Texto>
+              <Texto style={{ paddingHorizontal: 20, color: esc.musgo.l54, fontFamily: 'Montserrat-Medium', fontSize: 12 }}>{t('tienda.screen.trees.uniqueEmpty')}</Texto>
             ) : (
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 16, paddingHorizontal: 20 }}>
                 {arbolesUni.map((arbol, idx) => {
@@ -438,7 +447,7 @@ const SeccionesContenido = memo(function SeccionesContenido({
                           </View>
                           {imagen && <Image source={imagen} style={{ width: '100%', height: 120, resizeMode: 'contain', marginTop: 10 }} />}
                           <Texto style={{ textAlign: 'center', fontFamily: 'MontserratAlternates-Bold', color: esc.hoja.l19, marginTop: 12 }}>{arbol.nombre}</Texto>
-                          <Texto style={{ textAlign: 'center', fontFamily: 'Montserrat-Medium', fontSize: 10, color: esc.musgo.l54, marginTop: 2 }} numberOfLines={1}>{arbol.cantidadPorCompra} semilla por compra</Texto>
+                          <Texto style={{ textAlign: 'center', fontFamily: 'Montserrat-Medium', fontSize: 10, color: esc.musgo.l54, marginTop: 2 }} numberOfLines={1}>{t('tienda.screen.trees.seedsPerPurchase', { count: arbol.cantidadPorCompra, suffix: arbol.cantidadPorCompra === 1 ? '' : t('tienda.screen.trees.pluralSuffix') })}</Texto>
                           <View style={{ marginTop: 16 }}>
                             <MasterButton
                               color="#6A29C2"
@@ -447,7 +456,7 @@ const SeccionesContenido = memo(function SeccionesContenido({
                               iconoIzquierda={({ size }) => <Image source={require('../../../../assets/icons/hoy/gemas.png')} style={{ width: size, height: size }} />}
                               iconoSize={18}
                             >
-                              {comprando === arbol.id ? 'Comprando…' : arbol.precioGemas.toString()}
+                              {comprando === arbol.id ? t('tienda.screen.trees.buying') : arbol.precioGemas.toString()}
                             </MasterButton>
                           </View>
                         </MasterGlass>
@@ -464,15 +473,15 @@ const SeccionesContenido = memo(function SeccionesContenido({
             <MasterGlass colorBase="#FEF08A" style={{ borderRadius: 12, padding: 16 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
                 <View style={{ flex: 1, gap: 4 }}>
-                  <MasterKicker icono={<MasterIcon name="trofeo" color={3} size={11} />} texto="¡100 Gemas Gratis!" />
-                  <Texto style={{ fontFamily: 'MontserratAlternates-Bold', fontSize: 16, color: esc.hoja.l19, marginTop: 4 }}>¿Necesitas más gemas?</Texto>
-                  <Texto style={{ fontFamily: 'Montserrat-Medium', fontSize: 11, color: esc.musgo.l54, lineHeight: 15 }}>Invita amigos a Lestinaty. Cuando suban su primer hábito a Nivel 2, ambos ganarán 100 gemas.</Texto>
+                  <MasterKicker icono={<MasterIcon name="trofeo" color={3} size={11} />} texto={t('tienda.hero.referralKicker')} />
+                  <Texto style={{ fontFamily: 'MontserratAlternates-Bold', fontSize: 16, color: esc.hoja.l19, marginTop: 4 }}>{t('tienda.seedPurchase.referralQuestion')}</Texto>
+                  <Texto style={{ fontFamily: 'Montserrat-Medium', fontSize: 11, color: esc.musgo.l54, lineHeight: 15 }}>{t('tienda.seedPurchase.referralDescription')}</Texto>
                 </View>
                 <Image source={require('../../../../assets/icons/hoy/gemas.png')} style={{ width: 42, height: 42, resizeMode: 'contain' }} />
               </View>
               <View style={{ marginTop: 12 }}>
                 <MasterButton color={esc.hoja.l61a} onPress={() => setFiltro('Comprar')} iconoSize={16}>
-                  Ver mi código de referido
+                  {t('tienda.seedPurchase.viewReferralCode')}
                 </MasterButton>
               </View>
             </MasterGlass>
@@ -509,20 +518,21 @@ export function TiendaArbolesPantalla() {
   const mutacionComprar = useMutation({
     mutationFn: comprarSemillasArbol,
     onError: (error: Error) => {
-      Alert.alert('No se pudo comprar', error.message || 'Intentá de nuevo en un momento.');
+      Alert.alert(t('tienda.seedPurchase.errorTitle'), error.message || t('tienda.seedPurchase.errorDescription'));
     },
     onSuccess: (resultado) => {
       hapticSeguro('confirmacion');
       queryClient.invalidateQueries({ queryKey: CLAVE_SALDO_GEMAS });
       queryClient.invalidateQueries({ queryKey: CLAVE_SEMILLAS_DISPONIBLES });
-      Alert.alert('¡Listo!', `Conseguiste ${resultado.semillasCompradas} semilla${resultado.semillasCompradas === 1 ? '' : 's'}. Elegila al crear tu próximo hábito.`);
+      queryClient.invalidateQueries({ queryKey: CLAVE_PAQUETES_DESBLOQUEADOS });
+      Alert.alert(t('tienda.seedPurchase.successTitle'), t('tienda.seedPurchase.successDescription', { count: resultado.semillasCompradas, suffix: resultado.semillasCompradas === 1 ? '' : t('tienda.seedPurchase.pluralSuffix') }));
     },
   });
 
   async function comprarGemas(paquete: PaqueteGemasIap) {
     const paqueteRevenueCat = paquetesRevenueCat.find((p) => p.product.identifier === paquete.productIdRevenueCat);
     if (!paqueteRevenueCat) {
-      Alert.alert('No disponible', 'Este paquete todavía no está disponible para comprar.');
+      Alert.alert(t('tienda.screen.gems.unavailableTitle'), t('tienda.screen.gems.unavailableDescription'));
       return;
     }
     hapticSeguro('seleccion');
@@ -533,10 +543,10 @@ export function TiendaArbolesPantalla() {
         hapticSeguro('confirmacion');
         queryClient.invalidateQueries({ queryKey: CLAVE_SALDO_GEMAS });
         setTimeout(() => queryClient.invalidateQueries({ queryKey: CLAVE_SALDO_GEMAS }), 4000);
-        Alert.alert('¡Compra recibida!', 'Tus gemas llegan en unos segundos.');
+        Alert.alert(t('tienda.screen.gems.receivedTitle'), t('tienda.screen.gems.receivedDescription'));
       }
     } catch {
-      Alert.alert('No se pudo completar', 'Intentá de nuevo en un momento.');
+      Alert.alert(t('tienda.screen.gems.purchaseErrorTitle'), t('tienda.screen.gems.purchaseErrorDescription'));
     } finally {
       setComprandoGemasId(null);
     }

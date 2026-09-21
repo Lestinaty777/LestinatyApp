@@ -118,7 +118,6 @@ const ESTATICOS: Record<string, string> = {
   'src/modulos/habitos/widgets/HabitoFocoWidget.tsx': 'widget de Android o splash: sin hooks, o color de marca',
   'src/modulos/habitos/widgets/VistaPreviaWidgetCalendario.tsx': 'widget de Android o splash: sin hooks, o color de marca',
   'src/modulos/habitos/widgets/mapearHabitoWidget.ts': 'widget de Android o splash: sin hooks, o color de marca',
-  'src/modulos/habitos/widgets/widgetFoco.servicio.tsx': 'widget de Android o splash: sin hooks, o color de marca',
   'src/modulos/hoy/pantallas/HoyPantalla.tsx': 'colores de identidad o datos de cálculo (categorías, paquetes, especies, paleta que se rota)',
   'src/modulos/insights/componentes/GaleriaWidgetsModal.tsx': 'PENDIENTE: constante de módulo o helper compartido, hacerlo reactivo',
   'src/modulos/insights/componentes/SeccionProgresoDatos.tsx': 'PENDIENTE: constante de módulo o helper compartido, hacerlo reactivo',

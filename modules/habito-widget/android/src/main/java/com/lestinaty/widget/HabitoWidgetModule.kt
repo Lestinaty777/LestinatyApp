@@ -25,6 +25,26 @@ private fun numerosAJson(lista: List<*>): String {
     return jsonArray.toString()
 }
 
+// Un ítem de la lista de hábitos de hoy que el widget navega con los
+// chevrones — mismos campos que sincronizarHabito guardaba para el único
+// hábito "foco" de antes, ahora uno por cada hábito en el array.
+private fun mapAJsonHabito(item: Map<*, *>): JSONObject = JSONObject().apply {
+    put("habitoId", item["habitoId"]?.toString() ?: "")
+    put("titulo", item["titulo"]?.toString() ?: "")
+    put("color", item["color"]?.toString() ?: "")
+    put("actual", (item["actual"] as? Number)?.toInt() ?: 0)
+    put("meta", (item["meta"] as? Number)?.toInt() ?: 1)
+    put("unidad", item["unidad"]?.toString() ?: "")
+    put("completado", (item["completado"] as? Boolean) ?: false)
+    put("tipoMeta", item["tipoMeta"]?.toString() ?: "cantidad")
+    put("imagenEtapaRecurso", item["imagenEtapaRecurso"]?.toString() ?: "")
+    put("iconoRecurso", item["iconoRecurso"]?.toString() ?: "")
+    put("fondoClaro", item["fondoClaro"]?.toString() ?: "")
+    put("fondoMedio", item["fondoMedio"]?.toString() ?: "")
+    put("fondoOscuro", item["fondoOscuro"]?.toString() ?: "")
+    put("iconoAcento", item["iconoAcento"]?.toString() ?: "")
+}
+
 class HabitoWidgetModule : Module() {
     private val context: Context
         get() = appContext.reactContext ?: throw IllegalStateException("ReactContext no disponible")
@@ -34,25 +54,20 @@ class HabitoWidgetModule : Module() {
 
         Events("onIncrementoWidget", "onCronometroEvento")
 
-        AsyncFunction("sincronizarHabito") { datos: Map<String, Any?> ->
+        // Reemplaza a la vieja sincronizarHabito (un solo "foco"): ahora se
+        // manda la lista completa de hábitos de HOY, para que los chevrones
+        // del widget puedan navegar entre todos sin volver a llamar a JS.
+        AsyncFunction("sincronizarListaHabitos") { datos: Map<String, Any?> ->
             val prefs = context.getSharedPreferences(HabitoFocoWidgetProvider.PREFS_NAME, Context.MODE_PRIVATE)
             val editor = prefs.edit()
 
-            datos["habitoId"]?.let { editor.putString(HabitoFocoWidgetProvider.KEY_HABITO_ID, it.toString()) }
-            datos["titulo"]?.let { editor.putString(HabitoFocoWidgetProvider.KEY_TITULO, it.toString()) }
-            datos["color"]?.let { editor.putString(HabitoFocoWidgetProvider.KEY_COLOR, it.toString()) }
-            datos["unidad"]?.let { editor.putString(HabitoFocoWidgetProvider.KEY_UNIDAD, it.toString()) }
-            datos["tipoMeta"]?.let { editor.putString(HabitoFocoWidgetProvider.KEY_TIPO_META, it.toString()) }
+            val habitos = (datos["habitos"] as? List<*>)?.filterIsInstance<Map<*, *>>() ?: emptyList()
+            val listaJson = JSONArray()
+            habitos.forEach { listaJson.put(mapAJsonHabito(it)) }
+            editor.putString(HabitoFocoWidgetProvider.KEY_LISTA_HABITOS, listaJson.toString())
 
-            (datos["actual"] as? Number)?.let { editor.putInt(HabitoFocoWidgetProvider.KEY_ACTUAL, it.toInt()) }
-            (datos["meta"] as? Number)?.let { editor.putInt(HabitoFocoWidgetProvider.KEY_META, it.toInt()) }
-            (datos["racha"] as? Number)?.let { editor.putInt(HabitoFocoWidgetProvider.KEY_RACHA, it.toInt()) }
-            (datos["nivel"] as? Number)?.let { editor.putInt(HabitoFocoWidgetProvider.KEY_NIVEL, it.toInt()) }
-            (datos["completado"] as? Boolean)?.let { editor.putBoolean(HabitoFocoWidgetProvider.KEY_COMPLETADO, it) }
+            (datos["indiceInicial"] as? Number)?.let { editor.putInt(HabitoFocoWidgetProvider.KEY_INDICE_ACTUAL, it.toInt()) }
             (datos["esPro"] as? Boolean)?.let { editor.putBoolean(HabitoFocoWidgetProvider.KEY_ES_PRO, it) }
-            datos["imagenEtapaRecurso"]?.let { editor.putString(HabitoFocoWidgetProvider.KEY_IMAGEN_ETAPA, it.toString()) }
-            (datos["diasProgramados"] as? List<*>)?.let { editor.putString(HabitoFocoWidgetProvider.KEY_DIAS_PROGRAMADOS, numerosAJson(it)) }
-            (datos["diasCompletadosSemana"] as? List<*>)?.let { editor.putString(HabitoFocoWidgetProvider.KEY_DIAS_COMPLETADOS, numerosAJson(it)) }
 
             editor.apply()
 

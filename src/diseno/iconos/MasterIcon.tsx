@@ -61,5 +61,5 @@ export function MasterIcon({ name, color, hueDestino, alTema, oscurecido, size =
   }
   // Un `color` explícito sin hueDestino es un teñido forzado de la API vieja: no lo mezclamos con el tono.
   const usaTono = colorForzado === undefined || hueForzado !== undefined;
-  return <MasterChanger ancho={size} alto={size} colorDestino={colorForzado} deltaTema={colorForzado === undefined && hueForzado === undefined ? tono.deltaHue : undefined} fuente={icono.fuente} hueDestino={hueForzado} hueOrigen={icono.hue} oscurecido={oscurecido} oscurecidoTema={usaTono ? tono.oscurecido : 1} saturacion={usaTono ? tono.saturacion : 1} />;
+  return <MasterChanger ancho={size} alto={size} colorDestino={colorForzado} deltaTema={colorForzado === undefined && hueForzado === undefined ? tono.deltaHue : undefined} fuente={icono.fuente} hueDestino={hueForzado} hueOrigen={icono.hue} oscurecido={oscurecido} saturacion={usaTono ? tono.icono.saturacion : 1} valorTema={usaTono ? tono.icono.valor : 1} />;
 }

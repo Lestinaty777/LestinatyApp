@@ -6,7 +6,7 @@ import { Image, Linking, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { Easing, useSharedValue, useAnimatedStyle, withRepeat, withSequence, withTiming, withDelay } from 'react-native-reanimated';
 
-import { MasterGlass, MasterIconBg, MasterIcon, Texto, entradaEncadenada, MasterAnimation, Rebote, MasterProgressbar, Skeleton } from '../../../diseno';
+import { ImagenTema, MasterGlass, MasterIconBg, MasterIcon, Texto, entradaEncadenada, MasterAnimation, Rebote, MasterProgressbar, Skeleton } from '../../../diseno';
 import { AuroraBoreal } from '../../hoy/componentes/AuroraBoreal';
 import { buscarIconoHabito } from '../../habitos/iconosHabitos';
 import { obtenerHabitoMejorRacha, obtenerPanelHabitos, obtenerResumenPlanesHabitos } from '../../habitos/habitos.servicio';
@@ -19,11 +19,14 @@ import { useEscala } from '../../../diseno/tema/MasterColorContext';
 import type { EscalaMaster } from '../../../diseno/tema/escalaEsmeralda';
 import { ESCALA_ESMERALDA } from '../../../diseno/tema/escalaEsmeralda';
 import { conAlfa } from '../../../diseno/tema/masterColor';
+import { useAssetsPaqueteTema } from '../../habitos/usePaqueteTema';
+import { useTranslation } from 'react-i18next';
 
-const C = { texto: '#1A1335', tenue: ESCALA_ESMERALDA.musgo.l51, verde: ESCALA_ESMERALDA.jade.l50, rojo: '#DC2626', glass: 'rgba(255,255,255,0.72)', glassBorde: 'rgba(255,255,255,0.85)' };
+// `tenue` es el gris neutro de texto secundario de la app (antes un gris verdoso: las descripciones no deben ser verdes).
+const C = { texto: '#1A1335', tenue: '#7B7494', verde: ESCALA_ESMERALDA.jade.l50, rojo: '#DC2626', glass: 'rgba(255,255,255,0.72)', glassBorde: 'rgba(255,255,255,0.85)' };
 
 const DIAS_SEMANA_ETIQUETA = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
-const NOMBRES_DIA_SEMANA = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+const CLAVES_DIA = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'] as const;
 
 function IconoHabitoChico({ id, color, size = 18 }: { id?: string | null; color: string; size?: number }) { 
   const icono = buscarIconoHabito(id); 
@@ -31,11 +34,13 @@ function IconoHabitoChico({ id, color, size = 18 }: { id?: string | null; color:
 }
 
 function EsqueletoPatrones() {
+  const { t } = useTranslation();
   const esc = useEscala();
   const s = useEstilosS();
+  const etiquetasDia = (t('insights.strongestDay.dayLabels', { returnObjects: true }) as string[]) || DIAS_SEMANA_ETIQUETA;
   return (
     <View style={s.barras}>
-      {DIAS_SEMANA_ETIQUETA.map((etiqueta, indice) => (
+      {etiquetasDia.map((etiqueta, indice) => (
         <View key={indice} style={s.barraColumna}>
           <View style={[s.barraFondo, { justifyContent: 'flex-end', backgroundColor: conAlfa(esc.jade.l50, 0.06) }]}>
             <Skeleton alto={[28, 56, 38, 72, 44, 62, 34][indice]} ancho="100%" radio={4} />
@@ -133,24 +138,30 @@ function EsqueletoColumnasInsights() {
 }
 
 function SeccionPatrones({ cargando, datos, estado, progreso }: { cargando: boolean; datos: PatronHabito[]; estado: EstadoPanelHabitos; progreso?: ProgresoSeccionPanel }) {
+  const { t } = useTranslation();
   const s = useEstilosS();
   const diasConDatos = datos.filter((item) => item.muestras > 0).length;
+  const etiquetasDia = (t('insights.strongestDay.dayLabels', { returnObjects: true }) as string[]) || DIAS_SEMANA_ETIQUETA;
   return (
     <MasterGlass style={s.seccionColumna}>
       <View style={s.seccionHeaderCompacto}>
         <MasterIconBg size={32}><MasterIcon alTema name="calendario" size={16} /></MasterIconBg>
         <View style={{ flex: 1 }}>
-          <Texto style={s.seccionTituloCompacto}>Tu semana</Texto>
-          <Texto style={s.seccionSubtituloCompacto}>{estado === 'listo' ? `${diasConDatos}/7 días con registros` : 'Reuniendo tu historial'}</Texto>
+          <Texto style={s.seccionTituloCompacto}>{t('insights.patterns.title')}</Texto>
+          <Texto style={s.seccionSubtituloCompacto}>
+            {estado === 'listo'
+              ? t('insights.patterns.recordedDays', { count: diasConDatos })
+              : t('insights.patterns.gatheringHistory')}
+          </Texto>
         </View>
       </View>
       {cargando ? (
         <EsqueletoPatrones />
       ) : estado !== 'listo' ? (
-        <SeccionProgresoDatos mensaje="Necesitamos más días de registros para ver tu semana con claridad." progreso={progreso} />
+        <SeccionProgresoDatos mensaje={t('insights.patterns.needMoreDays')} progreso={progreso} />
       ) : (
         <View style={s.barras}>
-          {DIAS_SEMANA_ETIQUETA.map((etiqueta, indice) => {
+          {etiquetasDia.map((etiqueta, indice) => {
             const patron = datos.find((item) => item.diaSemana === indice + 1);
             const porcentaje = Math.max(10, patron?.porcentaje ?? 0);
             return (
@@ -171,18 +182,19 @@ function SeccionPatrones({ cargando, datos, estado, progreso }: { cargando: bool
 type HabitoBasico = { titulo: string; color: string; iconoLucide: string };
 
 function SeccionConexiones({ cargando, datos, estado, habitosPorId, progreso }: { cargando: boolean; datos: ConexionHabito[]; estado: EstadoPanelHabitos; habitosPorId: Map<string, HabitoBasico>; progreso?: ProgresoSeccionPanel }) {
+  const { t } = useTranslation();
   const s = useEstilosS();
   return (
     <MasterGlass style={s.seccionColumna}>
       <View style={s.seccionHeaderCompacto}>
         <MasterIconBg size={32}><MasterIcon alTema name="hoja" size={16} /></MasterIconBg>
-        <Texto style={s.seccionTituloCompacto}>Se cumplen juntos</Texto>
+        <Texto style={s.seccionTituloCompacto}>{t('insights.connections.title')}</Texto>
       </View>
-      <Texto style={s.seccionSubtituloCompacto}>Hábitos que sueles completar el mismo día.</Texto>
+      <Texto style={s.seccionSubtituloCompacto}>{t('insights.connections.subtitle')}</Texto>
       {cargando ? (
         <EsqueletoConexiones />
       ) : estado !== 'listo' ? (
-        <SeccionProgresoDatos mensaje="Necesitamos más días con varios hábitos completados para encontrar conexiones." progreso={progreso} />
+        <SeccionProgresoDatos mensaje={t('insights.connections.needMoreDays')} progreso={progreso} />
       ) : (
         <View style={s.listaCompacta}>
           <MasterAnimation>
@@ -209,20 +221,21 @@ function SeccionConexiones({ cargando, datos, estado, habitosPorId, progreso }: 
 }
 
 function SeccionRiesgo({ cargando, datos, estado, progreso }: { cargando: boolean; datos: RiesgoHabito[]; estado: EstadoPanelHabitos; progreso?: ProgresoSeccionPanel }) {
+  const { t } = useTranslation();
   const s = useEstilosS();
   return (
     <MasterGlass style={s.seccionColumna}>
       <View style={s.seccionHeaderCompacto}>
         <MasterIconBg size={32}><MasterIcon color={5} name="estadistica" size={16} /></MasterIconBg>
-        <Texto style={s.seccionTituloCompacto}>Atención</Texto>
+        <Texto style={s.seccionTituloCompacto}>{t('insights.risk.title')}</Texto>
       </View>
-      <Texto style={s.seccionSubtituloCompacto}>Bajaron su actividad esta semana.</Texto>
+      <Texto style={s.seccionSubtituloCompacto}>{t('insights.risk.subtitle')}</Texto>
       {cargando ? (
         <EsqueletoRiesgo />
       ) : estado !== 'listo' ? (
-        <SeccionProgresoDatos mensaje="Necesitamos más historial para detectar bajones de actividad." progreso={progreso} />
+        <SeccionProgresoDatos mensaje={t('insights.risk.needMoreHistory')} progreso={progreso} />
       ) : datos.length === 0 ? (
-        <View style={s.estadoContenedor}><Texto style={s.estadoTexto}>Ningún hábito bajó el ritmo. Vas sólido.</Texto></View>
+        <View style={s.estadoContenedor}><Texto style={s.estadoTexto}>{t('insights.risk.empty')}</Texto></View>
       ) : (
         <View style={s.listaCompacta}>
           <MasterAnimation>
@@ -241,26 +254,33 @@ function SeccionRiesgo({ cargando, datos, estado, progreso }: { cargando: boolea
 }
 
 function SeccionDiaFuerte({ cargando, datos, estado, progreso }: { cargando: boolean; datos: PatronHabito[]; estado: EstadoPanelHabitos; progreso?: ProgresoSeccionPanel }) {
+  const { t } = useTranslation();
   const esc = useEscala();
   const s = useEstilosS();
   const diasConMuestras = datos.filter((item) => item.muestras > 0);
   const mejorDia = diasConMuestras.reduce<PatronHabito | null>((mejor, item) => (!mejor || item.porcentaje > mejor.porcentaje ? item : mejor), null);
   const indiceMejorDia = mejorDia ? mejorDia.diaSemana - 1 : -1;
+  const etiquetasDia = (t('insights.strongestDay.dayLabels', { returnObjects: true }) as string[]) || DIAS_SEMANA_ETIQUETA;
+
+  const nombreDia = indiceMejorDia >= 0 ? t(`insights.strongestDay.days.${CLAVES_DIA[indiceMejorDia]}`) : '';
+  const subtitulo = estado === 'listo' && mejorDia && indiceMejorDia >= 0
+    ? t('insights.strongestDay.bestDaysAre', { day: nombreDia })
+    : t('insights.strongestDay.noHighlightYet');
 
   return (
     <MasterGlass style={s.seccionColumna}>
        <View style={s.seccionHeaderCompacto}>
          <MasterIconBg size={32}><MasterIcon alTema name="trofeo" size={16} /></MasterIconBg>
-         <Texto style={s.seccionTituloCompacto}>Día más fuerte</Texto>
+         <Texto style={s.seccionTituloCompacto}>{t('insights.strongestDay.title')}</Texto>
        </View>
-       <Texto style={s.seccionSubtituloCompacto}>{estado === 'listo' && mejorDia ? `Tus mejores días son los ${NOMBRES_DIA_SEMANA[indiceMejorDia]}.` : 'Todavía no hay un día que destaque.'}</Texto>
+       <Texto style={s.seccionSubtituloCompacto}>{subtitulo}</Texto>
        {cargando ? (
          <EsqueletoPatrones />
        ) : estado !== 'listo' ? (
-         <SeccionProgresoDatos mensaje="Necesitamos más días de registros para encontrar tu mejor día." progreso={progreso} />
+         <SeccionProgresoDatos mensaje={t('insights.strongestDay.needMoreDays')} progreso={progreso} />
        ) : (
          <View style={[s.barras, { height: 60, marginTop: 12 }]}>
-            {DIAS_SEMANA_ETIQUETA.map((etiqueta, indice) => {
+            {etiquetasDia.map((etiqueta, indice) => {
               const patron = datos.find((item) => item.diaSemana === indice + 1);
               const esMejor = indice === indiceMejorDia;
               const porcentaje = Math.max(10, patron?.porcentaje ?? 0);
@@ -322,6 +342,7 @@ function ElementoFlotanteSuave({
 }
 
 function WidgetReflexion({ mensaje }: { mensaje: string }) {
+  const { t } = useTranslation();
   const s = useEstilosS();
   return (
     <View style={s.widgetReflexionWrap}>
@@ -329,7 +350,7 @@ function WidgetReflexion({ mensaje }: { mensaje: string }) {
         <View style={{ opacity: 0.9 }}><MasterIcon name="cerebro" size={32} /></View>
         <Texto style={{ fontFamily: 'Montserrat-Medium', fontSize: 9, color: C.tenue, textAlign: 'center', lineHeight: 13, paddingHorizontal: 2 }}>
           "{mensaje}"
-          <Texto style={{ fontFamily: 'Montserrat-Bold', fontSize: 8 }}>{'\n\n'}— Aby</Texto>
+          <Texto style={{ fontFamily: 'Montserrat-Bold', fontSize: 8 }}>{'\n\n'}{t('insights.reflection.author')}</Texto>
         </Texto>
       </MasterGlass>
     </View>
@@ -337,6 +358,8 @@ function WidgetReflexion({ mensaje }: { mensaje: string }) {
 }
 
 export function InsightsPantalla() {
+  const { t } = useTranslation();
+  const tema = useAssetsPaqueteTema();
   const esc = useEscala();
   const s = useEstilosS();
   const insets = useSafeAreaInsets();
@@ -359,10 +382,10 @@ export function InsightsPantalla() {
   const completadosHoy = habitosHoy.filter((habito) => habito.completado).length;
 
   const tarjetasStats = [
-    { id: 'constancia', nombreIcono: 'hoja', colorIcono: 2, titulo: 'Constancia', valor: panel?.patrones.estado === 'listo' ? `${constancia}%` : '—' },
-    { id: 'racha', nombreIcono: 'racha', titulo: 'Racha', valor: consultaMejorRacha.data ? `${consultaMejorRacha.data.racha}d` : '0d' },
-    { id: 'gemas', nombreIcono: 'gema', colorIcono: 4, titulo: 'Gemas', valor: `${consultaGemas.data ?? 0}` },
-    { id: 'hoy', nombreIcono: 'estadistica', colorIcono: 2, titulo: 'Hoy', valor: `${completadosHoy}/${habitosHoy.length}` },
+    { id: 'constancia', nombreIcono: 'hoja', colorIcono: 2, titulo: t('insights.stats.consistency'), valor: panel?.patrones.estado === 'listo' ? `${constancia}%` : '—' },
+    { id: 'racha', nombreIcono: 'racha', titulo: t('insights.stats.streak'), valor: consultaMejorRacha.data ? `${consultaMejorRacha.data.racha}d` : '0d' },
+    { id: 'gemas', nombreIcono: 'gema', colorIcono: 4, titulo: t('insights.stats.gems'), valor: `${consultaGemas.data ?? 0}` },
+    { id: 'hoy', nombreIcono: 'estadistica', colorIcono: 2, titulo: t('insights.stats.today'), valor: `${completadosHoy}/${habitosHoy.length}` },
   ];
 
   return (
@@ -377,14 +400,14 @@ export function InsightsPantalla() {
               <Animated.View entering={entradaEncadenada(0)} style={s.headerIzq}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                   <MasterIcon name="navegacion/insights" size={34} />
-                  <Texto style={s.headerTituloPrincipal}>Tus Insights</Texto>
+                  <Texto style={s.headerTituloPrincipal}>{t('insights.header.title')}</Texto>
                 </View>
-                <Texto style={s.headerSubtitulo}>Analiza tu progreso y descubre patrones.</Texto>
+                <Texto style={s.headerSubtitulo}>{t('insights.header.subtitle')}</Texto>
               </Animated.View>
             </View>
             <View style={s.headerDer}>
               <Animated.View entering={entradaEncadenada(1)}>
-                <Rebote accessibilityLabel="Notificaciones" onPress={() => Linking.openSettings()}>
+                <Rebote accessibilityLabel={t('insights.header.notificationsAccessibility')} onPress={() => Linking.openSettings()}>
                   <MasterGlass style={s.notificacion}>
                     <Image source={require('../../../../assets/icons/hoy/notificaciones.png')} style={s.notificacionIcono} />
                   </MasterGlass>
@@ -394,22 +417,14 @@ export function InsightsPantalla() {
           </View>
 
           <Animated.View entering={entradaEncadenada(2)} style={s.heroReflexion}>
-            <WidgetReflexion mensaje={panel ? elegirReflexionAby(panel) : 'Estoy reuniendo tus datos para poder acompañarte mejor.'} />
+            <WidgetReflexion mensaje={panel ? elegirReflexionAby(panel) : t('insights.reflection.defaultMessage')} />
             <View style={s.heroColDer}>
               <ElementoFlotanteSuave delay={0} distancia={3.5} duracion={2600} rotacion="-14deg" style={s.flotanteRocaTop}>
-                <Image
-                  source={require('../../../../assets/ilustraciones/senderos/biomas/arboles/roca.png')}
-                  style={s.imgFlotante}
-                  resizeMode="contain"
-                />
+                <ImagenTema fuente={require('../../../../assets/ilustraciones/senderos/biomas/arboles/roca.png')} estilo={s.imgFlotante} />
               </ElementoFlotanteSuave>
 
               <ElementoFlotanteSuave delay={400} distancia={4} duracion={3100} rotacion="12deg" style={s.flotantePastoTop}>
-                <Image
-                  source={require('../../../../assets/ilustraciones/senderos/biomas/arboles/pasto.png')}
-                  style={s.imgFlotante}
-                  resizeMode="contain"
-                />
+                <ImagenTema fuente={require('../../../../assets/ilustraciones/senderos/biomas/arboles/pasto.png')} estilo={s.imgFlotante} />
               </ElementoFlotanteSuave>
 
               <ElementoFlotanteSuave delay={800} distancia={3} duracion={2400} rotacion="22deg" style={s.flotanteRocaMidLeft}>
@@ -421,33 +436,21 @@ export function InsightsPantalla() {
               </ElementoFlotanteSuave>
 
               <ElementoFlotanteSuave delay={200} distancia={4.5} duracion={2900} rotacion="16deg" style={s.flotantePastoMidRight}>
-                <Image
-                  source={require('../../../../assets/ilustraciones/senderos/biomas/arboles/pasto2.png')}
-                  style={s.imgFlotante}
-                  resizeMode="contain"
-                />
+                <ImagenTema fuente={require('../../../../assets/ilustraciones/senderos/biomas/arboles/pasto2.png')} estilo={s.imgFlotante} />
               </ElementoFlotanteSuave>
 
               <Image
-                source={require('../../../../assets/ilustraciones/hoy/fondos/habitos.png')}
+                source={tema.arbol}
                 style={s.ilustracionHabitos}
                 resizeMode="contain"
               />
 
               <ElementoFlotanteSuave delay={600} distancia={3} duracion={3200} rotacion="-6deg" style={s.flotantePastoCenterBottom}>
-                <Image
-                  source={require('../../../../assets/ilustraciones/senderos/biomas/arboles/pasto.png')}
-                  style={s.imgFlotante}
-                  resizeMode="contain"
-                />
+                <ImagenTema fuente={require('../../../../assets/ilustraciones/senderos/biomas/arboles/pasto.png')} estilo={s.imgFlotante} />
               </ElementoFlotanteSuave>
 
               <ElementoFlotanteSuave delay={1000} distancia={4} duracion={2700} rotacion="-8deg" style={s.flotantePastoBottom}>
-                <Image
-                  source={require('../../../../assets/ilustraciones/senderos/biomas/arboles/pasto1.png')}
-                  style={s.imgFlotante}
-                  resizeMode="contain"
-                />
+                <ImagenTema fuente={require('../../../../assets/ilustraciones/senderos/biomas/arboles/pasto1.png')} estilo={s.imgFlotante} />
               </ElementoFlotanteSuave>
 
               <ElementoFlotanteSuave delay={300} distancia={3.5} duracion={3000} rotacion="15deg" style={s.flotanteRocaBottom}>
@@ -497,12 +500,12 @@ export function InsightsPantalla() {
                 </View>
                 <View style={s.bannerTextoContenedor}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                    <Texto style={s.bannerTitulo}>Widgets de Inicio</Texto>
+                    <Texto style={s.bannerTitulo}>{t('insights.banner.title')}</Texto>
                     <View style={s.badgePro}>
-                      <Texto style={s.badgeProTexto}>VER</Texto>
+                      <Texto style={s.badgeProTexto}>{t('insights.banner.badge')}</Texto>
                     </View>
                   </View>
-                  <Texto style={s.bannerSubtitulo}>Pon tu racha y hábitos en la pantalla de tu celular.</Texto>
+                  <Texto style={s.bannerSubtitulo}>{t('insights.banner.subtitle')}</Texto>
                 </View>
                 <MasterGlass style={s.bannerChevron}><ChevronRight color={C.verde} size={16} /></MasterGlass>
               </MasterGlass>

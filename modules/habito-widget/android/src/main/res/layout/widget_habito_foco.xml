@@ -1,214 +1,137 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/widget_root"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:background="@drawable/widget_masterglass_bg"
-    android:orientation="vertical"
-    android:padding="10dp">
+    android:layout_height="match_parent">
 
-    <!-- Diorama hero: la ilustración de la etapa domina el widget. Racha y
-         botón de acción flotan sobre sus esquinas superiores en vez de
-         ocupar una fila propia, y el nombre del hábito se escribe sobre un
-         degradado oscuro al pie de la imagen, tipo póster. -->
-    <FrameLayout
+    <!-- Fondo MasterGlass: se pinta en Kotlin como un Bitmap con el
+         degradado ya rotado al tono del paquete del hábito (ver
+         crearFondoGlass) — un ImageView normal no puede recibir un
+         Drawable en vivo vía RemoteViews, así que el degradado se dibuja a
+         un Bitmap del lado nativo y se manda con setImageViewBitmap. -->
+    <ImageView
+        android:id="@+id/widget_fondo"
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1">
+        android:layout_height="match_parent"
+        android:contentDescription="@null"
+        android:scaleType="fitXY" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:padding="6dp">
+
+    <!-- Chevron izquierdo: hábito anterior de HOY -->
+    <FrameLayout
+        android:id="@+id/widget_chevron_izquierda"
+        android:layout_width="26dp"
+        android:layout_height="match_parent"
+        android:clickable="true"
+        android:focusable="true">
 
         <ImageView
-            android:id="@+id/widget_etapa_imagen"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:contentDescription="Etapa del hábito"
-            android:scaleType="fitCenter" />
-
-        <!-- Degradado inferior para que el nombre sea legible sobre la imagen -->
-        <View
-            android:id="@+id/widget_scrim"
-            android:layout_width="match_parent"
-            android:layout_height="56dp"
-            android:layout_gravity="bottom"
-            android:background="@drawable/widget_scrim_etapa" />
-
-        <!-- Chip de racha de fuego, flotando sobre la esquina superior izquierda -->
-        <LinearLayout
-            android:id="@+id/widget_racha_chip"
-            android:layout_width="wrap_content"
-            android:layout_height="24dp"
-            android:layout_gravity="top|start"
-            android:layout_margin="6dp"
-            android:background="@drawable/widget_streak_chip"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:paddingStart="7dp"
-            android:paddingEnd="9dp">
-
-            <ImageView
-                android:layout_width="12dp"
-                android:layout_height="12dp"
-                android:layout_marginEnd="4dp"
-                android:contentDescription="Fuego"
-                android:src="@drawable/ic_widget_flame" />
-
-            <TextView
-                android:id="@+id/widget_racha_texto"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="0 d"
-                android:textColor="@color/widget_racha_texto"
-                android:textSize="10sp"
-                android:textStyle="bold" />
-        </LinearLayout>
-
-        <!-- MasterButton 3D interactivo con extrusión, esquina superior derecha -->
-        <FrameLayout
-            android:id="@+id/widget_boton_accion"
-            android:layout_width="34dp"
-            android:layout_height="34dp"
-            android:layout_gravity="top|end"
-            android:layout_margin="6dp"
-            android:background="@drawable/widget_button_3d"
-            android:clickable="true"
-            android:focusable="true">
-
-            <ImageView
-                android:id="@+id/widget_boton_icono"
-                android:layout_width="18dp"
-                android:layout_height="18dp"
-                android:layout_gravity="center"
-                android:contentDescription="Acción"
-                android:src="@drawable/ic_widget_plus" />
-        </FrameLayout>
-
-        <!-- Nombre del hábito, sobre el degradado -->
-        <TextView
-            android:id="@+id/widget_titulo"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_gravity="bottom"
-            android:ellipsize="end"
-            android:maxLines="1"
-            android:paddingHorizontal="8dp"
-            android:paddingBottom="8dp"
-            android:text="Mi Hábito"
-            android:textColor="@color/widget_titulo_sobre_imagen"
-            android:textSize="14sp"
-            android:textStyle="bold" />
+            android:layout_width="16dp"
+            android:layout_height="16dp"
+            android:layout_gravity="center"
+            android:contentDescription="Hábito anterior"
+            android:src="@drawable/ic_widget_chevron_left" />
     </FrameLayout>
 
-    <!-- Calendario semanal sencillo: 7 celdas, lunes a domingo. La letra de
-         cada día es fija en el XML — solo el fondo (estado) y el color de
-         texto cambian en tiempo de ejecución, así cada celda puede tener un
-         id propio sin depender de un <include> con ids hijos repetidos
-         (RemoteViews resuelve por id contra TODO el árbol, no por instancia). -->
+    <!-- Contenedor variable: cambia con cada hábito de hoy -->
     <LinearLayout
-        android:id="@+id/widget_semana_fila"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
+        android:id="@+id/widget_contenido_variable"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_marginHorizontal="4dp"
+        android:layout_weight="1"
         android:gravity="center_vertical"
         android:orientation="horizontal">
 
-        <TextView
-            android:id="@+id/widget_dia_1"
+        <!-- Columna izquierda: ícono + nombre + barra (toque = registrar avance) -->
+        <LinearLayout
             android:layout_width="0dp"
-            android:layout_height="24dp"
-            android:layout_marginEnd="4dp"
-            android:layout_weight="1"
-            android:background="@drawable/widget_dia_bg_no_programado"
-            android:gravity="center"
-            android:text="L"
-            android:textColor="@color/widget_dia_texto_oscuro"
-            android:textSize="10sp"
-            android:textStyle="bold" />
+            android:layout_height="wrap_content"
+            android:layout_weight="1.1"
+            android:orientation="vertical">
 
-        <TextView
-            android:id="@+id/widget_dia_2"
-            android:layout_width="0dp"
-            android:layout_height="24dp"
-            android:layout_marginEnd="4dp"
-            android:layout_weight="1"
-            android:background="@drawable/widget_dia_bg_no_programado"
-            android:gravity="center"
-            android:text="M"
-            android:textColor="@color/widget_dia_texto_oscuro"
-            android:textSize="10sp"
-            android:textStyle="bold" />
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
 
-        <TextView
-            android:id="@+id/widget_dia_3"
-            android:layout_width="0dp"
-            android:layout_height="24dp"
-            android:layout_marginEnd="4dp"
-            android:layout_weight="1"
-            android:background="@drawable/widget_dia_bg_no_programado"
-            android:gravity="center"
-            android:text="X"
-            android:textColor="@color/widget_dia_texto_oscuro"
-            android:textSize="10sp"
-            android:textStyle="bold" />
+                <ImageView
+                    android:id="@+id/widget_icono_habito"
+                    android:layout_width="16dp"
+                    android:layout_height="16dp"
+                    android:layout_marginEnd="6dp"
+                    android:contentDescription="Ícono del hábito"
+                    android:src="@drawable/ic_widget_leaf" />
 
-        <TextView
-            android:id="@+id/widget_dia_4"
-            android:layout_width="0dp"
-            android:layout_height="24dp"
-            android:layout_marginEnd="4dp"
-            android:layout_weight="1"
-            android:background="@drawable/widget_dia_bg_no_programado"
-            android:gravity="center"
-            android:text="J"
-            android:textColor="@color/widget_dia_texto_oscuro"
-            android:textSize="10sp"
-            android:textStyle="bold" />
+                <TextView
+                    android:id="@+id/widget_titulo"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:text="Mi Hábito"
+                    android:textColor="@color/widget_texto_principal"
+                    android:textSize="13sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
 
-        <TextView
-            android:id="@+id/widget_dia_5"
-            android:layout_width="0dp"
-            android:layout_height="24dp"
-            android:layout_marginEnd="4dp"
-            android:layout_weight="1"
-            android:background="@drawable/widget_dia_bg_no_programado"
-            android:gravity="center"
-            android:text="V"
-            android:textColor="@color/widget_dia_texto_oscuro"
-            android:textSize="10sp"
-            android:textStyle="bold" />
+            <ProgressBar
+                android:id="@+id/widget_barra"
+                style="?android:attr/progressBarStyleHorizontal"
+                android:layout_width="match_parent"
+                android:layout_height="12dp"
+                android:layout_marginTop="6dp"
+                android:clickable="true"
+                android:focusable="true"
+                android:max="100"
+                android:progress="0"
+                android:progressDrawable="@drawable/widget_progressbar" />
+        </LinearLayout>
 
-        <TextView
-            android:id="@+id/widget_dia_6"
+        <!-- Columna derecha: ilustración de la etapa actual -->
+        <ImageView
+            android:id="@+id/widget_etapa_imagen"
             android:layout_width="0dp"
-            android:layout_height="24dp"
-            android:layout_marginEnd="4dp"
-            android:layout_weight="1"
-            android:background="@drawable/widget_dia_bg_no_programado"
-            android:gravity="center"
-            android:text="S"
-            android:textColor="@color/widget_dia_texto_oscuro"
-            android:textSize="10sp"
-            android:textStyle="bold" />
-
-        <TextView
-            android:id="@+id/widget_dia_7"
-            android:layout_width="0dp"
-            android:layout_height="24dp"
-            android:layout_weight="1"
-            android:background="@drawable/widget_dia_bg_no_programado"
-            android:gravity="center"
-            android:text="D"
-            android:textColor="@color/widget_dia_texto_oscuro"
-            android:textSize="10sp"
-            android:textStyle="bold" />
+            android:layout_height="match_parent"
+            android:layout_marginStart="8dp"
+            android:layout_weight="0.85"
+            android:contentDescription="Etapa del hábito"
+            android:scaleType="fitCenter" />
     </LinearLayout>
+
+    <!-- Chevron derecho: siguiente hábito de HOY -->
+    <FrameLayout
+        android:id="@+id/widget_chevron_derecha"
+        android:layout_width="26dp"
+        android:layout_height="match_parent"
+        android:clickable="true"
+        android:focusable="true">
+
+        <ImageView
+            android:layout_width="16dp"
+            android:layout_height="16dp"
+            android:layout_gravity="center"
+            android:contentDescription="Siguiente hábito"
+            android:src="@drawable/ic_widget_chevron_right" />
+    </FrameLayout>
 
     <!-- Estado sin hábitos -->
     <TextView
         android:id="@+id/widget_progreso_texto"
-        android:layout_width="match_parent"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginTop="2dp"
+        android:layout_weight="1"
         android:text="0 / 1"
         android:textColor="@color/widget_texto_secundario"
         android:textSize="12sp"
         android:visibility="gone" />
-</LinearLayout>
+    </LinearLayout>
+</FrameLayout>

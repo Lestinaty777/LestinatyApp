@@ -73,7 +73,7 @@ export function MasterIconBg({
         {tinte && <View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: tinte, borderRadius: radioInterior, opacity: 0.4 }]} />}
         {fuente ? (rutaDeIcono({ deltaHue: tono.deltaHue, hue }) === 'imagen'
           ? <Image resizeMode="contain" source={fuente} style={{ height: tamanoIcono, width: tamanoIcono }} />
-          : <MasterChanger alto={tamanoIcono} ancho={tamanoIcono} deltaTema={tono.deltaHue} fuente={fuente} hueOrigen={hue} oscurecidoTema={tono.oscurecido} saturacion={tono.saturacion} />) : children}
+          : <MasterChanger alto={tamanoIcono} ancho={tamanoIcono} deltaTema={tono.deltaHue} fuente={fuente} hueOrigen={hue} saturacion={tono.icono.saturacion} valorTema={tono.icono.valor} />) : children}
       </MasterGlass>
     </View>
   );

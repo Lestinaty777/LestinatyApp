@@ -1,126 +1,111 @@
-import { Flame, Plus, Check } from 'lucide-react-native';
+import { ChevronLeft, ChevronRight } from 'lucide-react-native';
 import { Image, type ImageSourcePropType, Pressable, StyleSheet, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Texto } from '../../../diseno';
 
-const LETRAS_DIA = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
-
 export type VistaPreviaWidgetHabitoProps = {
   titulo: string;
-  racha: number;
+  actual: number;
+  meta: number;
   completado: boolean;
   imagenEtapa: ImageSourcePropType;
-  /** Días de esta semana (lunes=1..domingo=7) en los que el hábito está programado. */
-  diasProgramados: number[];
-  /** Subconjunto de diasProgramados ya cumplidos. */
-  diasCompletadosSemana: number[];
+  iconoFuente?: ImageSourcePropType;
+  /** Los 3 colores (claro/medio/oscuro) del degradado, ya rotados al tono del
+   * paquete — mismos que recibe el widget nativo, para que el fondo se vea igual. */
+  fondoClaro?: string;
+  fondoMedio?: string;
+  fondoOscuro?: string;
+  /** Color de acento del paquete, para teñir el ícono (tintColor plano, igual que el setColorFilter nativo). */
+  iconoColor?: string;
+  /** Tocar la barra registra avance, igual que el botón "+" de antes. */
   onIncrementar?: () => void;
+  onAnterior?: () => void;
+  onSiguiente?: () => void;
+  /** Con un solo hábito no hay entre qué navegar — se ocultan los chevrones. */
+  mostrarChevrones?: boolean;
 };
 
+const FONDO_POR_DEFECTO: [string, string, string] = ['#FAFDF9', '#F1FBF1', '#E2F4E3'];
+
 /**
- * Réplica fiel en JS del widget nativo real ("diorama hero": la ilustración
- * de etapa ocupa casi todo el widget, racha y botón de acción flotan sobre
- * sus esquinas superiores, el nombre se escribe sobre un degradado al pie de
- * la imagen) — mismos colores y estructura que widget_habito_foco.xml +
+ * Réplica fiel en JS del widget nativo real (4x2, horizontal):
+ * chevron ‹ | ícono + nombre + barra (toque = registrar avance) | ilustración
+ * de la etapa | chevron › — mismos ids/estructura que widget_habito_foco.xml +
  * HabitoFocoWidgetProvider.kt. Componente aparte de HabitoFocoWidget.tsx (el
- * widget JS legado de react-native-android-widget), para no arriesgar ese
- * sistema al mantener este mockup sincronizado con el diseño nativo actual.
+ * widget JS legado de react-native-android-widget).
  */
 export function VistaPreviaWidgetHabito({
   titulo,
-  racha,
+  actual,
+  meta,
   completado,
   imagenEtapa,
-  diasProgramados,
-  diasCompletadosSemana,
+  iconoFuente,
+  fondoClaro,
+  fondoMedio,
+  fondoOscuro,
+  iconoColor,
   onIncrementar,
+  onAnterior,
+  onSiguiente,
+  mostrarChevrones = false,
 }: VistaPreviaWidgetHabitoProps) {
-  const hoyIndice = (new Date().getDay() + 6) % 7; // 0=lunes..6=domingo
+  const porcentaje = Math.min(100, Math.round((actual * 100) / Math.max(1, meta)));
+  const coloresFondo: [string, string, string] = fondoClaro && fondoMedio && fondoOscuro
+    ? [fondoClaro, fondoMedio, fondoOscuro]
+    : FONDO_POR_DEFECTO;
 
   return (
-    <LinearGradient colors={['#FAFDF9', '#F1FBF1', '#E2F4E3']} style={s.raiz}>
-      <View style={s.imagenContenedor}>
-        <Image resizeMode="contain" source={imagenEtapa} style={s.imagen} />
+    <LinearGradient colors={coloresFondo} end={{ x: 1, y: 1 }} start={{ x: 0, y: 0 }} style={s.raiz}>
+      {mostrarChevrones ? (
+        <Pressable accessibilityLabel="Hábito anterior" onPress={onAnterior} style={s.chevron}>
+          <ChevronLeft color="#33402F" size={16} />
+        </Pressable>
+      ) : (
+        <View style={s.chevron} />
+      )}
 
-        {/* Degradado inferior para que el nombre sea legible sobre la imagen */}
-        <LinearGradient colors={['transparent', 'rgba(11,31,15,0.8)']} style={s.scrim} />
+      <View style={s.contenidoVariable}>
+        <View style={s.columnaTexto}>
+          <View style={s.filaIconoTitulo}>
+            {iconoFuente && (
+              <Image resizeMode="contain" source={iconoFuente} style={[s.icono, iconoColor ? { tintColor: iconoColor } : null]} />
+            )}
+            <Texto numberOfLines={1} style={s.titulo}>{titulo}</Texto>
+          </View>
 
-        <View style={s.rachaChip}>
-          <Flame color="#F97316" fill="#F97316" size={11} />
-          <Texto style={s.rachaTexto}>{racha} d</Texto>
+          <Pressable accessibilityLabel="Registrar avance" onPress={onIncrementar} style={s.barraFondo}>
+            <View style={[s.barraRelleno, { width: `${porcentaje}%` }, completado && s.barraCompleta]} />
+          </Pressable>
         </View>
 
-        <Pressable
-          accessibilityLabel={completado ? 'Completado' : 'Registrar avance'}
-          onPress={onIncrementar}
-          style={[s.botonAccion, completado && s.botonAccionCompletado]}
-        >
-          {completado ? <Check color="#FFFFFF" size={15} strokeWidth={3} /> : <Plus color="#FFFFFF" size={15} strokeWidth={3} />}
+        <Image resizeMode="contain" source={imagenEtapa} style={s.imagen} />
+      </View>
+
+      {mostrarChevrones ? (
+        <Pressable accessibilityLabel="Siguiente hábito" onPress={onSiguiente} style={s.chevron}>
+          <ChevronRight color="#33402F" size={16} />
         </Pressable>
-
-        <Texto numberOfLines={1} style={s.titulo}>{titulo}</Texto>
-      </View>
-
-      <View style={s.semanaFila}>
-        {LETRAS_DIA.map((letra, indice) => {
-          const idDia = indice + 1;
-          const estaProgramado = diasProgramados.includes(idDia);
-          const estaCompletado = diasCompletadosSemana.includes(idDia);
-          const esPasado = indice < hoyIndice;
-
-          let estilo = s.diaNoProgramado;
-          let colorTexto = '#9AA69B';
-          if (estaCompletado) {
-            estilo = s.diaCompletado;
-            colorTexto = '#FFFFFF';
-          } else if (!estaProgramado) {
-            estilo = s.diaNoProgramado;
-            colorTexto = '#9AA69B';
-          } else if (esPasado) {
-            estilo = s.diaPerdido;
-            colorTexto = '#9C4A44';
-          } else {
-            estilo = s.diaPendiente;
-            colorTexto = '#33402F';
-          }
-
-          return (
-            <View key={letra + indice} style={[s.diaCelda, estilo]}>
-              <Texto style={[s.diaTexto, { color: colorTexto }]}>{letra}</Texto>
-            </View>
-          );
-        })}
-      </View>
+      ) : (
+        <View style={s.chevron} />
+      )}
     </LinearGradient>
   );
 }
 
 const s = StyleSheet.create({
-  raiz: { borderRadius: 24, flex: 1, padding: 10 },
-  imagenContenedor: { flex: 1, position: 'relative' },
-  imagen: { height: '100%', width: '100%' },
-  scrim: { bottom: 0, height: 36, left: 0, position: 'absolute', right: 0 },
-  rachaChip: {
-    // Cream/naranja tenue, no verde — mismo tono que la app usa para racha
-    // (fuego), en formato RN #RRGGBBAA (el XML de Android equivalente usa
-    // #AARRGGBB, con el alfa primero: no son intercambiables tal cual).
-    alignItems: 'center', backgroundColor: '#FFF8EEE6', borderColor: '#FDE2BFCC', borderRadius: 999,
-    borderWidth: 1, flexDirection: 'row', gap: 3, left: 4, paddingHorizontal: 6, paddingVertical: 3, position: 'absolute', top: 4,
+  raiz: {
+    alignItems: 'center', borderRadius: 20, flex: 1,
+    flexDirection: 'row', padding: 6,
   },
-  rachaTexto: { color: '#B86200', fontFamily: 'Montserrat-Bold', fontSize: 9 },
-  botonAccion: {
-    alignItems: 'center', backgroundColor: '#21A844', borderRadius: 13, height: 26,
-    justifyContent: 'center', position: 'absolute', right: 4, top: 4, width: 26,
-  },
-  botonAccionCompletado: { backgroundColor: '#14702D' },
-  titulo: {
-    bottom: 4, color: '#FFFFFF', fontFamily: 'Montserrat-Bold', fontSize: 12, left: 6, position: 'absolute', right: 6,
-  },
-  semanaFila: { flexDirection: 'row', gap: 3, marginTop: 6 },
-  diaCelda: { alignItems: 'center', borderRadius: 999, flex: 1, height: 18, justifyContent: 'center' },
-  diaNoProgramado: { backgroundColor: '#E9EFEA' },
-  diaCompletado: { backgroundColor: '#21A844' },
-  diaPerdido: { backgroundColor: '#F0D3D1' },
-  diaPendiente: { backgroundColor: 'transparent', borderColor: '#8FB89A', borderWidth: 1 },
-  diaTexto: { fontFamily: 'Montserrat-Bold', fontSize: 8 },
+  chevron: { alignItems: 'center', height: '100%', justifyContent: 'center', width: 22 },
+  contenidoVariable: { alignItems: 'center', flex: 1, flexDirection: 'row', marginHorizontal: 4 },
+  columnaTexto: { flex: 1.1, justifyContent: 'center' },
+  filaIconoTitulo: { alignItems: 'center', flexDirection: 'row' },
+  icono: { height: 14, marginEnd: 5, width: 14 },
+  titulo: { color: '#111E13', flexShrink: 1, fontFamily: 'Montserrat-Bold', fontSize: 12 },
+  barraFondo: { backgroundColor: '#CDE8D0', borderRadius: 6, height: 10, marginTop: 6, overflow: 'hidden', width: '100%' },
+  barraRelleno: { backgroundColor: '#21A844', borderRadius: 6, height: '100%' },
+  barraCompleta: { backgroundColor: '#14702D' },
+  imagen: { flex: 0.85, height: '100%', marginStart: 8 },
 });

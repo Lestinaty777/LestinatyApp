@@ -6,13 +6,15 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, Check, Crown, Smartphone } from 'lucide-react-native';
 
-import { MasterButton, MasterChip, MasterGlass, MasterIcon, Texto } from '../../../diseno';
+import { MasterButton, MasterChip, MasterGlass, MasterIcon, obtenerTonoPaquete, Texto } from '../../../diseno';
 import { hapticSeguro } from '../../../nucleo/dispositivo/haptics';
 import { fechaLocalHoy } from '../../../nucleo/dispositivo/fechaLocal';
 import { useHorizon } from '../../../nucleo/compras/useHorizon';
 import { AuroraBoreal } from '../../hoy/componentes/AuroraBoreal';
 import { ChasisTelefonoAndroid } from '../componentes/ChasisTelefonoAndroid';
 import { obtenerDetallesHabitosHoy, obtenerDiasCompletadosMes, obtenerHabitosActivos, registrarProgresoHabito } from '../habitos.servicio';
+import { buscarIconoHabito } from '../iconosHabitos';
+import { resolverPaqueteHabito } from '../paqueteHabito';
 import { obtenerAssetsPaqueteHabito } from '../paqueteVisual.assets';
 import { pedirAgregarWidgetCalendario } from '../widgets/widgetCalendario.servicio';
 import { elegirHabitoParaWidget, pedirAgregarWidgetFoco } from '../widgets/widgetFoco.servicio';
@@ -22,10 +24,12 @@ import { VistaPreviaWidgetHabito } from '../widgets/VistaPreviaWidgetHabito';
 import { useEscala } from '../../../diseno/tema/MasterColorContext';
 import type { EscalaMaster } from '../../../diseno/tema/escalaEsmeralda';
 import { conAlfa } from '../../../diseno/tema/masterColor';
+import { useAssetsPaqueteTema } from '../usePaqueteTema';
 
 type TipoWidget = 'habito' | 'calendario';
 
 export function WidgetsHabitosPantalla() {
+  const tema = useAssetsPaqueteTema();
   const esc = useEscala();
   const s = useEstilosS();
   const router = useRouter();
@@ -62,9 +66,31 @@ export function WidgetsHabitosPantalla() {
   }, [tieneAlgunHabito, idsHabitos]);
 
   const habitoActivo = habitosReales.find((h) => h.id === habitoActivoId) ?? habitosReales[0] ?? null;
-  const detalleActivo = consultaDetalles.data?.find((d) => d.habitoId === habitoActivo?.id);
-  const imagenEtapaActivo = habitoActivo
-    ? obtenerAssetsPaqueteHabito(habitoActivo.paqueteId, detalleActivo?.nivel ?? 1).arbolPrincipal
+
+  // El widget REAL solo navega (con los chevrones) entre los hábitos de HOY
+  // — no todos los que existen. El preview replica exactamente esa lista,
+  // usando el mismo detalle (diasProgramados) que ya sincroniza el widget.
+  const hoyIdDia = (new Date().getDay() + 6) % 7 + 1; // lunes=1..domingo=7
+  const habitosHoyPreview = consultaDetalles.data
+    ? habitosReales.filter((h) => consultaDetalles.data!.find((d) => d.habitoId === h.id)?.diasProgramados.includes(hoyIdDia) ?? true)
+    : habitosReales;
+
+  const [indicePreview, setIndicePreview] = useState(0);
+  useEffect(() => {
+    if (habitosHoyPreview.length === 0) return;
+    const posicionFoco = habitosHoyPreview.findIndex((h) => h.id === habitoActivo?.id);
+    setIndicePreview(posicionFoco >= 0 ? posicionFoco : 0);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [habitoActivo?.id, habitosHoyPreview.length]);
+
+  const habitoPreview = habitosHoyPreview[indicePreview] ?? null;
+  const detallePreview = consultaDetalles.data?.find((d) => d.habitoId === habitoPreview?.id);
+  const imagenEtapaPreview = habitoPreview
+    ? obtenerAssetsPaqueteHabito(habitoPreview.paqueteId, detallePreview?.nivel ?? 1).arbolPrincipal
+    : null;
+  const iconoPreview = habitoPreview ? buscarIconoHabito(habitoPreview.iconoLucide)?.fuente : undefined;
+  const tonoPreview = habitoPreview
+    ? obtenerTonoPaquete(resolverPaqueteHabito(habitoPreview.paqueteId), habitoPreview.colorPaquete || habitoPreview.color)
     : null;
 
   async function cambiarHabitoFoco(id: string) {
@@ -73,13 +99,25 @@ export function WidgetsHabitosPantalla() {
     await elegirHabitoParaWidget(id, habitosReales, esPro);
   }
 
-  // Al tocar "+" en la vista previa: registra avance real, tal como haría el widget de verdad.
+  function irAHabitoAnterior() {
+    if (habitosHoyPreview.length <= 1) return;
+    hapticSeguro('seleccion');
+    setIndicePreview((i) => (i - 1 + habitosHoyPreview.length) % habitosHoyPreview.length);
+  }
+
+  function irAHabitoSiguiente() {
+    if (habitosHoyPreview.length <= 1) return;
+    hapticSeguro('seleccion');
+    setIndicePreview((i) => (i + 1) % habitosHoyPreview.length);
+  }
+
+  // Al tocar la barra en la vista previa: registra avance real, tal como haría el widget de verdad.
   async function alTocarVistaPrevia() {
-    if (!habitoActivo || habitoActivo.completado) return;
+    if (!habitoPreview || habitoPreview.completado) return;
     hapticSeguro('confirmacion');
-    const paso = habitoActivo.meta >= 10 ? Math.max(1, Math.round(habitoActivo.meta / 8)) : 1;
-    const valor = habitoActivo.tipoMeta === 'check' ? habitoActivo.meta : Math.min(habitoActivo.meta, habitoActivo.valorHoy + paso);
-    await registrarProgresoHabito({ fechaLocal: fechaLocalHoy(), habitoId: habitoActivo.id, valor });
+    const paso = habitoPreview.meta >= 10 ? Math.max(1, Math.round(habitoPreview.meta / 8)) : 1;
+    const valor = habitoPreview.tipoMeta === 'check' ? habitoPreview.meta : Math.min(habitoPreview.meta, habitoPreview.valorHoy + paso);
+    await registrarProgresoHabito({ fechaLocal: fechaLocalHoy(), habitoId: habitoPreview.id, valor });
     queryClient.invalidateQueries({ queryKey: ['habitos', 'panel'] });
     queryClient.invalidateQueries({ queryKey: ['habitos', 'detalles-hoy'] });
   }
@@ -92,6 +130,21 @@ export function WidgetsHabitosPantalla() {
 
   const anchoChasis = Math.min(width - 32, 330);
   const hoy = new Date();
+
+  // El preview vivía en una caja fija (170x210 / 220x220) sin relación con
+  // el ancho del propio mockup del celular — por eso se veía mucho más
+  // angosto que un widget real (que en un launcher de verdad ocupa gran
+  // parte del ancho de pantalla). Ahora escala con el celular y respeta la
+  // proporción real de cada widget: 180x220dp el de hábito (~3x4 celdas),
+  // 250x250dp el de calendario (~4x4), declaradas en su *_info.xml nativo.
+  // El widget de hábito es ahora 4x2 (ancho, bajo — 250x110dp declarados en
+  // su *_info.xml), así que ocupa casi todo el ancho del celular, como un
+  // widget real de 4 columnas. El de calendario sigue siendo más cuadrado
+  // (250x250dp, ~4x4), por eso usa una fracción menor del ancho.
+  const anchoWidgetHabito = Math.round(anchoChasis * 0.88);
+  const altoWidgetHabito = Math.round(anchoWidgetHabito * (110 / 250));
+  const anchoWidgetPreview = Math.round(anchoChasis * 0.66);
+  const altoWidgetCalendario = Math.round(anchoWidgetPreview * (250 / 250));
 
   return (
     <LinearGradient colors={[esc.hoja.l99, esc.hoja.l95, esc.hoja.l93]} start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }} style={s.raiz}>
@@ -116,7 +169,7 @@ export function WidgetsHabitosPantalla() {
             <View style={s.hero}>
               <Image
                 resizeMode="contain"
-                source={require('../../../../assets/ilustraciones/senderos/biomas/paquetes/Esmeralda/arbusto.png')}
+                source={tema.arbusto}
                 style={s.heroImagen}
               />
             </View>
@@ -151,7 +204,7 @@ export function WidgetsHabitosPantalla() {
                     </View>
                     <View style={{ flex: 1 }}>
                       <Texto style={s.tituloBeneficio}>Widget de hábito</Texto>
-                      <Texto style={s.descBeneficio}>La etapa de tu árbol y tu semana, con un botón para registrar avance al toque.</Texto>
+                      <Texto style={s.descBeneficio}>Navegá entre tus hábitos de hoy con los chevrones y registrá avance con un toque.</Texto>
                     </View>
                   </View>
 
@@ -246,23 +299,30 @@ export function WidgetsHabitosPantalla() {
                   <Texto style={s.bannerInteractividadTexto}>Pruébalo en vivo: interactuá con el widget dentro del teléfono</Texto>
                 </View>
 
-                <ChasisTelefonoAndroid ancho={anchoChasis} alto={570}>
-                  {widgetSeleccionado === 'habito' && habitoActivo && imagenEtapaActivo && (
-                    <View style={s.previewHabitoContenedor}>
+                <ChasisTelefonoAndroid ancho={anchoChasis}>
+                  {widgetSeleccionado === 'habito' && habitoPreview && imagenEtapaPreview && (
+                    <View style={[s.previewHabitoContenedor, { height: altoWidgetHabito, width: anchoWidgetHabito }]}>
                       <VistaPreviaWidgetHabito
-                        completado={habitoActivo.completado}
-                        diasCompletadosSemana={detalleActivo?.diasCompletadosSemana ?? []}
-                        diasProgramados={detalleActivo?.diasProgramados ?? []}
-                        imagenEtapa={imagenEtapaActivo}
+                        actual={habitoPreview.valorHoy}
+                        completado={habitoPreview.completado}
+                        fondoClaro={tonoPreview?.degradados.menta.suave}
+                        fondoMedio={tonoPreview?.degradados.menta.profunda}
+                        fondoOscuro={tonoPreview?.degradados.menta.pie}
+                        iconoColor={tonoPreview?.acento}
+                        iconoFuente={iconoPreview}
+                        imagenEtapa={imagenEtapaPreview}
+                        meta={habitoPreview.meta}
+                        mostrarChevrones={habitosHoyPreview.length > 1}
+                        onAnterior={irAHabitoAnterior}
                         onIncrementar={alTocarVistaPrevia}
-                        racha={detalleActivo?.racha ?? 0}
-                        titulo={habitoActivo.titulo}
+                        onSiguiente={irAHabitoSiguiente}
+                        titulo={habitoPreview.titulo}
                       />
                     </View>
                   )}
 
                   {widgetSeleccionado === 'calendario' && (
-                    <View style={s.previewCalendarioContenedor}>
+                    <View style={[s.previewCalendarioContenedor, { height: altoWidgetCalendario, width: anchoWidgetPreview }]}>
                       <VistaPreviaWidgetCalendario
                         anio={hoy.getFullYear()}
                         diasCompletados={consultaMes.data?.diasCompletados ?? []}
@@ -277,13 +337,13 @@ export function WidgetsHabitosPantalla() {
                     <MasterIcon color={2} name="idea" size={18} />
                     <Texto style={s.infoTitulo}>
                       {widgetSeleccionado === 'habito'
-                        ? (habitoActivo ? `Widget: ${habitoActivo.titulo}` : 'Widget de hábito')
+                        ? (habitoPreview ? `Widget: ${habitoPreview.titulo}` : 'Widget de hábito')
                         : 'Widget: Calendario mensual'}
                     </Texto>
                   </View>
                   <Texto style={s.infoDescripcion}>
                     {widgetSeleccionado === 'habito'
-                      ? 'Muestra la etapa actual de tu árbol, el nombre del hábito y tu semana — tocá "+" para registrar avance sin abrir la app.'
+                      ? 'Tocá la barra para registrar avance sin abrir la app, y usá los chevrones para navegar entre tus hábitos de hoy.'
                       : 'Un vistazo al mes: un punto verde marca cada día en el que cumpliste al menos un hábito.'}
                   </Texto>
                 </MasterGlass>
@@ -440,8 +500,16 @@ const crearEstilosS = (esc: EscalaMaster) => StyleSheet.create({
   checkSeleccionado: { alignItems: 'center', backgroundColor: esc.hoja.l61a, borderRadius: 8, height: 16, justifyContent: 'center', marginLeft: 2, width: 16 },
   bannerInteractividad: { alignItems: 'center', flexDirection: 'row', gap: 6, justifyContent: 'center', marginTop: 14 },
   bannerInteractividadTexto: { color: esc.jade.l47, fontFamily: 'Montserrat-Medium', fontSize: 11 },
-  previewHabitoContenedor: { alignItems: 'center', height: 210, justifyContent: 'center', width: 170 },
-  previewCalendarioContenedor: { height: 220, width: 220 },
+  // Tamaño real (height/width) se calcula en el componente a partir del
+  // ancho del mockup, para que el widget se vea a una escala creíble dentro
+  // del celular en vez de una caja angosta fija sin relación con la pantalla.
+  // Sin alignItems/justifyContent acá: VistaPreviaWidgetHabito usa flex:1 en
+  // su raíz para llenar ESTE contenedor — un alignItems:'center' en el padre
+  // hace que ese hijo se encoja a su contenido en vez de estirarse, y sin
+  // ningún ancho fijo en la cadena colapsa a casi 0px (la línea vertical
+  // angosta y larga que se veía).
+  previewHabitoContenedor: {},
+  previewCalendarioContenedor: {},
   infoCard: { borderRadius: 14, gap: 6, marginTop: 18, padding: 14, width: '100%' },
   infoTitulo: { color: esc.hoja.l19, fontFamily: 'MontserratAlternates-Bold', fontSize: 14 },
   infoDescripcion: { color: esc.musgo.l54, fontFamily: 'Montserrat-Medium', fontSize: 12, lineHeight: 17 },

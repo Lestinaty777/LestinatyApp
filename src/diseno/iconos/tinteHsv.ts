@@ -15,18 +15,33 @@
 export type ParametrosTinteHsv = {
   /** Grados que se suman al matiz de cada píxel (relativo: cada icono conserva su variedad de tonos). */
   delta: number;
-  /** Factor de saturación (1 = igual; 0.25 en paquetes casi grises como Abyss). */
+  /** Factor de saturación (1 = igual; <1 apaga, >1 aviva hasta el máximo posible). */
   saturacion: number;
-  /** Factor de oscurecido que solo afecta a lo que tiene color (blancos y grises no se tocan). */
-  oscuroTema: number;
+  /** Factor de valor (brillo) que solo afecta a lo que tiene color: <1 oscurece, >1 aclara. Blancos y grises no se tocan. */
+  valorTema: number;
   /** Factor de oscurecido que afecta a todo el icono, blanco incluido. */
   oscuroGlobal: number;
+  /**
+   * Modo ilustración: rota (y ajusta) SOLO los píxeles cuyo matiz es verde, con bordes suaves; el resto (piedra
+   * beige, blancos, marrones) queda como está. Sin esto se rota todo el icono por igual.
+   */
+  soloVerdes?: boolean;
 };
 
 /** Saturación a partir de la cual un píxel cuenta como "con color" al 100% para el oscurecido del tono. */
 const SATURACION_COLOR_PLENO = 0.6;
 
 const limitar = (valor: number) => Math.min(1, Math.max(0, valor));
+
+const suavizar = (desde: number, hasta: number, x: number) => {
+  const t = limitar((x - desde) / (hasta - desde));
+  return t * t * (3 - 2 * t);
+};
+
+/** Cuánto "es verde" un matiz (grados): 1 entre 80° y 165°, cae a 0 en 60° y 185°. */
+export function pesoVerde(hueGrados: number) {
+  return suavizar(60, 80, hueGrados) * (1 - suavizar(165, 185, hueGrados));
+}
 
 export function rgbAHsv([r, g, b]: number[]) {
   const max = Math.max(r, g, b), min = Math.min(r, g, b), d = max - min;
@@ -44,20 +59,27 @@ export function hsvARgb({ h, s, v }: { h: number; s: number; v: number }): numbe
 }
 
 /** Referencia del shader: `rgb` sin premultiplicar, 0..1. */
-export function tintarPixelHsv(rgb: number[], { delta, oscuroGlobal, oscuroTema, saturacion }: ParametrosTinteHsv): number[] {
+export function tintarPixelHsv(rgb: number[], { delta, oscuroGlobal, saturacion, soloVerdes = false, valorTema }: ParametrosTinteHsv): number[] {
   const { h, s, v } = rgbAHsv(rgb.map(limitar));
   const peso = limitar(s / SATURACION_COLOR_PLENO);
-  const hue = (((h + delta / 360) % 1) + 1) % 1;
-  const oscurecido = v * (1 + (oscuroTema - 1) * peso);
-  return hsvARgb({ h: hue, s: limitar(s * saturacion), v: oscurecido }).map((canal) => canal * oscuroGlobal);
+  const w = soloVerdes ? pesoVerde(h * 360) : 1;
+  const hue = (((h + (w * delta) / 360) % 1) + 1) % 1;
+  const valor = limitar(v * (1 + (valorTema - 1) * peso * w));
+  return hsvARgb({ h: hue, s: limitar(s * (1 + (saturacion - 1) * w)), v: valor }).map((canal) => canal * oscuroGlobal);
 }
 
 export const SKSL_TINTE_HSV = `
 uniform shader imagen;
 uniform float delta;
 uniform float saturacion;
-uniform float oscuroTema;
+uniform float valorTema;
 uniform float oscuroGlobal;
+uniform float soloVerdes;
+
+float pesoVerde(float h) {
+  float hd = h * 360.0;
+  return smoothstep(60.0, 80.0, hd) * (1.0 - smoothstep(165.0, 185.0, hd));
+}
 
 float3 rgb2hsv(float3 c) {
   float4 K = float4(0.0, -1.0 / 3.0, 2.0 / 3.0, -1.0);
@@ -80,9 +102,10 @@ half4 main(float2 xy) {
   float3 rgb = clamp(float3(px.rgb) / float(px.a), 0.0, 1.0);
   float3 hsv = rgb2hsv(rgb);
   float peso = clamp(hsv.y / ${SATURACION_COLOR_PLENO.toFixed(1)}, 0.0, 1.0);
-  hsv.x = fract(hsv.x + delta / 360.0);
-  hsv.y = clamp(hsv.y * saturacion, 0.0, 1.0);
-  hsv.z = hsv.z * mix(1.0, oscuroTema, peso);
+  float w = mix(1.0, pesoVerde(hsv.x), soloVerdes);
+  hsv.x = fract(hsv.x + w * delta / 360.0);
+  hsv.y = clamp(hsv.y * mix(1.0, saturacion, w), 0.0, 1.0);
+  hsv.z = clamp(hsv.z * mix(1.0, valorTema, peso * w), 0.0, 1.0);
   float3 salida = hsv2rgb(hsv) * oscuroGlobal;
   return half4(half3(salida * float(px.a)), px.a);
 }

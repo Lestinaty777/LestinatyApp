@@ -139,3 +139,13 @@ export async function obtenerInfoReferidos(): Promise<InfoReferidos> {
   };
 }
 
+
+/**
+ * Paquetes premium que el usuario ha tenido alguna vez — SIN depender de si aún conserva la semilla: gastarla
+ * (plantarla en un hábito) no lo quita. Es lo que desbloquea los temas de color; ver temasDesbloqueados.ts.
+ */
+export async function obtenerPaquetesDesbloqueados(): Promise<string[]> {
+  const { data, error } = await obtenerClienteSupabase().from('usuario_paquetes_desbloqueados').select('paquete_id');
+  if (error) throw error;
+  return ((data ?? []) as { paquete_id: string }[]).map((fila) => fila.paquete_id);
+}

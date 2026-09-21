@@ -87,6 +87,8 @@ expect(Object.keys(recursosI18n.es.translation).sort())
 - Modify: `src/modulos/direccion/pantallas/PerfilPantalla.tsx`
 - Modify: `src/servicios/i18n/recursos.ts`
 
+**Avance:** Tienda completada y auditada (pantalla, carrusel hero y tarjeta de referidos). Insights y Perfil quedan pendientes en este bloque.
+
 - [ ] **Step 1: Extraer literales visibles por archivo y agruparlos bajo `tienda`, `insights` y `perfil`.**
 - [ ] **Step 2: Añadir los pares ES/EN exactos, reemplazar los literales y conservar precio/fecha/cantidad como variables interpoladas.**
 - [ ] **Step 3: Ejecutar pruebas focalizadas existentes de tienda/insights y typecheck sin nuevos errores.**

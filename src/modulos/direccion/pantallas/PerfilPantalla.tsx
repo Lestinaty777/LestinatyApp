@@ -21,6 +21,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { FadeIn, FadeInDown, FadeOut } from 'react-native-reanimated';
+import { useTranslation } from 'react-i18next';
 
 import {
   Boton,
@@ -43,7 +44,7 @@ import { hapticSeguro } from '../../../nucleo/dispositivo/haptics';
 import { useHorizon } from '../../../nucleo/compras/useHorizon';
 import { restaurarHorizon } from '../../../nucleo/compras/horizon';
 import { AuroraBoreal } from '../../hoy/componentes/AuroraBoreal';
-import { SelectorTemaPrueba } from '../componentes/SelectorTemaPrueba';
+import { SeccionTemaColor } from '../componentes/SeccionTemaColor';
 import { useSaldoGemas } from '../../tienda/useSaldoGemas';
 import {
   actualizarPerfil,
@@ -61,7 +62,7 @@ import { etiquetaSolicitudActiva, formatearFechaConfiguracion } from '../../conf
 import { cerrarSesion, recuperarAcceso } from '../../acceso/acceso.servicio';
 import { obtenerHabitoMejorRacha, obtenerPanelHabitos, obtenerResumenPlanesHabitos } from '../../habitos/habitos.servicio';
 
-type TabPerfil = 'resumen' | 'logros' | 'ajustes';
+type TabPerfil = 'resumen' | 'tema' | 'ajustes';
 type LlavePermiso = keyof PermisosDatos;
 
 const PROPS_TEXTO_UNA_LINEA = {
@@ -70,58 +71,6 @@ const PROPS_TEXTO_UNA_LINEA = {
   minimumFontScale: 0.65,
   ellipsizeMode: 'clip' as const,
 };
-
-const INSIGNIAS_BOTANICAS = [
-  {
-    nivel: 1,
-    titulo: 'Semilla Despierta',
-    descripcion: 'El primer paso de tu sendero consciente.',
-    dias: 1,
-    img: require('../../../../assets/icons/insignias/nivel1.png'),
-  },
-  {
-    nivel: 2,
-    titulo: 'Brote de Voluntad',
-    descripcion: 'Tus raíces comienzan a afianzarse en la tierra.',
-    dias: 3,
-    img: require('../../../../assets/icons/insignias/nivel2.png'),
-  },
-  {
-    nivel: 3,
-    titulo: 'Tallo Firme',
-    descripcion: 'Una semana completa de constancia inquebrantable.',
-    dias: 7,
-    img: require('../../../../assets/icons/insignias/nivel3.png'),
-  },
-  {
-    nivel: 4,
-    titulo: 'Rama Florecida',
-    descripcion: 'Tus hábitos florecen y dan sus primeros frutos.',
-    dias: 12,
-    img: require('../../../../assets/icons/insignias/nivel4.png'),
-  },
-  {
-    nivel: 5,
-    titulo: 'Árbol Maduro',
-    descripcion: 'Fuerza, sombra y equilibrio ante cualquier tormenta.',
-    dias: 18,
-    img: require('../../../../assets/icons/insignias/nivel5.png'),
-  },
-  {
-    nivel: 6,
-    titulo: 'Bosque Sagrado',
-    descripcion: 'Tus senderos inspiran la armonía de la naturaleza.',
-    dias: 25,
-    img: require('../../../../assets/icons/insignias/nivel6.png'),
-  },
-  {
-    nivel: 7,
-    titulo: 'Espíritu Ancestral',
-    descripcion: 'Maestría total y comunión con el ecosistema de vida.',
-    dias: 33,
-    img: require('../../../../assets/icons/insignias/nivel7.png'),
-  },
-];
 
 // catalogo_notificaciones guarda códigos técnicos (snake_case) pensados para
 // el backend, no para mostrar — sin este mapa se veían crudos como "habito
@@ -137,6 +86,17 @@ const ETIQUETAS_AVISO: Record<string, string> = {
   hoy_racha_recuperable: 'Sugerencia para recuperar tu racha',
 };
 
+const MAPA_CLAVES_AVISO: Record<string, string> = {
+  habito_recordatorio: 'perfil.settings.notifications.habito_recordatorio',
+  hoy_sesion_proxima: 'perfil.settings.notifications.hoy_sesion_proxima',
+  hoy_sesion_inicio: 'perfil.settings.notifications.hoy_sesion_inicio',
+  hoy_repaso_pendiente: 'perfil.settings.notifications.hoy_repaso_pendiente',
+  hoy_evaluacion_disponible: 'perfil.settings.notifications.hoy_evaluacion_disponible',
+  hoy_cofre_disponible: 'perfil.settings.notifications.hoy_cofre_disponible',
+  hoy_resumen_diario: 'perfil.settings.notifications.hoy_resumen_diario',
+  hoy_racha_recuperable: 'perfil.settings.notifications.hoy_racha_recuperable',
+};
+
 // Los estilos dependen del tono activo: la escala es la de Esmeralda tal cual
 // o la misma escala rotada al matiz del paquete elegido.
 function useEstilosPerfil() {
@@ -144,17 +104,26 @@ function useEstilosPerfil() {
   return useMemo(() => crearEstilos(esc), [esc]);
 }
 
-function etiquetarAviso(codigo: string): string {
-  return ETIQUETAS_AVISO[codigo] ?? codigo.replaceAll('_', ' ');
+function etiquetarAviso(codigo: string, t: (clave: string) => string): string {
+  const clave = MAPA_CLAVES_AVISO[codigo];
+  return clave ? t(clave) : (ETIQUETAS_AVISO[codigo] ?? codigo.replaceAll('_', ' '));
 }
 
 // Solo permisos que ya tienen una función real detrás. Los de Aby IA
 // (contexto, procesamiento de fuentes) se agregan cuando exista esa IA.
-const PERMISOS_CONFIG: Array<{ llave: LlavePermiso; titulo: string; descripcion: string }> = [
+const PERMISOS_CONFIG: Array<{
+  llave: LlavePermiso;
+  tituloKey: string;
+  descripcionKey: string;
+  tituloFallback: string;
+  descripcionFallback: string;
+}> = [
   {
     llave: 'permiteAnaliticaProducto',
-    titulo: 'Métricas de Producto',
-    descripcion: 'Telemetría agregada y anónima para optimizar Lestinaty. Nunca vendemos tus datos.',
+    tituloKey: 'perfil.settings.permissions.productMetricsTitle',
+    descripcionKey: 'perfil.settings.permissions.productMetricsDesc',
+    tituloFallback: 'Métricas de Producto',
+    descripcionFallback: 'Telemetría agregada y anónima para optimizar Lestinaty. Nunca vendemos tus datos.',
   },
 ];
 
@@ -241,7 +210,7 @@ function EsqueletoMiEspacio() {
   );
 }
 
-function EsqueletoInsignias() {
+function EsqueletoTema() {
   const s = useEstilosPerfil();
   return (
     <View style={s.tabContenido}>
@@ -345,6 +314,7 @@ function EsqueletoAjustes() {
 }
 
 export function PerfilPantalla() {
+  const { t } = useTranslation();
   const s = useEstilosPerfil();
   const esc = useEscala();
   const insets = useSafeAreaInsets();
@@ -411,7 +381,7 @@ export function PerfilPantalla() {
   const cargandoArboles = consultaPlanes.isLoading;
 
   const nombreUsuario =
-    configuracion?.perfil.nombreVisible?.trim() || 'Guardián';
+    configuracion?.perfil.nombreVisible?.trim() || t('perfil.hero.defaultName');
 
   async function guardarNombre() {
     if (!configuracion || guardandoPerfil) return;
@@ -427,7 +397,7 @@ export function PerfilPantalla() {
       setEditandoNombre(false);
       hapticSeguro('confirmacion');
     } catch {
-      Alert.alert('Error', 'No pudimos actualizar tu nombre. Inténtalo de nuevo.');
+      Alert.alert(t('perfil.alerts.errorTitle'), t('perfil.alerts.updateNameError'));
     } finally {
       setGuardandoPerfil(false);
     }
@@ -444,7 +414,7 @@ export function PerfilPantalla() {
         permisos: nuevo,
       });
     } catch {
-      Alert.alert('Error', 'No se pudo actualizar el permiso.');
+      Alert.alert(t('perfil.alerts.errorTitle'), t('perfil.alerts.updatePermissionError'));
     }
   }
 
@@ -460,7 +430,7 @@ export function PerfilPantalla() {
         ),
       });
     } catch {
-      Alert.alert('Error', 'No se pudo actualizar la notificación.');
+      Alert.alert(t('perfil.alerts.errorTitle'), t('perfil.alerts.updateNotificationError'));
     }
   }
 
@@ -470,28 +440,28 @@ export function PerfilPantalla() {
       await crearSolicitudPrivacidad(tipo);
       await clienteQuery.invalidateQueries({ queryKey: ['configuracion', 'usuario'] });
       hapticSeguro('confirmacion');
-      Alert.alert('Solicitud enviada', 'Procesaremos tu solicitud y te notificaremos por correo.');
+      Alert.alert(t('perfil.alerts.requestSentTitle'), t('perfil.alerts.requestSentMessage'));
     } catch {
-      Alert.alert('Error', 'No se pudo crear la solicitud.');
+      Alert.alert(t('perfil.alerts.errorTitle'), t('perfil.alerts.createRequestError'));
     }
   }
 
   function confirmarCerrarSesion() {
     hapticSeguro('accion');
     Alert.alert(
-      'Cerrar sesión',
-      '¿Estás seguro de que quieres salir? Tus hábitos y senderos permanecen seguros en la nube.',
+      t('perfil.alerts.signOutTitle'),
+      t('perfil.alerts.signOutMessage'),
       [
-        { text: 'Cancelar', style: 'cancel' },
+        { text: t('perfil.alerts.cancelButton'), style: 'cancel' },
         {
-          text: 'Cerrar sesión',
+          text: t('perfil.alerts.signOutButton'),
           style: 'destructive',
           onPress: async () => {
             try {
               await cerrarSesion();
               router.replace('/(publico)/iniciar-sesion');
             } catch {
-              Alert.alert('Error', 'No se pudo cerrar la sesión.');
+              Alert.alert(t('perfil.alerts.errorTitle'), t('perfil.alerts.signOutError'));
             }
           },
         },
@@ -504,21 +474,21 @@ export function PerfilPantalla() {
   function confirmarEliminarCuenta() {
     hapticSeguro('accion');
     Alert.alert(
-      '¿Eliminar tu cuenta de Lestinaty?',
-      'Esta acción es definitiva e irreversible. Se eliminarán permanentemente tus hábitos, progresos, gemas, árboles y todos los datos asociados de acuerdo con nuestras políticas de privacidad.',
+      t('perfil.alerts.deleteAccountTitle'),
+      t('perfil.alerts.deleteAccountMessage'),
       [
-        { text: 'Cancelar', style: 'cancel' },
+        { text: t('perfil.alerts.cancelButton'), style: 'cancel' },
         {
-          text: 'Continuar con la eliminación',
+          text: t('perfil.alerts.continueDeleteButton'),
           style: 'destructive',
           onPress: () => {
             Alert.alert(
-              'Confirmación final',
-              '¿Estás totalmente seguro? Esta acción no se puede deshacer y perderás el acceso a tu cuenta de inmediato.',
+              t('perfil.alerts.finalConfirmTitle'),
+              t('perfil.alerts.finalConfirmMessage'),
               [
-                { text: 'Volver atrás', style: 'cancel' },
+                { text: t('perfil.alerts.goBackButton'), style: 'cancel' },
                 {
-                  text: 'Eliminar definitivamente',
+                  text: t('perfil.alerts.deleteDefinitelyButton'),
                   style: 'destructive',
                   onPress: async () => {
                     try {
@@ -531,7 +501,7 @@ export function PerfilPantalla() {
                         await cerrarSesion();
                         router.replace('/(publico)/iniciar-sesion');
                       } catch {
-                        Alert.alert('Error', 'No se pudo procesar la solicitud. Intenta nuevamente.');
+                        Alert.alert(t('perfil.alerts.errorTitle'), t('perfil.alerts.deleteAccountError'));
                       }
                     }
                   },
@@ -552,12 +522,12 @@ export function PerfilPantalla() {
       await clienteQuery.invalidateQueries({ queryKey: ['horizon'] });
       hapticSeguro('confirmacion');
       if (estado === 'activo') {
-        Alert.alert('¡Suscripción restaurada!', 'Tu membresía Pro se encuentra activa.');
+        Alert.alert(t('perfil.alerts.subscriptionRestoredTitle'), t('perfil.alerts.subscriptionRestoredMessage'));
       } else {
-        Alert.alert('Sin suscripciones activas', 'No encontramos suscripciones activas de Google Play asociadas a tu cuenta.');
+        Alert.alert(t('perfil.alerts.noActiveSubscriptionsTitle'), t('perfil.alerts.noActiveSubscriptionsMessage'));
       }
     } catch {
-      Alert.alert('Error', 'No pudimos verificar las suscripciones con Google Play. Intenta de nuevo más tarde.');
+      Alert.alert(t('perfil.alerts.errorTitle'), t('perfil.alerts.verifySubscriptionsError'));
     } finally {
       setRestaurandoCompras(false);
     }
@@ -576,22 +546,22 @@ export function PerfilPantalla() {
   function abrirUrl(url: string) {
     hapticSeguro('seleccion');
     Linking.openURL(url).catch(() => {
-      Alert.alert('Enlace web', `Puedes consultar este apartado en tu navegador:\n${url}`);
+      Alert.alert(t('perfil.alerts.webLinkTitle'), t('perfil.alerts.webLinkMessage', { url }));
     });
   }
 
   function contactarSoporte() {
     hapticSeguro('accion');
     Linking.openURL('mailto:soporte@lestinaty.com?subject=Soporte%20Lestinaty%20App').catch(() => {
-      Alert.alert('Contacto de Soporte', 'Escríbenos directamente a soporte@lestinaty.com');
+      Alert.alert(t('perfil.alerts.supportContactTitle'), t('perfil.alerts.supportContactMessage'));
     });
   }
 
   function mostrarLicencias() {
     hapticSeguro('seleccion');
     Alert.alert(
-      'Licencias y Código Abierto',
-      'Lestinaty está construido con tecnologías abiertas:\n\n• React Native & Expo (MIT)\n• Supabase (Apache 2.0)\n• Lucide Icons (ISC)\n• React Native Reanimated (MIT)\n\nTodos los derechos reservados © Lestinaty.',
+      t('perfil.alerts.licensesTitle'),
+      t('perfil.alerts.licensesMessage'),
     );
   }
 
@@ -612,10 +582,10 @@ export function PerfilPantalla() {
         <View style={s.headerInicio}>
           <View style={s.headerTitulo}>
             <Animated.View entering={entradaEncadenada(0)} style={s.headerIzq}>
-              <Texto style={s.headerSaludo}>Espacio personal,</Texto>
+              <Texto style={s.headerSaludo}>{t('perfil.header.greeting')}</Texto>
               <View style={s.nombreFila}>
                 <MasterIcon name="navegacion/perfil" size={34} />
-                <Texto style={s.headerNombre}>Perfil</Texto>
+                <Texto style={s.headerNombre}>{t('perfil.header.title')}</Texto>
               </View>
             </Animated.View>
           </View>
@@ -623,7 +593,7 @@ export function PerfilPantalla() {
           <View style={s.headerDer}>
             <Animated.View entering={entradaEncadenada(1)}>
               <Rebote
-                accessibilityLabel="Comprar gemas"
+                accessibilityLabel={t('perfil.header.buyGemsAccessibility')}
                 onPress={() => {
                   hapticSeguro('seleccion');
                   router.push('/tienda/gemas');
@@ -646,7 +616,7 @@ export function PerfilPantalla() {
 
             <Animated.View entering={entradaEncadenada(2)}>
               <Rebote
-                accessibilityLabel="Membresía Pro"
+                accessibilityLabel={t('perfil.header.proMembershipAccessibility')}
                 onPress={() => {
                   hapticSeguro('seleccion');
                   router.push('/horizon');
@@ -655,7 +625,7 @@ export function PerfilPantalla() {
               >
                 <View style={s.statPillFila}>
                   <MasterIcon cargando={horizon.isLoading} name="trofeo" size={20} />
-                  <Texto style={[s.proTexto, esPro && s.proTextoActivo]}>PRO</Texto>
+                  <Texto style={[s.proTexto, esPro && s.proTextoActivo]}>{t('perfil.header.proBadge')}</Texto>
                 </View>
               </Rebote>
             </Animated.View>
@@ -684,7 +654,7 @@ export function PerfilPantalla() {
                       />
                     </View>
                     <View style={s.badgeNivelAvatar}>
-                      <Texto style={s.textoNivelAvatar}>Nv. {nivelGuardian}</Texto>
+                      <Texto style={s.textoNivelAvatar}>{t('perfil.hero.level', { level: nivelGuardian })}</Texto>
                     </View>
                   </View>
 
@@ -695,7 +665,7 @@ export function PerfilPantalla() {
                         <View style={s.inputNombreContenedor}>
                           <CampoTexto
                             autoFocus
-                            placeholder="Tu nombre"
+                            placeholder={t('perfil.hero.editNamePlaceholder')}
                             value={nombreInput}
                             onChangeText={setNombreInput}
                           />
@@ -735,8 +705,8 @@ export function PerfilPantalla() {
                       <View style={s.puntoVerde} />
                       <Texto {...PROPS_TEXTO_UNA_LINEA} style={s.rangoTexto}>
                         {totalArboles > 0
-                          ? `${totalArboles} ${totalArboles === 1 ? 'hábito' : 'hábitos'} en cultivo`
-                          : 'Aún sin hábitos sembrados'}
+                          ? t('perfil.hero.habitCount', { count: totalArboles })
+                          : t('perfil.hero.noHabits')}
                       </Texto>
                     </View>
                   </View>
@@ -754,7 +724,7 @@ export function PerfilPantalla() {
                     ) : (
                       <Texto style={s.metricaValor}>{mejorRacha}d</Texto>
                     )}
-                    <Texto style={s.metricaEtiqueta}>Racha</Texto>
+                    <Texto style={s.metricaEtiqueta}>{t('perfil.hero.metrics.streak')}</Texto>
                   </View>
 
                   <View style={s.metricaDivisor} />
@@ -769,7 +739,7 @@ export function PerfilPantalla() {
                     ) : (
                       <Texto style={s.metricaValor}>{saldoGemas ?? 0}</Texto>
                     )}
-                    <Texto style={s.metricaEtiqueta}>Gemas</Texto>
+                    <Texto style={s.metricaEtiqueta}>{t('perfil.hero.metrics.gems')}</Texto>
                   </View>
 
                   <View style={s.metricaDivisor} />
@@ -781,7 +751,7 @@ export function PerfilPantalla() {
                     ) : (
                       <Texto style={s.metricaValor}>{totalArboles}</Texto>
                     )}
-                    <Texto style={s.metricaEtiqueta}>Hábitos</Texto>
+                    <Texto style={s.metricaEtiqueta}>{t('perfil.hero.metrics.habits')}</Texto>
                   </View>
 
                   <View style={s.metricaDivisor} />
@@ -795,7 +765,7 @@ export function PerfilPantalla() {
                         {habitosCompletados}/{habitosHoy.length || 4}
                       </Texto>
                     )}
-                    <Texto style={s.metricaEtiqueta}>Hoy</Texto>
+                    <Texto style={s.metricaEtiqueta}>{t('perfil.hero.metrics.today')}</Texto>
                   </View>
                 </View>
               </MasterGlass>
@@ -807,19 +777,19 @@ export function PerfilPantalla() {
             <MasterChip
               activo={tabActiva === 'resumen'}
               icono={<MasterIcon name="hoja2" size={18} />}
-              texto="Mi Espacio"
+              texto={t('perfil.tabs.mySpace')}
               onPress={() => onCambioTab('resumen')}
             />
             <MasterChip
-              activo={tabActiva === 'logros'}
-              icono={<MasterIcon name="trofeo" size={18} />}
-              texto="Insignias"
-              onPress={() => onCambioTab('logros')}
+              activo={tabActiva === 'tema'}
+              icono={<MasterIcon name="colores" size={18} />}
+              texto={t('perfil.tabs.theme')}
+              onPress={() => onCambioTab('tema')}
             />
             <MasterChip
               activo={tabActiva === 'ajustes'}
               icono={<MasterIcon name="engranaje" size={18} />}
-              texto="Ajustes"
+              texto={t('perfil.tabs.settings')}
               onPress={() => onCambioTab('ajustes')}
             />
           </Animated.View>
@@ -839,22 +809,22 @@ export function PerfilPantalla() {
                           <MasterIcon name="computadora" size={26} />
                         </View>
                         <View style={{ flex: 1 }}>
-                          <Texto {...PROPS_TEXTO_UNA_LINEA} style={s.moduloTitulo}>Widgets de Pantalla de Inicio</Texto>
+                          <Texto {...PROPS_TEXTO_UNA_LINEA} style={s.moduloTitulo}>{t('perfil.mySpace.widgets.title')}</Texto>
                           <Texto {...PROPS_TEXTO_UNA_LINEA} style={s.moduloSubtitulo}>
-                            Lleva tus hábitos y rachas directamente al escritorio de tu Android
+                            {t('perfil.mySpace.widgets.subtitle')}
                           </Texto>
                         </View>
                       </View>
 
                       <View style={s.widgetBannersFila}>
                         <View style={s.widgetMiniBadge}>
-                          <Texto style={s.widgetMiniBadgeTexto}>2×2 Foco</Texto>
+                          <Texto style={s.widgetMiniBadgeTexto}>{t('perfil.mySpace.widgets.badgeFocus')}</Texto>
                         </View>
                         <View style={s.widgetMiniBadge}>
-                          <Texto style={s.widgetMiniBadgeTexto}>4×1 Barra</Texto>
+                          <Texto style={s.widgetMiniBadgeTexto}>{t('perfil.mySpace.widgets.badgeBar')}</Texto>
                         </View>
                         <View style={s.widgetMiniBadge}>
-                          <Texto style={s.widgetMiniBadgeTexto}>4×2 Hábitos</Texto>
+                          <Texto style={s.widgetMiniBadgeTexto}>{t('perfil.mySpace.widgets.badgeHabits')}</Texto>
                         </View>
                       </View>
 
@@ -866,7 +836,7 @@ export function PerfilPantalla() {
                           router.push('/habitos/widgets');
                         }}
                       >
-                        Personalizar y Probar Widgets
+                        {t('perfil.mySpace.widgets.button')}
                       </MasterButton>
                     </MasterGlass>
                   </Animated.View>
@@ -880,12 +850,12 @@ export function PerfilPantalla() {
                         </View>
                         <View style={{ flex: 1 }}>
                           <Texto {...PROPS_TEXTO_UNA_LINEA} style={[s.moduloTitulo, { color: esPro ? esc.hoja.l22 : '#2D1B4E' }]}>
-                            {esPro ? 'Membresía Lestinaty Pro Activa' : 'Desbloquea Lestinaty Pro'}
+                            {esPro ? t('perfil.mySpace.pro.activeTitle') : t('perfil.mySpace.pro.unlockTitle')}
                           </Texto>
                           <Texto {...PROPS_TEXTO_UNA_LINEA} style={s.moduloSubtitulo}>
                             {esPro
-                              ? 'Disfrutas de widgets interactivos ilimitados, árboles legendarios y analítica profunda.'
-                              : 'Accede a widgets en tu celular, sincronización prioritaria y colecciones botánicas exclusivas.'}
+                              ? t('perfil.mySpace.pro.activeSubtitle')
+                              : t('perfil.mySpace.pro.unlockSubtitle')}
                           </Texto>
                         </View>
                       </View>
@@ -899,7 +869,7 @@ export function PerfilPantalla() {
                             router.push('/horizon');
                           }}
                         >
-                          Conocer Lestinaty Pro
+                          {t('perfil.mySpace.pro.button')}
                         </MasterButton>
                       )}
                     </MasterGlass>
@@ -916,9 +886,9 @@ export function PerfilPantalla() {
                           />
                         </View>
                         <View style={{ flex: 1 }}>
-                          <Texto {...PROPS_TEXTO_UNA_LINEA} style={s.moduloTitulo}>Gemas Gratis por Invitar</Texto>
+                          <Texto {...PROPS_TEXTO_UNA_LINEA} style={s.moduloTitulo}>{t('perfil.mySpace.referrals.title')}</Texto>
                           <Texto {...PROPS_TEXTO_UNA_LINEA} style={s.moduloSubtitulo}>
-                            Comparte tu código de guardián y gana +200 gemas por cada amigo que siembre su primer sendero.
+                            {t('perfil.mySpace.referrals.subtitle')}
                           </Texto>
                         </View>
                       </View>
@@ -930,7 +900,7 @@ export function PerfilPantalla() {
                           router.push('/tienda');
                         }}
                       >
-                        Ver Recompensas en la Tienda
+                        {t('perfil.mySpace.referrals.button')}
                       </MasterButton>
                     </MasterGlass>
                   </Animated.View>
@@ -938,81 +908,13 @@ export function PerfilPantalla() {
               )
             )}
 
-            {/* ── PESTAÑA 2: LOGROS & INSIGNIAS BOTÁNICAS ── */}
-            {tabActiva === 'logros' && (
+            {/* ── PESTAÑA 2: TEMA DE COLOR (todos los temas; se desbloquean con la semilla del paquete) ── */}
+            {tabActiva === 'tema' && (
               cambiandoTab ? (
-                <EsqueletoInsignias />
+                <EsqueletoTema />
               ) : (
                 <View style={s.tabContenido}>
-                  <Animated.View entering={entradaEncadenada(0)} style={s.logrosHeader}>
-                    <Texto style={s.logrosTitulo}>Insignias del Guardián</Texto>
-                    <Texto style={s.logrosSubtitulo}>
-                      Evoluciona tu sendero cumpliendo días acumulados de hábitos conscientes.
-                    </Texto>
-                  </Animated.View>
-
-                  <View style={s.insigniasGrid}>
-                    {INSIGNIAS_BOTANICAS.map((insignia, idx) => {
-                      const desbloqueada = mejorRacha >= insignia.dias;
-                      return (
-                        <Animated.View key={insignia.nivel} entering={entradaEncadenada(1 + idx)}>
-                          <MasterGlass
-                            style={[s.insigniaCard, !desbloqueada && s.insigniaBloqueada]}
-                          >
-                            <View style={s.insigniaFilaTop}>
-                              <Image
-                                source={insignia.img}
-                                style={[
-                                  s.insigniaImg,
-                                  !desbloqueada && { opacity: 0.35 },
-                                ]}
-                              />
-                              <View
-                                style={[
-                                  s.badgeNivelInsignia,
-                                  desbloqueada ? s.badgeNivelDesbloqueada : s.badgeNivelBloqueada,
-                                ]}
-                              >
-                                <Texto
-                                  style={[
-                                    s.badgeNivelInsigniaTexto,
-                                    { color: desbloqueada ? esc.jade.l49 : '#888888' },
-                                  ]}
-                                >
-                                  Nv. {insignia.nivel}
-                                </Texto>
-                              </View>
-                            </View>
-
-                            <Texto {...PROPS_TEXTO_UNA_LINEA} style={s.insigniaTitulo}>{insignia.titulo}</Texto>
-                            <Texto {...PROPS_TEXTO_UNA_LINEA} style={s.insigniaDesc}>{insignia.descripcion}</Texto>
-
-                            <View style={s.insigniaMetaFila}>
-                              <Image
-                                source={require('../../../../assets/icons/hoy/racha.png')}
-                                style={{
-                                  width: 14,
-                                  height: 14,
-                                  resizeMode: 'contain',
-                                  opacity: desbloqueada ? 1 : 0.45,
-                                }}
-                              />
-                              <Texto
-                                style={[
-                                  s.insigniaMetaTexto,
-                                  { color: desbloqueada ? '#EA580C' : '#888888' },
-                                ]}
-                              >
-                                {desbloqueada
-                                  ? '¡Desbloqueada!'
-                                  : `${mejorRacha}/${insignia.dias} días`}
-                              </Texto>
-                            </View>
-                          </MasterGlass>
-                        </Animated.View>
-                      );
-                    })}
-                  </View>
+                  <SeccionTemaColor />
                 </View>
               )
             )}
@@ -1023,10 +925,9 @@ export function PerfilPantalla() {
                 <EsqueletoAjustes />
               ) : (
                 <View style={s.tabContenido}>
-                  <SelectorTemaPrueba />
                   {/* 1. Notificaciones y Avisos */}
                   <Animated.View entering={entradaEncadenada(0)} style={s.grupoAjustes}>
-                    <Texto style={s.grupoAjustesTitulo}>AVISOS Y RECORDATORIOS</Texto>
+                    <Texto style={s.grupoAjustesTitulo}>{t('perfil.settings.notificationsGroup')}</Texto>
                     <MasterGlass style={s.tarjetaAjustes}>
                       {configuracion?.preferenciasNotificacion.slice(0, 4).map((aviso, idx) => (
                         <View key={aviso.codigo}>
@@ -1034,7 +935,7 @@ export function PerfilPantalla() {
                           <View style={s.filaToggle}>
                             <View style={{ flex: 1, paddingRight: 10 }}>
                               <Texto {...PROPS_TEXTO_UNA_LINEA} style={s.toggleTitulo}>
-                                {etiquetarAviso(aviso.codigo)}
+                                {etiquetarAviso(aviso.codigo, t)}
                               </Texto>
                               <Texto {...PROPS_TEXTO_UNA_LINEA} style={s.toggleDesc}>
                                 {aviso.descripcion}
@@ -1059,10 +960,10 @@ export function PerfilPantalla() {
                         </View>
                         <View style={s.filaEnlaceColumna}>
                           <Texto {...PROPS_TEXTO_UNA_LINEA} style={s.filaEnlaceTexto}>
-                            Ajustes del sistema operativo
+                            {t('perfil.settings.systemSettings')}
                           </Texto>
                           <Texto {...PROPS_TEXTO_UNA_LINEA} style={s.filaEnlaceSubtexto}>
-                            Permisos de notificaciones del dispositivo
+                            {t('perfil.settings.systemSettingsDesc')}
                           </Texto>
                         </View>
                         <ChevronRight color={esc.musgo.l54} size={18} />
@@ -1072,7 +973,7 @@ export function PerfilPantalla() {
 
                   {/* 2. Privacidad y Datos (Google Play Data Safety / GDPR) */}
                   <Animated.View entering={entradaEncadenada(1)} style={s.grupoAjustes}>
-                    <Texto style={s.grupoAjustesTitulo}>PRIVACIDAD Y TUS DATOS</Texto>
+                    <Texto style={s.grupoAjustesTitulo}>{t('perfil.settings.privacyGroup')}</Texto>
                     <MasterGlass style={s.tarjetaAjustes}>
                       {PERMISOS_CONFIG.map((p, idx) => (
                         <View key={p.llave}>
@@ -1080,10 +981,10 @@ export function PerfilPantalla() {
                           <View style={s.filaToggle}>
                             <View style={{ flex: 1, paddingRight: 10 }}>
                               <Texto {...PROPS_TEXTO_UNA_LINEA} style={s.toggleTitulo}>
-                                {p.titulo}
+                                {t(p.tituloKey, p.tituloFallback)}
                               </Texto>
                               <Texto {...PROPS_TEXTO_UNA_LINEA} style={s.toggleDesc}>
-                                {p.descripcion}
+                                {t(p.descripcionKey, p.descripcionFallback)}
                               </Texto>
                             </View>
                             <Switch
@@ -1110,12 +1011,12 @@ export function PerfilPantalla() {
                             </View>
                             <View style={s.filaEnlaceColumna}>
                               <Texto {...PROPS_TEXTO_UNA_LINEA} style={s.filaEnlaceTexto}>
-                                Descargar mis datos guardados
+                                {t('perfil.settings.downloadData')}
                               </Texto>
                               <Texto {...PROPS_TEXTO_UNA_LINEA} style={s.filaEnlaceSubtexto}>
                                 {estado && solicitudExportacion
                                   ? `${estado} · ${formatearFechaConfiguracion(solicitudExportacion.solicitadaAt)}`
-                                  : 'Copia portátil de tu historial y progreso'}
+                                  : t('perfil.settings.downloadDataDesc')}
                               </Texto>
                             </View>
                             <ChevronRight color={esc.musgo.l54} size={18} />
@@ -1140,12 +1041,12 @@ export function PerfilPantalla() {
                             </View>
                             <View style={s.filaEnlaceColumna}>
                               <Texto {...PROPS_TEXTO_UNA_LINEA} style={s.filaEnlaceTexto}>
-                                Corregir mis datos
+                                {t('perfil.settings.correctData')}
                               </Texto>
                               <Texto {...PROPS_TEXTO_UNA_LINEA} style={s.filaEnlaceSubtexto}>
                                 {estado && solicitudCorreccion
                                   ? `${estado} · ${formatearFechaConfiguracion(solicitudCorreccion.solicitadaAt)}`
-                                  : 'Pide que revisemos o corrijamos información tuya'}
+                                  : t('perfil.settings.correctDataDesc')}
                               </Texto>
                             </View>
                             <ChevronRight color={esc.musgo.l54} size={18} />
@@ -1157,7 +1058,7 @@ export function PerfilPantalla() {
 
                   {/* 3. Membresía y Suscripciones Google Play (Requisito Google Play Billing) */}
                   <Animated.View entering={entradaEncadenada(2)} style={s.grupoAjustes}>
-                    <Texto style={s.grupoAjustesTitulo}>MEMBRESÍA Y SUSCRIPCIÓN</Texto>
+                    <Texto style={s.grupoAjustesTitulo}>{t('perfil.settings.subscriptionGroup')}</Texto>
                     <MasterGlass style={s.tarjetaAjustes}>
                       <View style={s.filaEnlace}>
                         <View style={s.iconoRanura}>
@@ -1165,10 +1066,10 @@ export function PerfilPantalla() {
                         </View>
                         <View style={s.filaEnlaceColumna}>
                           <Texto {...PROPS_TEXTO_UNA_LINEA} style={s.filaEnlaceTexto}>
-                            Estado de la cuenta
+                            {t('perfil.settings.accountStatus')}
                           </Texto>
                           <Texto {...PROPS_TEXTO_UNA_LINEA} style={s.filaEnlaceSubtexto}>
-                            {esPro ? 'Lestinaty Horizon PRO activo' : 'Plan Estándar gratuito'}
+                            {esPro ? t('perfil.settings.proActive') : t('perfil.settings.standardPlan')}
                           </Texto>
                         </View>
                         <View
@@ -1183,7 +1084,7 @@ export function PerfilPantalla() {
                               { color: esPro ? esc.hoja.l61a : '#6A29C2' },
                             ]}
                           >
-                            {esPro ? 'PRO' : 'GRATIS'}
+                            {esPro ? t('perfil.settings.proBadge') : t('perfil.settings.freeBadge')}
                           </Texto>
                         </View>
                       </View>
@@ -1199,10 +1100,10 @@ export function PerfilPantalla() {
                         </View>
                         <View style={s.filaEnlaceColumna}>
                           <Texto {...PROPS_TEXTO_UNA_LINEA} style={s.filaEnlaceTexto}>
-                            Gestionar suscripción en Google Play
+                            {t('perfil.settings.manageSubscription')}
                           </Texto>
                           <Texto {...PROPS_TEXTO_UNA_LINEA} style={s.filaEnlaceSubtexto}>
-                            Cancelar, renovar o cambiar método de pago
+                            {t('perfil.settings.manageSubscriptionDesc')}
                           </Texto>
                         </View>
                         <ChevronRight color={esc.musgo.l54} size={18} />
@@ -1224,10 +1125,10 @@ export function PerfilPantalla() {
                         </View>
                         <View style={s.filaEnlaceColumna}>
                           <Texto {...PROPS_TEXTO_UNA_LINEA} style={s.filaEnlaceTexto}>
-                            Restaurar compras anteriores
+                            {t('perfil.settings.restorePurchases')}
                           </Texto>
                           <Texto {...PROPS_TEXTO_UNA_LINEA} style={s.filaEnlaceSubtexto}>
-                            Recuperar compras registradas en Google Play
+                            {t('perfil.settings.restorePurchasesDesc')}
                           </Texto>
                         </View>
                         <ChevronRight color={esc.musgo.l54} size={18} />
@@ -1237,7 +1138,7 @@ export function PerfilPantalla() {
 
                   {/* 4. Soporte y Ayuda (Requisito Google Play) */}
                   <Animated.View entering={entradaEncadenada(3)} style={s.grupoAjustes}>
-                    <Texto style={s.grupoAjustesTitulo}>AYUDA Y SOPORTE</Texto>
+                    <Texto style={s.grupoAjustesTitulo}>{t('perfil.settings.supportGroup')}</Texto>
                     <MasterGlass style={s.tarjetaAjustes}>
                       <Pressable
                         onPress={contactarSoporte}
@@ -1248,7 +1149,7 @@ export function PerfilPantalla() {
                         </View>
                         <View style={s.filaEnlaceColumna}>
                           <Texto {...PROPS_TEXTO_UNA_LINEA} style={s.filaEnlaceTexto}>
-                            Contacto y soporte técnico
+                            {t('perfil.settings.contactSupport')}
                           </Texto>
                           <Texto {...PROPS_TEXTO_UNA_LINEA} style={s.filaEnlaceSubtexto}>
                             soporte@lestinaty.com
@@ -1268,10 +1169,10 @@ export function PerfilPantalla() {
                         </View>
                         <View style={s.filaEnlaceColumna}>
                           <Texto {...PROPS_TEXTO_UNA_LINEA} style={s.filaEnlaceTexto}>
-                            Preguntas frecuentes y tutoriales
+                            {t('perfil.settings.faq')}
                           </Texto>
                           <Texto {...PROPS_TEXTO_UNA_LINEA} style={s.filaEnlaceSubtexto}>
-                            Aprende a sacar el máximo provecho
+                            {t('perfil.settings.faqDesc')}
                           </Texto>
                         </View>
                         <ChevronRight color={esc.musgo.l54} size={18} />
@@ -1281,7 +1182,7 @@ export function PerfilPantalla() {
 
                   {/* 5. Legal y Transparencia (Requisito Google Play) */}
                   <Animated.View entering={entradaEncadenada(4)} style={s.grupoAjustes}>
-                    <Texto style={s.grupoAjustesTitulo}>LEGAL Y TRANSPARENCIA</Texto>
+                    <Texto style={s.grupoAjustesTitulo}>{t('perfil.settings.legalGroup')}</Texto>
                     <MasterGlass style={s.tarjetaAjustes}>
                       <Pressable
                         onPress={() => abrirUrl(urlPrivacidad)}
@@ -1292,10 +1193,10 @@ export function PerfilPantalla() {
                         </View>
                         <View style={s.filaEnlaceColumna}>
                           <Texto {...PROPS_TEXTO_UNA_LINEA} style={s.filaEnlaceTexto}>
-                            Política de Privacidad
+                            {t('perfil.settings.privacyPolicy')}
                           </Texto>
                           <Texto {...PROPS_TEXTO_UNA_LINEA} style={s.filaEnlaceSubtexto}>
-                            Cómo protegemos y tratamos tus datos
+                            {t('perfil.settings.privacyPolicyDesc')}
                           </Texto>
                         </View>
                         <ChevronRight color={esc.musgo.l54} size={18} />
@@ -1312,10 +1213,10 @@ export function PerfilPantalla() {
                         </View>
                         <View style={s.filaEnlaceColumna}>
                           <Texto {...PROPS_TEXTO_UNA_LINEA} style={s.filaEnlaceTexto}>
-                            Términos y Condiciones de Uso
+                            {t('perfil.settings.terms')}
                           </Texto>
                           <Texto {...PROPS_TEXTO_UNA_LINEA} style={s.filaEnlaceSubtexto}>
-                            Condiciones del servicio y compras
+                            {t('perfil.settings.termsDesc')}
                           </Texto>
                         </View>
                         <ChevronRight color={esc.musgo.l54} size={18} />
@@ -1332,10 +1233,10 @@ export function PerfilPantalla() {
                         </View>
                         <View style={s.filaEnlaceColumna}>
                           <Texto {...PROPS_TEXTO_UNA_LINEA} style={s.filaEnlaceTexto}>
-                            Licencias de código abierto
+                            {t('perfil.settings.licenses')}
                           </Texto>
                           <Texto {...PROPS_TEXTO_UNA_LINEA} style={s.filaEnlaceSubtexto}>
-                            Avisos legales de librerías utilizadas
+                            {t('perfil.settings.licensesDesc')}
                           </Texto>
                         </View>
                         <ChevronRight color={esc.musgo.l54} size={18} />
@@ -1345,14 +1246,14 @@ export function PerfilPantalla() {
 
                   {/* 6. Seguridad y Gestión de Cuenta (Requisito CRÍTICO Google Play: Eliminación de Cuenta) */}
                   <Animated.View entering={entradaEncadenada(5)} style={s.grupoAjustes}>
-                    <Texto style={s.grupoAjustesTitulo}>SEGURIDAD DE CUENTA</Texto>
+                    <Texto style={s.grupoAjustesTitulo}>{t('perfil.settings.accountSecurityGroup')}</Texto>
                     <MasterGlass style={s.tarjetaAjustes}>
                       <Pressable
                         onPress={async () => {
                           hapticSeguro('accion');
                           if (!configuracion?.email) return;
                           await recuperarAcceso(configuracion.email);
-                          Alert.alert('Correo enviado', 'Revisa tu bandeja de entrada para actualizar tu contraseña.');
+                          Alert.alert(t('perfil.alerts.passwordEmailSentTitle'), t('perfil.alerts.passwordEmailSentMessage'));
                         }}
                         style={s.filaEnlace}
                       >
@@ -1361,10 +1262,10 @@ export function PerfilPantalla() {
                         </View>
                         <View style={s.filaEnlaceColumna}>
                           <Texto {...PROPS_TEXTO_UNA_LINEA} style={s.filaEnlaceTexto}>
-                            Cambiar contraseña
+                            {t('perfil.settings.changePassword')}
                           </Texto>
                           <Texto {...PROPS_TEXTO_UNA_LINEA} style={s.filaEnlaceSubtexto}>
-                            Recibir enlace de restablecimiento seguro
+                            {t('perfil.settings.changePasswordDesc')}
                           </Texto>
                         </View>
                         <ChevronRight color={esc.musgo.l54} size={18} />
@@ -1381,10 +1282,10 @@ export function PerfilPantalla() {
                         </View>
                         <View style={s.filaEnlaceColumna}>
                           <Texto {...PROPS_TEXTO_UNA_LINEA} style={[s.filaEnlaceTexto, { color: '#DC2626' }]}>
-                            Cerrar sesión
+                            {t('perfil.settings.signOut')}
                           </Texto>
                           <Texto {...PROPS_TEXTO_UNA_LINEA} style={s.filaEnlaceSubtexto}>
-                            Salir de este dispositivo
+                            {t('perfil.settings.signOutDesc')}
                           </Texto>
                         </View>
                         <ChevronRight color="#DC2626" size={18} />
@@ -1402,10 +1303,10 @@ export function PerfilPantalla() {
                         </View>
                         <View style={s.filaEnlaceColumna}>
                           <Texto {...PROPS_TEXTO_UNA_LINEA} style={[s.filaEnlaceTexto, { color: '#DC2626' }]}>
-                            Eliminar cuenta y datos personales
+                            {t('perfil.settings.deleteAccount')}
                           </Texto>
                           <Texto {...PROPS_TEXTO_UNA_LINEA} style={[s.filaEnlaceSubtexto, { color: '#EF4444' }]}>
-                            Borrado definitivo e irreversible de tu perfil
+                            {t('perfil.settings.deleteAccountDesc')}
                           </Texto>
                         </View>
                         <ChevronRight color="#DC2626" size={18} />
@@ -1417,9 +1318,9 @@ export function PerfilPantalla() {
                   <Animated.View entering={entradaEncadenada(6)} style={s.pieVersion}>
                     <Texto style={s.pieVersionTexto}>Lestinaty v1.0.0 (Build 1)</Texto>
                     <Texto style={s.pieVersionSubtexto}>
-                      ID: com.lestinaty.app · Todos los derechos reservados
+                      {t('perfil.settings.versionRights')}
                     </Texto>
-                    <Texto style={s.pieVersionLema}>🌱 Cultivando constancia cada día</Texto>
+                    <Texto style={s.pieVersionLema}>{t('perfil.settings.versionMotto')}</Texto>
                   </Animated.View>
                 </View>
               )
@@ -1731,16 +1632,6 @@ const crearEstilos = (esc: EscalaMaster) => StyleSheet.create({
     gap: 4,
     marginBottom: 4,
   },
-  logrosTitulo: {
-    fontFamily: 'MontserratAlternates-Bold',
-    fontSize: 15,
-    color: esc.hoja.l22,
-  },
-  logrosSubtitulo: {
-    fontFamily: 'Montserrat-Medium',
-    fontSize: 12,
-    color: esc.musgo.l54,
-  },
   insigniasGrid: {
     gap: 10,
   },
@@ -1749,55 +1640,10 @@ const crearEstilos = (esc: EscalaMaster) => StyleSheet.create({
     padding: 14,
     gap: 6,
   },
-  insigniaBloqueada: {
-    opacity: 0.65,
-  },
   insigniaFilaTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-  },
-  insigniaImg: {
-    width: 44,
-    height: 44,
-    resizeMode: 'contain',
-  },
-  badgeNivelInsignia: {
-    borderRadius: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-  },
-  badgeNivelDesbloqueada: {
-    backgroundColor: conAlfa(esc.hoja.l61a, 0.16),
-  },
-  badgeNivelBloqueada: {
-    backgroundColor: 'rgba(0, 0, 0, 0.08)',
-  },
-  badgeNivelInsigniaTexto: {
-    fontFamily: 'Montserrat-Bold',
-    fontSize: 10,
-  },
-  insigniaTitulo: {
-    fontFamily: 'MontserratAlternates-Bold',
-    fontSize: 13.5,
-    color: esc.hoja.l22,
-    marginTop: 2,
-  },
-  insigniaDesc: {
-    fontFamily: 'Montserrat-Medium',
-    fontSize: 11,
-    color: esc.musgo.l54,
-    lineHeight: 15,
-  },
-  insigniaMetaFila: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    marginTop: 4,
-  },
-  insigniaMetaTexto: {
-    fontFamily: 'Montserrat-Bold',
-    fontSize: 11,
   },
   grupoAjustes: {
     gap: 8,

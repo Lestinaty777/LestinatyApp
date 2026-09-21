@@ -8,7 +8,7 @@ import { useEffect, useState } from 'react';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, { Easing, FadeIn, FadeOut, runOnJS, useAnimatedStyle, useSharedValue, withDelay, withRepeat, withSequence, withSpring, withTiming, type SharedValue } from 'react-native-reanimated';
 
-import { Boton, entradaEncadenada, MasterAnimation, MasterGlass, MasterIcon, MasterIconBg, MasterProgressbar, Rebote, Skeleton, Texto, buscarIcono } from '../../../diseno';
+import { Boton, entradaEncadenada, MasterAnimation, MasterGlass, MasterIcon, MasterIconBg, MasterProgressbar, Rebote, Skeleton, Texto } from '../../../diseno';
 import { hapticSeguro } from '../../../nucleo/dispositivo/haptics';
 import { AuroraBoreal } from '../../hoy/componentes/AuroraBoreal';
 import { crearHabito, obtenerDetallesHabitosHoy, obtenerHabitoMasCercaDeNivel, obtenerHabitoMejorRacha, obtenerHabitosActivos, obtenerPanelHabitos, obtenerResumenPlanesHabitos, registrarProgresoHabito, type HabitoHoyDetalle } from '../habitos.servicio';
@@ -34,6 +34,7 @@ import { useEscala } from '../../../diseno/tema/MasterColorContext';
 import type { EscalaMaster } from '../../../diseno/tema/escalaEsmeralda';
 import { ESCALA_ESMERALDA } from '../../../diseno/tema/escalaEsmeralda';
 import { conAlfa } from '../../../diseno/tema/masterColor';
+import { useAssetsPaqueteTema } from '../usePaqueteTema';
 
 const DIAS_SEMANA_COMPLETA = [1, 2, 3, 4, 5, 6, 7];
 const ESCALA_TARJETA_HOY = 0.6;
@@ -68,6 +69,7 @@ const ACCESOS = [
 ] as const;
 
 export function HabitosPantalla() {
+  const tema = useAssetsPaqueteTema();
   const esc = useEscala();
   const s = useEstilosS();
   const { t } = useTranslation();
@@ -213,7 +215,7 @@ export function HabitosPantalla() {
             </MasterGlass>
           </Animated.View>
         </View>
-        <View style={s.heroColDer}><View style={s.ilustracionContenedor}><Image source={require('../../../../assets/ilustraciones/hoy/fondos/habitos.png')} style={s.ilustracionHabitos} resizeMode="cover" /></View></View>
+        <View style={s.heroColDer}><View style={s.ilustracionContenedor}><Image source={tema.arbol} style={s.ilustracionHabitos} resizeMode="cover" /></View></View>
       </View>
 
       <View style={s.accesosFila}>
@@ -392,20 +394,21 @@ function CuadriculaHabitos({ detallesPorHabito, habitos, onDetalle, onRegistrar,
   );
 }
 function EstadoVacio({ texto, titulo }: { texto: string; titulo?: string }) {
-  const s = useEstilosS(); const { t } = useTranslation(); return <View style={s.vacio}><Image source={buscarIcono('hoy/habitos')!.fuente} style={[s.iconoVacio, { tintColor: C.verde }]} /><Texto style={s.vacioTitulo}>{titulo ?? t('habitos.pantalla.noHabitsTitle')}</Texto><Texto style={s.vacioTexto}>{texto}</Texto></View>; }
+  const s = useEstilosS(); const { t } = useTranslation(); return <View style={s.vacio}><View style={s.iconoVacio}><MasterIcon alTema name="bandera" size={96} /></View><Texto style={s.vacioTitulo}>{titulo ?? t('habitos.pantalla.noHabitsTitle')}</Texto><Texto style={s.vacioTexto}>{texto}</Texto></View>; }
 
-// Encabezado del panel "Hoy": bandera verde (MasterIcon con color=2, el hue
-// del PNG no importa porque MasterChanger lo rota) + contador + barra de
-// progreso real + tagline. El "⋮" es solo decorativo por ahora (no navega a
+// Encabezado del panel "Hoy": el arbusto del paquete del tema activo (antes una
+// bandera) + contador + barra de progreso real + tagline. El "⋮" es solo decorativo por ahora (no navega a
 // nada), a propósito no es un Pressable para no fingir que hace algo.
 function EncabezadoHoy({ completados, porcentaje, total }: { completados: number; porcentaje: number; total: number }) {
   const esc = useEscala();
+  const tema = useAssetsPaqueteTema();
   const s = useEstilosS();
   const { t } = useTranslation();
   return (
     <View style={s.encabezadoHoy}>
       <View style={s.encabezadoHoyFila}>
-        <MasterIconBg size={70}><MasterIcon alTema name="bandera" size={50} /></MasterIconBg>
+        {/* Imagen normal, no `fuente`: el arbusto ya es el arte del paquete y no debe rotarse otra vez con el tema. */}
+        <MasterIconBg size={70}><Image resizeMode="contain" source={tema.arbusto} style={{ height: 58, width: 58 }} /></MasterIconBg>
         <View style={{ flex: 1 }}>
           <Texto style={s.encabezadoHoyTitulo}>{t('habitos.pantalla.viewToday')}</Texto>
           <Texto style={s.encabezadoHoyCompletadas}>{t('habitos.pantalla.todayCompleted', { completed: completados, total })}</Texto>
@@ -609,7 +612,7 @@ const crearEstilosS = (esc: EscalaMaster) => StyleSheet.create({ raiz: { flex: 1
   cercaniaLabel: { color: C.tenue, fontFamily: 'Montserrat-Medium', fontSize: 9, textTransform: 'uppercase', letterSpacing: 0.5 },
   cercaniaTitulo: { color: C.texto, fontFamily: 'MontserratAlternates-Bold', fontSize: 13, marginTop: 2 },
   cercaniaPorcentaje: { color: C.verde, fontFamily: 'MontserratAlternates-Bold', fontSize: 16 },
-  panel: { borderRadius: 22, marginHorizontal: 20, padding: 15 }, tituloFila: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }, tituloConIcono: { alignItems: 'center', flexDirection: 'row', gap: 7 }, titulo: { color: C.texto, fontFamily: 'MontserratAlternates-Bold', fontSize: 22 }, contador: { color: C.tenue, fontFamily: 'MontserratAlternates-Bold', fontSize: 12 }, error: { color: '#DC2626', fontFamily: 'Montserrat-Medium', paddingVertical: 18, textAlign: 'center' }, errorDetalle: { color: '#DC2626', fontFamily: 'Montserrat-Medium', fontSize: 11, opacity: 0.7, paddingBottom: 10, textAlign: 'center' }, vacio: { alignItems: 'center', paddingHorizontal: 22, paddingVertical: 28 }, iconoVacio: { height: 58, marginBottom: 10, resizeMode: 'contain', width: 58 }, vacioTitulo: { color: C.texto, fontFamily: 'MontserratAlternates-Bold', fontSize: 16, textAlign: 'center' }, vacioTexto: { color: C.tenue, fontFamily: 'Montserrat-Medium', fontSize: 13, lineHeight: 18, marginTop: 6, textAlign: 'center' },
+  panel: { borderRadius: 22, marginHorizontal: 20, padding: 15 }, tituloFila: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }, tituloConIcono: { alignItems: 'center', flexDirection: 'row', gap: 7 }, titulo: { color: C.texto, fontFamily: 'MontserratAlternates-Bold', fontSize: 22 }, contador: { color: C.tenue, fontFamily: 'MontserratAlternates-Bold', fontSize: 12 }, error: { color: '#DC2626', fontFamily: 'Montserrat-Medium', paddingVertical: 18, textAlign: 'center' }, errorDetalle: { color: '#DC2626', fontFamily: 'Montserrat-Medium', fontSize: 11, opacity: 0.7, paddingBottom: 10, textAlign: 'center' }, vacio: { alignItems: 'center', paddingHorizontal: 22, paddingVertical: 28 }, iconoVacio: { marginBottom: 6 }, vacioTitulo: { color: C.texto, fontFamily: 'MontserratAlternates-Bold', fontSize: 16, textAlign: 'center' }, vacioTexto: { color: C.tenue, fontFamily: 'Montserrat-Medium', fontSize: 13, lineHeight: 18, marginTop: 6, textAlign: 'center' },
   carruselHabitos: { marginHorizontal: -15 },
   carruselHabitosContenido: { gap: 12, paddingHorizontal: 15 },
   tarjetaHabito: { height: (ALTO_TARJETA_HABITO + MARGEN_SUPERIOR_TARJETA_HABITO) * ESCALA_TARJETA_HOY, width: ANCHO_TARJETA_HABITO * ESCALA_TARJETA_HOY },

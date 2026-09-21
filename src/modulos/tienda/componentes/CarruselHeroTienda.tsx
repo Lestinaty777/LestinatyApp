@@ -12,10 +12,10 @@ import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 
 import { MasterButton, MasterGlass, MasterIcon, MasterKicker, Texto } from '../../../diseno';
-import { obtenerEtapaSietePaquete } from '../../habitos/paqueteVisual.assets';
 import { useEscala } from '../../../diseno/tema/MasterColorContext';
 import type { EscalaMaster } from '../../../diseno/tema/escalaEsmeralda';
 import { conAlfa } from '../../../diseno/tema/masterColor';
+import { useAssetsPaqueteTema } from '../../habitos/usePaqueteTema';
 
 type CarruselHeroTiendaProps = {
   onIrAReferidos: () => void;
@@ -26,6 +26,7 @@ export function CarruselHeroTienda({
   onIrAReferidos,
   onIrAPro,
 }: CarruselHeroTiendaProps) {
+  const tema = useAssetsPaqueteTema();
   const esc = useEscala();
   const ch = useEstilosCh();
   const { t } = useTranslation();
@@ -75,7 +76,7 @@ export function CarruselHeroTienda({
 
               <View style={ch.ilustracionContenedor}>
                 <Image
-                  source={obtenerEtapaSietePaquete('esmeralda')}
+                  source={tema.arbol}
                   style={ch.ilustracionArbol}
                 />
               </View>
@@ -113,7 +114,7 @@ export function CarruselHeroTienda({
 
               <View style={ch.ilustracionContenedor}>
                 <Image
-                  source={require('../../../../assets/ilustraciones/hoy/fondos/habitos.png')}
+                  source={tema.arbol}
                   style={ch.ilustracionArbol}
                 />
               </View>

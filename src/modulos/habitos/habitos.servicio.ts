@@ -76,7 +76,7 @@ export async function crearHabito(input: CrearHabitoInput): Promise<{ id: string
   return data as { id: string; plan_id: string };
 }
 
-type FilaPlan = { frecuencia: 'diaria' | 'dias_semana' | 'veces_semana'; dias_semana: number[] | null; objetivo_valor: number; desde_fecha: string; hasta_fecha: string | null; nivel: number };
+type FilaPlan = { frecuencia: 'diaria' | 'dias_semana' | 'veces_semana'; dias_semana: number[] | null; veces_por_semana?: number | null; objetivo_valor: number; desde_fecha: string; hasta_fecha: string | null; nivel: number; recordatorio_activo?: boolean; hora_recordatorio?: string | null; mostrar_nombre_notificacion?: boolean };
 type FilaRegistro = { fecha_local: string; valor: number };
 
 const etiquetasDias = ['D', 'L', 'M', 'X', 'J', 'V', 'S'];
@@ -90,7 +90,7 @@ export async function obtenerDetalleHabito(id: string, referencia = new Date()):
   const supabase = obtenerClienteSupabase();
   const [{ data: item, error: errorItem }, { data: planes, error: errorPlanes }, { data: registros, error: errorRegistros }] = await Promise.all([
     supabase.from('habitos_items').select('id,titulo,descripcion,icono_lucide,color,tipo_meta,unidad,paquete_id').eq('id', id).eq('estado', 'activo').single(),
-    supabase.from('habitos_planes').select('frecuencia,dias_semana,objetivo_valor,desde_fecha,hasta_fecha,nivel').eq('habito_id', id).order('desde_fecha', { ascending: false }),
+    supabase.from('habitos_planes').select('frecuencia,dias_semana,veces_por_semana,objetivo_valor,desde_fecha,hasta_fecha,nivel,recordatorio_activo,hora_recordatorio,mostrar_nombre_notificacion').eq('habito_id', id).order('desde_fecha', { ascending: false }),
     supabase.from('habitos_registros').select('fecha_local,valor').eq('habito_id', id).order('fecha_local', { ascending: true }),
   ]);
   if (errorItem || !item) throw errorItem ?? new Error('Hábito no encontrado.');
@@ -112,7 +112,7 @@ export async function obtenerDetalleHabito(id: string, referencia = new Date()):
   const porDia = new Map<number, { suma: number; cantidad: number }>();
   todosRegistros.forEach((registro) => { const dia = new Date(`${registro.fecha_local}T12:00:00`).getDay(); const actual = porDia.get(dia) ?? { suma: 0, cantidad: 0 }; actual.suma += Number(registro.valor); actual.cantidad += 1; porDia.set(dia, actual); });
   const mejor = [...porDia.entries()].sort((a, b) => b[1].suma / b[1].cantidad - a[1].suma / a[1].cantidad)[0];
-  return { habito: { id: item.id, titulo: item.titulo, descripcion: item.descripcion, iconoLucide: item.icono_lucide, color: item.color, tipoMeta: tipo, unidad: item.unidad, meta: Number(planHoy.objetivo_valor), valorHoy: porFecha.get(hoy) ?? 0, completado: completo(tipo, porFecha.get(hoy) ?? 0, Number(planHoy.objetivo_valor)), paqueteId: resolverPaqueteHabito(item.paquete_id) }, nivel: Number(planHoy.nivel ?? 1), semana: { completados, programados: programados.length, porcentaje: programados.length ? Math.round(completados * 100 / programados.length) : 0 }, rachaActual, totalAcumulado: todosRegistros.reduce((total, registro) => total + Number(registro.valor), 0), mejorDia: mejor ? nombresDias[mejor[0]] : null, progresoSemana };
+  return { habito: { id: item.id, titulo: item.titulo, descripcion: item.descripcion, iconoLucide: item.icono_lucide, color: item.color, tipoMeta: tipo, unidad: item.unidad, meta: Number(planHoy.objetivo_valor), valorHoy: porFecha.get(hoy) ?? 0, completado: completo(tipo, porFecha.get(hoy) ?? 0, Number(planHoy.objetivo_valor)), paqueteId: resolverPaqueteHabito(item.paquete_id) }, nivel: Number(planHoy.nivel ?? 1), semana: { completados, programados: programados.length, porcentaje: programados.length ? Math.round(completados * 100 / programados.length) : 0 }, rachaActual, totalAcumulado: todosRegistros.reduce((total, registro) => total + Number(registro.valor), 0), mejorDia: mejor ? nombresDias[mejor[0]] : null, progresoSemana, programacion: { frecuencia: planHoy.frecuencia, diasSemana: planHoy.dias_semana ?? [], vecesPorSemana: planHoy.veces_por_semana ?? null, recordatorioActivo: Boolean(planHoy.recordatorio_activo), horaRecordatorio: planHoy.hora_recordatorio ?? null, mostrarNombreNotificacion: Boolean(planHoy.mostrar_nombre_notificacion) } };
 }
 
 export type ProgresoNivelHabito = { diasCompletados: number; diasRequeridos: number | null; fechasCumplidas: string[]; habito: { color: string; colorPaquete?: string; iconoLucide: string; meta: number; paqueteId: string; tipoMeta: TipoMetaHabito; titulo: string; unidad: string | null; valorHoy: number }; nivel: number };

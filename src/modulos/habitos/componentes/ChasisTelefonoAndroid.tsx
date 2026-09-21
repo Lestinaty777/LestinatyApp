@@ -23,8 +23,16 @@ import { conAlfa } from '../../../diseno/tema/masterColor';
 type ChasisTelefonoAndroidProps = {
   children: ReactNode;
   ancho?: number;
+  /** Si se omite, se calcula solo a partir de `ancho` con una relación de
+   * aspecto real de celular (~19.5:9) — antes un `alto` fijo sin relación
+   * con `ancho` podía dar un mockup achatado, nada parecido a un teléfono. */
   alto?: number;
 };
+
+// 19.5:9 — relación de aspecto típica de un celular Android moderno
+// (Pixel, Galaxy). Antes el `alto` por defecto (590) no guardaba ninguna
+// proporción real con el `ancho` (320), dando ~1.84:1 en vez de ~2.17:1.
+const RELACION_ALTO_ANCHO = 19.5 / 9;
 
 // 8 aplicaciones reales en matriz 2×4 (Fila 1 de apps en pantalla + Fila 2 en Dock)
 const APPS_FILA_SUPERIOR = [
@@ -50,18 +58,19 @@ const APPS_DOCK_INFERIOR = [
 export function ChasisTelefonoAndroid({
   children,
   ancho = 320,
-  alto = 590,
+  alto,
 }: ChasisTelefonoAndroidProps) {
   const esc = useEscala();
   const ch = useEstilosCh();
+  const altoFinal = alto ?? Math.round(ancho * RELACION_ALTO_ANCHO);
   return (
-    <View style={[ch.contenedorExterno, { width: ancho + 8, height: alto }]}>
+    <View style={[ch.contenedorExterno, { width: ancho + 8, height: altoFinal }]}>
       {/* Botones físicos laterales del teléfono */}
       <View style={[ch.botonLateral, ch.botonVolumen]} />
       <View style={[ch.botonLateral, ch.botonEncendido]} />
 
       {/* Cuerpo principal del teléfono (Bisel de titanio con esquinas curvas profundas) */}
-      <View style={[ch.cuerpoTelefono, { width: ancho, height: alto }]}>
+      <View style={[ch.cuerpoTelefono, { width: ancho, height: altoFinal }]}>
         {/* Pantalla interior */}
         <View style={ch.pantallaInterior}>
           {/* Wallpaper orgánico de selva profunda / atmósfera Lestinaty */}

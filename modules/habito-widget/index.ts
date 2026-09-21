@@ -1,7 +1,8 @@
 import { EventEmitter, NativeModule, requireNativeModule } from 'expo-modules-core';
 import { Platform } from 'react-native';
 
-export type DatosHabitoWidget = {
+/** Un hábito dentro de la lista de HOY que el widget navega con sus chevrones. */
+export type DatosItemHabitoWidget = {
   habitoId: string;
   titulo: string;
   color?: string;
@@ -9,21 +10,32 @@ export type DatosHabitoWidget = {
   meta: number;
   unidad?: string;
   completado: boolean;
-  racha?: number;
   tipoMeta?: 'check' | 'cantidad' | 'duracion';
-  esPro: boolean;
-  /** Nivel actual del hábito (1-7), define qué etapaN.png se ve en el widget rediseñado. */
-  nivel?: number;
   /** Nombre del recurso drawable ya flatteneado por Metro (sin extensión) de la
    * ilustración etapaN.png correspondiente — resuelto en JS vía
    * Image.resolveAssetSource(...).uri para no tener que replicar en Kotlin las
    * rutas/carpetas irregulares de cada paquete (p. ej. los 4 "unicos" viven
    * bajo paquetes/unicos/<Nombre>/ en vez de paquetes/<Nombre>/). */
   imagenEtapaRecurso?: string;
-  /** Días de ESTA semana calendario (lunes=1..domingo=7) en los que el hábito está programado. */
-  diasProgramados?: number[];
-  /** Subconjunto de diasProgramados ya cumplidos esta semana. */
-  diasCompletadosSemana?: number[];
+  /** Ídem, para el ícono real del hábito (assets/icons/ui/*.png). */
+  iconoRecurso?: string;
+  /** Los 3 colores (claro/medio/oscuro, hex) del degradado MasterGlass ya
+   * rotados al tono del paquete — mismo cálculo que usa el resto de la UI
+   * (ver crearTonoMaster en masterColor.ts), calculado en JS para que Kotlin
+   * solo tenga que pintar un degradado, sin reimplementar la rotación de matiz. */
+  fondoClaro?: string;
+  fondoMedio?: string;
+  fondoOscuro?: string;
+  /** Color de acento del paquete (hex), para teñir el ícono del hábito. */
+  iconoAcento?: string;
+};
+
+export type DatosListaHabitosWidget = {
+  /** Todos los hábitos de HOY, en el orden en que los chevrones navegan entre ellos. */
+  habitos: DatosItemHabitoWidget[];
+  /** Índice de `habitos` que se muestra al sincronizar (ej. el foco elegido, si sigue en la lista de hoy). */
+  indiceInicial: number;
+  esPro: boolean;
 };
 
 export type DatosCalendarioWidget = {
@@ -68,7 +80,7 @@ type EventosHabitoWidget = {
 };
 
 interface HabitoWidgetNativeModule extends NativeModule {
-  sincronizarHabito(datos: DatosHabitoWidget): Promise<boolean>;
+  sincronizarListaHabitos(datos: DatosListaHabitosWidget): Promise<boolean>;
   sincronizarCalendario(datos: DatosCalendarioWidget): Promise<boolean>;
   solicitarFijarWidget(): Promise<boolean>;
   solicitarFijarWidgetCalendario(): Promise<boolean>;
@@ -106,10 +118,10 @@ if (Platform.OS === 'android') {
   }
 }
 
-export async function sincronizarHabitoNativo(datos: DatosHabitoWidget): Promise<boolean> {
+export async function sincronizarListaHabitosNativo(datos: DatosListaHabitosWidget): Promise<boolean> {
   if (!moduloNativo) return false;
   try {
-    return await moduloNativo.sincronizarHabito(datos);
+    return await moduloNativo.sincronizarListaHabitos(datos);
   } catch {
     return false;
   }

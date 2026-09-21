@@ -202,8 +202,13 @@ interface MasterChangerProps {
   deltaTema?: number;
   /** Saturación al teñir (por hue explícito o por tema): 1 = sin cambio, 0 = grises. */
   saturacion?: number;
-  /** Como `oscurecido`, pero solo cuando el icono se tiñe (por hue explícito o por tema). */
-  oscurecidoTema?: number;
+  /** Factor de brillo (valor HSV) al teñir (por hue explícito o por tema): <1 oscurece, >1 aclara. No toca blancos ni grises. */
+  valorTema?: number;
+  /**
+   * Modo ilustración: con `deltaTema`, rota SOLO los píxeles verdes (el musgo de una roca) aunque el color
+   * dominante de la imagen no sea verde. Requiere el shader; sin él se usa la regla del color dominante.
+   */
+  soloPixelesVerdes?: boolean;
   /** Cómo encaja la imagen en el canvas. Por defecto "contain" (no recorta íconos). */
   fit?: 'contain' | 'cover' | 'fill' | 'fitHeight' | 'fitWidth' | 'none' | 'scaleDown';
   /**
@@ -224,7 +229,8 @@ export function MasterChanger({
   hueDestino,
   deltaTema,
   saturacion = 1,
-  oscurecidoTema = 1,
+  valorTema = 1,
+  soloPixelesVerdes = false,
   fit = 'contain',
   oscurecido = 1,
 }: MasterChangerProps) {
@@ -237,21 +243,23 @@ export function MasterChanger({
   // oscurece: matriz de color; con tono oscuro son dos capas (la de arriba repite solo los claros).
   const plan = useMemo(() => {
     const hueObjetivo = hueDestino ?? (colorDestino !== undefined ? COLORES_MASTER[colorDestino].hue : undefined);
-    const aplicaTema = hueObjetivo === undefined && deltaTema !== undefined && hueEfectivo !== null && esHueVerde(hueEfectivo);
+    const efecto = obtenerEfectoTinte();
+    const dominanteVerde = hueEfectivo !== null && esHueVerde(hueEfectivo);
+    const aplicaTema = hueObjetivo === undefined && deltaTema !== undefined && (dominanteVerde || (soloPixelesVerdes && efecto !== null));
     const teñido = hueObjetivo !== undefined || aplicaTema;
-    const oscuridadTotal = oscurecido * (teñido ? oscurecidoTema : 1);
+    // La matriz de respaldo solo sabe oscurecer (valorTema < 1); aclarar por saturación solo lo hace el shader.
+    const oscuridadTotal = oscurecido * (teñido ? Math.min(1, valorTema) : 1);
     if (!teñido && oscuridadTotal === 1) return null;
     if (!teñido) return { modo: 'matriz' as const, color: aplicarOscurecido(calcularMatrizHue(0), oscuridadTotal), claros: null };
     const delta = hueObjetivo !== undefined ? (hueEfectivo !== null ? calcularDeltaHue(hueEfectivo, hueObjetivo) : 0) : (deltaTema as number);
-    const efecto = obtenerEfectoTinte();
-    if (efecto) return { modo: 'shader' as const, efecto, uniforms: { delta, saturacion, oscuroTema: oscurecidoTema, oscuroGlobal: oscurecido } };
+    if (efecto) return { modo: 'shader' as const, efecto, uniforms: { delta, saturacion, valorTema, oscuroGlobal: oscurecido, soloVerdes: soloPixelesVerdes ? 1 : 0 } };
     const rotada = componerMatrices(calcularMatrizHue(delta), matrizSaturacion(saturacion));
     return {
       modo: 'matriz' as const,
       color: aplicarOscurecido(rotada, oscuridadTotal),
-      claros: oscurecidoTema !== 1 ? matrizSoloClaros(aplicarOscurecido(rotada, oscurecido)) : null,
+      claros: valorTema < 1 ? matrizSoloClaros(aplicarOscurecido(rotada, oscurecido)) : null,
     };
-  }, [hueEfectivo, colorDestino, hueDestino, deltaTema, oscurecido, oscurecidoTema, saturacion]);
+  }, [hueEfectivo, colorDestino, hueDestino, deltaTema, oscurecido, valorTema, saturacion, soloPixelesVerdes]);
 
   if (!imagen) return null;
 

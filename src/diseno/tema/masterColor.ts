@@ -70,10 +70,13 @@ export type TonoMaster = {
   hue?: number;
   /** Rotación relativa respecto a Esmeralda en grados (hue del paquete − HUE_REFERENCIA_VERDE). `undefined` en Esmeralda = sin rotar. */
   deltaHue?: number;
-  /** 1 = sin cambio. Baja en paquetes casi grises (Abyss) para no dejar colores saturados. */
+  /** Factor de saturación HSL de la paleta y de `tintarHex`. 1 = sin cambio; baja en paquetes de color poco saturado. */
   saturacion: number;
-  /** 1 = sin cambio. Baja en paquetes muy oscuros. */
-  oscurecido: number;
+  /**
+   * Cómo se ajustan los iconos PNG (en HSV, por píxel) para que el icono típico caiga en el color del paquete:
+   * Eclipse (#6A3FA0) pide saturación 0.9× y valor 0.82× — un morado profundo, no pastel. Ver ICONO_REFERENCIA_HSV.
+   */
+  icono: { saturacion: number; valor: number };
   /** Los verdes de la UI (escala Esmeralda), rotados al paquete. */
   escala: EscalaMaster;
   /** Los 12 tonos de la app, por rol. */
@@ -92,6 +95,13 @@ export type TonoMaster = {
 };
 
 export const ID_TONO_ESMERALDA = 'esmeralda';
+
+/**
+ * Color "típico" de un icono verde de assets/icons, medido sobre los 75 PNG verdes (media de la saturación y el
+ * valor HSV del color principal: 0.67 y 0.77). Los factores de `icono` son relativos a él: el icono típico
+ * termina exactamente en el color del paquete, y cada icono conserva su diferencia respecto al típico.
+ */
+export const ICONO_REFERENCIA_HSV = { s: 0.67, v: 0.77 };
 
 // Hue del verde que más se usa (#25884C) y donde se concentran los iconos PNG
 // (mediana 135°, la mayoría entre 140° y 149°). Es el "cero" de la rotación.
@@ -133,7 +143,7 @@ export const TONO_ESMERALDA: TonoMaster = {
   id: ID_TONO_ESMERALDA,
   acento: '#029060', // master_pack_color real de 'esmeralda' en public.arboles_paquetes
   saturacion: 1,
-  oscurecido: 1,
+  icono: { saturacion: 1, valor: 1 },
   ...TOKENS_ESMERALDA,
 };
 
@@ -154,6 +164,12 @@ function hexAHsl(hex: string): Hsl {
   const s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
   const h = max === rn ? (gn - bn) / d + (gn < bn ? 6 : 0) : max === gn ? (bn - rn) / d + 2 : (rn - gn) / d + 4;
   return { h: h * 60, s, l };
+}
+
+/** HSV de un color HSL (h en grados). */
+function hslAHsv({ s, l }: Hsl) {
+  const v = l + s * Math.min(l, 1 - l);
+  return { s: v === 0 ? 0 : 2 * (1 - l / v), v };
 }
 
 function hslAHex({ h, s, l }: Hsl): string {
@@ -248,8 +264,12 @@ export function crearTonoMaster(id: string, masterPackColor: string): TonoMaster
   // (Nevalhi) no sirven tal cual como acento de texto/botones.
   const acento = hslAHex({ h: original.h, s: original.s, l: limitar(original.l, 0.35, 0.65) });
   const deltaHue = original.h - HUE_REFERENCIA_VERDE;
-  // Los PNG y los verdes base son muy saturados: un paquete casi gris necesita bajar la saturación.
-  const saturacion = limitar(original.s / 0.85, 0.15, 1);
+  // Los verdes base de la paleta rondan 0.68 de saturación HSL (vivo #21A844, brillante #22C55E): un paquete
+  // menos saturado que eso (Eclipse 0.43, Abyss 0.18) baja la de toda la paleta, en la misma proporción.
+  const saturacion = limitar(original.s / 0.68, 0.15, 1);
+  // Los iconos se ajustan en HSV contra el icono típico, con el color ya clampeado a un rango legible.
+  const objetivo = hslAHsv(hexAHsl(acento));
+  const icono = { saturacion: limitar(objetivo.s / ICONO_REFERENCIA_HSV.s, 0.15, 1.3), valor: limitar(objetivo.v / ICONO_REFERENCIA_HSV.v, 0.3, 1.35) };
   const derivados = mapearHex(TOKENS_ESMERALDA, (hex) => rotarHex(hex, deltaHue, saturacion));
   return {
     id,
@@ -257,7 +277,7 @@ export function crearTonoMaster(id: string, masterPackColor: string): TonoMaster
     hue: original.h,
     deltaHue,
     saturacion,
-    oscurecido: original.l < 0.3 ? 0.55 + original.l : 1,
+    icono,
     ...derivados,
     paleta: asegurarContrastes(derivados.paleta),
   };

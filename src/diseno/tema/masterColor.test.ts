@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { hsvARgb, rgbAHsv, tintarPixelHsv } from '../iconos/tinteHsv';
 import { aplicarOscurecido, componerMatrices, calcularMatrizHue, matrizSaturacion, matrizSoloClaros } from './matrizColor';
 import { contraste, crearTonoMaster, HUE_REFERENCIA_VERDE, PALETA_ESMERALDA, TONO_ESMERALDA, tintarHex } from './masterColor';
 import { esHueVerde } from './matrizColor';
@@ -25,16 +26,15 @@ describe('crearTonoMaster', () => {
     expect(crearTonoMaster('sakura', REALES.sakura).hue).toBeLessThan(345);
   });
 
-  it('Abyss (casi gris y muy oscuro) baja saturación y oscurece los iconos', () => {
+  it('Abyss (casi gris y muy oscuro) baja la saturación de la paleta y apaga y oscurece los iconos', () => {
     const abyss = crearTonoMaster('abyss', REALES.abyss);
     expect(abyss.saturacion).toBeLessThan(0.35);
-    expect(abyss.oscurecido).toBeLessThan(1);
+    expect(abyss.icono.saturacion).toBeLessThan(0.6);
+    expect(abyss.icono.valor).toBeLessThan(0.7);
   });
 
-  it('los paquetes saturados no alteran saturación ni oscurecido', () => {
-    const mathist = crearTonoMaster('mathist', REALES.mathist);
-    expect(mathist.saturacion).toBe(1);
-    expect(mathist.oscurecido).toBe(1);
+  it('un paquete muy saturado no baja la saturación de la paleta', () => {
+    expect(crearTonoMaster('mathist', REALES.mathist).saturacion).toBe(1);
   });
 
   it('el acento clampea Abyss y Nevalhi a una luminosidad legible', () => {
@@ -168,13 +168,13 @@ describe('oscurecer solo lo que tiene color (Abyss)', () => {
   const componerCapas = (abajo: number[], arriba: number[]) => { const alfa = arriba[3]; return [0, 1, 2].map((i) => arriba[i] * alfa + abajo[i] * (1 - alfa)); };
 
   const abyss = crearTonoMaster('abyss', '#21232F');
-  const rotada = componerMatrices(calcularMatrizHue(abyss.deltaHue ?? 0), matrizSaturacion(abyss.saturacion));
-  const capaColor = aplicarOscurecido(rotada, abyss.oscurecido);
+  const rotada = componerMatrices(calcularMatrizHue(abyss.deltaHue ?? 0), matrizSaturacion(abyss.icono.saturacion));
+  const capaColor = aplicarOscurecido(rotada, Math.min(1, abyss.icono.valor));
   const capaClaros = matrizSoloClaros(rotada);
   const pixel = (p: number[]) => componerCapas(aplicar(capaColor, p), aplicar(capaClaros, p));
 
   it('Abyss sí oscurece (su tono lo pide) y por eso hay que proteger los blancos', () => {
-    expect(abyss.oscurecido).toBeLessThan(0.8);
+    expect(abyss.icono.valor).toBeLessThan(0.8);
   });
 
   it('el blanco sigue siendo blanco, aunque el tono oscurezca', () => {
@@ -201,7 +201,51 @@ describe('oscurecer solo lo que tiene color (Abyss)', () => {
     expect(aplicar(capaClaros, [0, 0, 0, 0])[3]).toBe(0);
   });
 
-  it('sin oscurecido de tono (paquetes normales) no se usa la segunda capa', () => {
-    expect(crearTonoMaster('sakura', '#FC70AF').oscurecido).toBe(1);
+  it('un paquete claro (Sakura) no oscurece: aclara, y la matriz de respaldo no necesita segunda capa', () => {
+    expect(crearTonoMaster('sakura', '#FC70AF').icono.valor).toBeGreaterThan(1);
+  });
+});
+
+describe('iconos: el icono típico cae en el color del paquete (no pastel)', () => {
+  // El icono verde "típico" de assets/icons (medido): saturación 0.67, valor 0.77, matiz verde.
+  const TIPICO = hsvARgb({ h: 135 / 360, s: 0.67, v: 0.77 });
+  const tintar = (tono: ReturnType<typeof crearTonoMaster>, rgb = TIPICO) =>
+    rgbAHsv(tintarPixelHsv(rgb, { delta: tono.deltaHue ?? 0, oscuroGlobal: 1, saturacion: tono.icono.saturacion, valorTema: tono.icono.valor }));
+  const hsvDelPaquete = (hex: string, tono: ReturnType<typeof crearTonoMaster>) => rgbAHsv([1, 3, 5].map((i) => parseInt(tono.acento.slice(i, i + 2), 16) / 255));
+
+  it('Eclipse (#6A3FA0): el icono queda en su morado profundo (S 0.61, V 0.63), no en un morado claro y desvaído', () => {
+    const eclipse = crearTonoMaster('eclipse', '#6A3FA0');
+    const resultado = tintar(eclipse);
+    const objetivo = hsvDelPaquete('#6A3FA0', eclipse);
+    expect(resultado.s).toBeCloseTo(objetivo.s, 1);
+    expect(resultado.v).toBeCloseTo(objetivo.v, 1);
+    // antes: saturación 0.5× y sin oscurecer -> S 0.34, V 0.77 (pastel). Ahora es más oscuro y más saturado que eso.
+    expect(resultado.v).toBeLessThan(0.7);
+    expect(resultado.s).toBeGreaterThan(0.5);
+  });
+
+  it('Abyss: el icono queda en su gris azulado oscuro, no negro ni brillante', () => {
+    const abyss = crearTonoMaster('abyss', '#21232F');
+    const resultado = tintar(abyss);
+    expect(resultado.v).toBeCloseTo(hsvDelPaquete('#21232F', abyss).v, 1);
+    expect(resultado.v).toBeGreaterThan(0.3);
+  });
+
+  it('Ignate (rojo saturado): el icono queda igual de vivo que el paquete', () => {
+    expect(tintar(crearTonoMaster('ignate', '#C10208')).s).toBeGreaterThan(0.85);
+  });
+
+  it('Nevalhi (azul claro): el icono se aclara respecto al verde original', () => {
+    expect(tintar(crearTonoMaster('nevalhi', '#C0DFFC')).v).toBeGreaterThan(0.85);
+  });
+
+  it('un icono pálido sigue siendo más pálido que uno vivo bajo cualquier paquete (conserva su carácter)', () => {
+    const eclipse = crearTonoMaster('eclipse', '#6A3FA0');
+    const palido = hsvARgb({ h: 135 / 360, s: 0.24, v: 0.92 });
+    expect(tintar(eclipse, palido).s).toBeLessThan(tintar(eclipse).s);
+  });
+
+  it('Esmeralda no cambia nada: factores 1', () => {
+    expect(TONO_ESMERALDA.icono).toEqual({ saturacion: 1, valor: 1 });
   });
 });
