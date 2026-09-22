@@ -1,4 +1,5 @@
 import { Image, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -18,6 +19,7 @@ const C = { texto: '#1A1335', tenue: ESCALA_ESMERALDA.musgo.l51 };
 // Esmeralda, mismo formulario (FormularioAccesoOnboarding, compartido con el
 // slide 5 del carrusel) — cero lógica de login duplicada.
 export function AccesoOnboardingPantalla() {
+  const { t } = useTranslation();
   const esc = useEscala();
   const insets = useSafeAreaInsets();
 
@@ -39,8 +41,8 @@ export function AccesoOnboardingPantalla() {
                 />
               </View>
 
-              <Texto style={s.titulo}>Tu jardín te espera</Texto>
-              <Texto style={s.subtitulo}>Iniciá sesión para seguir cultivando tus hábitos.</Texto>
+              <Texto style={s.titulo}>{t('onboarding.accesoPantalla.title')}</Texto>
+              <Texto style={s.subtitulo}>{t('onboarding.accesoPantalla.subtitle')}</Texto>
 
               <LinearGradient
                 colors={[conAlfa(esc.jade.l50, 0), conAlfa(esc.jade.l50, 0.32), conAlfa(esc.jade.l50, 0)]}

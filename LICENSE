@@ -1,21 +1,27 @@
-The MIT License (MIT)
+Lestinaty Source-Available License (Hackathon Evaluation)
 
-Copyright (c) 2015-present 650 Industries, Inc. (aka Expo)
+Copyright (c) 2026-present Lestinaty. All rights reserved.
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+This repository is made public solely to satisfy the public-repository
+requirement of RevenueCat's Shipaton 2026 hackathon (the "Hackathon").
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+1. Evaluation License. RevenueCat, the Hackathon organizers, and Hackathon
+   judges are granted a limited, non-exclusive, non-transferable,
+   royalty-free license to view, clone, build, and run this software solely
+   for the purpose of evaluating this project as a submission to the
+   Hackathon. No other rights are granted under this clause.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+2. All Other Rights Reserved. Except as expressly granted in Section 1, no
+   permission is given to any person to use, copy, modify, merge, publish,
+   distribute, sublicense, and/or sell copies of this software, or to
+   permit persons to whom this software is furnished to do so. Any use
+   beyond evaluation under Section 1 requires prior written permission from
+   the copyright holder.
+
+3. No Warranty. THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY
+   KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+   MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN
+   NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+   DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+   OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
+   USE OR OTHER DEALINGS IN THE SOFTWARE.

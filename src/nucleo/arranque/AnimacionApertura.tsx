@@ -12,6 +12,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 
 import { MasterButton, MasterIcon, MasterText, Texto } from '../../diseno';
 import { usarEstadoAcceso } from '../../modulos/acceso/acceso.estado';
@@ -118,6 +119,7 @@ type Fase = 'reproduciendo' | 'congelado';
 // sigue derecho sin esperar nada (el texto se ve, pero no hay botón); sin
 // sesión, aparece además el botón "Comenzar" y ahí sí se espera el toque.
 export function AnimacionApertura({ onTerminar }: { onTerminar: () => void }) {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const usuario = usarEstadoAcceso((estado) => estado.usuario);
@@ -247,7 +249,7 @@ export function AnimacionApertura({ onTerminar }: { onTerminar: () => void }) {
           // golpe, a opacidad 1, apenas toca mostrarse.
           <View style={[s.contenidoBienvenida, { paddingBottom: insets.bottom + 32 }]}>
             <Texto style={[s.tituloBienvenida, { fontSize: tamanoBienvenidaTitulo, lineHeight: altoBienvenidaTitulo }]}>
-              Bienvenido a
+              {t('arranque.bienvenida.titulo')}
             </Texto>
 
             <View style={s.filaAccento}>
@@ -258,7 +260,7 @@ export function AnimacionApertura({ onTerminar }: { onTerminar: () => void }) {
                 style={[s.accentoGradiente, { fontSize: tamanoAccento, lineHeight: altoAccento }]}
                 variante="titulo"
               >
-                Lestinaty
+                {t('arranque.bienvenida.marca')}
               </MasterText>
               <Image resizeMode="contain" source={ARBUSTO_ESMERALDA} style={[s.arbustoAccento, { height: altoAccento, width: altoAccento }]} />
             </View>
@@ -266,13 +268,13 @@ export function AnimacionApertura({ onTerminar }: { onTerminar: () => void }) {
             <View style={s.separador} />
 
             <Texto style={s.subtituloBienvenida}>
-              Convertí cada hábito en un árbol que crece con vos — pequeños pasos, todos los días, hasta ver tu propio jardín florecer.
+              {t('arranque.bienvenida.subtitulo')}
             </Texto>
 
             {mostrarBoton && (
               <View style={s.botonEnvoltorio}>
                 <MasterButton color={ESCALA_ESMERALDA.jade.l50} iconoDerecha={ArrowRight} onPress={salir} style={s.boton}>
-                  Comenzar
+                  {t('arranque.bienvenida.comenzar')}
                 </MasterButton>
               </View>
             )}

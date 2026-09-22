@@ -1,12 +1,12 @@
 # Adaptación multiplataforma para iOS — Diseño
 
 **Fecha:** 2026-09-22
-**Estado:** Aprobado en conversación; pendiente de revisión del documento
+**Estado:** Corregido tras revisión; pendiente de aprobación final
 **Prioridad:** Publicar una versión iOS estable con la menor reestructuración posible
 
 ## Objetivo
 
-Preparar Lestinaty para compilarse, probarse y publicarse en iPhone sin duplicar la aplicación ni alterar la UI, Senderos, hábitos o el sistema visual Skia. Android conserva todas sus funciones actuales; iOS recibe autenticación con Apple, compras y notificaciones nativas, pero no widgets en esta primera entrega. Web continúa degradando explícitamente las capacidades nativas que no tenga.
+Preparar Lestinaty para compilarse, probarse y publicarse en iPhone sin duplicar la aplicación ni alterar la UI, Senderos, hábitos o el sistema visual Skia. Android conserva todas sus funciones actuales; iOS recibe autenticación solo con email, compras y notificaciones nativas, pero no widgets ni login social en esta primera entrega. Web continúa degradando explícitamente las capacidades nativas que no tenga.
 
 ## Contexto verificado
 
@@ -19,6 +19,9 @@ Preparar Lestinaty para compilarse, probarse y publicarse en iPhone sin duplicar
 - Supabase ya acepta dispositivos `ios`, `android` y `web`, pero `reclamar_recordatorios_habitos` filtra únicamente dispositivos Android.
 - El despachador Edge de OneSignal usa subscription IDs y es neutral respecto de la plataforma.
 - La app ya contiene restauración de compras y solicitud de eliminación de cuenta dentro de Perfil.
+- El acceso por email ya cubre registro con OTP (`crearCuentaConEmail` + `verificarRegistroConOtp`), login con contraseña y recuperación con OTP (`recuperarAcceso` + `verificarRecuperacionConOtp`).
+- `acceso.servicio.ts` importa `@react-native-google-signin/google-signin` en el nivel superior y `googleSignIn.ts` configura solo `webClientId`; no existe `iosClientId` ni `iosUrlScheme`.
+- Solo existe `app.json`; `app.config.ts` debe crearse.
 - Expo Doctor pasó 17 de 21 comprobaciones. Antes del primer IPA deben resolverse la dependencia directa faltante de `expo-constants`, las versiones no alineadas con SDK 57, la instalación directa de `expo-modules-core` y la propiedad de configuración ya no aceptada.
 
 ## Alcance
@@ -26,8 +29,8 @@ Preparar Lestinaty para compilarse, probarse y publicarse en iPhone sin duplicar
 ### Incluido
 
 - Capa pequeña de adaptadores para capacidades variables.
-- Apple Sign-In nativo en iOS conectado con Supabase Auth.
-- Google Sign-In conservado donde esté configurado.
+- Acceso solo con email (registro OTP, contraseña, recuperación OTP) en iOS.
+- Google Sign-In conservado sin cambios en Android y aislado para que su SDK no se cargue en iOS ni web.
 - RevenueCat en iOS y Android con resultados explícitos y productos por plataforma.
 - OneSignal en iOS y Android, sin solicitar permiso durante el arranque.
 - Migraciones mínimas para productos IAP por plataforma y despacho de recordatorios a iOS.
@@ -39,6 +42,7 @@ Preparar Lestinaty para compilarse, probarse y publicarse en iPhone sin duplicar
 ### Excluido
 
 - WidgetKit, Live Activities o widgets de cualquier tipo en iOS.
+- Sign in with Apple y Google Sign-In en iOS. Se agregarán juntos en una entrega posterior (ver «Acceso en iOS»).
 - Duplicar `app/`, `src/` o la lógica de negocio por plataforma.
 - Crear tres aplicaciones o convertir el repositorio en monorepo.
 - Rediseñar pantallas, MasterGlass, Skia, hábitos o Senderos.
@@ -70,9 +74,8 @@ src/plataforma/
 ├── capacidades.ts
 ├── inicializarPlataforma.ts
 ├── autenticacion/
-│   ├── apple.ios.ts
-│   ├── apple.android.ts
-│   └── apple.web.ts
+│   ├── google.android.ts
+│   └── google.ts          # no-op para iOS y web
 ├── compras/
 │   ├── contrato.ts
 │   ├── cliente.native.ts
@@ -91,7 +94,7 @@ Los servicios históricos pueden reexportar temporalmente estos contratos para e
 
 ```ts
 type CapacidadesPlataforma = {
-  appleSignIn: boolean;
+  googleSignIn: boolean;
   comprasNativas: boolean;
   notificacionesPush: boolean;
   widgets: boolean;
@@ -102,7 +105,8 @@ Valores iniciales:
 
 | Capacidad | iOS | Android | Web |
 |---|---:|---:|---:|
-| Apple Sign-In | Sí | No | No |
+| Acceso por email | Sí | Sí | Sí |
+| Google Sign-In | No | Sí | No |
 | RevenueCat | Sí | Sí | No |
 | OneSignal push | Sí | Sí | No |
 | Widgets | No | Sí | No |
@@ -125,7 +129,7 @@ sesión cerrada
 └── notificaciones.olvidarIdentidad()
 ```
 
-Apple no requiere inicialización al arrancar; solo se invoca al tocar su botón.
+Google Sign-In se configura solo en Android; en iOS y web no se importa su SDK.
 
 ## Contratos y estados explícitos
 
@@ -143,27 +147,61 @@ type ResultadoCompra =
   | { estado: 'cancelada' }
   | { estado: 'pendiente' }
   | { estado: 'error'; mensajeSeguro: string };
+
+type ResultadoAccesoGoogle =
+  | { estado: 'autenticado'; usuario: UsuarioSesion }
+  | { estado: 'cancelado' }
+  | { estado: 'no_disponible'; motivo: 'plataforma' };
 ```
 
 Los errores de inicialización se registran sin bloquear la app. Los errores iniciados por el usuario —comprar, restaurar o solicitar permiso— sí producen feedback visible y traducible.
 
-## Apple Sign-In
+## Acceso en iOS
 
-La implementación usa `expo-apple-authentication` únicamente en `apple.ios.ts`:
+En iOS la primera entrega ofrece únicamente acceso por email, con los flujos que ya existen:
 
-1. Comprobar disponibilidad nativa.
-2. Solicitar nombre y correo con el botón oficial de Apple.
-3. Generar y conservar el nonce correspondiente.
-4. Obtener `identityToken`.
-5. Ejecutar `supabase.auth.signInWithIdToken({ provider: 'apple', token, nonce })`.
-6. Guardar el nombre en metadata solo si Apple lo entrega; normalmente ocurre únicamente en la primera autorización.
-7. Devolver la misma forma de `UsuarioSesion` que email y Google.
+- registro con contraseña y confirmación por OTP;
+- inicio de sesión con contraseña;
+- recuperación de acceso por OTP y nueva contraseña;
+- eliminación de cuenta desde Perfil.
 
-Una cancelación del diálogo de Apple no es un error visible. Token ausente, rechazo de Supabase o configuración inválida sí lo son.
+La guía 4.8 de App Review solo exige Sign in with Apple cuando la app ofrece un login de terceros. Sin Google en iOS, no se requiere Apple, ni su entitlement, nonce, clave `.p8` o revocación de tokens al eliminar la cuenta.
 
-`app.config.ts` habilita `ios.usesAppleSignIn`, el plugin y entitlement correspondiente. La capacidad se habilita también para `com.lestinaty.app` en Apple Developer. El botón no existe en Android ni web.
+### Aislamiento de Google Sign-In
 
-No se implementa vinculación manual de identidades en esta primera entrega. Se probarán los casos de correo compartido, correo privado relay y una cuenta existente para evitar duplicación silenciosa o pérdida de acceso.
+- `iniciarSesionConGoogle` y `GoogleSignin.configure` se mueven a `src/plataforma/autenticacion/google.android.ts`.
+- `google.android.ts` y `google.ts` exponen `iniciarSesionConGoogle(codigoReferido?): Promise<ResultadoAccesoGoogle>`. Android transforma el éxito/cancelación actuales en la unión discriminada; iOS y web devuelven `{ estado: 'no_disponible', motivo: 'plataforma' }` sin importar el SDK.
+- `acceso.servicio.ts` deja de importar `@react-native-google-signin/google-signin` en el nivel superior y reexporta desde el adaptador.
+- El build iOS no enlaza el módulo nativo. Se usa exclusivamente `expo.autolinking.ios.exclude` en `package.json`; no se crea `react-native.config.js`:
+
+```json
+{
+  "expo": {
+    "autolinking": {
+      "ios": {
+        "exclude": ["@react-native-google-signin/google-signin"]
+      }
+    }
+  }
+}
+```
+
+- La exclusión de autolinking es la responsable de retirar el pod de iOS. El config plugin actual no se usa como sustituto de esa exclusión; cualquier cambio al plugin debe conservar la configuración Android y pasar su regresión.
+- Los botones de Google en onboarding y acceso se muestran solo si `capacidades.googleSignIn` es verdadero.
+
+Android conserva Google Sign-In sin cambios de comportamiento.
+
+### Cuentas creadas con Google en Android
+
+Un usuario registrado con Google no tiene contraseña. Para entrar en iPhone usa «Recuperar acceso» con el mismo correo: el OTP de recuperación debe permitir definir una contraseña sobre la misma cuenta de Supabase. En iOS, la pantalla de acceso muestra un texto traducible del tipo «¿Te registraste con Google? Usa Recuperar acceso con tu correo».
+
+Este flujo es un gate previo a ocultar Google o excluir su módulo de iOS. Antes de cambiar la UI o autolinking se crea una cuenta Google real desechable, se cierra sesión, se completa recuperación OTP, se define contraseña, se inicia sesión por email y se compara el `auth.uid()` antes/después. También se comprueba que progreso, gemas y Horizon continúan asociados.
+
+Si la prueba no conserva el mismo `auth.uid()`, la adaptación se detiene en este punto: no se oculta Google en iOS y se redefine el alcance para implementar Google junto con Apple Sign-In o una migración de identidad segura. No se permite publicar dejando cuentas existentes sin acceso.
+
+### Entrega posterior
+
+Sign in with Apple y Google Sign-In en iOS se agregarán juntos, ya que ofrecer Google obliga a ofrecer Apple. Esa entrega incluirá `expo-apple-authentication`, nonce (SHA-256 hacia Apple, valor original hacia Supabase), `iosClientId`/`iosUrlScheme` de Google y la revocación del token de Apple al eliminar la cuenta.
 
 ## Compras con RevenueCat
 
@@ -257,8 +295,8 @@ No se actualiza a otro SDK durante esta entrega. Cada cambio de versión debe pr
 
 | Caso | Resultado esperado |
 |---|---|
-| Apple Sign-In cancelado | Cerrar el diálogo sin alerta |
-| Apple sin token | Error traducible y reintento disponible |
+| Usuario de Google intenta entrar en iOS | Texto guía hacia «Recuperar acceso» |
+| OTP inválido o expirado | Error traducible y reenvío disponible |
 | RevenueCat sin clave | Ocultar/deshabilitar compra y mostrar configuración no disponible |
 | Compra cancelada | Mantener pantalla sin error |
 | Compra pendiente | Informar que espera aprobación; no acreditar |
@@ -275,7 +313,8 @@ No se actualiza a otro SDK durante esta entrega. Cada cambio de versión debe pr
 - Tests puros de `capacidades.ts` para iOS, Android y web.
 - Tests de contratos de compras: lista, no configurada, cancelada, pendiente y error.
 - Tests de notificaciones: plataforma enviada, denegación y sincronización de identidad.
-- Tests de Apple: cancelación, token ausente, éxito y nombre disponible solo la primera vez.
+- Tests del adaptador de Google: `no_disponible` en iOS/web sin importar el SDK; comportamiento actual en Android.
+- Test de capacidades: Google Sign-In oculto en iOS y web.
 - Smoke SQL para registrar un dispositivo iOS y reclamar un recordatorio con ese dispositivo.
 - Test del webhook con productos Android/iOS y reintento del mismo evento sin duplicar gemas.
 - Regresión de restauración y cierre de sesión.
@@ -284,32 +323,35 @@ No se actualiza a otro SDK durante esta entrega. Cada cambio de versión debe pr
 
 1. `npx expo export --platform ios` y `--platform web`.
 2. Expo Doctor sin fallos relevantes.
-3. Build EAS de simulador para navegación, layout, Skia y Apple Sign-In disponible.
-4. Build TestFlight en iPhone físico para APNs, OneSignal y Apple Sign-In real.
+3. Build EAS de simulador para navegación, layout, Skia y ausencia de botones de Google.
+4. Build TestFlight en iPhone físico para APNs, OneSignal y acceso por email: registro OTP, login, recuperación y cuenta creada con Google en Android.
 5. RevenueCat Sandbox: compra, cancelación, pendiente, restauración y webhook.
 6. Build Android de regresión: Google Sign-In, compras, push, widgets y cronómetro.
 
 ## Orden de entrega
 
-1. Normalizar dependencias y configuración Expo.
-2. Crear contratos, capacidades y orquestador manteniendo reexports compatibles.
-3. Aislar widgets sin alterar Android.
-4. Implementar Apple Sign-In.
-5. Habilitar OneSignal iOS y aplicar su migración remota.
-6. Separar productos RevenueCat y adaptar webhook/cliente.
-7. Ejecutar builds, sandbox, TestFlight y regresión Android/web.
+1. Ejecutar el gate de recuperación de una cuenta Google y confirmar conservación de `auth.uid()`.
+2. Normalizar dependencias y configuración Expo.
+3. Crear contratos, capacidades y orquestador manteniendo reexports compatibles.
+4. Aislar widgets sin alterar Android.
+5. Aislar Google Sign-In en Android y ajustar la pantalla de acceso de iOS.
+6. Habilitar OneSignal iOS y aplicar su migración remota.
+7. Separar productos RevenueCat y adaptar webhook/cliente.
+8. Ejecutar builds, sandbox, TestFlight y regresión Android/web.
 
 ## Criterios de aceptación
 
 - La app genera bundle y build nativo iOS sin imports Android inválidos.
 - La UI y los efectos Skia se ven equivalentes en iPhone.
 - iOS no muestra widgets ni intenta registrar su handler.
-- Apple Sign-In crea y recupera una sesión Supabase válida.
-- Google/email continúan funcionando en sus plataformas actuales.
+- En iOS, registro, login y recuperación por email crean y recuperan una sesión Supabase válida.
+- Una cuenta creada con Google en Android puede entrar en iOS mediante recuperación y conserva su `auth.uid()`.
+- El build iOS no incluye el SDK de Google Sign-In.
+- Google y email continúan funcionando en Android.
 - RevenueCat usa la clave/producto correcto por plataforma y ninguna compra duplica gemas.
 - Restaurar compras funciona en iOS.
 - OneSignal registra `ios` y recibe un recordatorio en dispositivo físico.
 - Denegar push o cancelar login/compra no bloquea la aplicación.
 - Android conserva pagos, push, widgets y cronómetro.
 - Web exporta sin SDK nativo en el bundle.
-- Ningún secreto Apple, APNs, RevenueCat o Supabase se agrega a Git.
+- Ningún secreto APNs, RevenueCat o Supabase se agrega a Git.

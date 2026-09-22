@@ -1,0 +1,159 @@
+import React, { useEffect } from 'react';
+import { Pressable, StyleSheet, View } from 'react-native';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withSequence,
+  withSpring,
+  withTiming,
+} from 'react-native-reanimated';
+import { MasterChanger, colorMasterMasCercano } from '../../../../diseno/componentes/MasterChanger';
+import { Texto } from '../../../../diseno';
+import type { InfoCofre } from '../../datos/mapaEjercicio.mock';
+import { hapticSeguro } from '../../../../nucleo/dispositivo/haptics';
+
+// OJO: el nombre de archivo es engañoso — cofre.png es el cofre CERRADO
+// (disponible/bloqueado) y cofre-cerrado.png es el cofre ABIERTO (reclamado).
+// Verificado visualmente; no invertir esto de nuevo.
+const ASSET_CERRADO = require('../../../../../assets/ilustraciones/senderos/biomas/cofres/cofre.png');
+const ASSET_ABIERTO = require('../../../../../assets/ilustraciones/senderos/biomas/cofres/cofre-cerrado.png');
+// Hue real medido del verde de cada PNG (muestreo de píxeles, ver
+// ModalAperturaCofre.tsx) — el candado/las bisagras son doradas (~45°) y si se
+// deja que MasterChanger detecte el hue dominante automáticamente, promedia
+// verde+dorado y sale un hue contaminado (~117°) que tiñe todo mal. Con el
+// hue real fijo + soloPixelesVerdes, el dorado queda intacto y solo el cuerpo
+// verde rota al color del paquete.
+const HUE_ORIGEN_CERRADO = 150;
+const HUE_ORIGEN_ABIERTO = 155;
+
+type Props = {
+  cofre: InfoCofre;
+  color: string;
+  seleccionado: boolean;
+  onPress: () => void;
+  escalaEscena?: number;
+};
+
+export function NodoCofreSendero({ cofre, color, seleccionado, onPress, escalaEscena = 1 }: Props) {
+  const colorMaster = colorMasterMasCercano(color);
+  const escala = useSharedValue(1);
+  const rotacion = useSharedValue(0);
+
+  // Animación de rebote y sacudida suave cuando está listo para abrir
+  useEffect(() => {
+    if (cofre.estadoCofre === 'disponible') {
+      rotacion.value = withRepeat(
+        withSequence(
+          withTiming(-4, { duration: 110 }),
+          withTiming(4, { duration: 110 }),
+          withTiming(-2, { duration: 80 }),
+          withTiming(0, { duration: 80 }),
+          withTiming(0, { duration: 1600 }),
+        ),
+        -1,
+        false,
+      );
+    } else {
+      rotacion.value = 0;
+    }
+  }, [cofre.estadoCofre, rotacion]);
+
+  const animEstilo = useAnimatedStyle(() => ({
+    transform: [
+      { scale: escala.value * escalaEscena },
+      { rotate: `${rotacion.value}deg` },
+    ],
+  }));
+
+  const esBloqueado = cofre.estadoCofre === 'bloqueado';
+  const esReclamado = cofre.estadoCofre === 'reclamado';
+  const fuente = esReclamado ? ASSET_ABIERTO : ASSET_CERRADO;
+  const hueOrigenCofre = esReclamado ? HUE_ORIGEN_ABIERTO : HUE_ORIGEN_CERRADO;
+
+  return (
+    <View style={styles.raiz}>
+      <Pressable
+        accessibilityLabel={
+          esBloqueado
+            ? 'Cofre bloqueado'
+            : esReclamado
+              ? 'Cofre ya reclamado'
+              : 'Cofre disponible para reclamar'
+        }
+        accessibilityRole="button"
+        disabled={esBloqueado}
+        onPress={() => {
+          if (esBloqueado) return;
+          hapticSeguro('seleccion');
+          onPress();
+        }}
+        onPressIn={() => {
+          escala.value = withTiming(0.88, { duration: 90 });
+        }}
+        onPressOut={() => {
+          escala.value = withSpring(1, { damping: 9, stiffness: 240 });
+        }}
+        style={styles.boton}
+      >
+        <Animated.View style={[styles.shell, animEstilo]}>
+          <MasterChanger
+            alto={76}
+            ancho={76}
+            colorDestino={colorMaster}
+            fit="contain"
+            fuente={fuente}
+            hueOrigen={hueOrigenCofre}
+            oscurecido={esBloqueado ? 0.6 : undefined}
+            soloPixelesVerdes
+          />
+          {cofre.estadoCofre === 'disponible' && (
+            <View style={[styles.badgeAbrir, { backgroundColor: color }]}>
+              <Texto style={styles.badgeTexto}>¡Abrir!</Texto>
+            </View>
+          )}
+        </Animated.View>
+      </Pressable>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  raiz: {
+    alignItems: 'center',
+    height: 96,
+    width: 84,
+  },
+  boton: {
+    alignItems: 'center',
+    height: 84,
+    justifyContent: 'center',
+    position: 'absolute',
+    top: 6,
+    width: 84,
+  },
+  shell: {
+    alignItems: 'center',
+    height: 76,
+    justifyContent: 'center',
+    width: 76,
+  },
+  badgeAbrir: {
+    borderRadius: 8,
+    bottom: -6,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    position: 'absolute',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3,
+    elevation: 4,
+  },
+  badgeTexto: {
+    color: '#FFFFFF',
+    fontFamily: 'Montserrat-Bold',
+    fontSize: 9,
+    letterSpacing: 0.5,
+  },
+});

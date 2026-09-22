@@ -5,6 +5,8 @@ import { mapearPanelHabitos } from './habitos.mapper';
 import { DIAS_REQUERIDOS_POR_NIVEL } from './iconosHabitos';
 import { PAQUETE_HABITO_PREDETERMINADO, resolverPaqueteHabito } from './paqueteHabito';
 import { resumirHabitosActivos } from './resumenHabitosActivos';
+import { mapearTransicionSendero } from './senderoHabito.mapper';
+import { calcularDetalleHabitoHoy, type HabitoHoyDetalle } from './semanaProgramada';
 import type { EdicionHabito } from './gestionDetalleHabito';
 import { DetalleHabito, HabitoResumen, MejorRachaHabito, PanelHabitos, PlanHabitoResumen, ProximoNivelHabito, ResultadoRegistroHabito, TipoMetaHabito } from './tipos';
 import { ESCALA_ESMERALDA } from '../../diseno/tema/escalaEsmeralda';
@@ -54,7 +56,7 @@ export async function archivarHabito(habitoId: string): Promise<void> {
   if (error) throw error;
 }
 
-type ResultadoRegistroRemoto = { id: string; habito_id: string; fecha_local: string; valor: number; nota: string | null; subio_nivel: boolean; nivel: number; gemas_ganadas: number };
+type ResultadoRegistroRemoto = { id: string; habito_id: string; fecha_local: string; valor: number; nota: string | null; subio_nivel: boolean; nivel: number; gemas_ganadas: number; transicion_sendero: unknown };
 
 export async function registrarProgresoHabito(input: { habitoId: string; fechaLocal: string; valor: number; nota?: string | null }): Promise<ResultadoRegistroHabito> {
   const { data, error } = await obtenerClienteSupabase().rpc('registrar_progreso_habito', {
@@ -62,7 +64,17 @@ export async function registrarProgresoHabito(input: { habitoId: string; fechaLo
   });
   if (error) throw error;
   const remoto = data as ResultadoRegistroRemoto;
-  return { fechaLocal: remoto.fecha_local, gemasGanadas: Number(remoto.gemas_ganadas ?? 0), habitoId: remoto.habito_id, id: remoto.id, nivel: Number(remoto.nivel), nota: remoto.nota, subioNivel: remoto.subio_nivel, valor: Number(remoto.valor) };
+  return {
+    fechaLocal: remoto.fecha_local,
+    gemasGanadas: Number(remoto.gemas_ganadas ?? 0),
+    habitoId: remoto.habito_id,
+    id: remoto.id,
+    nivel: Number(remoto.nivel),
+    nota: remoto.nota,
+    subioNivel: remoto.subio_nivel,
+    transicionSendero: mapearTransicionSendero(remoto.transicion_sendero),
+    valor: Number(remoto.valor),
+  };
 }
 
 export type CrearHabitoInput = { titulo: string; descripcion?: string; meta: number; unidad: string; tipoMeta?: TipoMetaHabito; iconoLucide?: string; color?: string; frecuencia?: 'diaria' | 'dias_semana' | 'veces_semana'; diasSemana?: number[] | null; vecesPorSemana?: number | null; categoria?: string; dificultad?: 'minimo' | 'estandar' | 'reto'; disparador?: string; recompensa?: string; recordatorioActivo?: boolean; horaRecordatorio?: string | null; mostrarNombreNotificacion?: boolean; nivelInicial?: number; paqueteId?: string };
@@ -285,7 +297,7 @@ export async function obtenerHabitoMejorRacha(referencia = new Date()): Promise<
   return mejor;
 }
 
-export type HabitoHoyDetalle = { diasCompletadosSemana: number[]; diasProgramados: number[]; habitoId: string; nivel: number; racha: number };
+export type { HabitoHoyDetalle } from './semanaProgramada';
 
 // Nivel, racha real y qué días de ESTA semana calendario (lunes=1..domingo=7)
 // ya se cumplieron, por cada hábito activo — alimenta la tarjeta rica de
@@ -309,41 +321,16 @@ export async function obtenerDetallesHabitosHoy(referencia = new Date()): Promis
   const todosPlanes = (planes ?? []) as (FilaPlan & { habito_id: string })[];
   const todosRegistros = (registros ?? []) as { habito_id: string; fecha_local: string; valor: number }[];
 
-  const diaSemanaHoy = (referencia.getDay() + 6) % 7; // 0 = lunes ... 6 = domingo
-  const lunes = new Date(referencia);
-  lunes.setDate(lunes.getDate() - diaSemanaHoy);
-  const diasSemanaActual = Array.from({ length: 7 }, (_, indice) => { const fecha = new Date(lunes); fecha.setDate(fecha.getDate() + indice); return fecha; });
-
   return todosItems.map((item) => {
     const planesItem = todosPlanes.filter((plan) => plan.habito_id === item.id);
     const registrosItem = new Map(todosRegistros.filter((registro) => registro.habito_id === item.id).map((registro) => [registro.fecha_local, Number(registro.valor)]));
-    const planHoy = planParaFecha(planesItem, hoy);
-
-    let racha = 0;
-    for (let indice = 0; indice < VENTANA_RACHA_DIAS; indice += 1) {
-      const fecha = new Date(referencia);
-      fecha.setDate(fecha.getDate() - indice);
-      const local = fechaLocal(fecha);
-      const plan = planParaFecha(planesItem, local);
-      if (!programado(plan, local)) continue;
-      const meta = Number(plan?.objetivo_valor ?? 0);
-      if (!completo(item.tipo_meta, registrosItem.get(local) ?? 0, meta)) break;
-      racha += 1;
-    }
-
-    const diasProgramados: number[] = [];
-    const diasCompletadosSemana: number[] = [];
-    diasSemanaActual.forEach((fecha, indice) => {
-      const local = fechaLocal(fecha);
-      const plan = planParaFecha(planesItem, local);
-      if (!programado(plan, local)) return;
-      const idDia = indice + 1;
-      diasProgramados.push(idDia);
-      const meta = Number(plan?.objetivo_valor ?? 0);
-      if (completo(item.tipo_meta, registrosItem.get(local) ?? 0, meta)) diasCompletadosSemana.push(idDia);
+    return calcularDetalleHabitoHoy({
+      habitoId: item.id,
+      planes: planesItem,
+      referencia,
+      registrosPorFecha: registrosItem,
+      tipoMeta: item.tipo_meta,
     });
-
-    return { diasCompletadosSemana, diasProgramados, habitoId: item.id, nivel: Number(planHoy?.nivel ?? 1), racha };
   });
 }
 
@@ -418,3 +405,9 @@ export async function obtenerResumenPlanesHabitos(referencia = new Date()): Prom
     };
   });
 }
+
+// Los cofres de Senderos (y el resumen de las siete secciones) viven ahora en
+// senderoHabito.servicio.ts — se reexportan acá para no romper imports
+// existentes mientras Task 5 actualiza sus consumidores al contrato con ciclo.
+export type { CofreReclamadoItem } from './senderoHabito.servicio';
+export { obtenerCofresReclamadosHabito, obtenerResumenSenderoHabito, reclamarCofreSendero } from './senderoHabito.servicio';

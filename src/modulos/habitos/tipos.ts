@@ -1,3 +1,5 @@
+import type { TransicionSendero } from './senderoHabito.tipos';
+
 export const categoriasHabitos = ['hoy', 'patrones', 'conexiones', 'riesgo', 'impacto'] as const;
 
 export type CategoriaHabitosId = typeof categoriasHabitos[number];
@@ -91,5 +93,6 @@ export type ResultadoRegistroHabito = {
   nivel: number;
   nota: string | null;
   subioNivel: boolean;
+  transicionSendero: TransicionSendero | null;
   valor: number;
 };

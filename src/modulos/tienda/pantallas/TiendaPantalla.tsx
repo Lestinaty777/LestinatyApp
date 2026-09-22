@@ -1,15 +1,17 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Image, View, ScrollView } from 'react-native';
+import { ActivityIndicator, Image, View } from 'react-native';
 import type { PurchasesPackage } from 'react-native-purchases';
+import { useTranslation } from 'react-i18next';
 
-import { Boton, Pantalla, Tarjeta, Texto, PixelartIcon } from '../../../diseno';
+import { Boton, Pantalla, Tarjeta, Texto } from '../../../diseno';
 import { comprarPaqueteGemas, obtenerPaquetesGemas } from '../../../nucleo/compras/revenueCat';
 import { obtenerCatalogoGemasIap } from '../gemas.servicio';
 import type { PaqueteGemasIap } from '../gemas.tipos';
 import { CLAVE_SALDO_GEMAS, useSaldoGemas } from '../useSaldoGemas';
 
 export function TiendaPantalla() {
+  const { t } = useTranslation();
   const cliente = useQueryClient();
   const { data: saldoGemas } = useSaldoGemas();
   const consultaCatalogo = useQuery({ queryKey: ['tienda', 'catalogoGemasIap'], queryFn: obtenerCatalogoGemasIap });
@@ -26,7 +28,7 @@ export function TiendaPantalla() {
   async function comprar(paquete: PaqueteGemasIap) {
     const paqueteRevenueCat = paquetesRevenueCat.find((p) => p.product.identifier === paquete.productIdRevenueCat);
     if (!paqueteRevenueCat) {
-      setAviso('Este paquete todavía no está disponible para comprar.');
+      setAviso(t('tienda.gemas.avisoNoDisponible'));
       return;
     }
     setAviso(null);
@@ -34,12 +36,12 @@ export function TiendaPantalla() {
     try {
       const resultado = await comprarPaqueteGemas(paqueteRevenueCat);
       if (resultado.exito) {
-        setAviso('¡Compra recibida! Tus gemas llegan en unos segundos.');
+        setAviso(t('tienda.gemas.avisoExito'));
         cliente.invalidateQueries({ queryKey: CLAVE_SALDO_GEMAS });
         setTimeout(() => cliente.invalidateQueries({ queryKey: CLAVE_SALDO_GEMAS }), 4000);
       }
     } catch {
-      setAviso('No pudimos completar la compra. Inténtalo de nuevo.');
+      setAviso(t('tienda.gemas.avisoError'));
     } finally {
       setComprando(null);
     }
@@ -49,9 +51,9 @@ export function TiendaPantalla() {
     <Pantalla>
       <View style={{ alignItems: 'center', flexDirection: 'row', gap: 8, marginBottom: 8 }}>
         <Image source={require('../../../../assets/icons/hoy/gemas.png')} style={{ height: 24, resizeMode: 'contain', width: 24 }} />
-        <Texto variante="titulo">Comprar gemas</Texto>
+        <Texto variante="titulo">{t('tienda.gemas.titulo')}</Texto>
       </View>
-      <Texto variante="ayuda">Tienes {saldoGemas ?? 0} gemas.</Texto>
+      <Texto variante="ayuda">{t('tienda.gemas.saldoGemas', { saldo: saldoGemas ?? 0 })}</Texto>
 
       {aviso && <Tarjeta><Texto variante="cuerpo">{aviso}</Texto></Tarjeta>}
 
@@ -62,10 +64,10 @@ export function TiendaPantalla() {
         const precio = disponible?.product.priceString ?? (paquete.precioReferenciaUsd !== null ? `~$${paquete.precioReferenciaUsd.toFixed(2)} USD` : null);
         return (
           <Tarjeta key={paquete.id}>
-            <Texto variante="subtitulo">{paquete.cantidadGemas} gemas</Texto>
-            {precio && <Texto variante="cuerpo">{precio}{!disponible ? ' (referencia, aún no disponible)' : ''}</Texto>}
+            <Texto variante="subtitulo">{t('tienda.gemas.cantidadGemas', { cantidad: paquete.cantidadGemas })}</Texto>
+            {precio && <Texto variante="cuerpo">{precio}{!disponible ? t('tienda.gemas.precioReferencia') : ''}</Texto>}
             <Boton disabled={comprando === paquete.id || !disponible} onPress={() => void comprar(paquete)}>
-              {comprando === paquete.id ? 'Comprando…' : disponible ? 'Comprar' : 'Próximamente'}
+              {comprando === paquete.id ? t('tienda.gemas.comprando') : disponible ? t('tienda.gemas.comprar') : t('tienda.gemas.proximamente')}
             </Boton>
           </Tarjeta>
         );

@@ -11,6 +11,7 @@ import {
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, {
   Circle,
@@ -70,6 +71,9 @@ import { sincronizarSesionesCronometroPendientes } from '../../habitos/cronometr
 import { fechaLocalHoy } from '../../../nucleo/dispositivo/fechaLocal';
 import { buscarIconoHabito } from '../../habitos/iconosHabitos';
 import { obtenerAssetsPaqueteHabito } from '../../habitos/paqueteVisual.assets';
+import { resolverPaqueteHabito } from '../../habitos/paqueteHabito';
+import { ModalAperturaCofre } from '../componentes/mapa/ModalAperturaCofre';
+import type { TransicionSendero } from '../../habitos/senderoHabito.tipos';
 import { CLAVE_SALDO_GEMAS, useSaldoGemas } from '../../tienda/useSaldoGemas';
 import type { TipoMetaHabito } from '../../habitos/tipos';
 import {
@@ -226,6 +230,7 @@ function DialCircularProgreso({
 }
 
 export function SesionMisionPantalla() {
+  const { t } = useTranslation();
   const esc = useEscala();
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -258,6 +263,11 @@ export function SesionMisionPantalla() {
   const colorTema = habito?.color || params.color || C.verde;
 
   const [celebracion, setCelebracion] = useState<ResultadoCelebracion | null>(null);
+  // Cofre final de sendero (nivel 1-6 o ciclo de maestría del 7): lo paga
+  // registrar_progreso_habito en la misma transacción, así que acá solo se
+  // muestra el modal automático con las gemas ya confirmadas — reemplaza a
+  // la celebración vieja cuando hay transición.
+  const [transicionCofre, setTransicionCofre] = useState<TransicionSendero | null>(null);
 
   // Metas e interactivos
   const tipoMeta: TipoMetaHabito = habito?.tipoMeta ?? 'check';
@@ -373,6 +383,7 @@ export function SesionMisionPantalla() {
     mutationFn: registrarProgresoHabito,
     onSuccess: (resultado) => {
       cliente.invalidateQueries({ queryKey: ['habitos', 'progreso-nivel', habitoId] });
+      cliente.invalidateQueries({ queryKey: ['habitos', 'sendero-resumen', habitoId] });
       cliente.invalidateQueries({ queryKey: ['habitos', 'panel'] });
       cliente.invalidateQueries({ queryKey: ['habitos', 'detalles-hoy'] });
       cliente.invalidateQueries({ queryKey: ['habitos', 'cercania-nivel'] });
@@ -382,12 +393,16 @@ export function SesionMisionPantalla() {
       }
 
       hapticSeguro('confirmacion');
-      setCelebracion({
-        gemas: resultado.gemasGanadas,
-        nivel: resultado.nivel,
-        subioNivel: resultado.subioNivel,
-        diaNumero: diaGlobal,
-      });
+      if (resultado.transicionSendero) {
+        setTransicionCofre(resultado.transicionSendero);
+      } else {
+        setCelebracion({
+          gemas: resultado.gemasGanadas,
+          nivel: resultado.nivel,
+          subioNivel: resultado.subioNivel,
+          diaNumero: diaGlobal,
+        });
+      }
     },
     onError: () => {
       hapticSeguro('accion');
@@ -435,7 +450,7 @@ export function SesionMisionPantalla() {
           <View style={s.topBarFila}>
             <Animated.View entering={entradaEncadenada(0)}>
               <Rebote
-                accessibilityLabel="Volver al mapa"
+                accessibilityLabel={t('senderos.mision.volver')}
                 hitSlop={12}
                 onPress={() => {
                   hapticSeguro('seleccion');
@@ -454,7 +469,7 @@ export function SesionMisionPantalla() {
               <MasterGlass style={s.pillCentroGlass}>
                 <View style={[s.puntoPill, { backgroundColor: colorTema }]} />
                 <Texto style={s.pillCentroTexto}>
-                  DÍA {diaGlobal} · ETAPA {nivelActual}
+                  {t('senderos.mision.pillCentro', { dia: diaGlobal, nivel: nivelActual })}
                 </Texto>
               </MasterGlass>
             </Animated.View>
@@ -462,7 +477,7 @@ export function SesionMisionPantalla() {
             {/* Stats: Gemas y Racha */}
             <View style={s.headerDer}>
               <Animated.View entering={entradaEncadenada(2)}>
-                <Rebote accessibilityLabel="Saldo de gemas" onPress={() => router.push('/tienda/gemas')} estilo={s.statPill}>
+                <Rebote accessibilityLabel={t('senderos.mision.saldoGemas')} onPress={() => router.push('/tienda/gemas')} estilo={s.statPill}>
                   <View style={s.statPillFila}>
                     <Image source={require('../../../../assets/icons/hoy/gemas.png')} style={s.gemaIcono} />
                     <Texto style={s.statTexto}>{saldoGemas ?? 0}</Texto>
@@ -473,7 +488,7 @@ export function SesionMisionPantalla() {
               <Animated.View entering={entradaEncadenada(3)}>
                 <MasterGlass style={s.rachaPillGlass}>
                   <Flame color="#F97316" fill="#F97316" size={17} />
-                  <Texto style={s.rachaTexto}>{diasCompletados}d</Texto>
+                  <Texto style={s.rachaTexto}>{t('senderos.mision.rachaDias', { dias: diasCompletados })}</Texto>
                 </MasterGlass>
               </Animated.View>
             </View>
@@ -485,16 +500,16 @@ export function SesionMisionPantalla() {
               <View style={s.kickerFila}>
                 <MasterKicker
                   icono={<MasterIcon alTema name="hoja" size={12} />}
-                  texto="MISIÓN DIARIA DE ENFOQUE"
+                  texto={t('senderos.mision.kicker')}
                 />
               </View>
-              <Texto style={s.headerTituloPrincipal}>{habito?.titulo || 'Cargando hábito…'}</Texto>
+              <Texto style={s.headerTituloPrincipal}>{habito?.titulo || t('senderos.mision.cargandoHabito')}</Texto>
               <Texto style={s.headerSubtitulo}>
                 {tipoMeta === 'check'
-                  ? 'Realiza tu acción del día para nutrir el sendero y hacer crecer tu árbol.'
+                  ? t('senderos.mision.subtituloCheck')
                   : tipoMeta === 'cantidad'
-                  ? `Alcanza la meta de ${metaValor} ${unidad || 'veces'} para consolidar tu avance.`
-                  : `Dedica ${metaValor} minutos continuos de enfoque mental pleno.`}
+                  ? t('senderos.mision.subtituloCantidad', { meta: metaValor, unidad: unidad || t('senderos.mision.unidadVeces') })
+                  : t('senderos.mision.subtituloDuracion', { meta: metaValor })}
               </Texto>
             </Animated.View>
           </View>
@@ -589,12 +604,12 @@ export function SesionMisionPantalla() {
             <MasterGlass style={s.progresionGlass}>
               <View style={s.progresionFila}>
                 <View style={s.progresionTextoCol}>
-                  <Texto style={s.progresionKicker}>CRECIMIENTO DEL BIOMA</Texto>
-                  <Texto style={s.progresionTitulo}>Rumbo a la Etapa {nivelActual + 1}</Texto>
+                  <Texto style={s.progresionKicker}>{t('senderos.mision.crecimientoBioma')}</Texto>
+                  <Texto style={s.progresionTitulo}>{t('senderos.mision.rumboEtapa', { nivel: nivelActual + 1 })}</Texto>
                 </View>
                 <View style={[s.progresionBadge, { backgroundColor: `${colorTema}18` }]}>
                   <Texto style={[s.progresionBadgeTexto, { color: colorTema }]}>
-                    {diasCompletados} de {diasRequeridos} días
+                    {t('senderos.mision.diasProgreso', { completados: diasCompletados, requeridos: diasRequeridos })}
                   </Texto>
                 </View>
               </View>
@@ -621,9 +636,9 @@ export function SesionMisionPantalla() {
                   />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Texto style={s.bannerCheckTitulo}>Recompensa por Cumplimiento</Texto>
+                  <Texto style={s.bannerCheckTitulo}>{t('senderos.mision.recompensaTitulo')}</Texto>
                   <Texto style={s.bannerCheckSub}>
-                    Gana gemas al completar tu hábito y acelera el desarrollo de tu bioma.
+                    {t('senderos.mision.recompensaSub')}
                   </Texto>
                 </View>
               </MasterGlass>
@@ -642,7 +657,7 @@ export function SesionMisionPantalla() {
                     )
                   }
                 >
-                  ¡CUMPLIR DÍA {diaGlobal}!
+                  {t('senderos.mision.cumplirDia', { dia: diaGlobal })}
                 </MasterButton>
               </View>
             </Animated.View>
@@ -653,9 +668,12 @@ export function SesionMisionPantalla() {
             <Animated.View entering={entradaEncadenada(6)} style={s.bloqueAccion}>
               <MasterGlass style={s.tarjetaDialPro}>
                 <View style={s.dialHeader}>
-                  <Texto style={s.dialHeaderTitulo}>Progreso de Conteo</Texto>
+                  <Texto style={s.dialHeaderTitulo}>{t('senderos.mision.progresoConteo')}</Texto>
                   <Texto style={[s.dialHeaderMeta, { color: colorTema }]}>
-                    Objetivo: {metaValor} {unidad}
+                    {t('senderos.mision.objetivoConteo', {
+                      meta: metaValor,
+                      unidad: unidad || t('senderos.mision.unidadVeces'),
+                    })}
                   </Texto>
                 </View>
 
@@ -668,7 +686,7 @@ export function SesionMisionPantalla() {
                     tamano={190}
                   >
                     <Texto style={s.dialNumeroGrande}>{conteo}</Texto>
-                    <Texto style={s.dialUnidadTexto}>{unidad || 'veces'}</Texto>
+                    <Texto style={s.dialUnidadTexto}>{unidad || t('senderos.mision.unidadVeces')}</Texto>
                     <View style={[s.dialBadgePorcentaje, { backgroundColor: `${colorTema}18` }]}>
                       <Texto style={[s.dialPorcentajeTexto, { color: colorTema }]}>
                         {porcentajeConteo}%
@@ -680,7 +698,7 @@ export function SesionMisionPantalla() {
                 {/* Stepper Táctil con Botones Rebote */}
                 <View style={s.stepperFila}>
                   <Rebote
-                    accessibilityLabel="Restar"
+                    accessibilityLabel={t('senderos.mision.restar')}
                     deshabilitado={conteo <= 0 || mutacion.isPending}
                     onPress={() => {
                       hapticSeguro('seleccion');
@@ -694,11 +712,11 @@ export function SesionMisionPantalla() {
                   </Rebote>
 
                   <Texto style={s.stepperInfoTexto}>
-                    Ajusta las repeticiones completadas hoy
+                    {t('senderos.mision.ajustaRepeticiones')}
                   </Texto>
 
                   <Rebote
-                    accessibilityLabel="Sumar"
+                    accessibilityLabel={t('senderos.mision.sumar')}
                     deshabilitado={mutacion.isPending}
                     onPress={() => {
                       hapticSeguro('seleccion');
@@ -729,7 +747,10 @@ export function SesionMisionPantalla() {
                       )
                     }
                   >
-                    REGISTRAR {conteo} {unidad ? unidad.toUpperCase() : ''}
+                    {t('senderos.mision.registrarConteo', {
+                      conteo,
+                      unidad: (unidad || '').toUpperCase(),
+                    }).trim()}
                   </MasterButton>
                 </View>
               </MasterGlass>
@@ -743,7 +764,7 @@ export function SesionMisionPantalla() {
                 <View style={s.cronoHeaderFila}>
                   <View style={[s.puntoEnfoqueLive, { backgroundColor: corriendo ? C.verde : '#94A3B8' }]} />
                   <Texto style={s.cronoEstadoTexto}>
-                    {corriendo ? 'SESIÓN DE ENFOQUE ACTIVA' : 'TEMPORIZADOR EN PAUSA'}
+                    {corriendo ? t('senderos.mision.cronoActivo') : t('senderos.mision.cronoPausa')}
                   </Texto>
                 </View>
 
@@ -759,7 +780,7 @@ export function SesionMisionPantalla() {
                       {textoTiempo}
                     </Texto>
                     <Texto style={s.cronoMetaSub}>
-                      Meta: {metaValor} min · {Math.round((segundos / 60) * 10) / 10}m
+                      {t('senderos.mision.cronoMeta', { meta: metaValor, minutos: Math.round((segundos / 60) * 10) / 10 })}
                     </Texto>
                   </DialCircularProgreso>
                 </View>
@@ -767,7 +788,7 @@ export function SesionMisionPantalla() {
                 {/* Controles Play/Pausa/Reset */}
                 <View style={s.cronoBotonera}>
                   <Rebote
-                    accessibilityLabel="Reiniciar tiempo"
+                    accessibilityLabel={t('senderos.mision.reiniciarTiempo')}
                     deshabilitado={segundos === 0 || mutacion.isPending}
                     onPress={() => {
                       hapticSeguro('seleccion');
@@ -784,7 +805,7 @@ export function SesionMisionPantalla() {
                   </Rebote>
 
                   <Rebote
-                    accessibilityLabel={corriendo ? 'Pausar sesión' : 'Comenzar sesión'}
+                    accessibilityLabel={corriendo ? t('senderos.mision.pausarSesion') : t('senderos.mision.comenzarSesion')}
                     deshabilitado={mutacion.isPending}
                     onPress={() => {
                       hapticSeguro('accion');
@@ -839,7 +860,7 @@ export function SesionMisionPantalla() {
                       )
                     }
                   >
-                    TERMINAR Y GUARDAR ({Math.max(1, Math.round(segundos / 60))} MIN)
+                    {t('senderos.mision.terminarGuardar', { minutos: Math.max(1, Math.round(segundos / 60)) })}
                   </MasterButton>
                 </View>
               </MasterGlass>
@@ -874,17 +895,17 @@ export function SesionMisionPantalla() {
                 <Trophy color={colorTema} size={44} strokeWidth={2.4} />
               </View>
 
-              <Texto style={[s.victoriaKicker, { color: colorTema }]}>¡MISIÓN SUPERADA!</Texto>
+              <Texto style={[s.victoriaKicker, { color: colorTema }]}>{t('senderos.mision.victoriaKicker')}</Texto>
               <Texto style={s.victoriaTitulo}>
                 {celebracion.subioNivel
-                  ? `¡Subiste a la Etapa ${celebracion.nivel}!`
-                  : `Día ${celebracion.diaNumero} Completado`}
+                  ? t('senderos.mision.victoriaSubioNivel', { nivel: celebracion.nivel })
+                  : t('senderos.mision.victoriaDiaCompletado', { dia: celebracion.diaNumero })}
               </Texto>
 
               <Texto style={s.victoriaDescripcion}>
                 {celebracion.subioNivel
-                  ? '¡Tu constancia ha desbloqueado una nueva forma en el crecimiento de tu árbol!'
-                  : 'Excelente trabajo. Tu hábito se mantiene firme y nutrido para el sendero.'}
+                  ? t('senderos.mision.victoriaDescSubio')
+                  : t('senderos.mision.victoriaDescDia')}
               </Texto>
 
               {celebracion.gemas > 0 && (
@@ -894,7 +915,7 @@ export function SesionMisionPantalla() {
                     source={require('../../../../assets/icons/hoy/gemas.png')}
                     style={s.recompensaGemaIcono}
                   />
-                  <Texto style={s.recompensaTexto}>+{celebracion.gemas} Gemas Ganadas</Texto>
+                  <Texto style={s.recompensaTexto}>{t('senderos.mision.gemasGanadas', { gemas: celebracion.gemas })}</Texto>
                 </View>
               )}
 
@@ -906,12 +927,26 @@ export function SesionMisionPantalla() {
                 }}
                 style={s.botonVictoriaContinuar}
               >
-                CONTINUAR AL SENDERO
+                {t('senderos.mision.continuarSendero')}
               </MasterButton>
             </MasterGlass>
           </Animated.View>
         </Animated.View>
       )}
+
+      <ModalAperturaCofre
+        cofre={null}
+        color={colorTema}
+        gemasAcreditadas={transicionCofre?.gemas}
+        modo="automatico"
+        onCerrar={() => setTransicionCofre(null)}
+        onFinalizarAutomatico={() => {
+          setTransicionCofre(null);
+          router.back();
+        }}
+        paqueteId={resolverPaqueteHabito(habito?.paqueteId)}
+        visible={transicionCofre !== null}
+      />
     </LinearGradient>
   );
 }

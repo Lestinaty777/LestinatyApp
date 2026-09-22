@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { ChevronRight, Check, EllipsisVertical, Play, Sparkles } from 'lucide-react-native';
+import { ChevronRight, Check, LayoutList, PanelsTopLeft, Play, Sparkles } from 'lucide-react-native';
 import { Image, Linking, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useEffect, useState } from 'react';
@@ -46,6 +46,7 @@ const ALTO_TARJETA_HABITO = 490;
 const MARGEN_SUPERIOR_TARJETA_HABITO = 12;
 
 type VistaPanel = 'hoy' | 'progresion' | 'recordatorios';
+type VistaHoy = 'sendero' | 'cards';
 const ICONOS_VISTA_PANEL: Record<VistaPanel, string> = { hoy: 'sol', progresion: 'progreso', recordatorios: 'reloj' };
 const HISTORIAL_VACIO: boolean[] = Array(28).fill(false);
 const crearTemaTONOS_RACHA = (esc: EscalaMaster) => ([esc.hoja.l67, esc.hoja.l67, esc.hoja.l61, esc.hoja.l61, esc.hoja.l61, esc.hoja.l56, esc.jade.l49]);
@@ -99,17 +100,25 @@ export function HabitosPantalla() {
   }, [abrirCreacion, cliente, router]);
   const [detalleHabitoId, setDetalleHabitoId] = useState<string | null>(null);
   const [vistaPanel, setVistaPanel] = useState<VistaPanel>('hoy');
+  const [vistaHoy, setVistaHoy] = useState<VistaHoy>('sendero');
   const [registrandoId, setRegistrandoId] = useState<string | null>(null);
   const [mostrarPistaSwipe, setMostrarPistaSwipe] = useState(false);
   const consulta = useQuery({ queryKey: ['habitos', 'panel'], queryFn: () => obtenerPanelHabitos() });
   const consultaCercania = useQuery({ queryKey: ['habitos', 'cercania-nivel'], queryFn: () => obtenerHabitoMasCercaDeNivel() });
   const consultaMejorRacha = useQuery({ queryKey: ['habitos', 'mejor-racha'], queryFn: () => obtenerHabitoMejorRacha() });
   const consultaPlanes = useQuery({ queryKey: ['habitos', 'planes-resumen'], queryFn: () => obtenerResumenPlanesHabitos(), enabled: vistaPanel === 'recordatorios' });
-  const consultaHabitosActivos = useQuery({ queryKey: ['habitos', 'activos'], queryFn: () => obtenerHabitosActivos(), enabled: vistaPanel === 'progresion' });
-  const consultaDetallesHoy = useQuery({ queryKey: ['habitos', 'detalles-hoy'], queryFn: () => obtenerDetallesHabitosHoy(), enabled: vistaPanel === 'progresion' });
+  // La vista alternativa de Hoy necesita el paquete real de cada semilla para
+  // darle su tono propio. La timeline conserva su tema global y no consulta esto.
+  const consultaHabitosActivos = useQuery({ queryKey: ['habitos', 'activos'], queryFn: () => obtenerHabitosActivos(), enabled: vistaPanel === 'progresion' || (vistaPanel === 'hoy' && vistaHoy === 'cards') });
+  const consultaDetallesHoy = useQuery({ queryKey: ['habitos', 'detalles-hoy'], queryFn: () => obtenerDetallesHabitosHoy(), enabled: vistaPanel !== 'recordatorios' });
   const crear = useMutation({ mutationFn: crearHabito });
   const registrar = useMutation({ mutationFn: registrarProgresoHabito });
   const habitos = consulta.data?.hoy.datos ?? [];
+  const tonosPorHabito = new Map((consultaHabitosActivos.data ?? []).map((habito) => [habito.id, habito]));
+  const habitosConTonoDeSemilla = habitos.map((habito) => {
+    const habitoActivo = tonosPorHabito.get(habito.id);
+    return habitoActivo ? { ...habito, colorPaquete: habitoActivo.colorPaquete, paqueteId: habitoActivo.paqueteId } : habito;
+  });
   const completados = habitos.filter((habito) => habito.completado).length;
   const porcentaje = habitos.length ? Math.round(completados * 100 / habitos.length) : 0;
   const detallesPorHabito = new Map((consultaDetallesHoy.data ?? []).map((detalle) => [detalle.habitoId, detalle]));
@@ -147,6 +156,8 @@ export function HabitosPantalla() {
   }
 
   async function registrarHabito(habito: HabitoResumen) {
+    const detalle = detallesPorHabito.get(habito.id);
+    if (!detalle?.programadoHoy) return;
     setRegistrandoId(habito.id);
     hapticSeguro('confirmacion');
     try {
@@ -261,14 +272,14 @@ export function HabitosPantalla() {
             en vez de reemplazarse de golpe (crossfade barato vía remount). */}
         <Animated.View entering={FadeIn.duration(420)} exiting={FadeOut.duration(260)} key={vistaPanel}>
         {vistaPanel === 'hoy' ? (
-          <EncabezadoHoy completados={completados} porcentaje={porcentaje} total={habitos.length} />
+          <EncabezadoHoy completados={completados} onCambiarVista={() => setVistaHoy((vista) => vista === 'sendero' ? 'cards' : 'sendero')} porcentaje={porcentaje} total={habitos.length} vista={vistaHoy} />
         ) : (
           <View style={s.tituloFila}><View style={s.tituloConIcono}><MasterIcon alTema name={ICONOS_VISTA_PANEL[vistaPanel]} size={22} /><Texto style={s.titulo}>{vistaPanel === 'progresion' ? t('habitos.pantalla.viewProgress') : t('habitos.pantalla.viewReminders')}</Texto></View></View>
         )}
         {vistaPanel === 'hoy' && <>
           {consulta.isLoading && <EsqueletoTimelineHoy />}
           {consulta.isError && <Pressable onPress={() => consulta.refetch()}><Texto style={s.error}>{t('habitos.pantalla.loadError')}</Texto>{__DEV__ && <Texto style={s.errorDetalle}>{consulta.error instanceof Error ? consulta.error.message : String(consulta.error)}</Texto>}</Pressable>}
-          {!consulta.isLoading && !consulta.isError && <TimelineHabitosHoy habitos={habitos} mostrarPistaSwipe={mostrarPistaSwipe} onDetalle={(id) => setDetalleHabitoId(id)} onSendero={(habito) => router.push({ pathname: '/senderos', params: { habitoId: habito.id } })} onSwipeDescubierto={marcarSwipeDescubierto} />}
+          {!consulta.isLoading && !consulta.isError && (vistaHoy === 'sendero' ? <TimelineHabitosHoy habitos={habitos} mostrarPistaSwipe={mostrarPistaSwipe} onDetalle={(id) => setDetalleHabitoId(id)} onSendero={(habito) => router.push({ pathname: '/senderos', params: { habitoId: habito.id } })} onSwipeDescubierto={marcarSwipeDescubierto} /> : consultaHabitosActivos.isLoading ? <EsqueletoTimelineHoy /> : <CardsHabitosHoy detallesPorHabito={detallesPorHabito} habitos={habitosConTonoDeSemilla} mostrarPistaSwipe={mostrarPistaSwipe} onDetalle={(id) => setDetalleHabitoId(id)} onSendero={(habito) => router.push({ pathname: '/senderos', params: { habitoId: habito.id } })} onSwipeDescubierto={marcarSwipeDescubierto} />)}
         </>}
         {vistaPanel === 'progresion' && (
           consultaDetallesHoy.isLoading || consultaHabitosActivos.isLoading ? <CarruselEsqueleto /> : (
@@ -354,6 +365,7 @@ function TarjetaHabito({ detalle, habito, onDetalle, onRegistrar, registrando }:
   const icono = buscarIconoHabito(habito.iconoLucide);
   const assets = obtenerAssetsPaqueteHabito(habito.paqueteId, detalle?.nivel ?? 1);
   const metaEtiqueta = `${habito.meta} ${habito.tipoMeta === 'duracion' ? t('habitos.pantalla.durationUnit') : habito.unidad || t('habitos.pantalla.defaultUnit')}`;
+  const puedeRegistrarHoy = Boolean(detalle?.programadoHoy);
   const ctaTexto = habito.completado ? t('habitos.pantalla.completedViewTrail') : t('habitos.pantalla.start');
   return <TonoDelHabito colorPaquete={habito.colorPaquete} paqueteId={habito.paqueteId}><Pressable onPress={onDetalle} style={s.tarjetaHabito}>
     <View style={s.tarjetaHabitoContenido}>
@@ -361,14 +373,16 @@ function TarjetaHabito({ detalle, habito, onDetalle, onRegistrar, registrando }:
         assets={assets}
         cargando={registrando}
         ctaTexto={ctaTexto}
-      diasCompletados={detalle?.diasCompletadosSemana ?? []}
-      diasProgramados={detalle?.diasProgramados ?? DIAS_SEMANA_COMPLETA}
-      escalaArbol={0.7}
-      icono={icono ?? buscarIconoHabito('idea')!}
+        deshabilitado={!puedeRegistrarHoy}
+        diasCompletados={detalle?.diasCompletadosSemana ?? []}
+        diasProgramados={detalle?.diasProgramados ?? DIAS_SEMANA_COMPLETA}
+        escalaArbol={0.7}
+        icono={icono ?? buscarIconoHabito('idea')!}
         meta={habito.meta}
         metaEtiqueta={metaEtiqueta}
         nivel={detalle?.nivel ?? 1}
-        onPressCta={onRegistrar}
+        onPressCta={puedeRegistrarHoy ? onRegistrar : undefined}
+        puedeRegistrarHoy={puedeRegistrarHoy}
         racha={detalle?.racha ?? 0}
         titulo={habito.titulo}
         valorHoy={habito.valorHoy}
@@ -399,7 +413,7 @@ function EstadoVacio({ texto, titulo }: { texto: string; titulo?: string }) {
 // Encabezado del panel "Hoy": el arbusto del paquete del tema activo (antes una
 // bandera) + contador + barra de progreso real + tagline. El "⋮" es solo decorativo por ahora (no navega a
 // nada), a propósito no es un Pressable para no fingir que hace algo.
-function EncabezadoHoy({ completados, porcentaje, total }: { completados: number; porcentaje: number; total: number }) {
+function EncabezadoHoy({ completados, onCambiarVista, porcentaje, total, vista }: { completados: number; onCambiarVista: () => void; porcentaje: number; total: number; vista: VistaHoy }) {
   const esc = useEscala();
   const tema = useAssetsPaqueteTema();
   const s = useEstilosS();
@@ -417,7 +431,9 @@ function EncabezadoHoy({ completados, porcentaje, total }: { completados: number
             <Texto style={s.encabezadoHoyPorcentaje}>{porcentaje}%</Texto>
           </View>
         </View>
-        <View style={s.encabezadoHoyMenu}><EllipsisVertical color={esc.musgo.l49} size={18} /></View>
+        <Pressable accessibilityLabel={vista === 'sendero' ? t('habitos.pantalla.todayViewCards') : t('habitos.pantalla.todayViewTimeline')} onPress={onCambiarVista} style={s.encabezadoHoyMenu}>
+          {vista === 'sendero' ? <PanelsTopLeft color={esc.musgo.l49} size={17} /> : <LayoutList color={esc.musgo.l49} size={18} />}
+        </Pressable>
       </View>
     </View>
   );
@@ -571,6 +587,106 @@ function TimelineHabitosHoy({ habitos, mostrarPistaSwipe, onDetalle, onSendero, 
     </View>
   );
 }
+
+function CardsHabitosHoy({ detallesPorHabito, habitos, mostrarPistaSwipe, onDetalle, onSendero, onSwipeDescubierto }: { detallesPorHabito: Map<string, HabitoHoyDetalle>; habitos: HabitoResumen[]; mostrarPistaSwipe: boolean; onDetalle: (id: string) => void; onSendero: (habito: HabitoResumen) => void; onSwipeDescubierto: () => void }) {
+  const { t } = useTranslation();
+  if (habitos.length === 0) return <EstadoVacio titulo={t('habitos.pantalla.noTodayHabitsTitle')} texto={t('habitos.pantalla.noTodayHabitsDescription')} />;
+  return <View style={{ gap: 12 }}>
+    {mostrarPistaSwipe && <PistaSwipeBanner onContinuar={onSwipeDescubierto} />}
+    {habitos.map((habito, indice) => <CardHabitoHoy detalle={detallesPorHabito.get(habito.id)} habito={habito} key={habito.id} mostrarPista={mostrarPistaSwipe && indice === 0} onDetalle={() => onDetalle(habito.id)} onSendero={() => onSendero(habito)} onSwipeDescubierto={onSwipeDescubierto} />)}
+  </View>;
+}
+
+function CardHabitoHoy(props: { detalle: HabitoHoyDetalle | undefined; habito: HabitoResumen; mostrarPista: boolean; onDetalle: () => void; onSendero: () => void; onSwipeDescubierto: () => void }) {
+  return <TonoDelHabito colorPaquete={props.habito.colorPaquete} paqueteId={props.habito.paqueteId}>
+    <ContenidoCardHabitoHoy {...props} />
+  </TonoDelHabito>;
+}
+
+function ContenidoCardHabitoHoy({ detalle, habito, mostrarPista, onDetalle, onSendero, onSwipeDescubierto }: { detalle: HabitoHoyDetalle | undefined; habito: HabitoResumen; mostrarPista: boolean; onDetalle: () => void; onSendero: () => void; onSwipeDescubierto: () => void }) {
+  const esc = useEscala();
+  const s = useEstilosS();
+  const { t } = useTranslation();
+  const icono = buscarIconoHabito(habito.iconoLucide);
+  const assets = obtenerAssetsPaqueteHabito(habito.paqueteId, detalle?.nivel ?? 1);
+  const metaEtiqueta = `${habito.meta} ${habito.tipoMeta === 'duracion' ? t('habitos.pantalla.durationUnit') : habito.unidad || t('habitos.pantalla.defaultUnit')}`;
+  const [anchoFila, setAnchoFila] = useState(0);
+  const translateX = useSharedValue(0);
+  const distanciaMeta = Math.max(60, anchoFila - MARGEN_SWIPE);
+
+  useEffect(() => {
+    if (!mostrarPista || anchoFila === 0) return;
+    const id = setTimeout(() => {
+      translateX.value = withRepeat(
+        withSequence(
+          withTiming(18, { duration: 260, easing: Easing.out(Easing.quad) }),
+          withTiming(0, { duration: 260, easing: Easing.in(Easing.quad) }),
+          withDelay(700, withTiming(0, { duration: 1 })),
+        ),
+        -1,
+      );
+    }, 700);
+    return () => { clearTimeout(id); translateX.value = withTiming(0, { duration: 180 }); };
+  }, [anchoFila, mostrarPista, translateX]);
+
+  const gestoSwipe = Gesture.Pan()
+    .onUpdate((evento) => {
+      translateX.value = Math.max(0, Math.min(distanciaMeta, evento.translationX));
+    })
+    .onEnd(() => {
+      if (translateX.value > distanciaMeta * UMBRAL_SWIPE_FRACCION) {
+        translateX.value = withTiming(distanciaMeta, { duration: 140 });
+        runOnJS(hapticSeguro)('confirmacion');
+        runOnJS(onSwipeDescubierto)();
+        runOnJS(onSendero)();
+      } else {
+        translateX.value = withSpring(0, { damping: 15, stiffness: 220 });
+      }
+    });
+
+  const estiloIconoAnimado = useAnimatedStyle(() => ({ transform: [{ translateX: translateX.value }] }));
+  const estiloRelleno = useAnimatedStyle(() => ({ width: Math.max(0, translateX.value + 30) }));
+  const estiloTexto = useAnimatedStyle(() => ({ opacity: 1 - Math.min(1, Math.max(0, (translateX.value - 8) / 55)) }));
+
+  return (
+    /* El Pressable es el contenedor de posición relativa, igual que filaHoyTarjetaContenedor en el timeline. */
+    <Pressable onLayout={(evento) => setAnchoFila(evento.nativeEvent.layout.width)} onPress={onDetalle} style={s.cardHoyContenedor}>
+        <MasterGlass style={s.cardHoy}>
+          {/* Ilustración del árbol/nivel: una columna propia, sin competir con el texto. */}
+          <View style={s.cardHoyIlustracion}>
+            <Image resizeMode="contain" source={assets.arbolPrincipal} style={s.cardHoyIlustracionImg} />
+          </View>
+          {/* Contenido derecho: cabecera legible y pista de sendero separada. */}
+          <View style={s.cardHoyContenido}>
+            <Animated.View style={[s.cardHoyCabecera, estiloTexto]}>
+              <MasterIconBg fuente={icono?.fuente} size={34}>{!icono && <Sparkles color={esc.jade.l34} size={15} />}</MasterIconBg>
+              <Texto numberOfLines={1} style={s.cardHoyTitulo}>{habito.titulo}</Texto>
+              <Texto numberOfLines={1} style={[s.cardHoyMeta, { color: esc.jade.l34 }]}>{metaEtiqueta}</Texto>
+            </Animated.View>
+            <View style={[s.cardHoySwipe, { backgroundColor: conAlfa(esc.jade.l34, 0.10) }]}>
+              <Animated.View pointerEvents="none" style={[s.filaHoyRelleno, { backgroundColor: esc.jade.l36 }, estiloRelleno]} />
+              {FRACCIONES_PARTICULAS_SWIPE.map((fraccion, indice) => (
+                <ParticulaSwipe distanciaMeta={distanciaMeta} fraccion={fraccion} indice={indice} key={fraccion} translateX={translateX} />
+              ))}
+              <Animated.View style={[{ flex: 1 }, estiloTexto]}>
+                <Texto style={s.cardHoyInstruccion}>{t('habitos.pantalla.goToTrail')}</Texto>
+              </Animated.View>
+              <Rebote accessibilityLabel={t('habitos.pantalla.goToTrail')} hitSlop={8} onPress={onSendero}>
+                <MasterGlass style={s.filaHoyChevron}><ChevronRight color={esc.jade.l34} size={16} /></MasterGlass>
+              </Rebote>
+            </View>
+          </View>
+        </MasterGlass>
+        {/* El tirador vive solo en la pista inferior: nunca invade la cabecera. */}
+        <GestureDetector gesture={gestoSwipe}>
+          <Animated.View style={[s.cardHoyIconoArrastre, estiloIconoAnimado]}>
+            <MasterIconBg size={36}><ChevronRight color={esc.jade.l34} size={16} strokeWidth={2.5} /></MasterIconBg>
+          </Animated.View>
+        </GestureDetector>
+    </Pressable>
+  );
+}
+
 function EsqueletoTimelineHoy() {
   return <View style={{ gap: 14 }}>{[0, 1, 2].map((indice) => (
     <View key={indice} style={{ alignItems: 'center', flexDirection: 'row', gap: 12 }}>
@@ -606,12 +722,7 @@ const crearEstilosS = (esc: EscalaMaster) => StyleSheet.create({ raiz: { flex: 1
   accesoEtiqueta: { color: C.texto, fontFamily: 'MontserratAlternates-Bold', fontSize: 9, lineHeight: 11, textAlign: 'center' },
   accesoDescripcion: { color: C.tenue, fontFamily: 'Montserrat-Medium', fontSize: 8, lineHeight: 10, marginTop: 1, textAlign: 'center' },
   horizonAcceso: { marginBottom: 16, marginHorizontal: 20 }, horizonAccesoPresionado: { opacity: 0.82, transform: [{ scale: 0.985 }] }, horizonAccesoDeshabilitado: { opacity: 0.62 }, horizonGlass: { alignItems: 'center', borderRadius: 18, flexDirection: 'row', gap: 11, padding: 12 }, horizonIcono: { alignItems: 'center', backgroundColor: conAlfa(esc.hoja.l56, .13), borderRadius: 13, height: 42, justifyContent: 'center', width: 42 }, horizonTexto: { flex: 1 }, horizonTitulo: { color: esc.jade.l34a, fontFamily: 'MontserratAlternates-Bold', fontSize: 14 }, horizonDescripcion: { color: esc.musgo.l51, fontFamily: 'Montserrat-Medium', fontSize: 11, marginTop: 2 },
-  cercaniaTarjeta: { marginBottom: 16, marginHorizontal: 20 },
-  cercaniaGlass: { alignItems: 'center', borderRadius: 18, flexDirection: 'row', gap: 11, padding: 12 },
-  cercaniaIcono: { alignItems: 'center', backgroundColor: conAlfa(esc.jade.l70, 0.14), borderRadius: 13, height: 42, justifyContent: 'center', width: 42 },
-  cercaniaLabel: { color: C.tenue, fontFamily: 'Montserrat-Medium', fontSize: 9, textTransform: 'uppercase', letterSpacing: 0.5 },
-  cercaniaTitulo: { color: C.texto, fontFamily: 'MontserratAlternates-Bold', fontSize: 13, marginTop: 2 },
-  cercaniaPorcentaje: { color: C.verde, fontFamily: 'MontserratAlternates-Bold', fontSize: 16 },
+  cercaniaTarjeta: { marginBottom: 16, marginHorizontal: 20 }, cercaniaGlass: { alignItems: 'center', borderRadius: 18, flexDirection: 'row', gap: 11, padding: 12 }, cercaniaIcono: { alignItems: 'center', backgroundColor: conAlfa(esc.jade.l70, 0.14), borderRadius: 13, height: 42, justifyContent: 'center', width: 42 }, cercaniaLabel: { color: C.tenue, fontFamily: 'Montserrat-Medium', fontSize: 9, textTransform: 'uppercase', letterSpacing: 0.5 }, cercaniaTitulo: { color: C.texto, fontFamily: 'MontserratAlternates-Bold', fontSize: 13, marginTop: 2 }, cercaniaPorcentaje: { color: C.verde, fontFamily: 'MontserratAlternates-Bold', fontSize: 16 },
   panel: { borderRadius: 22, marginHorizontal: 20, padding: 15 }, tituloFila: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }, tituloConIcono: { alignItems: 'center', flexDirection: 'row', gap: 7 }, titulo: { color: C.texto, fontFamily: 'MontserratAlternates-Bold', fontSize: 22 }, contador: { color: C.tenue, fontFamily: 'MontserratAlternates-Bold', fontSize: 12 }, error: { color: '#DC2626', fontFamily: 'Montserrat-Medium', paddingVertical: 18, textAlign: 'center' }, errorDetalle: { color: '#DC2626', fontFamily: 'Montserrat-Medium', fontSize: 11, opacity: 0.7, paddingBottom: 10, textAlign: 'center' }, vacio: { alignItems: 'center', paddingHorizontal: 22, paddingVertical: 28 }, iconoVacio: { marginBottom: 6 }, vacioTitulo: { color: C.texto, fontFamily: 'MontserratAlternates-Bold', fontSize: 16, textAlign: 'center' }, vacioTexto: { color: C.tenue, fontFamily: 'Montserrat-Medium', fontSize: 13, lineHeight: 18, marginTop: 6, textAlign: 'center' },
   carruselHabitos: { marginHorizontal: -15 },
   carruselHabitosContenido: { gap: 12, paddingHorizontal: 15 },
@@ -630,6 +741,18 @@ const crearEstilosS = (esc: EscalaMaster) => StyleSheet.create({ raiz: { flex: 1
   filaHoyIconoFlotante: { left: 6, marginTop: -24, position: 'absolute', top: '50%', zIndex: 2 },
   filaHoyRelleno: { backgroundColor: esc.jade.l36, bottom: 0, left: 0, position: 'absolute', top: 0 },
   filaHoyParticula: { backgroundColor: '#FFFFFF', borderRadius: 3, height: 6, marginTop: -3, position: 'absolute', top: '50%', width: 6 },
+  cardHoyContenedor: { minHeight: 132, position: 'relative' },
+  cardHoy: { alignItems: 'stretch', borderRadius: 20, flexDirection: 'row', gap: 12, minHeight: 132, overflow: 'hidden', padding: 10 },
+  cardHoyIlustracion: { alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.22)', borderRadius: 16, height: 112, justifyContent: 'center', width: 96 },
+  cardHoyIlustracionImg: { height: 118, width: 118 },
+  cardHoyContenido: { flex: 1, justifyContent: 'space-between', minHeight: 112, paddingVertical: 2, zIndex: 2 },
+  cardHoyCabecera: { alignItems: 'center', flexDirection: 'row', gap: 7, minHeight: 48, paddingRight: 2 },
+  cardHoyTitulo: { color: esc.hoja.l19, flex: 1, fontFamily: 'MontserratAlternates-Bold', fontSize: 15, lineHeight: 18 },
+  cardHoyMeta: { color: esc.musgo.l49, fontFamily: 'Montserrat-Bold', fontSize: 10, maxWidth: 70, textAlign: 'right' },
+  cardHoySwipe: { alignItems: 'center', backgroundColor: conAlfa(esc.jade.l34, 0.07), borderRadius: 12, flexDirection: 'row', height: 44, overflow: 'hidden', paddingLeft: 48, paddingRight: 5 },
+  cardHoyInstruccion: { color: esc.musgo.l49, flex: 1, fontFamily: 'Montserrat-Medium', fontSize: 10, lineHeight: 13, paddingRight: 6 },
+  // padding(10) + ilustración(96) + gap(12) + 4: centrado en el inicio de la pista inferior.
+  cardHoyIconoArrastre: { alignItems: 'center', bottom: 14, justifyContent: 'center', left: 122, position: 'absolute', zIndex: 3 },
   pistaSwipeBanner: { alignItems: 'center', borderRadius: 16, flexDirection: 'row', gap: 10, marginBottom: 12, padding: 10 },
   pistaSwipeIcono: { alignItems: 'center', backgroundColor: conAlfa(esc.jade.l34, .12), borderRadius: 15, height: 30, justifyContent: 'center', width: 30 },
   pistaSwipeTitulo: { color: esc.jade.l34, fontFamily: 'Montserrat-Bold', fontSize: 12 },

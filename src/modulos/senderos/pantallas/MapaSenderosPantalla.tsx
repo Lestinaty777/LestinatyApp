@@ -20,6 +20,7 @@ import { TarjetaHabitoCompacta } from '../../habitos/componentes/TarjetaHabitoCo
 import { TonoDelHabito } from '../../habitos/componentes/TonoDelHabito';
 import { WidgetRegistrarProgreso } from '../../habitos/componentes/WidgetRegistrarProgreso';
 import { useSenderoHabito } from '../../habitos/hooks/useSenderoHabito';
+import { CarruselNivelesSendero } from '../componentes/niveles/CarruselNivelesSendero';
 import { buscarIconoHabito, diasAcumuladosAntesDeNivel } from '../../habitos/iconosHabitos';
 import { obtenerDetallesHabitosHoy, obtenerHabitosActivos } from '../../habitos/habitos.servicio';
 import { EstadoVacioSenderos } from '../componentes/EstadoVacioSenderos';
@@ -149,11 +150,12 @@ export function MapaSenderosPantalla() {
   }, [ASIGNATURAS, asignatura]);
 
   const idHabitoSeleccionado = asignatura?.habitoReal?.id;
-  const sendero = useSenderoHabito(idHabitoSeleccionado);
+  const [nivelSeleccionado, setNivelSeleccionado] = React.useState<number | undefined>(undefined);
+  React.useEffect(() => { setNivelSeleccionado(undefined); }, [idHabitoSeleccionado]);
+  const sendero = useSenderoHabito(idHabitoSeleccionado, nivelSeleccionado);
   const esPruebaDiamante = sendero.consulta.data?.habito.paqueteId === 'diamante'
     && sendero.consulta.data.habito.titulo.trim().toLocaleLowerCase('es') === 'prueba diamante';
-  const nivelReal = sendero.consulta.data?.nivel ?? 1;
-  const nivelVisible = esPruebaDiamante ? nivelVistaPrueba : nivelReal;
+  const nivelVisible = esPruebaDiamante ? nivelVistaPrueba : sendero.nivelVisible;
   const mapaNivelVisible = MAPAS_NIVELES[nivelVisible - 1] ?? MAPAS_NIVELES[0];
   const nodosPruebaDiamante = React.useMemo(() => {
     const diaInicial = diasAcumuladosAntesDeNivel(nivelVisible);
@@ -433,9 +435,7 @@ export function MapaSenderosPantalla() {
           const nodosPrevios = MAPAS_NIVELES.slice(0, nivelVisible - 1).reduce((total, mapa) => total + mapa.cantidadNodos, 0);
           const nodosNivelCompletados = esPruebaDiamante
             ? mapaNivelVisible.cantidadNodos
-            : sendero.esNivelMaximo
-              ? mapaNivelVisible.cantidadNodos
-              : Math.min(sendero.consulta.data?.diasCompletados ?? 0, mapaNivelVisible.cantidadNodos);
+            : Math.min(sendero.seccionVisible?.diasCompletados ?? 0, mapaNivelVisible.cantidadNodos);
           const porcentajeProgresion = Math.round(Math.min(100, ((nodosPrevios + nodosNivelCompletados) / TOTAL_NODOS_PROGRESION) * 100));
           const insigniaNivel = buscarIconoHabito(`nivel${nivelVisible}`)?.fuente;
           return (
@@ -521,19 +521,28 @@ export function MapaSenderosPantalla() {
           );
         })()}
 
+        {/* Carrusel de niveles — una sola sección seleccionable por vez, nunca 7 mapas montados */}
+        {asignatura?.habitoReal && sendero.consulta.data && sendero.resumen && !esPruebaDiamante && (
+          <CarruselNivelesSendero
+            colorPaquete={sendero.consulta.data.habito.color}
+            nivelSeleccionado={nivelVisible}
+            onSeleccionar={setNivelSeleccionado}
+            paqueteId={sendero.consulta.data.habito.paqueteId}
+            secciones={sendero.resumen.secciones}
+          />
+        )}
+
         {/* Contenedor del Mapa / Estado Vacío (ocupa el espacio entre navbar y barra de navegación inferior) */}
         <TonoDelHabito colorPaquete={sendero.consulta.data?.habito.colorPaquete} paqueteId={sendero.consulta.data?.habito.paqueteId}>
         <View style={[styles.capaMapa, !asignatura && styles.capaMapaVacia]}>
           {asignatura?.habitoReal ? (
-            sendero.consulta.isLoading ? (
+            sendero.consulta.isLoading || sendero.consultaResumen.isLoading ? (
               <View style={styles.centroMapa}><Texto style={styles.subMapa}>{t('senderos.map.loadingTrail')}</Texto></View>
-            ) : sendero.consulta.isError || !sendero.consulta.data ? (
+            ) : sendero.consulta.isError || !sendero.consulta.data || sendero.consultaResumen.isError || !sendero.resumen ? (
               <View style={styles.centroMapa}><Texto style={styles.subMapa}>{t('senderos.map.trailError')}</Texto></View>
-            ) : sendero.esNivelMaximo && !esPruebaDiamante ? (
-              <View style={styles.centroMapa}><Trophy color={sendero.consulta.data?.habito.color ?? asignatura.color} size={48} /><Texto style={styles.tituloMapa}>{t('senderos.map.maximumLevel')}</Texto></View>
             ) : (
               <ContenedorMapaSenderos
-                key={`${asignatura.id}-${nivelVisible}`}
+                key={`${asignatura.id}-${nivelVisible}-${sendero.ciclo}`}
                 altura={alturaMapa}
                 categoriaId="habitos"
                 color={sendero.consulta.data.habito.color}
@@ -541,6 +550,8 @@ export function MapaSenderosPantalla() {
                 infoHabito={{ meta: sendero.consulta.data.habito.meta, tipoMeta: sendero.consulta.data.habito.tipoMeta, unidad: sendero.consulta.data.habito.unidad }}
                 nodos={esPruebaDiamante ? nodosPruebaDiamante : sendero.nodos}
                 onCompletarNodo={esPruebaDiamante ? () => undefined : (nodo, indice) => {
+                  const puedeAvanzar = !sendero.soloLectura && Boolean(sendero.seccionVisible?.puedeAvanzarHoy) && nodo.estado === 'activo';
+                  if (!puedeAvanzar) return;
                   hapticSeguro('accion');
                   const diaNumero = nodo.titulo.replace(/[^0-9]/g, '') || String(indice + 1);
                   router.push({
@@ -553,14 +564,23 @@ export function MapaSenderosPantalla() {
                     },
                   });
                 }}
+                onReclamarCofre={async (cofre) => {
+                  const resultado = await sendero.reclamarCofre.mutateAsync({
+                    ciclo: sendero.ciclo,
+                    habitoId: asignatura.habitoReal!.id,
+                    nivel: nivelVisible,
+                    nodoDia: cofre.nodoDia,
+                    tipo: cofre.tipo,
+                  });
+                  return { gemas: resultado.gemas };
+                }}
                 subcategoriaId={asignatura.habitoReal.id}
                 paqueteId={sendero.consulta.data.habito.paqueteId}
                 nivel={nivelVisible}
                 progresoPastoTemprano={(() => {
-                  const { diasCompletados, diasRequeridos } = sendero.consulta.data;
                   const nivel = nivelVisible;
-                  if (nivel >= 4 || diasRequeridos === null || diasRequeridos <= 0) return 1;
-                  return Math.min(1, ((nivel - 1) + diasCompletados / diasRequeridos) / 3);
+                  if (nivel >= 4 || !sendero.seccionVisible || sendero.seccionVisible.diasRequeridos <= 0) return 1;
+                  return Math.min(1, ((nivel - 1) + sendero.seccionVisible.diasCompletados / sendero.seccionVisible.diasRequeridos) / 3);
                 })()}
               />
             )

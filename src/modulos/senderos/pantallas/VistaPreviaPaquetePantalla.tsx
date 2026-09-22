@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { Check } from 'lucide-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 
 import { Texto } from '../../../diseno';
 import { MAPAS_POR_NIVEL } from '../Mapas';
@@ -16,33 +17,36 @@ import { useEscala } from '../../../diseno/tema/MasterColorContext';
 // sus 7 niveles reales sin tener que crear un hábito real ni forzar 33 días
 // de progreso — genera nodos falsos solo para que el mapa dibuje la cantidad
 // correcta según Mapas/mapaNivelN, nada de esto toca la base de datos.
-function construirNodosPreview(cantidad: number): NodoMapaSendero[] {
+function construirNodosPreview(cantidad: number, t: (key: string, options?: any) => string): NodoMapaSendero[] {
   return Array.from({ length: cantidad }, (_, indice) => ({
     estado: indice === 0 ? 'activo' : 'bloqueado',
     icono: Check,
     id: `preview-${indice}`,
-    subtitulo: `Día ${indice + 1}`,
-    titulo: `Día ${indice + 1}`,
+    subtitulo: t('senderos.map.nodeTitle', { day: indice + 1 }),
+    titulo: t('senderos.map.nodeTitle', { day: indice + 1 }),
   }));
 }
 
 export function VistaPreviaPaquetePantalla() {
+  const { t } = useTranslation();
   const esc = useEscala();
   const paquetesDisponibles = Object.keys(PAQUETES_ARBOL);
   const [paqueteId, setPaqueteId] = useState(paquetesDisponibles[0] ?? 'aurelia');
   const [nivel, setNivel] = useState(1);
   const mapaNivel = MAPAS_POR_NIVEL[nivel];
-  const nodos = useMemo(() => construirNodosPreview(mapaNivel?.cantidadNodos ?? 3), [mapaNivel]);
+  const nodos = useMemo(() => construirNodosPreview(mapaNivel?.cantidadNodos ?? 3, t), [mapaNivel, t]);
   const paquete = PAQUETES_ARBOL[paqueteId];
 
   return (
     <SafeAreaView edges={['top']} style={{ backgroundColor: '#111318', flex: 1 }}>
-      <Texto style={{ color: '#FFF', fontFamily: 'MontserratAlternates-Bold', fontSize: 16, paddingHorizontal: 16, paddingTop: 8 }}>Vista previa de paquete (dev)</Texto>
+      <Texto style={{ color: '#FFF', fontFamily: 'MontserratAlternates-Bold', fontSize: 16, paddingHorizontal: 16, paddingTop: 8 }}>{t('senderos.vistaPrevia.titulo')}</Texto>
 
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, padding: 16 }}>
         {paquetesDisponibles.map((id) => (
           <Pressable
             key={id}
+            accessibilityRole="button"
+            accessibilityLabel={id}
             onPress={() => setPaqueteId(id)}
             style={{ backgroundColor: id === paqueteId ? '#FFFFFF' : 'rgba(255,255,255,0.15)', borderRadius: 10, paddingHorizontal: 14, paddingVertical: 8 }}
           >
@@ -55,6 +59,8 @@ export function VistaPreviaPaquetePantalla() {
         {[1, 2, 3, 4, 5, 6, 7].map((n) => (
           <Pressable
             key={n}
+            accessibilityRole="button"
+            accessibilityLabel={t('senderos.vistaPrevia.nivelFallback', { nivel: n })}
             onPress={() => setNivel(n)}
             style={{ alignItems: 'center', backgroundColor: n === nivel ? '#FFFFFF' : 'rgba(255,255,255,0.15)', borderRadius: 16, height: 32, justifyContent: 'center', width: 32 }}
           >
@@ -64,12 +70,12 @@ export function VistaPreviaPaquetePantalla() {
       </View>
 
       <Texto style={{ color: 'rgba(255,255,255,0.7)', paddingBottom: 8, paddingHorizontal: 16 }}>
-        {mapaNivel?.titulo ?? `Nivel ${nivel}`} · {mapaNivel?.cantidadNodos ?? '?'} nodos
+        {mapaNivel?.titulo ?? t('senderos.vistaPrevia.nivelFallback', { nivel })} · {t('senderos.vistaPrevia.nodosInfo', { count: mapaNivel?.cantidadNodos ?? '?' })}
       </Texto>
 
       <View style={{ flex: 1 }}>
         {!paquete ? (
-          <Texto style={{ color: '#FFF', padding: 16 }}>No hay paquetes con arte real cargado todavía.</Texto>
+          <Texto style={{ color: '#FFF', padding: 16 }}>{t('senderos.vistaPrevia.sinArte')}</Texto>
         ) : (
           <ContenedorMapaSenderos
             key={`${paqueteId}-${nivel}`}

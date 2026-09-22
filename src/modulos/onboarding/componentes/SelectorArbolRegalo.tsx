@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { Image, ScrollView, StyleSheet, View } from 'react-native';
 import { Check } from 'lucide-react-native';
+import { useTranslation } from 'react-i18next';
 
 import { MasterButton, MasterGlass, MasterIcon, Rebote, Texto } from '../../../diseno';
 import { colorMasterMasCercano } from '../../../diseno/componentes/MasterChanger';
@@ -23,8 +24,8 @@ const C = { texto: '#1A1335', verde: ESCALA_ESMERALDA.jade.l50 };
 export function SelectorArbolRegalo({
   confirmando,
   onConfirmar,
-  textoBotonIdle = 'ELIGE UN ÁRBOL PARA CONTINUAR',
-  textoBotonConfirmando = 'Plantando tu árbol…',
+  textoBotonIdle,
+  textoBotonConfirmando,
   paddingBottomPie = 18,
 }: {
   confirmando: boolean;
@@ -33,6 +34,7 @@ export function SelectorArbolRegalo({
   textoBotonConfirmando?: string;
   paddingBottomPie?: number;
 }) {
+  const { t } = useTranslation();
   const esc = useEscala();
   const s = useEstilosS();
   const [elegido, setElegido] = useState<string | null>(null);
@@ -55,7 +57,7 @@ export function SelectorArbolRegalo({
       <ScrollView contentContainerStyle={s.grilla} showsVerticalScrollIndicator={false} style={s.scroll}>
         {consultaCatalogo.isLoading ? (
           <View style={s.cargandoContenedor}>
-            <Texto style={s.cargando}>Cargando especies de árboles…</Texto>
+            <Texto style={s.cargando}>{t('onboarding.selectorRegalo.loading')}</Texto>
           </View>
         ) : (
           <View style={s.filas}>
@@ -66,7 +68,7 @@ export function SelectorArbolRegalo({
 
               return (
                 <Rebote
-                  accessibilityLabel={`Elegir ${paquete.nombre}`}
+                  accessibilityLabel={t('onboarding.selectorRegalo.accessibilityChoose', { nombre: paquete.nombre })}
                   key={paquete.id}
                   onPress={() => {
                     hapticSeguro('seleccion');
@@ -92,7 +94,7 @@ export function SelectorArbolRegalo({
                     )}
 
                     <View style={s.badgeGratis}>
-                      <Texto style={s.badgeGratisTexto}>GRATIS</Texto>
+                      <Texto style={s.badgeGratisTexto}>{t('onboarding.selectorRegalo.badgeFree')}</Texto>
                     </View>
 
                     <View style={[s.auraCirculo, { backgroundColor: `${paquete.masterPackColor}18` }]}>
@@ -122,10 +124,10 @@ export function SelectorArbolRegalo({
           style={s.botonConfirmar}
         >
           {confirmando
-            ? textoBotonConfirmando
+            ? (textoBotonConfirmando ?? t('onboarding.selectorRegalo.planting'))
             : elegido
-            ? `PLANTAR ${paqueteSeleccionado?.nombre.toUpperCase()}`
-            : textoBotonIdle}
+            ? t('onboarding.selectorRegalo.plantTree', { nombre: paqueteSeleccionado?.nombre.toUpperCase() })
+            : (textoBotonIdle ?? t('onboarding.selectorRegalo.idle'))}
         </MasterButton>
       </View>
     </>

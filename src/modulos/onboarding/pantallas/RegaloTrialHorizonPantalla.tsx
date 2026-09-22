@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Alert, Modal, Pressable, StyleSheet, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Crown, X } from 'lucide-react-native';
@@ -20,6 +21,7 @@ const C = { texto: '#1A1335', tenue: ESCALA_ESMERALDA.musgo.l51 };
 // sentiría como un secuestro de la navegación. Se puede cerrar con la X y
 // vuelve a aparecer en la próxima sesión mientras siga pendiente.
 export function RegaloTrialHorizonPantalla({ visible, onCerrar }: { visible: boolean; onCerrar: () => void }) {
+  const { t } = useTranslation();
   const esc = useEscala();
   const insets = useSafeAreaInsets();
   const queryClient = useQueryClient();
@@ -27,7 +29,7 @@ export function RegaloTrialHorizonPantalla({ visible, onCerrar }: { visible: boo
   const mutacionReclamar = useMutation({
     mutationFn: otorgarSemillaTrialHorizon,
     onError: (error: Error) => {
-      Alert.alert('No se pudo reclamar', error.message || 'Intentá de nuevo en un momento.');
+      Alert.alert(t('onboarding.regaloTrial.alerts.claimErrorTitle'), error.message || t('onboarding.regaloTrial.alerts.claimErrorDefault'));
     },
     onSuccess: () => {
       hapticSeguro('confirmacion');
@@ -41,24 +43,24 @@ export function RegaloTrialHorizonPantalla({ visible, onCerrar }: { visible: boo
         <View style={[s.header, { paddingTop: insets.top + 12 }]}>
           <AuroraBoreal tema="verde" />
 
-          <Pressable accessibilityLabel="Cerrar" hitSlop={12} onPress={onCerrar} style={s.cerrar}>
+          <Pressable accessibilityLabel={t('onboarding.regaloTrial.closeAccessibility')} hitSlop={12} onPress={onCerrar} style={s.cerrar}>
             <X color={C.tenue} size={20} />
           </Pressable>
 
           <View style={s.kickerFila}>
-            <MasterKicker icono={<Crown color="#FEF08A" size={12} />} texto="REGALO DE TU PRUEBA HORIZON" />
+            <MasterKicker icono={<Crown color="#FEF08A" size={12} />} texto={t('onboarding.regaloTrial.kicker')} />
           </View>
 
-          <Texto style={s.titulo}>¡Bienvenido a Horizon!</Texto>
+          <Texto style={s.titulo}>{t('onboarding.regaloTrial.title')}</Texto>
           <Texto style={s.subtitulo}>
-            Elegí otro árbol legendario de regalo — quedarás con semillas para 2 hábitos.
+            {t('onboarding.regaloTrial.subtitle')}
           </Texto>
 
           <MasterGlass colorBase="#FEF08A" style={s.aviso}>
             <View style={s.avisoFila}>
               <Crown color="#854D0E" size={16} />
               <Texto style={s.avisoTexto}>
-                Podés repetir el que ya tenés o elegir uno distinto — vos decidís.
+                {t('onboarding.regaloTrial.bannerNotice')}
               </Texto>
             </View>
           </MasterGlass>
@@ -68,7 +70,7 @@ export function RegaloTrialHorizonPantalla({ visible, onCerrar }: { visible: boo
           confirmando={mutacionReclamar.isPending}
           onConfirmar={(paqueteId) => mutacionReclamar.mutate(paqueteId)}
           paddingBottomPie={insets.bottom + 18}
-          textoBotonIdle="ELIGE TU SEGUNDO ÁRBOL"
+          textoBotonIdle={t('onboarding.regaloTrial.buttonIdle')}
         />
       </LinearGradient>
     </Modal>

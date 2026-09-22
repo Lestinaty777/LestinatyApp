@@ -4,21 +4,22 @@ import { ArrowLeft, Check, Crown, RefreshCw, Smartphone } from 'lucide-react-nat
 import { useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 
 import { MasterGlass, MasterIconBg, Texto } from '../../../diseno';
 import { comprarHorizon, obtenerPaquetesHorizon, restaurarHorizon } from '../../../nucleo/compras/horizon';
 import { CLAVE_HORIZON } from '../../../nucleo/compras/useHorizon';
-import { textoCtaHorizon } from './horizonCopy';
 import { useEscala } from '../../../diseno/tema/MasterColorContext';
 import type { EscalaMaster } from '../../../diseno/tema/escalaEsmeralda';
 
-const BENEFICIOS = [
-  ['Registra al instante', 'Un vistazo rápido para cuando los widgets estén disponibles.'],
-  ['Tu progreso visible', 'Mantén el ritmo de hoy presente en tu inicio.'],
-  ['Un hábito protagonista', 'Elige el hábito que quieres tener más cerca.'],
+const CLAVES_BENEFICIOS = [
+  { titulo: 'horizon.paywall.beneficios.b1Titulo', descripcion: 'horizon.paywall.beneficios.b1Desc' },
+  { titulo: 'horizon.paywall.beneficios.b2Titulo', descripcion: 'horizon.paywall.beneficios.b2Desc' },
+  { titulo: 'horizon.paywall.beneficios.b3Titulo', descripcion: 'horizon.paywall.beneficios.b3Desc' },
 ] as const;
 
 export function HorizonPaywallPantalla() {
+  const { t } = useTranslation();
   const esc = useEscala();
   const s = useEstilosS();
   const router = useRouter();
@@ -36,7 +37,7 @@ export function HorizonPaywallPantalla() {
     try {
       const resultado = await comprarHorizon(paquete);
       if (resultado.exito) { await actualizarAcceso(); router.replace('/habitos/widgets'); }
-    } catch { setAviso('No pudimos completar la compra. Inténtalo de nuevo.'); } finally { setComprando(false); }
+    } catch { setAviso(t('horizon.paywall.avisoErrorCompra')); } finally { setComprando(false); }
   }
   async function restaurar() {
     if (restaurando) return;
@@ -45,19 +46,19 @@ export function HorizonPaywallPantalla() {
       const estado = await restaurarHorizon();
       await actualizarAcceso();
       if (estado === 'activo') router.replace('/habitos/widgets');
-      else setAviso(estado === 'noDisponible' ? 'Horizon aún no está disponible para esta app.' : 'No encontramos una suscripción Horizon para restaurar.');
+      else setAviso(estado === 'noDisponible' ? t('horizon.paywall.avisoNoDisponible') : t('horizon.paywall.avisoNoEncontrada'));
     } finally { setRestaurando(false); }
   }
 
   return <SafeAreaView edges={['top', 'bottom']} style={s.raiz}><ScrollView contentContainerStyle={s.contenido} showsVerticalScrollIndicator={false}>
-    <Pressable accessibilityLabel="Volver" hitSlop={12} onPress={() => router.back()} style={s.volver}><ArrowLeft color={esc.jade.l34} size={23} strokeWidth={2.5} /></Pressable>
-    <View style={s.hero}><MasterIconBg size={74}><Crown color={esc.jade.l42a} fill={esc.jade.l42a} size={34} /></MasterIconBg><Texto style={s.sobrelinea}>LESTINATY HORIZON</Texto><Texto style={s.titulo}>Tus hábitos, siempre a la vista.</Texto><Texto style={s.subtitulo}>Una capa premium para llevar tu constancia contigo, incluso fuera de la app.</Texto></View>
-    <MasterGlass style={s.previa}><View style={s.previaCabecera}><Smartphone color={esc.jade.l42a} size={20} /><Texto style={s.previaTitulo}>Próximamente en tu inicio</Texto></View><View style={s.previaWidgets}><View style={s.widgetMini}><Texto style={s.widgetNumero}>2/4</Texto><Texto style={s.widgetTexto}>hábitos hoy</Texto></View><View style={s.widgetMini}><View style={s.anillo}><Check color="#FFFFFF" size={17} strokeWidth={3} /></View><Texto style={s.widgetTexto}>Registrar</Texto></View></View></MasterGlass>
-    <View style={s.beneficios}>{BENEFICIOS.map(([titulo, descripcion]) => <MasterGlass key={titulo} style={s.beneficio}><View style={s.check}><Check color="#FFFFFF" size={15} strokeWidth={3} /></View><View style={s.beneficioTexto}><Texto style={s.beneficioTitulo}>{titulo}</Texto><Texto style={s.beneficioDescripcion}>{descripcion}</Texto></View></MasterGlass>)}</View>
-    {paquetes.isLoading ? <ActivityIndicator color={esc.jade.l42a} style={s.cargando} /> : <Pressable accessibilityLabel="Suscribirse a Lestinaty Horizon" disabled={!paquete || comprando} onPress={() => void comprar()} style={[s.cta, (!paquete || comprando) && s.ctaDeshabilitado]}><Crown color="#FFFFFF" fill="#FFFFFF" size={19} /><Texto style={s.ctaTexto}>{comprando ? 'Procesando…' : textoCtaHorizon(paquete)}</Texto></Pressable>}
-    {!paquetes.isLoading && !paquete && <Texto style={s.nota}>La suscripción estará disponible muy pronto.</Texto>}
+    <Pressable accessibilityLabel={t('horizon.paywall.volver')} hitSlop={12} onPress={() => router.back()} style={s.volver}><ArrowLeft color={esc.jade.l34} size={23} strokeWidth={2.5} /></Pressable>
+    <View style={s.hero}><MasterIconBg size={74}><Crown color={esc.jade.l42a} fill={esc.jade.l42a} size={34} /></MasterIconBg><Texto style={s.sobrelinea}>{t('horizon.paywall.sobrelinea')}</Texto><Texto style={s.titulo}>{t('horizon.paywall.titulo')}</Texto><Texto style={s.subtitulo}>{t('horizon.paywall.subtitulo')}</Texto></View>
+    <MasterGlass style={s.previa}><View style={s.previaCabecera}><Smartphone color={esc.jade.l42a} size={20} /><Texto style={s.previaTitulo}>{t('horizon.paywall.previaTitulo')}</Texto></View><View style={s.previaWidgets}><View style={s.widgetMini}><Texto style={s.widgetNumero}>2/4</Texto><Texto style={s.widgetTexto}>{t('horizon.paywall.habitosHoy')}</Texto></View><View style={s.widgetMini}><View style={s.anillo}><Check color="#FFFFFF" size={17} strokeWidth={3} /></View><Texto style={s.widgetTexto}>{t('horizon.paywall.registrar')}</Texto></View></View></MasterGlass>
+    <View style={s.beneficios}>{CLAVES_BENEFICIOS.map(({ titulo, descripcion }) => <MasterGlass key={titulo} style={s.beneficio}><View style={s.check}><Check color="#FFFFFF" size={15} strokeWidth={3} /></View><View style={s.beneficioTexto}><Texto style={s.beneficioTitulo}>{t(titulo)}</Texto><Texto style={s.beneficioDescripcion}>{t(descripcion)}</Texto></View></MasterGlass>)}</View>
+    {paquetes.isLoading ? <ActivityIndicator color={esc.jade.l42a} style={s.cargando} /> : <Pressable accessibilityLabel={t('horizon.paywall.suscribirseAccesibilidad')} disabled={!paquete || comprando} onPress={() => void comprar()} style={[s.cta, (!paquete || comprando) && s.ctaDeshabilitado]}><Crown color="#FFFFFF" fill="#FFFFFF" size={19} /><Texto style={s.ctaTexto}>{comprando ? t('horizon.paywall.procesando') : (paquete ? t('horizon.paywall.ctaPrecio', { precio: paquete.product.priceString }) : t('horizon.paywall.cta'))}</Texto></Pressable>}
+    {!paquetes.isLoading && !paquete && <Texto style={s.nota}>{t('horizon.paywall.noPaqueteNota')}</Texto>}
     {aviso && <Texto style={s.aviso}>{aviso}</Texto>}
-    <Pressable disabled={restaurando} onPress={() => void restaurar()} style={s.restaurar}><RefreshCw color={esc.jade.l42a} size={16} /><Texto style={s.restaurarTexto}>{restaurando ? 'Restaurando…' : 'Restaurar compra'}</Texto></Pressable><Texto style={s.legal}>$129 MXN al mes. Cancela cuando quieras desde tu tienda.</Texto>
+    <Pressable accessibilityLabel={t('horizon.paywall.restaurar')} disabled={restaurando} onPress={() => void restaurar()} style={s.restaurar}><RefreshCw color={esc.jade.l42a} size={16} /><Texto style={s.restaurarTexto}>{restaurando ? t('horizon.paywall.restaurando') : t('horizon.paywall.restaurar')}</Texto></Pressable><Texto style={s.legal}>{t('horizon.paywall.legal')}</Texto>
   </ScrollView></SafeAreaView>;
 }
 

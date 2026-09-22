@@ -314,7 +314,7 @@ function EsqueletoAjustes() {
 }
 
 export function PerfilPantalla() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const s = useEstilosPerfil();
   const esc = useEscala();
   const insets = useSafeAreaInsets();
@@ -345,6 +345,7 @@ export function PerfilPantalla() {
   const [editandoNombre, setEditandoNombre] = useState(false);
   const [nombreInput, setNombreInput] = useState('');
   const [guardandoPerfil, setGuardandoPerfil] = useState(false);
+  const [guardandoIdioma, setGuardandoIdioma] = useState(false);
 
   // Queries del ecosistema Lestinaty
   const { data: saldoGemas, isLoading: cargandoGemas } = useSaldoGemas();
@@ -400,6 +401,29 @@ export function PerfilPantalla() {
       Alert.alert(t('perfil.alerts.errorTitle'), t('perfil.alerts.updateNameError'));
     } finally {
       setGuardandoPerfil(false);
+    }
+  }
+
+  async function cambiarIdioma(idioma: 'es' | 'en') {
+    if (!configuracion || guardandoIdioma || i18n.language === idioma) return;
+
+    const idiomaAnterior = i18n.language.startsWith('en') ? 'en' : 'es';
+    setGuardandoIdioma(true);
+    hapticSeguro('seleccion');
+    await i18n.changeLanguage(idioma);
+
+    try {
+      const perfilActualizado = await actualizarPerfil({ ...configuracion.perfil, idioma });
+      clienteQuery.setQueryData(['configuracion', 'usuario'], {
+        ...configuracion,
+        perfil: perfilActualizado,
+      });
+      hapticSeguro('confirmacion');
+    } catch {
+      await i18n.changeLanguage(idiomaAnterior);
+      Alert.alert(t('perfil.alerts.errorTitle'), t('perfil.alerts.updateLanguageError'));
+    } finally {
+      setGuardandoIdioma(false);
     }
   }
 
@@ -925,8 +949,39 @@ export function PerfilPantalla() {
                 <EsqueletoAjustes />
               ) : (
                 <View style={s.tabContenido}>
-                  {/* 1. Notificaciones y Avisos */}
                   <Animated.View entering={entradaEncadenada(0)} style={s.grupoAjustes}>
+                    <Texto style={s.grupoAjustesTitulo}>{t('perfil.settings.languageGroup')}</Texto>
+                    <MasterGlass style={s.tarjetaAjustes}>
+                      <View style={s.filaIdioma}>
+                        <View style={s.filaIdiomaTexto}>
+                          <Texto style={s.filaEnlaceTexto}>{t('perfil.settings.languageTitle')}</Texto>
+                          <Texto style={s.filaEnlaceSubtexto}>{t('perfil.settings.languageDescription')}</Texto>
+                        </View>
+                        <View style={s.opcionesIdioma}>
+                          {(['es', 'en'] as const).map((idioma) => {
+                            const activo = i18n.language === idioma;
+                            return (
+                              <Pressable
+                                key={idioma}
+                                accessibilityRole="button"
+                                accessibilityState={{ disabled: guardandoIdioma, selected: activo }}
+                                disabled={guardandoIdioma || activo}
+                                onPress={() => void cambiarIdioma(idioma)}
+                                style={[s.opcionIdioma, activo && s.opcionIdiomaActiva]}
+                              >
+                                <Texto style={[s.opcionIdiomaTexto, activo && s.opcionIdiomaTextoActivo]}>
+                                  {idioma === 'es' ? t('perfil.settings.languageSpanish') : t('perfil.settings.languageEnglish')}
+                                </Texto>
+                              </Pressable>
+                            );
+                          })}
+                        </View>
+                      </View>
+                    </MasterGlass>
+                  </Animated.View>
+
+                  {/* 1. Notificaciones y Avisos */}
+                  <Animated.View entering={entradaEncadenada(1)} style={s.grupoAjustes}>
                     <Texto style={s.grupoAjustesTitulo}>{t('perfil.settings.notificationsGroup')}</Texto>
                     <MasterGlass style={s.tarjetaAjustes}>
                       {configuracion?.preferenciasNotificacion.slice(0, 4).map((aviso, idx) => (
@@ -972,7 +1027,7 @@ export function PerfilPantalla() {
                   </Animated.View>
 
                   {/* 2. Privacidad y Datos (Google Play Data Safety / GDPR) */}
-                  <Animated.View entering={entradaEncadenada(1)} style={s.grupoAjustes}>
+                  <Animated.View entering={entradaEncadenada(2)} style={s.grupoAjustes}>
                     <Texto style={s.grupoAjustesTitulo}>{t('perfil.settings.privacyGroup')}</Texto>
                     <MasterGlass style={s.tarjetaAjustes}>
                       {PERMISOS_CONFIG.map((p, idx) => (
@@ -1057,7 +1112,7 @@ export function PerfilPantalla() {
                   </Animated.View>
 
                   {/* 3. Membresía y Suscripciones Google Play (Requisito Google Play Billing) */}
-                  <Animated.View entering={entradaEncadenada(2)} style={s.grupoAjustes}>
+                  <Animated.View entering={entradaEncadenada(3)} style={s.grupoAjustes}>
                     <Texto style={s.grupoAjustesTitulo}>{t('perfil.settings.subscriptionGroup')}</Texto>
                     <MasterGlass style={s.tarjetaAjustes}>
                       <View style={s.filaEnlace}>
@@ -1137,7 +1192,7 @@ export function PerfilPantalla() {
                   </Animated.View>
 
                   {/* 4. Soporte y Ayuda (Requisito Google Play) */}
-                  <Animated.View entering={entradaEncadenada(3)} style={s.grupoAjustes}>
+                  <Animated.View entering={entradaEncadenada(4)} style={s.grupoAjustes}>
                     <Texto style={s.grupoAjustesTitulo}>{t('perfil.settings.supportGroup')}</Texto>
                     <MasterGlass style={s.tarjetaAjustes}>
                       <Pressable
@@ -1181,7 +1236,7 @@ export function PerfilPantalla() {
                   </Animated.View>
 
                   {/* 5. Legal y Transparencia (Requisito Google Play) */}
-                  <Animated.View entering={entradaEncadenada(4)} style={s.grupoAjustes}>
+                  <Animated.View entering={entradaEncadenada(5)} style={s.grupoAjustes}>
                     <Texto style={s.grupoAjustesTitulo}>{t('perfil.settings.legalGroup')}</Texto>
                     <MasterGlass style={s.tarjetaAjustes}>
                       <Pressable
@@ -1245,7 +1300,7 @@ export function PerfilPantalla() {
                   </Animated.View>
 
                   {/* 6. Seguridad y Gestión de Cuenta (Requisito CRÍTICO Google Play: Eliminación de Cuenta) */}
-                  <Animated.View entering={entradaEncadenada(5)} style={s.grupoAjustes}>
+                  <Animated.View entering={entradaEncadenada(6)} style={s.grupoAjustes}>
                     <Texto style={s.grupoAjustesTitulo}>{t('perfil.settings.accountSecurityGroup')}</Texto>
                     <MasterGlass style={s.tarjetaAjustes}>
                       <Pressable
@@ -1315,7 +1370,7 @@ export function PerfilPantalla() {
                   </Animated.View>
 
                   {/* 7. Pie con Versión y Metadatos de la App (Recomendación Google Play) */}
-                  <Animated.View entering={entradaEncadenada(6)} style={s.pieVersion}>
+                  <Animated.View entering={entradaEncadenada(7)} style={s.pieVersion}>
                     <Texto style={s.pieVersionTexto}>Lestinaty v1.0.0 (Build 1)</Texto>
                     <Texto style={s.pieVersionSubtexto}>
                       {t('perfil.settings.versionRights')}
@@ -1665,6 +1720,39 @@ const crearEstilos = (esc: EscalaMaster) => StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 14,
+  },
+  filaIdioma: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  filaIdiomaTexto: {
+    flex: 1,
+  },
+  opcionesIdioma: {
+    flexDirection: 'row',
+    gap: 6,
+  },
+  opcionIdioma: {
+    borderColor: conAlfa(esc.hoja.l61a, 0.22),
+    borderRadius: 10,
+    borderWidth: 1,
+    paddingHorizontal: 9,
+    paddingVertical: 7,
+  },
+  opcionIdiomaActiva: {
+    backgroundColor: conAlfa(esc.hoja.l61a, 0.17),
+    borderColor: esc.hoja.l61a,
+  },
+  opcionIdiomaTexto: {
+    color: esc.musgo.l54,
+    fontFamily: 'Montserrat-Bold',
+    fontSize: 10,
+  },
+  opcionIdiomaTextoActivo: {
+    color: esc.jade.l34a,
   },
   toggleTitulo: {
     fontFamily: 'MontserratAlternates-Bold',

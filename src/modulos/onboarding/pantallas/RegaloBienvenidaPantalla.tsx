@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Alert, Image, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { FadeIn } from 'react-native-reanimated';
@@ -43,6 +44,7 @@ function oscurecer(color: string, factor: number) {
 // animación en cadena al asentarse en una página nueva.
 
 export function RegaloBienvenidaPantalla() {
+  const { t } = useTranslation();
   const esc = useEscala();
   const insets = useSafeAreaInsets();
   const queryClient = useQueryClient();
@@ -56,25 +58,25 @@ export function RegaloBienvenidaPantalla() {
   const mutacionReclamar = useMutation({
     mutationFn: otorgarSemillaBienvenida,
     onError: (error: Error) => {
-      Alert.alert('No se pudo reclamar', error.message || 'Intentá de nuevo en un momento.');
+      Alert.alert(t('onboarding.regaloBienvenida.alerts.claimErrorTitle'), error.message || t('onboarding.regaloBienvenida.alerts.claimErrorDefault'));
     },
     onSuccess: () => {
       hapticSeguro('confirmacion');
       // La pregunta se hace ACÁ (antes de liberar el gate) — una vez que
       // CLAVE_REGALO_BIENVENIDA pasa a false, _layout.tsx desmonta esta
       // pantalla de inmediato para mostrar los tabs.
-      Alert.alert('¡Tu árbol está plantado!', '¿Querés crear tu primer hábito ahora?', [
+      Alert.alert(t('onboarding.regaloBienvenida.alerts.successTitle'), t('onboarding.regaloBienvenida.alerts.successMessage'), [
         {
           onPress: () => queryClient.setQueryData(CLAVE_REGALO_BIENVENIDA, false),
           style: 'cancel',
-          text: 'Prefiero explorar',
+          text: t('onboarding.regaloBienvenida.alerts.explore'),
         },
         {
           onPress: () => {
             queryClient.setQueryData(CLAVE_ABRIR_CREACION_HABITO, true);
             queryClient.setQueryData(CLAVE_REGALO_BIENVENIDA, false);
           },
-          text: 'Sí, vamos',
+          text: t('onboarding.regaloBienvenida.alerts.createHabit'),
         },
       ]);
     },
@@ -114,7 +116,7 @@ export function RegaloBienvenidaPantalla() {
             // (no de `paqueteActual`, que solo cambia al asentarse).
             return (
                 <View style={s.textos}>
-                  <Texto style={[s.titulo, { color: colorTitulo, fontSize: tamanoTitulo, lineHeight: altoTitulo }]}>Elegí tu árbol</Texto>
+                  <Texto style={[s.titulo, { color: colorTitulo, fontSize: tamanoTitulo, lineHeight: altoTitulo }]}>{t('onboarding.regaloBienvenida.title')}</Texto>
 
                   <View style={s.tituloFila}>
                     {assets && (
@@ -126,7 +128,7 @@ export function RegaloBienvenidaPantalla() {
                       style={[s.tituloGradiente, { fontSize: tamanoAccento, lineHeight: altoAccento }]}
                       variante="titulo"
                     >
-                      para tu jardín
+                      {t('onboarding.regaloBienvenida.accent')}
                     </MasterText>
                     {assets && (
                       <Image resizeMode="contain" source={assets.arbusto} style={[s.arbusto, { height: altoAccento, width: altoAccento }]} />
@@ -141,7 +143,7 @@ export function RegaloBienvenidaPantalla() {
                   />
 
                   <Texto style={s.subtitulo}>
-                    Deslizá para conocer cada especie legendaria — el que elijas es tuyo para siempre.
+                    {t('onboarding.regaloBienvenida.subtitle')}
                   </Texto>
                 </View>
             );

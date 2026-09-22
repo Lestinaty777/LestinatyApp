@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Image,
   type ImageSourcePropType,
@@ -12,6 +12,7 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Defs, RadialGradient, Stop } from 'react-native-svg';
@@ -127,6 +128,7 @@ type EspecieDemoItem = {
   color: string;
   nombre: string;
   tipo: string;
+  tipoClave: 'bosqueVivo' | 'follajeDorado' | 'ambarSolar' | 'bosqueCeleste' | 'cristalNevado' | 'formulaAzul';
   emoji: string;
   aurora: 'amarillo' | 'morado' | 'verde';
   gema: ImageSourcePropType;
@@ -140,7 +142,7 @@ type EspecieDemoItem = {
 
 const ESPECIES_DEMO: EspecieDemoItem[] = [
   {
-    color: ESCALA_ESMERALDA.menta.l53, nombre: 'Esmeralda', tipo: 'Bosque Vivo', emoji: '🌿', aurora: 'verde',
+    color: ESCALA_ESMERALDA.menta.l53, nombre: 'Esmeralda', tipo: 'Bosque Vivo', tipoClave: 'bosqueVivo', emoji: '🌿', aurora: 'verde',
     gema: require('../../../../assets/ilustraciones/senderos/biomas/paquetes/Esmeralda/esmeralda.png'),
     imagen: require('../../../../assets/ilustraciones/senderos/biomas/paquetes/Esmeralda/etapa7.png'),
     etapa5: require('../../../../assets/ilustraciones/senderos/biomas/paquetes/Esmeralda/etapa5.png'),
@@ -150,7 +152,7 @@ const ESPECIES_DEMO: EspecieDemoItem[] = [
     degradadoTexto: [ESCALA_ESMERALDA.jade.l29, ESCALA_ESMERALDA.jade.l38, ESCALA_ESMERALDA.jade.l50],
   },
   {
-    color: '#D97706', nombre: 'Golden', tipo: 'Follaje Dorado', emoji: '✨', aurora: 'amarillo',
+    color: '#D97706', nombre: 'Golden', tipo: 'Follaje Dorado', tipoClave: 'follajeDorado', emoji: '✨', aurora: 'amarillo',
     gema: require('../../../../assets/ilustraciones/senderos/biomas/paquetes/Golden/golden.png'),
     imagen: require('../../../../assets/ilustraciones/senderos/biomas/paquetes/Golden/etapa7.png'),
     etapa5: require('../../../../assets/ilustraciones/senderos/biomas/paquetes/Golden/etapa5.png'),
@@ -160,7 +162,7 @@ const ESPECIES_DEMO: EspecieDemoItem[] = [
     degradadoTexto: ['#78350F', '#B45309', '#D97706'],
   },
   {
-    color: '#F59E0B', nombre: 'Amber', tipo: 'Ámbar Solar', emoji: '🟠', aurora: 'amarillo',
+    color: '#F59E0B', nombre: 'Amber', tipo: 'Ámbar Solar', tipoClave: 'ambarSolar', emoji: '🟠', aurora: 'amarillo',
     gema: require('../../../../assets/ilustraciones/senderos/biomas/paquetes/Amber/amber.png'),
     imagen: require('../../../../assets/ilustraciones/senderos/biomas/paquetes/Amber/etapa7.png'),
     etapa5: require('../../../../assets/ilustraciones/senderos/biomas/paquetes/Amber/etapa5.png'),
@@ -170,7 +172,7 @@ const ESPECIES_DEMO: EspecieDemoItem[] = [
     degradadoTexto: ['#92400E', '#D97706', '#F59E0B'],
   },
   {
-    color: '#8B5CF6', nombre: 'Celesthia', tipo: 'Bosque Celeste', emoji: '🔮', aurora: 'morado',
+    color: '#8B5CF6', nombre: 'Celesthia', tipo: 'Bosque Celeste', tipoClave: 'bosqueCeleste', emoji: '🔮', aurora: 'morado',
     gema: require('../../../../assets/ilustraciones/senderos/biomas/paquetes/Celesthia/celesthia.png'),
     imagen: require('../../../../assets/ilustraciones/senderos/biomas/paquetes/Celesthia/etapa7.png'),
     etapa5: require('../../../../assets/ilustraciones/senderos/biomas/paquetes/Celesthia/etapa5.png'),
@@ -180,7 +182,7 @@ const ESPECIES_DEMO: EspecieDemoItem[] = [
     degradadoTexto: ['#5B21B6', '#7C3AED', '#8B5CF6'],
   },
   {
-    color: '#80B0E0', nombre: 'Nevalhi', tipo: 'Cristal Nevado', emoji: '❄️', aurora: 'morado',
+    color: '#80B0E0', nombre: 'Nevalhi', tipo: 'Cristal Nevado', tipoClave: 'cristalNevado', emoji: '❄️', aurora: 'morado',
     gema: require('../../../../assets/ilustraciones/senderos/biomas/paquetes/Nevalhi/Nevalhy.png'),
     imagen: require('../../../../assets/ilustraciones/senderos/biomas/paquetes/Nevalhi/etapa7.png'),
     etapa5: require('../../../../assets/ilustraciones/senderos/biomas/paquetes/Nevalhi/etapa5.png'),
@@ -190,7 +192,7 @@ const ESPECIES_DEMO: EspecieDemoItem[] = [
     degradadoTexto: ['#1E3A8A', '#3B82F6', '#80B0E0'],
   },
   {
-    color: '#3B82F6', nombre: 'Mathist', tipo: 'Fórmula Azul', emoji: '📘', aurora: 'morado',
+    color: '#3B82F6', nombre: 'Mathist', tipo: 'Fórmula Azul', tipoClave: 'formulaAzul', emoji: '📘', aurora: 'morado',
     gema: require('../../../../assets/ilustraciones/senderos/biomas/paquetes/Mathist/Mathist.png'),
     imagen: require('../../../../assets/ilustraciones/senderos/biomas/paquetes/Mathist/etapa7.png'),
     etapa5: require('../../../../assets/ilustraciones/senderos/biomas/paquetes/Mathist/etapa5.png'),
@@ -271,17 +273,8 @@ const BIOMAS_CARRUSEL: BiomaCarruselItem[] = [
   },
 ];
 
-function construirNodosDemo(): NodoMapaSendero[] {
-  return Array.from({ length: 10 }, (_, indice) => ({
-    estado: indice < 4 ? 'completado' : indice === 4 ? 'activo' : 'bloqueado',
-    icono: Check,
-    id: `intro-demo-${indice}`,
-    subtitulo: `Día ${indice + 1}`,
-    titulo: `Día ${indice + 1}`,
-  }));
-}
-
 export function IntroduccionAppPantalla() {
+  const { t } = useTranslation();
   const esc = useEscala();
   const DEGRADADO_VERDE_SUTIL = useTemaDEGRADADO_VERDE_SUTIL();
   const s = useEstilosS();
@@ -292,10 +285,17 @@ export function IntroduccionAppPantalla() {
   const [indiceBioma, setIndiceBioma] = useState(0);
   const [indiceEspecie, setIndiceEspecie] = useState(0);
   const scrollRef = useRef<ScrollView>(null);
-  const nodosDemo = useRef(construirNodosDemo()).current;
+  const nodosDemo = useMemo<NodoMapaSendero[]>(() => Array.from({ length: 10 }, (_, indice) => ({
+    estado: indice < 4 ? 'completado' : indice === 4 ? 'activo' : 'bloqueado',
+    icono: Check,
+    id: `intro-demo-${indice}`,
+    subtitulo: t('onboarding.intro.slide2.dayDemo', { day: indice + 1 }),
+    titulo: t('onboarding.intro.slide2.dayDemo', { day: indice + 1 }),
+  })), [t]);
   const totalSlides = 5;
   const esUltima = slideActivo === totalSlides - 1;
   const biomaActual = BIOMAS_CARRUSEL[indiceBioma];
+  const nombreBioma = t(`onboarding.intro.slide2.biomes.${biomaActual.id}`, { defaultValue: biomaActual.nombre });
   const especieActual = ESPECIES_DEMO[indiceEspecie];
   const tamanoTituloHero = Math.min(48, Math.max(40, Math.round((width - 32) * 0.116)));
   const altoTituloHero = tamanoTituloHero + 8;
@@ -366,9 +366,9 @@ export function IntroduccionAppPantalla() {
           vez que ya se está en el slide del login */}
       {!esUltima && (
         <View style={[s.barraTope, { top: insets.top + 10 }]}>
-          <Rebote accessibilityLabel="Omitir introducción" onPress={saltarAlLogin}>
+          <Rebote accessibilityLabel={t('onboarding.intro.skipAccessibility')} onPress={saltarAlLogin}>
             <MasterGlass style={s.omitirGlass}>
-              <Texto style={s.omitirTexto}>Omitir</Texto>
+              <Texto style={s.omitirTexto}>{t('onboarding.intro.skip')}</Texto>
               <ChevronRight color={C.tenue} size={15} strokeWidth={2.5} />
             </MasterGlass>
           </Rebote>
@@ -452,7 +452,7 @@ export function IntroduccionAppPantalla() {
           {/* Mensaje principal: Fila con arbusto + Cultiva tu vida, y que quieres centrado abajo */}
           <View style={s.slide1Textos}>
             <Texto style={[s.slide1Titulo, { fontSize: tamanoTituloHero, lineHeight: altoTituloHero }]}>
-              Cultiva tu vida
+              {t('onboarding.intro.slide1.title')}
             </Texto>
 
             <View style={s.slide1TituloFila}>
@@ -470,7 +470,7 @@ export function IntroduccionAppPantalla() {
                 style={[s.slide1TituloGradiente, { fontSize: tamanoSubtituloHero, lineHeight: altoSubtituloHero }]}
                 variante="titulo"
               >
-                que quieres
+                {t('onboarding.intro.slide1.accent')}
               </MasterText>
               <Image
                 resizeMode="contain"
@@ -491,7 +491,7 @@ export function IntroduccionAppPantalla() {
             />
 
             <Texto style={s.slide1Subtitulo}>
-              Cada hábito diario nutre tus metas y hace crecer tu propio árbol vivo paso a paso.
+              {t('onboarding.intro.slide1.subtitle')}
             </Texto>
           </View>
           </>}
@@ -570,7 +570,7 @@ export function IntroduccionAppPantalla() {
           {/* Controles del bioma fuera del mapa para no tapar el sendero. */}
           <View style={s.slide2Controles}>
             <Rebote
-              accessibilityLabel="Bioma anterior"
+              accessibilityLabel={t('onboarding.intro.slide2.prevBiome')}
               estilo={s.carruselFlechaBoton}
               onPress={() => {
                 hapticSeguro('seleccion');
@@ -583,7 +583,7 @@ export function IntroduccionAppPantalla() {
             </Rebote>
 
             <Rebote
-              accessibilityLabel={`Bioma actual: ${biomaActual.nombre}. Tocar para ver siguiente bioma`}
+              accessibilityLabel={t('onboarding.intro.slide2.currentBiome', { nombre: nombreBioma })}
               estilo={s.carruselInsignia}
               onPress={() => {
                 hapticSeguro('seleccion');
@@ -592,12 +592,12 @@ export function IntroduccionAppPantalla() {
             >
               <MasterGlass colorBase={biomaActual.color} style={s.carruselInsigniaGlass}>
                 <Texto style={s.carruselInsigniaEmoji}>{biomaActual.emoji}</Texto>
-                <Texto style={[s.carruselInsigniaTexto, { color: biomaActual.color }]}>Bioma {biomaActual.nombre}</Texto>
+                <Texto style={[s.carruselInsigniaTexto, { color: biomaActual.color }]}>{t('onboarding.intro.slide2.badge', { nombre: nombreBioma })}</Texto>
               </MasterGlass>
             </Rebote>
 
             <Rebote
-              accessibilityLabel="Siguiente bioma"
+              accessibilityLabel={t('onboarding.intro.slide2.nextBiome')}
               estilo={s.carruselFlechaBoton}
               onPress={() => {
                 hapticSeguro('seleccion');
@@ -637,7 +637,7 @@ export function IntroduccionAppPantalla() {
                 },
               ]}
             >
-              Avanza cada día
+              {t('onboarding.intro.slide2.title')}
             </Texto>
 
             <View style={s.slide1TituloFila}>
@@ -656,7 +656,7 @@ export function IntroduccionAppPantalla() {
                 style={[s.slide1TituloGradiente, { fontSize: tamanoSubtituloHero, lineHeight: altoSubtituloHero }]}
                 variante="titulo"
               >
-                en tu sendero
+                {t('onboarding.intro.slide2.accent')}
               </MasterText>
               <Image
                 key={`arbusto-der-${biomaActual.id}`}
@@ -678,7 +678,7 @@ export function IntroduccionAppPantalla() {
             />
 
             <Texto style={s.slide1Subtitulo}>
-              Cruza nuevos biomas y desbloquea recompensas vivas al completar tus hábitos.
+              {t('onboarding.intro.slide2.subtitle')}
             </Texto>
           </View>
           </>}
@@ -699,7 +699,7 @@ export function IntroduccionAppPantalla() {
           {/* Controles de la especie fuera del árbol */}
           <View style={s.slide2Controles}>
             <Rebote
-              accessibilityLabel="Especie anterior"
+              accessibilityLabel={t('onboarding.intro.slide3.prevSpecies')}
               estilo={s.carruselFlechaBoton}
               onPress={() => {
                 hapticSeguro('seleccion');
@@ -712,7 +712,7 @@ export function IntroduccionAppPantalla() {
             </Rebote>
 
             <Rebote
-              accessibilityLabel={`Especie actual: ${especieActual.nombre}. Tocar para ver siguiente especie`}
+              accessibilityLabel={t('onboarding.intro.slide3.currentSpecies', { nombre: especieActual.nombre })}
               estilo={s.carruselInsignia}
               onPress={() => {
                 hapticSeguro('seleccion');
@@ -726,13 +726,13 @@ export function IntroduccionAppPantalla() {
                   style={s.carruselInsigniaGema}
                 />
                 <Texto style={[s.carruselInsigniaTexto, { color: especieActual.color }]}>
-                  {especieActual.nombre} · {especieActual.tipo}
+                  {especieActual.nombre} · {t(`onboarding.intro.slide3.speciesTypes.${especieActual.tipoClave}`)}
                 </Texto>
               </MasterGlass>
             </Rebote>
 
             <Rebote
-              accessibilityLabel="Siguiente especie"
+              accessibilityLabel={t('onboarding.intro.slide3.nextSpecies')}
               estilo={s.carruselFlechaBoton}
               onPress={() => {
                 hapticSeguro('seleccion');
@@ -784,7 +784,7 @@ export function IntroduccionAppPantalla() {
                 },
               ]}
             >
-              Árboles únicos
+              {t('onboarding.intro.slide3.title')}
             </Texto>
 
             <View style={s.slide1TituloFila}>
@@ -803,7 +803,7 @@ export function IntroduccionAppPantalla() {
                 style={[s.slide1TituloGradiente, { fontSize: tamanoSubtituloHero, lineHeight: altoSubtituloHero }]}
                 variante="titulo"
               >
-                para cada hábito
+                {t('onboarding.intro.slide3.accent')}
               </MasterText>
               <Image
                 key={`arbusto-der-${especieActual.nombre}`}
@@ -825,7 +825,7 @@ export function IntroduccionAppPantalla() {
             />
 
             <Texto style={s.slide1Subtitulo}>
-              Descubre especies legendarias que evolucionan a través de 7 etapas artesanales a tu ritmo.
+              {t('onboarding.intro.slide3.subtitle')}
             </Texto>
           </View>
           </>}
@@ -838,15 +838,15 @@ export function IntroduccionAppPantalla() {
           <View style={s.slide4Timeline}>
             <View style={s.slide4LineaTimeline} />
             {[
-              { dia: '1 día', etapa: 1, imagen: require('../../../../assets/ilustraciones/senderos/biomas/paquetes/Esmeralda/etapa1.png') },
-              { dia: '9 días', etapa: 3, imagen: require('../../../../assets/ilustraciones/senderos/biomas/paquetes/Esmeralda/etapa3.png') },
-              { dia: '27 días', etapa: 5, imagen: require('../../../../assets/ilustraciones/senderos/biomas/paquetes/Esmeralda/etapa5.png') },
+              { dia: t('onboarding.intro.slide4.day1'), etapa: 1, imagen: require('../../../../assets/ilustraciones/senderos/biomas/paquetes/Esmeralda/etapa1.png') },
+              { dia: t('onboarding.intro.slide4.day9'), etapa: 3, imagen: require('../../../../assets/ilustraciones/senderos/biomas/paquetes/Esmeralda/etapa3.png') },
+              { dia: t('onboarding.intro.slide4.day27'), etapa: 5, imagen: require('../../../../assets/ilustraciones/senderos/biomas/paquetes/Esmeralda/etapa5.png') },
             ].map((hito) => (
               <View key={hito.etapa} style={s.slide4HitoTimeline}>
                 <View style={s.slide4HitoContenido}>
                   <Image resizeMode="contain" source={hito.imagen} style={hito.etapa === 5 ? s.slide4ArbolFinal : hito.etapa === 3 ? s.slide4ArbolMedio : s.slide4ArbolInicio} />
                   <View style={s.slide4PuntoTimeline} />
-                  <View style={s.slide4EtiquetaHito}><Texto style={s.slide4DiaTimeline}>{hito.dia}</Texto><Texto style={s.slide4NivelTimeline}>Nivel {hito.etapa}</Texto></View>
+                  <View style={s.slide4EtiquetaHito}><Texto style={s.slide4DiaTimeline}>{hito.dia}</Texto><Texto style={s.slide4NivelTimeline}>{t('onboarding.intro.slide4.level', { level: hito.etapa })}</Texto></View>
                 </View>
               </View>
             ))}
@@ -867,12 +867,12 @@ export function IntroduccionAppPantalla() {
                 },
               ]}
             >
-              Haz crecer tu hábito
+              {t('onboarding.intro.slide4.title')}
             </Texto>
 
             <View style={s.slide1TituloFila}>
               <Image resizeMode="contain" source={require('../../../../assets/ilustraciones/senderos/biomas/paquetes/Esmeralda/arbusto.png')} style={[s.slide1ArbustoIzquierdo, { height: altoSubtituloHero, width: altoSubtituloHero }]} />
-              <MasterText coloresGradiente={DEGRADADO_VERDE_SUTIL} gradiente style={[s.slide1TituloGradiente, { fontSize: tamanoSubtituloHero, lineHeight: altoSubtituloHero }]} variante="titulo">día a día</MasterText>
+              <MasterText coloresGradiente={DEGRADADO_VERDE_SUTIL} gradiente style={[s.slide1TituloGradiente, { fontSize: tamanoSubtituloHero, lineHeight: altoSubtituloHero }]} variante="titulo">{t('onboarding.intro.slide4.accent')}</MasterText>
               <Image resizeMode="contain" source={require('../../../../assets/ilustraciones/senderos/biomas/paquetes/Esmeralda/arbusto.png')} style={[s.slide1ArbustoDerecho, { height: altoSubtituloHero, width: altoSubtituloHero }]} />
             </View>
             <LinearGradient
@@ -882,7 +882,7 @@ export function IntroduccionAppPantalla() {
               style={s.slide1SeparadorLinea}
             />
             <Texto style={s.slide1Subtitulo}>
-              Cada día cuenta. Mira cómo evoluciona con tu constancia.
+              {t('onboarding.intro.slide4.subtitle')}
             </Texto>
           </View>
           </>}
@@ -903,8 +903,8 @@ export function IntroduccionAppPantalla() {
                 />
               </View>
 
-              <Texto style={s.slide5Titulo}>Tu jardín te espera</Texto>
-              <Texto style={s.slide5Subtitulo}>Iniciá sesión para empezar a cultivarlo.</Texto>
+              <Texto style={s.slide5Titulo}>{t('onboarding.intro.slide5.title')}</Texto>
+              <Texto style={s.slide5Subtitulo}>{t('onboarding.intro.slide5.subtitle')}</Texto>
 
               <LinearGradient
                 colors={[conAlfa(esc.jade.l50, 0), conAlfa(esc.jade.l50, 0.32), conAlfa(esc.jade.l50, 0)]}
@@ -950,7 +950,7 @@ export function IntroduccionAppPantalla() {
             iconoDerecha={({ size }) => <ChevronRight color="#FFFFFF" size={size} strokeWidth={3} />}
             style={s.botonSiguiente}
           >
-            CONTINUAR
+            {t('onboarding.intro.continue')}
           </MasterButton>
         )}
       </View>

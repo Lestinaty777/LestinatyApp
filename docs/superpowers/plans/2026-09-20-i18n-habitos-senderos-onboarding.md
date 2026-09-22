@@ -87,11 +87,11 @@ expect(Object.keys(recursosI18n.es.translation).sort())
 - Modify: `src/modulos/direccion/pantallas/PerfilPantalla.tsx`
 - Modify: `src/servicios/i18n/recursos.ts`
 
-**Avance:** Tienda completada y auditada (pantalla, carrusel hero y tarjeta de referidos). Insights y Perfil quedan pendientes en este bloque.
+**Resultado verificado:** Tienda, Insights y Perfil completados y auditados. `recursos.test.ts`: 4 pruebas aprobadas para recursos base; auditoría de claves confirma resolución ES/EN en los tres dominios. La suite completa tiene 230 pruebas aprobadas y el typecheck conserva exclusivamente los 10 diagnósticos preexistentes documentados.
 
-- [ ] **Step 1: Extraer literales visibles por archivo y agruparlos bajo `tienda`, `insights` y `perfil`.**
-- [ ] **Step 2: Añadir los pares ES/EN exactos, reemplazar los literales y conservar precio/fecha/cantidad como variables interpoladas.**
-- [ ] **Step 3: Ejecutar pruebas focalizadas existentes de tienda/insights y typecheck sin nuevos errores.**
+- [x] **Step 1: Extraer literales visibles por archivo y agruparlos bajo `tienda`, `insights` y `perfil`.**
+- [x] **Step 2: Añadir los pares ES/EN exactos, reemplazar los literales y conservar precio/fecha/cantidad como variables interpoladas.**
+- [x] **Step 3: Ejecutar pruebas focalizadas existentes de tienda/insights y typecheck sin nuevos errores.**
 
 ### Task 5: Splash y onboarding
 
@@ -106,10 +106,12 @@ expect(Object.keys(recursosI18n.es.translation).sort())
 - Modify: `src/modulos/onboarding/pantallas/RegaloTrialHorizonPantalla.tsx`
 - Modify: `src/servicios/i18n/recursos.ts`
 
-- [ ] **Step 1: Inventariar textos y accesibilidad por pantalla, sin traducir nombres propios de paquetes.**
-- [ ] **Step 2: Añadir secciones `arranque` y `onboarding` con ES/EN y reemplazar los literales con `t`.**
-- [ ] **Step 3: Confirmar que interpolaciones de días, precio, prueba y nombre de paquete preserven las variables originales.**
-- [ ] **Step 4: Ejecutar typecheck y las pruebas de onboarding existentes.**
+- [x] **Step 1: Inventariar textos y accesibilidad por pantalla, sin traducir nombres propios de paquetes.**
+- [x] **Step 2: Añadir secciones `arranque` y `onboarding` con ES/EN y reemplazar los literales con `t`.**
+- [x] **Step 3: Confirmar que interpolaciones de días, precio, prueba y nombre de paquete preserven las variables originales.**
+- [x] **Step 4: Ejecutar typecheck y las pruebas de onboarding existentes.**
+
+**Resultado verificado:** Splash y onboarding completados con paridad bilingüe ES/EN en `AnimacionApertura`, `IntroduccionAppPantalla`, `AccesoOnboardingPantalla`, `FormularioAccesoOnboarding`, `RegaloBienvenidaPantalla`, `CarruselArbolRegalo`, `SelectorArbolRegalo` y `RegaloTrialHorizonPantalla`. Suite de pruebas: 232 pruebas aprobadas (6 en `recursos.test.ts` con validación de paridad simétrica de claves). Typecheck ejecutado sin errores nuevos en los componentes traducidos.
 
 ### Task 6: Horizon, gemas y subpantallas de Hábitos
 
@@ -123,10 +125,12 @@ expect(Object.keys(recursosI18n.es.translation).sort())
 - Modify: `src/modulos/habitos/pantallas/CategoriaHabitosPantalla.tsx`
 - Modify: `src/servicios/i18n/recursos.ts`
 
-- [ ] **Step 1: Resolver el componente de gemas desde la ruta antes de extraer strings.**
-- [ ] **Step 2: Extraer, registrar y sustituir todo texto visible bajo `horizon`, `tienda.gemas` y `habitos.*`.**
-- [ ] **Step 3: Usar interpolación para rachas, porcentajes, niveles, días, importes y metas.**
-- [ ] **Step 4: Ejecutar pruebas de hábitos y typecheck, sin modificar errores previos de `Rebote`.**
+- [x] **Step 1: Resolver el componente de gemas desde la ruta antes de extraer strings.**
+- [x] **Step 2: Extraer, registrar y sustituir todo texto visible bajo `horizon`, `tienda.gemas` y `habitos.*`.**
+- [x] **Step 3: Usar interpolación para rachas, porcentajes, niveles, días, importes y metas.**
+- [x] **Step 4: Ejecutar pruebas de hábitos y typecheck, sin modificar errores previos de `Rebote`.**
+
+**Resultado verificado:** Horizon, gemas (`TiendaPantalla.tsx`) y subpantallas de Hábitos (`DetalleHabitoPantalla`, `ProgresionHabitosPantalla`, `RecordatoriosHabitosPantalla`, `WidgetsHabitosPantalla`, `CategoriaHabitosPantalla`) completados con paridad bilingüe ES/EN simétrica. Suite de pruebas: 56 archivos y 242 pruebas aprobadas (7 en `recursos.test.ts` con paridad total de claves y `horizonCopy.test.ts` aprobado). Typecheck conserva exclusivamente los 10 diagnósticos preexistentes sin introducir nuevos errores.
 
 ### Task 7: Subpantallas de Senderos y verificación final
 
@@ -137,7 +141,9 @@ expect(Object.keys(recursosI18n.es.translation).sort())
 - Modify: `src/modulos/senderos/pantallas/VistaPreviaPaquetePantalla.tsx`
 - Modify: `src/servicios/i18n/recursos.ts`
 
-- [ ] **Step 1: Extraer alertas, botones, etiquetas, cronómetro, accesibilidad y estados vacíos.**
-- [ ] **Step 2: Registrar claves `senderos.detalle`, `senderos.mision`, `senderos.analisis` y `senderos.vistaPrevia`, después sustituir cada literal visible.**
-- [ ] **Step 3: Ejecutar `npx tsc --noEmit`; confirmar que solo quedan los errores preexistentes documentados.**
-- [ ] **Step 4: Ejecutar `npx vitest run` y revisar que no haya regresiones.**
+- [x] **Step 1: Extraer alertas, botones, etiquetas, cronómetro, accesibilidad y estados vacíos.**
+- [x] **Step 2: Registrar claves `senderos.detalle`, `senderos.mision`, `senderos.analisis` y `senderos.vistaPrevia`, después sustituir cada literal visible.**
+- [x] **Step 3: Ejecutar `npx tsc --noEmit`; confirmar que solo quedan los errores preexistentes documentados.**
+- [x] **Step 4: Ejecutar `npx vitest run` y revisar que no haya regresiones.**
+
+**Resultado verificado:** Subpantallas de Senderos completadas (`DetalleSenderoPantalla`, `SesionMisionPantalla`, `AnalisisSenderos`, `VistaPreviaPaquetePantalla`) con recursos ES/EN simétricos en `recursos.ts`. `recursos.test.ts` actualizado y pasando 8/8 pruebas de paridad estructural. Suite completa de Vitest: 56 archivos y 243 pruebas aprobadas (0 fallos). Typecheck con `tsc --noEmit` verificado: 0 errores nuevos introducidos, conservando exclusivamente los diagnósticos preexistentes de línea base.

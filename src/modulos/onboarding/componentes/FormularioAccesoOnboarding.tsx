@@ -1,8 +1,9 @@
 import { router } from 'expo-router';
 import { Gift, Mail } from 'lucide-react-native';
 import { Controller, useForm } from 'react-hook-form';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Linking, StyleSheet, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 import { CampoContrasena, CampoTexto, Checkbox, MasterButton, MasterIcon, Rebote, Texto } from '../../../diseno';
 import { usarEstadoAcceso } from '../../acceso/acceso.estado';
@@ -20,10 +21,6 @@ import { conAlfa } from '../../../diseno/tema/masterColor';
 
 const C = { tenue: ESCALA_ESMERALDA.musgo.l51, verde: ESCALA_ESMERALDA.jade.l50 };
 
-const MENSAJES_VALIDACION = {
-  email: 'Ingresá un correo válido.',
-  passwordMin: 'Tu contraseña debe tener al menos 8 caracteres.',
-};
 
 const URL_TERMINOS = 'https://lestinaty.com/terminos';
 const URL_PRIVACIDAD = 'https://lestinaty.com/privacidad';
@@ -64,6 +61,7 @@ function esErrorEmailSinConfirmar(error: unknown) {
 // en dos lugares: la pantalla standalone (reentrada en frío) y el slide 5 del
 // carrusel de introducción.
 export function FormularioAccesoOnboarding() {
+  const { t } = useTranslation();
   const esc = useEscala();
   const s = useEstilosS();
   const definirUsuario = usarEstadoAcceso((estado) => estado.definirUsuario);
@@ -138,14 +136,17 @@ export function FormularioAccesoOnboarding() {
         router.replace('/(principal)/hoy');
       }
     } catch (error) {
-      setErrorGoogle(error instanceof Error ? error.message : 'No pudimos continuar con Google.');
+      setErrorGoogle(error instanceof Error ? error.message : t('onboarding.formularioAcceso.errors.googleFailed'));
     } finally {
       setCargandoGoogle(false);
     }
   }
 
   const entrarConEmail = handleSubmit(async (valores) => {
-    const esquemaCredenciales = crearEsquemaCredenciales(MENSAJES_VALIDACION);
+    const esquemaCredenciales = crearEsquemaCredenciales({
+      email: t('onboarding.formularioAcceso.validation.email'),
+      passwordMin: t('onboarding.formularioAcceso.validation.passwordMin'),
+    });
     const resultado = esquemaCredenciales.safeParse(valores);
 
     if (!resultado.success) {
@@ -161,17 +162,20 @@ export function FormularioAccesoOnboarding() {
       definirUsuario(usuario);
       router.replace('/(principal)/hoy');
     } catch (error) {
-      setError('root', { message: error instanceof Error ? error.message : 'No pudimos verificar tus datos. Intentá de nuevo.' });
+      setError('root', { message: error instanceof Error ? error.message : t('onboarding.formularioAcceso.errors.verifyData') });
     }
   });
 
   const crearCuenta = handleSubmit(async (valores) => {
     if (!terminosAceptados) {
-      setError('root', { message: 'Tenés que aceptar los términos para continuar.' });
+      setError('root', { message: t('onboarding.formularioAcceso.errors.acceptTerms') });
       return;
     }
 
-    const esquemaCredenciales = crearEsquemaCredenciales(MENSAJES_VALIDACION);
+    const esquemaCredenciales = crearEsquemaCredenciales({
+      email: t('onboarding.formularioAcceso.validation.email'),
+      passwordMin: t('onboarding.formularioAcceso.validation.passwordMin'),
+    });
     const resultado = esquemaCredenciales.safeParse(valores);
 
     if (!resultado.success) {
@@ -189,7 +193,7 @@ export function FormularioAccesoOnboarding() {
 
       if (!usuario) {
         setEmailPendiente(resultado.data.email);
-        setMensaje('Te enviamos un código a tu correo.');
+        setMensaje(t('onboarding.formularioAcceso.messages.codeSent'));
         setPaso('otp');
         await cooldownReenvio.iniciar(resultado.data.email);
         return;
@@ -200,7 +204,7 @@ export function FormularioAccesoOnboarding() {
     } catch (error) {
       if (esErrorEmailSinConfirmar(error)) {
         setEmailPendiente(resultado.data.email);
-        setMensaje('Te enviamos un código a tu correo.');
+        setMensaje(t('onboarding.formularioAcceso.messages.codeSent'));
         setPaso('otp');
 
         try {
@@ -211,27 +215,27 @@ export function FormularioAccesoOnboarding() {
           }
         } catch {
           setMensaje(null);
-          setErrorOtp('root', { message: 'No pudimos reenviar el código. Intentá de nuevo.' });
+          setErrorOtp('root', { message: t('onboarding.formularioAcceso.errors.resendFailed') });
         }
 
         return;
       }
 
-      setError('root', { message: error instanceof Error ? error.message : 'No pudimos crear tu cuenta. Intentá de nuevo.' });
+      setError('root', { message: error instanceof Error ? error.message : t('onboarding.formularioAcceso.errors.createAccountFailed') });
     }
   });
 
   const verificarCodigo = handleSubmitOtp(async (valores) => {
-    const esquemaOtpRegistro = crearEsquemaOtpRegistro('Ingresá el código de 6 dígitos.');
+    const esquemaOtpRegistro = crearEsquemaOtpRegistro(t('onboarding.formularioAcceso.errors.otpDigits'));
     const resultado = esquemaOtpRegistro.safeParse(valores);
 
     if (!resultado.success) {
-      setErrorOtp('token', { message: resultado.error.issues[0]?.message ?? 'Código inválido.' });
+      setErrorOtp('token', { message: resultado.error.issues[0]?.message ?? t('onboarding.formularioAcceso.errors.invalidCode') });
       return;
     }
 
     if (!emailPendiente) {
-      setErrorOtp('root', { message: 'No pudimos verificar tus datos. Intentá de nuevo.' });
+      setErrorOtp('root', { message: t('onboarding.formularioAcceso.errors.verifyData') });
       setPaso('datos');
       return;
     }
@@ -241,7 +245,7 @@ export function FormularioAccesoOnboarding() {
       definirUsuario(usuario);
       router.replace('/(principal)/hoy');
     } catch (error) {
-      setErrorOtp('root', { message: error instanceof Error ? error.message : 'Código inválido o vencido.' });
+      setErrorOtp('root', { message: error instanceof Error ? error.message : t('onboarding.formularioAcceso.errors.invalidOrExpiredCode') });
     }
   });
 
@@ -261,11 +265,11 @@ export function FormularioAccesoOnboarding() {
       setReenviando(true);
       await reenviarOtpRegistro(emailPendiente);
       clearErrorsOtp('root');
-      setMensaje('Te enviamos un código a tu correo.');
+      setMensaje(t('onboarding.formularioAcceso.messages.codeSent'));
       await cooldownReenvio.iniciar(emailPendiente);
     } catch (error) {
       setMensaje(null);
-      setErrorOtp('root', { message: error instanceof Error ? error.message : 'No pudimos reenviar el código.' });
+      setErrorOtp('root', { message: error instanceof Error ? error.message : t('onboarding.formularioAcceso.errors.resendFailedSimple') });
     } finally {
       setReenviando(false);
     }
@@ -287,7 +291,7 @@ export function FormularioAccesoOnboarding() {
           {esCrear ? (
             <View style={s.filaEncabezadoModo}>
               <MasterIcon alTema name="maceta" size={20} />
-              <Texto style={s.encabezadoModo}>Creá tu cuenta</Texto>
+              <Texto style={s.encabezadoModo}>{t('onboarding.formularioAcceso.createAccountHeader')}</Texto>
             </View>
           ) : null}
 
@@ -303,7 +307,7 @@ export function FormularioAccesoOnboarding() {
                 keyboardType="email-address"
                 onBlur={onBlur}
                 onChangeText={onChange}
-                placeholder="Correo electrónico"
+                placeholder={t('onboarding.formularioAcceso.emailPlaceholder')}
                 variante="flotante"
                 value={value}
               />
@@ -321,7 +325,7 @@ export function FormularioAccesoOnboarding() {
                 mostrarMedidor={esCrear}
                 onBlur={onBlur}
                 onChangeText={onChange}
-                placeholder="Contraseña"
+                placeholder={t('onboarding.formularioAcceso.passwordPlaceholder')}
                 variante="flotante"
                 value={value}
               />
@@ -332,17 +336,17 @@ export function FormularioAccesoOnboarding() {
             <>
               <CampoTexto
                 autoCapitalize="characters"
-                error={estadoCodigo === 'invalido' ? 'Ese código no existe.' : undefined}
+                error={estadoCodigo === 'invalido' ? t('onboarding.formularioAcceso.referralInvalid') : undefined}
                 iconoIzquierda={Gift}
                 onChangeText={setCodigoReferido}
-                placeholder="Código de un amigo (opcional)"
+                placeholder={t('onboarding.formularioAcceso.referralCodePlaceholder')}
                 variante="flotante"
                 value={codigoReferido}
               />
               {estadoCodigo === 'verificando' ? (
-                <Texto style={s.textoCrearCuenta}>Verificando código…</Texto>
+                <Texto style={s.textoCrearCuenta}>{t('onboarding.formularioAcceso.referralChecking')}</Texto>
               ) : estadoCodigo === 'valido' ? (
-                <Texto style={s.exito}>✓ Código válido</Texto>
+                <Texto style={s.exito}>{t('onboarding.formularioAcceso.referralValid')}</Texto>
               ) : null}
             </>
           ) : null}
@@ -350,15 +354,16 @@ export function FormularioAccesoOnboarding() {
           {errors.root?.message ? <Texto style={s.error}>{errors.root.message}</Texto> : null}
 
           {!esCrear ? (
-            <Rebote accessibilityLabel="Olvidé mi contraseña" onPress={() => router.push('/(publico)/recuperar-acceso')} estilo={s.enlaceOlvido}>
-              <Texto style={s.enlace}>¿Olvidaste tu contraseña?</Texto>
+            <Rebote accessibilityLabel={t('onboarding.formularioAcceso.forgotPasswordAccessibility')} onPress={() => router.push('/(publico)/recuperar-acceso')} estilo={s.enlaceOlvido}>
+              <Texto style={s.enlace}>{t('onboarding.formularioAcceso.forgotPassword')}</Texto>
             </Rebote>
           ) : (
             <Checkbox checked={terminosAceptados} colorActivo={C.verde} colorBorde={conAlfa(esc.jade.l50, 0.45)} onChange={setTerminosAceptados}>
-              Acepto los{' '}
-              <Text onPress={() => Linking.openURL(URL_TERMINOS)} style={s.enlaceLegalInline}>Términos de uso</Text>
-              {' '}y el{' '}
-              <Text onPress={() => Linking.openURL(URL_PRIVACIDAD)} style={s.enlaceLegalInline}>Aviso de privacidad</Text>.
+              {t('onboarding.formularioAcceso.termsAcceptPrefix')}
+              <Text onPress={() => Linking.openURL(URL_TERMINOS)} style={s.enlaceLegalInline}>{t('onboarding.formularioAcceso.termsOfUse')}</Text>
+              {t('onboarding.formularioAcceso.termsAnd')}
+              <Text onPress={() => Linking.openURL(URL_PRIVACIDAD)} style={s.enlaceLegalInline}>{t('onboarding.formularioAcceso.privacyNotice')}</Text>
+              {t('onboarding.formularioAcceso.termsDot')}
             </Checkbox>
           )}
 
@@ -369,12 +374,12 @@ export function FormularioAccesoOnboarding() {
             onPress={esCrear ? crearCuenta : entrarConEmail}
             style={s.boton}
           >
-            {esCrear ? (isSubmitting ? 'Creando cuenta…' : 'Crear cuenta') : (isSubmitting ? 'Entrando…' : 'Iniciar sesión')}
+            {esCrear ? (isSubmitting ? t('onboarding.formularioAcceso.submittingCreate') : t('onboarding.formularioAcceso.submitCreate')) : (isSubmitting ? t('onboarding.formularioAcceso.submittingLogin') : t('onboarding.formularioAcceso.submitLogin'))}
           </MasterButton>
 
           <View style={s.divisorFila}>
             <View style={s.divisorLinea} />
-            <Texto style={s.divisorTexto}>o</Texto>
+            <Texto style={s.divisorTexto}>{t('onboarding.formularioAcceso.orDivider')}</Texto>
             <View style={s.divisorLinea} />
           </View>
 
@@ -383,9 +388,9 @@ export function FormularioAccesoOnboarding() {
 
           <View style={s.filaCrearCuenta}>
             <MasterIcon alTema name={esCrear ? 'candado' : 'idea'} size={16} />
-            <Texto style={s.textoCrearCuenta}>{esCrear ? '¿Ya tenés cuenta? ' : '¿No tenés cuenta? '}</Texto>
-            <Rebote accessibilityLabel={esCrear ? 'Iniciar sesión' : 'Crear cuenta'} onPress={() => cambiarModo(esCrear ? 'login' : 'crear')}>
-              <Texto style={[s.enlace, s.enlaceDestacado]}>{esCrear ? 'Iniciá sesión' : 'Creala acá'}</Texto>
+            <Texto style={s.textoCrearCuenta}>{esCrear ? t('onboarding.formularioAcceso.alreadyHaveAccount') : t('onboarding.formularioAcceso.noAccount')}</Texto>
+            <Rebote accessibilityLabel={esCrear ? t('onboarding.formularioAcceso.accessibilityLogin') : t('onboarding.formularioAcceso.accessibilityCreate')} onPress={() => cambiarModo(esCrear ? 'login' : 'crear')}>
+              <Texto style={[s.enlace, s.enlaceDestacado]}>{esCrear ? t('onboarding.formularioAcceso.switchActionLogin') : t('onboarding.formularioAcceso.switchActionCreate')}</Texto>
             </Rebote>
           </View>
         </>
@@ -408,18 +413,18 @@ export function FormularioAccesoOnboarding() {
           ) : null}
 
           <MasterButton color={C.verde} disabled={verificandoOtp} onPress={verificarCodigo} style={s.boton}>
-            {verificandoOtp ? 'Verificando…' : 'Verificar código'}
+            {verificandoOtp ? t('onboarding.formularioAcceso.otpVerifying') : t('onboarding.formularioAcceso.otpVerifyButton')}
           </MasterButton>
 
           <View style={s.filaCrearCuenta}>
-            <Texto style={s.textoCrearCuenta}>¿No te llegó? </Texto>
+            <Texto style={s.textoCrearCuenta}>{t('onboarding.formularioAcceso.otpNotReceived')}</Texto>
             <AccionAcceso disabled={reenviando || cooldownReenvio.segundosRestantes > 0} onPress={reenviarCodigo} style={s.enlace}>
-              {reenviando ? 'Reenviando…' : cooldownReenvio.segundosRestantes > 0 ? `Reenviar en ${cooldownReenvio.segundosRestantes}s` : 'Reenviar código'}
+              {reenviando ? t('onboarding.formularioAcceso.otpResending') : cooldownReenvio.segundosRestantes > 0 ? t('onboarding.formularioAcceso.otpResendIn', { seconds: cooldownReenvio.segundosRestantes }) : t('onboarding.formularioAcceso.otpResendButton')}
             </AccionAcceso>
           </View>
 
-          <Rebote accessibilityLabel="Cambiar correo" onPress={volverADatos} estilo={s.enlaceCentrado}>
-            <Texto style={s.enlace}>Cambiar correo</Texto>
+          <Rebote accessibilityLabel={t('onboarding.formularioAcceso.changeEmail')} onPress={volverADatos} estilo={s.enlaceCentrado}>
+            <Texto style={s.enlace}>{t('onboarding.formularioAcceso.changeEmail')}</Texto>
           </Rebote>
         </>
       )}

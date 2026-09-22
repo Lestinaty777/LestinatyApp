@@ -18,6 +18,7 @@ export type TarjetaSenderoHabitoProps = {
   cargando?: boolean;
   ctaTexto?: string;
   descripcion?: string;
+  deshabilitado?: boolean;
   diasCompletados?: number[];
   diasProgramados: number[];
   escalaArbol?: number;
@@ -26,6 +27,7 @@ export type TarjetaSenderoHabitoProps = {
   metaEtiqueta: string;
   nivel?: number;
   onPressCta?: () => void;
+  puedeRegistrarHoy?: boolean;
   racha?: number;
   titulo: string;
   valorHoy?: number;
@@ -35,8 +37,8 @@ export type TarjetaSenderoHabitoProps = {
 // creación (como previsualización, sin datos reales) y es la misma que se usa
 // en HabitosPantalla con datos reales — un solo componente, dos contextos.
 export function TarjetaSenderoHabito({
-  assets, cargando = false, ctaTexto = 'Comenzar', descripcion = '', diasCompletados = [], diasProgramados,
-  escalaArbol = 1, icono, meta, metaEtiqueta, nivel = 1, onPressCta, racha = 0, titulo, valorHoy = 0,
+  assets, cargando = false, ctaTexto = 'Comenzar', descripcion = '', deshabilitado, diasCompletados = [], diasProgramados,
+  escalaArbol = 1, icono, meta, metaEtiqueta, nivel = 1, onPressCta, puedeRegistrarHoy = true, racha = 0, titulo, valorHoy = 0,
 }: TarjetaSenderoHabitoProps) {
   const tp = useEstilosTp();
   // Colores del tono activo (Esmeralda fuera de un MasterColorProvider = los verdes de siempre).
@@ -90,7 +92,14 @@ export function TarjetaSenderoHabito({
             })}
           </View>
         </View>
-        <Boton color={c.boton} disabled={cargando} iconoIzquierda={Play} onPress={onPressCta} style={tp.cta} variante="sendero">
+        <Boton
+          color={c.boton}
+          disabled={cargando || deshabilitado === true || !puedeRegistrarHoy}
+          iconoIzquierda={Play}
+          onPress={cargando || deshabilitado === true || !puedeRegistrarHoy ? undefined : onPressCta}
+          style={tp.cta}
+          variante="sendero"
+        >
           {cargando ? 'Guardando…' : ctaTexto}
         </Boton>
       </RecuadroGlass>

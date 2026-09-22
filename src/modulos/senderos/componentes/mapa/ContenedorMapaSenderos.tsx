@@ -19,6 +19,9 @@ import { resolverPaqueteHabito } from '../../../habitos/paqueteHabito';
 import { useTranslation } from 'react-i18next';
 
 import { NodoSendero } from './NodoSendero';
+import { NodoCofreSendero } from './NodoCofreSendero';
+import { ModalAperturaCofre } from './ModalAperturaCofre';
+import type { InfoCofre } from '../../datos/mapaEjercicio.mock';
 import { useEscala } from '../../../../diseno/tema/MasterColorContext';
 import type { EscalaMaster } from '../../../../diseno/tema/escalaEsmeralda';
 import { ESCALA_ESMERALDA } from '../../../../diseno/tema/escalaEsmeralda';
@@ -34,6 +37,8 @@ type ContenedorMapaSenderosProps = {
   nodos?: NodoMapaSendero[];
   /** Si se pasa, reemplaza la navegación mock de "Comenzar" del tooltip — para contextos con una acción real (ej. registrar progreso de un hábito). */
   onCompletarNodo?: (nodo: NodoMapaSendero, indice: number) => void;
+  /** Si se pasa, maneja el reclamo del cofre de sendero y abre el modal de celebración */
+  onReclamarCofre?: (cofre: InfoCofre) => Promise<{ gemas: number }>;
   subcategoriaId: string;
   /** Nivel real 1-7 del hábito — solo aplica a categoriaId 'habitos', define qué etapas de crecimiento se mezclan. */
   nivel?: number;
@@ -293,13 +298,14 @@ const CapaDecoracionMapa = React.memo(function CapaDecoracionMapa({
   );
 });
 
-export function ContenedorMapaSenderos({ altura, categoriaId, color, desplazamientoSuperior, enfocado, infoHabito, nivel, nodos: nodosOverride, onCompletarNodo, paqueteId, progresoPastoTemprano, subcategoriaId }: ContenedorMapaSenderosProps) {
+export function ContenedorMapaSenderos({ altura, categoriaId, color, desplazamientoSuperior, enfocado, infoHabito, nivel, nodos: nodosOverride, onCompletarNodo, onReclamarCofre, paqueteId, progresoPastoTemprano, subcategoriaId }: ContenedorMapaSenderosProps) {
   const styles = useEstilosStyles();
   const { width } = useWindowDimensions();
   const router = useRouter();
   const scrollRef = useRef<ScrollView>(null);
   const [anchoMapa, setAnchoMapa] = useState(0);
   const [desplazamientoMapa, setDesplazamientoMapa] = useState(0);
+  const [cofreApertura, setCofreApertura] = useState<InfoCofre | null>(null);
   const desplazamientoDecoracionRef = useRef(0);
   const nodos = nodosOverride ?? obtenerNodosMapaMock(subcategoriaId);
   const ultimoCompletadoInicial = Math.max(-1, nodos.reduce((ultimo, nodo, indice) => nodo.estado === 'completado' ? indice : ultimo, -1));
@@ -482,6 +488,34 @@ export function ContenedorMapaSenderos({ altura, categoriaId, color, desplazamie
           // Todos los nodos conservan el mismo peso visual: reducirlos por
           // índice hacía que los mapas largos parecieran encogerse al subir.
           const escalaEscena = 1;
+
+          if (nodo.tipoNodo === 'cofre_intermedio' || nodo.tipoNodo === 'cofre_final') {
+            const cofreInfo = nodo.cofre ?? {
+              ciclo: 1,
+              estadoCofre: estadoVisual === 'completado' ? 'disponible' : 'bloqueado',
+              gemasMax: 15,
+              gemasMin: 8,
+              nodoDia: indice + 1,
+              tipo: nodo.tipoNodo === 'cofre_final' ? 'final' : 'intermedio',
+            };
+            return (
+              <View key={nodo.id} style={[styles.nodoPosicion, { left: posicion.x - 42, top: posicion.y - 48, zIndex: 20 }]}>
+                <NodoCofreSendero
+                  cofre={cofreInfo}
+                  color={color}
+                  escalaEscena={escalaEscena}
+                  onPress={() => {
+                    seleccionarNodo(nodo.id, indice);
+                    if (cofreInfo.estadoCofre === 'disponible' && onReclamarCofre) {
+                      setCofreApertura(cofreInfo);
+                    }
+                  }}
+                  seleccionado={esSeleccionado}
+                />
+              </View>
+            );
+          }
+
           return (
             <View key={nodo.id} style={[styles.nodoPosicion, { left: posicion.x - 42, top: posicion.y - 48, zIndex: 20 }]}>
               <NodoSendero Icono={nodo.icono} asentado={asentado} color={color} escalaEscena={escalaEscena} estado={estadoVisual} seleccionado={esSeleccionado} onCompletar={() => completarNodo(indice)} onPress={() => seleccionarNodo(nodo.id, indice)} />
@@ -496,13 +530,29 @@ export function ContenedorMapaSenderos({ altura, categoriaId, color, desplazamie
             infoHabito={infoHabito}
             nodo={nodoSeleccionado}
             posicion={posicionNodoSeleccionado}
-            onCompletar={() => completarNodo(indiceNodoSeleccionado)}
+            onCompletar={() => {
+              if ((nodoSeleccionado.tipoNodo === 'cofre_intermedio' || nodoSeleccionado.tipoNodo === 'cofre_final') && nodoSeleccionado.cofre?.estadoCofre === 'disponible') {
+                setCofreApertura(nodoSeleccionado.cofre);
+                return;
+              }
+              completarNodo(indiceNodoSeleccionado);
+            }}
           />
         ) : null}
       </View></TouchableWithoutFeedback>
 
       {nodoSeleccionado ? <View accessibilityElementsHidden style={styles.lectorOculto}><Texto>{nodoSeleccionado.titulo}</Texto></View> : null}
     </ScrollView>
+    {onReclamarCofre && (
+      <ModalAperturaCofre
+        cofre={cofreApertura}
+        color={color}
+        onCerrar={() => setCofreApertura(null)}
+        onReclamar={onReclamarCofre}
+        paqueteId={resolverPaqueteHabito(paqueteVisualMapa)}
+        visible={cofreApertura !== null}
+      />
+    )}
     </View>
   );
 }
@@ -551,6 +601,32 @@ function TooltipNodoSeleccionado({ anchoEscena, color, estado, infoHabito, nodo,
         ? t('senderos.map.durationDescription', { meta: infoHabito.meta })
         : t('senderos.map.quantityDescription', { meta: infoHabito.meta, unit: infoHabito.unidad ?? t('senderos.map.defaultUnit') });
 
+  const esCofre = nodo.tipoNodo === 'cofre_intermedio' || nodo.tipoNodo === 'cofre_final';
+  const cofreInfo = nodo.cofre;
+  const descripcionFinal = esCofre
+    ? cofreInfo?.estadoCofre === 'reclamado'
+      ? `Cofre ya reclamado (+${cofreInfo.gemasReclamadas ?? cofreInfo.gemasMin} gemas).`
+      : cofreInfo?.estadoCofre === 'disponible'
+        ? `¡Listo para abrir! Contiene de ${cofreInfo.gemasMin} a ${cofreInfo.gemasMax} gemas.`
+        : 'Completa los días de constancia previos para desbloquear este cofre.'
+    : descripcionNodoHabito;
+
+  const botonDeshabilitado = esCofre
+    ? cofreInfo?.estadoCofre !== 'disponible'
+    : estado === 'bloqueado';
+
+  const textoBoton = esCofre
+    ? cofreInfo?.estadoCofre === 'reclamado'
+      ? 'Reclamado'
+      : cofreInfo?.estadoCofre === 'disponible'
+        ? '¡Abrir Cofre!'
+        : t('senderos.map.blocked')
+    : estado === 'bloqueado'
+      ? t('senderos.map.blocked')
+      : estado === 'completado'
+        ? t('senderos.map.review')
+        : t('senderos.map.start');
+
   return (
     <View pointerEvents="box-none" style={[styles.etiqueta, { left: izquierdaTooltip, top: posicion.y + 40 }]}>
       <View style={[styles.tooltipFlechita, { backgroundColor: colorTopeClaro, left: izquierdaFlecha, position: 'absolute', top: -10 }]} />
@@ -568,15 +644,15 @@ function TooltipNodoSeleccionado({ anchoEscena, color, estado, infoHabito, nodo,
             <IconoNodo color="#FFFFFF" size={20} />
             <Texto style={[styles.etiquetaTitulo, { color: '#FFFFFF', width: 'auto' }]}>{nodo.titulo}</Texto>
           </View>
-          <Texto style={[styles.etiquetaMeta, { color: '#FFFFFF' }]}>{descripcionNodoHabito}</Texto>
+          <Texto style={[styles.etiquetaMeta, { color: '#FFFFFF' }]}>{descripcionFinal}</Texto>
           <MasterButton
             style={{ marginTop: 14, width: '100%' }}
             color={colorBaseTooltip}
-            disabled={estado === 'bloqueado'}
+            disabled={botonDeshabilitado}
             onPress={onCompletar}
-            iconoDerecha={estado === 'completado' ? (props) => <PixelartIcon name="chevron-right" color={props.color} size={props.size} /> : undefined}
+            iconoDerecha={!esCofre && estado === 'completado' ? (props) => <PixelartIcon name="chevron-right" color={props.color} size={props.size} /> : undefined}
           >
-            {estado === 'bloqueado' ? t('senderos.map.blocked') : estado === 'completado' ? t('senderos.map.review') : t('senderos.map.start')}
+            {textoBoton}
           </MasterButton>
           </View>
         </LinearGradient>

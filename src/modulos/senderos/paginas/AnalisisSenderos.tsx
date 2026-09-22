@@ -1,6 +1,7 @@
 import type { LucideIcon } from 'lucide-react-native';
 import { AlertTriangle, CalendarDays, Flame, GraduationCap, Handshake, Leaf, ListChecks, PiggyBank, Repeat2, Sparkles, TrendingUp } from 'lucide-react-native';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import Reanimated, { FadeIn, FadeInDown, ZoomIn } from 'react-native-reanimated';
 import { Pressable, StyleSheet, View, ScrollView } from 'react-native';
 
@@ -14,6 +15,14 @@ import { ESCALA_ESMERALDA } from '../../../diseno/tema/escalaEsmeralda';
 
 type CategoriaId = 'rutinas' | 'salud' | 'habitos' | 'tareas' | 'finanzas' | 'relaciones' | 'estudio';
 
+type SenderoItem = {
+  id: string;
+  etiqueta: string;
+  progreso: number;
+  titulo: string;
+  meta?: string;
+};
+
 type Categoria = {
   acento: string;
   alerta: string;
@@ -23,20 +32,181 @@ type Categoria = {
   mejorMomento: string;
   principal: { etiqueta: string; valor: string };
   secundario: { etiqueta: string; valor: string };
-  senderos: { etiqueta: string; progreso: number; titulo: string; meta?: string }[];
+  senderos: SenderoItem[];
   serie: number[];
   tendencia: string;
 };
 
-const categorias: Categoria[] = [
-  { acento: '#1463FF', alerta: 'Tu cierre de dia necesita una sesion para recuperar ritmo.', categoria: 'Rutinas', Icono: Repeat2, id: 'rutinas', mejorMomento: 'Viernes', principal: { etiqueta: 'consistencia', valor: '68%' }, secundario: { etiqueta: 'racha actual', valor: '6 dias' }, senderos: [{ etiqueta: '4 bloques', progreso: 68, titulo: 'Rutina de brazo', meta: 'diaria' }, { etiqueta: '15 min', progreso: 42, titulo: 'Cierre del dia', meta: 'diaria' }, { etiqueta: '2 bloques', progreso: 74, titulo: 'Bloque de enfoque', meta: 'diaria' }], serie: [36, 54, 42, 72, 58, 86, 68], tendencia: '+12%' },
-  { acento: ESCALA_ESMERALDA.hoja.l77b, alerta: 'Caminar mantiene la energia mas estable de tus senderos.', categoria: 'Salud', Icono: Leaf, id: 'salud', mejorMomento: 'Jueves', principal: { etiqueta: 'bienestar', valor: '81%' }, secundario: { etiqueta: 'objetivo semanal', valor: '4/5' }, senderos: [{ etiqueta: '20 min', progreso: 81, titulo: 'Caminar 20 min', meta: 'fisico' }, { etiqueta: '3 Litros', progreso: 90, titulo: 'Tomar Agua', meta: 'hidratacion' }, { etiqueta: '7 noches', progreso: 46, titulo: 'Mejor sueno', meta: 'sueno' }], serie: [48, 62, 55, 72, 66, 82, 81], tendencia: '+9%' },
-  { acento: '#FF3B30', alerta: 'Leer diario esta a una sesion de proteger su racha.', categoria: 'Habitos', Icono: Flame, id: 'habitos', mejorMomento: 'Noche', principal: { etiqueta: 'ritmo mensual', valor: '72%' }, secundario: { etiqueta: 'mejor racha', valor: '12 dias' }, senderos: [{ etiqueta: '7 dias', progreso: 72, titulo: 'Leer diario' }, { etiqueta: '4 dias', progreso: 63, titulo: 'Ser constante' }], serie: [78, 68, 82, 75, 84, 58, 72], tendencia: '-4%' },
-  { acento: '#FFC400', alerta: 'Una tarea importante vence esta semana.', categoria: 'Tareas', Icono: ListChecks, id: 'tareas', mejorMomento: 'Manana', principal: { etiqueta: 'resueltas', valor: '14' }, secundario: { etiqueta: 'pendientes', valor: '3' }, senderos: [{ etiqueta: '2 pendientes', progreso: 66, titulo: 'Proyecto personal' }, { etiqueta: 'vence viernes', progreso: 38, titulo: 'Organizar archivos' }], serie: [42, 66, 48, 74, 55, 72, 64], tendencia: '+6%' },
-  { acento: '#FF8A00', alerta: 'Tu proximo aporte llega el 1 de septiembre.', categoria: 'Finanzas', Icono: PiggyBank, id: 'finanzas', mejorMomento: 'Lunes', principal: { etiqueta: 'meta acumulada', valor: '57%' }, secundario: { etiqueta: 'ahorro actual', valor: '$285' }, senderos: [{ etiqueta: 'aporte mensual', progreso: 57, titulo: 'Ahorro mensual' }, { etiqueta: 'presupuesto', progreso: 76, titulo: 'Gastos conscientes' }], serie: [24, 31, 36, 48, 45, 54, 57], tendencia: '+7%' },
-  { acento: '#FF2D93', alerta: 'Una conversacion esta pendiente esta semana.', categoria: 'Relaciones', Icono: Handshake, id: 'relaciones', mejorMomento: 'Sabado', principal: { etiqueta: 'conexiones', valor: '5' }, secundario: { etiqueta: 'calidad', valor: '84%' }, senderos: [{ etiqueta: 'semanal', progreso: 84, titulo: 'Tiempo en familia' }, { etiqueta: 'quincenal', progreso: 52, titulo: 'Llamar a un amigo' }], serie: [58, 44, 66, 72, 60, 88, 84], tendencia: '+11%' },
-  { acento: '#8E3DFF', alerta: 'Dos sesiones mas consolidan tu avance de estudio.', categoria: 'Estudio', Icono: GraduationCap, id: 'estudio', mejorMomento: 'Martes', principal: { etiqueta: 'horas enfocadas', valor: '6.5h' }, secundario: { etiqueta: 'sesiones', valor: '9' }, senderos: [{ etiqueta: 'pomodoro', progreso: 71, titulo: 'Ingles practico' }, { etiqueta: 'lectura', progreso: 48, titulo: 'Aprender diseno' }], serie: [30, 62, 72, 52, 77, 68, 71], tendencia: '+15%' },
-];
+const NOMBRES_CATEGORIAS: Record<CategoriaId, string> = {
+  rutinas: 'senderos.analisis.categorias.rutinas',
+  salud: 'senderos.analisis.categorias.salud',
+  habitos: 'senderos.analisis.categorias.habitos',
+  tareas: 'senderos.analisis.categorias.tareas',
+  finanzas: 'senderos.analisis.categorias.finanzas',
+  relaciones: 'senderos.analisis.categorias.relaciones',
+  estudio: 'senderos.analisis.categorias.estudio',
+};
+
+function obtenerCategorias(t: (key: string, options?: any) => string): Categoria[] {
+  return [
+    {
+      acento: '#1463FF',
+      alerta: t('senderos.analisis.items.rutinas.alerta', { defaultValue: 'Tu cierre de dia necesita una sesion para recuperar ritmo.' }),
+      categoria: t('senderos.analisis.categorias.rutinas', { defaultValue: 'Rutinas' }),
+      Icono: Repeat2,
+      id: 'rutinas',
+      mejorMomento: t('senderos.analisis.items.rutinas.mejorMomento', { defaultValue: 'Viernes' }),
+      principal: {
+        etiqueta: t('senderos.analisis.items.rutinas.principalEtiqueta', { defaultValue: 'consistencia' }),
+        valor: '68%',
+      },
+      secundario: {
+        etiqueta: t('senderos.analisis.items.rutinas.secundarioEtiqueta', { defaultValue: 'racha actual' }),
+        valor: t('senderos.analisis.items.rutinas.secundarioValor', { defaultValue: '6 dias' }),
+      },
+      senderos: [
+        { id: 'rutinaBrazo', etiqueta: t('senderos.analisis.items.rutinas.senderos.rutinaBrazo.etiqueta', { defaultValue: '4 bloques' }), progreso: 68, titulo: t('senderos.analisis.items.rutinas.senderos.rutinaBrazo.titulo', { defaultValue: 'Rutina de brazo' }), meta: 'diaria' },
+        { id: 'cierreDia', etiqueta: t('senderos.analisis.items.rutinas.senderos.cierreDia.etiqueta', { defaultValue: '15 min' }), progreso: 42, titulo: t('senderos.analisis.items.rutinas.senderos.cierreDia.titulo', { defaultValue: 'Cierre del dia' }), meta: 'diaria' },
+        { id: 'bloqueEnfoque', etiqueta: t('senderos.analisis.items.rutinas.senderos.bloqueEnfoque.etiqueta', { defaultValue: '2 bloques' }), progreso: 74, titulo: t('senderos.analisis.items.rutinas.senderos.bloqueEnfoque.titulo', { defaultValue: 'Bloque de enfoque' }), meta: 'diaria' },
+      ],
+      serie: [36, 54, 42, 72, 58, 86, 68],
+      tendencia: '+12%',
+    },
+    {
+      acento: ESCALA_ESMERALDA.hoja.l77b,
+      alerta: t('senderos.analisis.items.salud.alerta', { defaultValue: 'Caminar mantiene la energia mas estable de tus senderos.' }),
+      categoria: t('senderos.analisis.categorias.salud', { defaultValue: 'Salud' }),
+      Icono: Leaf,
+      id: 'salud',
+      mejorMomento: t('senderos.analisis.items.salud.mejorMomento', { defaultValue: 'Jueves' }),
+      principal: {
+        etiqueta: t('senderos.analisis.items.salud.principalEtiqueta', { defaultValue: 'bienestar' }),
+        valor: '81%',
+      },
+      secundario: {
+        etiqueta: t('senderos.analisis.items.salud.secundarioEtiqueta', { defaultValue: 'objetivo semanal' }),
+        valor: '4/5',
+      },
+      senderos: [
+        { id: 'caminar20', etiqueta: t('senderos.analisis.items.salud.senderos.caminar20.etiqueta', { defaultValue: '20 min' }), progreso: 81, titulo: t('senderos.analisis.items.salud.senderos.caminar20.titulo', { defaultValue: 'Caminar 20 min' }), meta: 'fisico' },
+        { id: 'tomarAgua', etiqueta: t('senderos.analisis.items.salud.senderos.tomarAgua.etiqueta', { defaultValue: '3 Litros' }), progreso: 90, titulo: t('senderos.analisis.items.salud.senderos.tomarAgua.titulo', { defaultValue: 'Tomar Agua' }), meta: 'hidratacion' },
+        { id: 'mejorSueno', etiqueta: t('senderos.analisis.items.salud.senderos.mejorSueno.etiqueta', { defaultValue: '7 noches' }), progreso: 46, titulo: t('senderos.analisis.items.salud.senderos.mejorSueno.titulo', { defaultValue: 'Mejor sueno' }), meta: 'sueno' },
+      ],
+      serie: [48, 62, 55, 72, 66, 82, 81],
+      tendencia: '+9%',
+    },
+    {
+      acento: '#FF3B30',
+      alerta: t('senderos.analisis.items.habitos.alerta', { defaultValue: 'Leer diario esta a una sesion de proteger su racha.' }),
+      categoria: t('senderos.analisis.categorias.habitos', { defaultValue: 'Habitos' }),
+      Icono: Flame,
+      id: 'habitos',
+      mejorMomento: t('senderos.analisis.items.habitos.mejorMomento', { defaultValue: 'Noche' }),
+      principal: {
+        etiqueta: t('senderos.analisis.items.habitos.principalEtiqueta', { defaultValue: 'ritmo mensual' }),
+        valor: '72%',
+      },
+      secundario: {
+        etiqueta: t('senderos.analisis.items.habitos.secundarioEtiqueta', { defaultValue: 'mejor racha' }),
+        valor: t('senderos.analisis.items.habitos.secundarioValor', { defaultValue: '12 dias' }),
+      },
+      senderos: [
+        { id: 'leerDiario', etiqueta: t('senderos.analisis.items.habitos.senderos.leerDiario.etiqueta', { defaultValue: '7 dias' }), progreso: 72, titulo: t('senderos.analisis.items.habitos.senderos.leerDiario.titulo', { defaultValue: 'Leer diario' }) },
+        { id: 'serConstante', etiqueta: t('senderos.analisis.items.habitos.senderos.serConstante.etiqueta', { defaultValue: '4 dias' }), progreso: 63, titulo: t('senderos.analisis.items.habitos.senderos.serConstante.titulo', { defaultValue: 'Ser constante' }) },
+      ],
+      serie: [78, 68, 82, 75, 84, 58, 72],
+      tendencia: '-4%',
+    },
+    {
+      acento: '#FFC400',
+      alerta: t('senderos.analisis.items.tareas.alerta', { defaultValue: 'Una tarea importante vence esta semana.' }),
+      categoria: t('senderos.analisis.categorias.tareas', { defaultValue: 'Tareas' }),
+      Icono: ListChecks,
+      id: 'tareas',
+      mejorMomento: t('senderos.analisis.items.tareas.mejorMomento', { defaultValue: 'Manana' }),
+      principal: {
+        etiqueta: t('senderos.analisis.items.tareas.principalEtiqueta', { defaultValue: 'resueltas' }),
+        valor: '14',
+      },
+      secundario: {
+        etiqueta: t('senderos.analisis.items.tareas.secundarioEtiqueta', { defaultValue: 'pendientes' }),
+        valor: '3',
+      },
+      senderos: [
+        { id: 'proyectoPersonal', etiqueta: t('senderos.analisis.items.tareas.senderos.proyectoPersonal.etiqueta', { defaultValue: '2 pendientes' }), progreso: 66, titulo: t('senderos.analisis.items.tareas.senderos.proyectoPersonal.titulo', { defaultValue: 'Proyecto personal' }) },
+        { id: 'organizarArchivos', etiqueta: t('senderos.analisis.items.tareas.senderos.organizarArchivos.etiqueta', { defaultValue: 'vence viernes' }), progreso: 38, titulo: t('senderos.analisis.items.tareas.senderos.organizarArchivos.titulo', { defaultValue: 'Organizar archivos' }) },
+      ],
+      serie: [42, 66, 48, 74, 55, 72, 64],
+      tendencia: '+6%',
+    },
+    {
+      acento: '#FF8A00',
+      alerta: t('senderos.analisis.items.finanzas.alerta', { defaultValue: 'Tu proximo aporte llega el 1 de septiembre.' }),
+      categoria: t('senderos.analisis.categorias.finanzas', { defaultValue: 'Finanzas' }),
+      Icono: PiggyBank,
+      id: 'finanzas',
+      mejorMomento: t('senderos.analisis.items.finanzas.mejorMomento', { defaultValue: 'Lunes' }),
+      principal: {
+        etiqueta: t('senderos.analisis.items.finanzas.principalEtiqueta', { defaultValue: 'meta acumulada' }),
+        valor: '57%',
+      },
+      secundario: {
+        etiqueta: t('senderos.analisis.items.finanzas.secundarioEtiqueta', { defaultValue: 'ahorro actual' }),
+        valor: '$285',
+      },
+      senderos: [
+        { id: 'ahorroMensual', etiqueta: t('senderos.analisis.items.finanzas.senderos.ahorroMensual.etiqueta', { defaultValue: 'aporte mensual' }), progreso: 57, titulo: t('senderos.analisis.items.finanzas.senderos.ahorroMensual.titulo', { defaultValue: 'Ahorro mensual' }) },
+        { id: 'gastosConscientes', etiqueta: t('senderos.analisis.items.finanzas.senderos.gastosConscientes.etiqueta', { defaultValue: 'presupuesto' }), progreso: 76, titulo: t('senderos.analisis.items.finanzas.senderos.gastosConscientes.titulo', { defaultValue: 'Gastos conscientes' }) },
+      ],
+      serie: [24, 31, 36, 48, 45, 54, 57],
+      tendencia: '+7%',
+    },
+    {
+      acento: '#FF2D93',
+      alerta: t('senderos.analisis.items.relaciones.alerta', { defaultValue: 'Una conversacion esta pendiente esta semana.' }),
+      categoria: t('senderos.analisis.categorias.relaciones', { defaultValue: 'Relaciones' }),
+      Icono: Handshake,
+      id: 'relaciones',
+      mejorMomento: t('senderos.analisis.items.relaciones.mejorMomento', { defaultValue: 'Sabado' }),
+      principal: {
+        etiqueta: t('senderos.analisis.items.relaciones.principalEtiqueta', { defaultValue: 'conexiones' }),
+        valor: '5',
+      },
+      secundario: {
+        etiqueta: t('senderos.analisis.items.relaciones.secundarioEtiqueta', { defaultValue: 'calidad' }),
+        valor: '84%',
+      },
+      senderos: [
+        { id: 'tiempoFamilia', etiqueta: t('senderos.analisis.items.relaciones.senderos.tiempoFamilia.etiqueta', { defaultValue: 'semanal' }), progreso: 84, titulo: t('senderos.analisis.items.relaciones.senderos.tiempoFamilia.titulo', { defaultValue: 'Tiempo en familia' }) },
+        { id: 'llamarAmigo', etiqueta: t('senderos.analisis.items.relaciones.senderos.llamarAmigo.etiqueta', { defaultValue: 'quincenal' }), progreso: 52, titulo: t('senderos.analisis.items.relaciones.senderos.llamarAmigo.titulo', { defaultValue: 'Llamar a un amigo' }) },
+      ],
+      serie: [58, 44, 66, 72, 60, 88, 84],
+      tendencia: '+11%',
+    },
+    {
+      acento: '#8E3DFF',
+      alerta: t('senderos.analisis.items.estudio.alerta', { defaultValue: 'Dos sesiones mas consolidan tu avance de estudio.' }),
+      categoria: t('senderos.analisis.categorias.estudio', { defaultValue: 'Estudio' }),
+      Icono: GraduationCap,
+      id: 'estudio',
+      mejorMomento: t('senderos.analisis.items.estudio.mejorMomento', { defaultValue: 'Martes' }),
+      principal: {
+        etiqueta: t('senderos.analisis.items.estudio.principalEtiqueta', { defaultValue: 'horas enfocadas' }),
+        valor: '6.5h',
+      },
+      secundario: {
+        etiqueta: t('senderos.analisis.items.estudio.secundarioEtiqueta', { defaultValue: 'sesiones' }),
+        valor: '9',
+      },
+      senderos: [
+        { id: 'inglesPractico', etiqueta: t('senderos.analisis.items.estudio.senderos.inglesPractico.etiqueta', { defaultValue: 'pomodoro' }), progreso: 71, titulo: t('senderos.analisis.items.estudio.senderos.inglesPractico.titulo', { defaultValue: 'Ingles practico' }) },
+        { id: 'aprenderDiseno', etiqueta: t('senderos.analisis.items.estudio.senderos.aprenderDiseno.etiqueta', { defaultValue: 'lectura' }), progreso: 48, titulo: t('senderos.analisis.items.estudio.senderos.aprenderDiseno.titulo', { defaultValue: 'Aprender diseno' }) },
+      ],
+      serie: [30, 62, 72, 52, 77, 68, 71],
+      tendencia: '+15%',
+    },
+  ];
+}
 
 const diasSemana = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
 
@@ -45,10 +215,12 @@ function conAlpha(color: string, alpha: string) {
 }
 
 export function AnalisisSenderos({ categoriaActiva, onCategoriaChange }: { categoriaActiva: string, onCategoriaChange?: (id: string) => void }) {
+  const { t } = useTranslation();
+  const diasLista = (t('senderos.analisis.diasSemana', { returnObjects: true }) as string[]) || diasSemana;
   const categoriaId = (categoriaActiva as CategoriaId) || 'rutinas';
   
   const [itemsCargados, setItemsCargados] = useState(0);
-  const [senderoFiltro, setSenderoFiltro] = useState<{ titulo: string; meta?: string } | null>(null);
+  const [senderoFiltro, setSenderoFiltro] = useState<{ id?: string; titulo: string; meta?: string } | null>(null);
   useEffect(() => {
     let timeout: any;
     if (itemsCargados < 5) {
@@ -58,8 +230,15 @@ export function AnalisisSenderos({ categoriaActiva, onCategoriaChange }: { categ
     }
     return () => clearTimeout(timeout);
   }, [itemsCargados]);
+
+  const categorias = useMemo(() => obtenerCategorias(t), [t]);
   const categoria = categorias.find((item) => item.id === categoriaId) ?? categorias[0];
   const IconoCategoria = categoria.Icono;
+
+  const senderoActivo = useMemo(() => {
+    if (!senderoFiltro) return null;
+    return categoria.senderos.find((s) => (senderoFiltro.id ? s.id === senderoFiltro.id : s.titulo === senderoFiltro.titulo)) ?? senderoFiltro;
+  }, [categoria.senderos, senderoFiltro]);
 
   const seleccionarCategoria = (id: CategoriaId) => {
     if (id === categoriaId) return;
@@ -71,11 +250,12 @@ export function AnalisisSenderos({ categoriaActiva, onCategoriaChange }: { categ
   return (
     <View style={styles.raiz}>
       <View style={styles.selectorCategorias}>
-        {categorias.map(({ acento, Icono, id, categoria: etiqueta }, index) => {
+        {categorias.map(({ acento, Icono, id }, index) => {
           const activa = id === categoriaId;
+          const categoriaNombre = t(NOMBRES_CATEGORIAS[id]);
           return (
             <Reanimated.View key={id} entering={ZoomIn.delay(index * 60).springify()} style={{ flex: 1, minWidth: 0, aspectRatio: 1 }}>
-                <Pressable accessibilityLabel={`Progreso de ${etiqueta}`} onPress={() => seleccionarCategoria(id)} style={({ pressed }) => [styles.botonCategoria, activa && { backgroundColor: acento, borderColor: acento }, pressed && styles.botonCategoriaPresionado, { flex: 1 }]}>
+              <Pressable accessibilityRole="button" accessibilityLabel={t('senderos.analisis.progresoDe', { categoria: categoriaNombre })} onPress={() => seleccionarCategoria(id)} style={({ pressed }) => [styles.botonCategoria, activa && { backgroundColor: acento, borderColor: acento }, pressed && styles.botonCategoriaPresionado, { flex: 1 }]}>
                 <Icono color={activa ? '#FFFFFF' : acento} size={16} strokeWidth={2.5} />
                 {activa && <View style={styles.indicadorCategoriaActivo} />}
               </Pressable>
@@ -89,18 +269,22 @@ export function AnalisisSenderos({ categoriaActiva, onCategoriaChange }: { categ
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, gap: 8 }}>
           <Reanimated.View entering={ZoomIn.delay(0).springify()}>
             <Pressable 
+              accessibilityRole="button"
+              accessibilityLabel={t('senderos.analisis.todos')}
               onPress={() => { hapticSeguro('seleccion'); setSenderoFiltro(null); }}
-              style={[styles.pildoraFiltro, senderoFiltro === null && { backgroundColor: categoria.acento, borderColor: categoria.acento }]}
+              style={[styles.pildoraFiltro, senderoActivo === null && { backgroundColor: categoria.acento, borderColor: categoria.acento }]}
             >
-              <Texto style={[styles.pildoraTexto, senderoFiltro === null && { color: '#FFF' }]}>Todos</Texto>
+              <Texto style={[styles.pildoraTexto, senderoActivo === null && { color: '#FFF' }]}>{t('senderos.analisis.todos')}</Texto>
             </Pressable>
           </Reanimated.View>
           
           {categoria.senderos.map((sendero, index) => {
-            const activo = senderoFiltro?.titulo === sendero.titulo;
+            const activo = senderoActivo?.id ? senderoActivo.id === sendero.id : senderoActivo?.titulo === sendero.titulo;
             return (
-              <Reanimated.View key={sendero.titulo} entering={ZoomIn.delay((index + 1) * 60).springify()}>
+              <Reanimated.View key={sendero.id ?? sendero.titulo} entering={ZoomIn.delay((index + 1) * 60).springify()}>
                 <Pressable 
+                  accessibilityRole="button"
+                  accessibilityLabel={sendero.titulo}
                   onPress={() => { hapticSeguro('seleccion'); setSenderoFiltro(sendero); }}
                   style={[styles.pildoraFiltro, activo && { backgroundColor: categoria.acento, borderColor: categoria.acento }]}
                 >
@@ -113,9 +297,9 @@ export function AnalisisSenderos({ categoriaActiva, onCategoriaChange }: { categ
       </View>
 
       {categoriaId === 'rutinas' ? (
-        <RutinasAnalisis datos={rutinasMockData} acento={categoria.acento} itemsCargados={itemsCargados} senderoFiltro={senderoFiltro} />
+        <RutinasAnalisis datos={rutinasMockData} acento={categoria.acento} itemsCargados={itemsCargados} senderoFiltro={senderoActivo} />
       ) : categoriaId === 'salud' ? (
-        <SaludAnalisis datos={saludMockData} acento={categoria.acento} itemsCargados={itemsCargados} senderoFiltro={senderoFiltro} />
+        <SaludAnalisis datos={saludMockData} acento={categoria.acento} itemsCargados={itemsCargados} senderoFiltro={senderoActivo} />
       ) : (
         <>
           {itemsCargados < 1 ? <View style={[styles.resumenGlass, { backgroundColor: 'rgba(255,255,255,0.05)', height: 110, borderColor: 'rgba(255,255,255,0.1)' }]} /> : (
@@ -124,8 +308,8 @@ export function AnalisisSenderos({ categoriaActiva, onCategoriaChange }: { categ
         <View pointerEvents="none" style={[styles.resumenTinte, { backgroundColor: conAlpha(categoria.acento, '0C') }]} />
         <View style={styles.resumenCabecera}>
           <View>
-            <Texto style={styles.resumenTitulo}>Actividad</Texto>
-            <Texto style={styles.resumenSubtitulo}>Tu progreso esta semana</Texto>
+            <Texto style={styles.resumenTitulo}>{t('senderos.analisis.actividad')}</Texto>
+            <Texto style={styles.resumenSubtitulo}>{t('senderos.analisis.progresoSemana')}</Texto>
           </View>
           <View style={[styles.iconoResumen, { backgroundColor: conAlpha(categoria.acento, '18') }]}>
             <IconoCategoria color={categoria.acento} size={20} strokeWidth={2.5} />
@@ -152,7 +336,7 @@ export function AnalisisSenderos({ categoriaActiva, onCategoriaChange }: { categ
         <View style={styles.ritmoCabecera}>
           <View style={styles.ritmoTituloGrupo}>
             <TrendingUp color={categoria.acento} size={16} strokeWidth={2.5} />
-            <Texto style={styles.ritmoTitulo}>Ritmo semanal</Texto>
+            <Texto style={styles.ritmoTitulo}>{t('senderos.analisis.ritmoSemanal')}</Texto>
           </View>
           <Texto style={[styles.ritmoTendencia, { color: categoria.acento }]}>{categoria.tendencia}</Texto>
         </View>
@@ -160,7 +344,7 @@ export function AnalisisSenderos({ categoriaActiva, onCategoriaChange }: { categ
           {categoria.serie.map((valor, indice) => (
             <View key={indice} style={styles.columnaSemana}>
               <View style={[styles.barraSemana, { backgroundColor: conAlpha(categoria.acento, indice === categoria.serie.length - 1 ? 'E8' : '45'), height: Math.max(12, valor * 0.68) }]} />
-              <Texto style={styles.diaSemana}>{diasSemana[indice]}</Texto>
+              <Texto style={styles.diaSemana}>{diasLista[indice] ?? diasSemana[indice]}</Texto>
             </View>
           ))}
         </View>
@@ -172,12 +356,12 @@ export function AnalisisSenderos({ categoriaActiva, onCategoriaChange }: { categ
       <Reanimated.View key={'sen-' + categoria.id} entering={FadeInDown.duration(400)} style={styles.senalesFila}>
         <RecuadroGlass blur intensity={36} style={styles.senalGlass}>
           <Sparkles color={categoria.acento} size={17} strokeWidth={2.5} />
-          <Texto style={styles.senalEtiqueta}>MEJOR MOMENTO</Texto>
+          <Texto style={styles.senalEtiqueta}>{t('senderos.analisis.mejorMomento')}</Texto>
           <Texto style={styles.senalValor}>{categoria.mejorMomento}</Texto>
         </RecuadroGlass>
         <RecuadroGlass blur intensity={36} style={styles.senalGlass}>
           <AlertTriangle color={categoria.acento} size={17} strokeWidth={2.5} />
-          <Texto style={styles.senalEtiqueta}>SENAL</Texto>
+          <Texto style={styles.senalEtiqueta}>{t('senderos.analisis.senal')}</Texto>
           <Texto numberOfLines={2} style={styles.senalAlerta}>{categoria.alerta}</Texto>
         </RecuadroGlass>
       </Reanimated.View>
@@ -186,12 +370,14 @@ export function AnalisisSenderos({ categoriaActiva, onCategoriaChange }: { categ
       {itemsCargados < 4 ? <View style={{ height: 200, backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 21, borderColor: 'rgba(255,255,255,0.1)', borderWidth: 1, marginTop: 12 }} /> : (
       <Reanimated.View key={'list-' + categoria.id} entering={FadeInDown.duration(400)}>
       <View style={styles.listaCabecera}>
-        <Texto style={styles.listaTitulo}>Senderos de {categoria.categoria}</Texto>
+        <Texto style={styles.listaTitulo}>
+          {t('senderos.analisis.senderosDe', { categoria: t(NOMBRES_CATEGORIAS[categoria.id]) })}
+        </Texto>
         <CalendarDays color={categoria.acento} size={16} strokeWidth={2.4} />
       </View>
       <RecuadroGlass blur intensity={50} style={styles.tableroGlass}>
         {categoria.senderos.map((sendero, indice) => (
-          <View key={sendero.titulo} style={[styles.filaSendero, indice > 0 && styles.filaSenderoDividida]}>
+          <View key={sendero.id ?? sendero.titulo} style={[styles.filaSendero, indice > 0 && styles.filaSenderoDividida]}>
             <View style={[styles.puntoSendero, { backgroundColor: categoria.acento }]} />
             <View style={styles.filaSenderoTexto}>
               <Texto numberOfLines={1} style={styles.filaSenderoTitulo}>{sendero.titulo}</Texto>
@@ -199,7 +385,7 @@ export function AnalisisSenderos({ categoriaActiva, onCategoriaChange }: { categ
             </View>
             <Texto style={[styles.filaSenderoProgreso, { color: categoria.acento }]}>{sendero.progreso}%</Texto>
             <View style={styles.marcadoresSemana}>
-              {diasSemana.map((dia, diaIndice) => <View key={dia} style={[styles.marcadorDia, diaIndice < Math.round(sendero.progreso / 16) && { backgroundColor: categoria.acento }]} />)}
+              {diasLista.map((_, diaIndice) => <View key={diaIndice} style={[styles.marcadorDia, diaIndice < Math.round(sendero.progreso / 16) && { backgroundColor: categoria.acento }]} />)}
             </View>
           </View>
         ))}

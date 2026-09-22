@@ -18,6 +18,8 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
+import { useTranslation } from 'react-i18next';
+
 import { MasterButton, Texto } from '../../../diseno';
 import { hapticSeguro } from '../../../nucleo/dispositivo/haptics';
 import { obtenerCatalogoArboles } from '../../tienda/gemas.servicio';
@@ -204,7 +206,7 @@ export function CarruselArbolRegalo({
   contenidoInferior,
   fondo,
   onConfirmar,
-  textoBotonConfirmando = 'Plantando tu árbol…',
+  textoBotonConfirmando,
   paddingBottomPie = 18,
 }: {
   confirmando: boolean;
@@ -224,12 +226,15 @@ export function CarruselArbolRegalo({
   textoBotonConfirmando?: string;
   paddingBottomPie?: number;
 }) {
+  const { t } = useTranslation();
   const s = useEstilosS();
   const { width } = useWindowDimensions();
   const scrollRef = useRef<ScrollView>(null);
   const [indice, setIndice] = useState(0);
   const [colorContinuo, setColorContinuo] = useState<string | null>(null);
   const scrollX = useSharedValue(0);
+
+  const textoConfirmando = textoBotonConfirmando ?? t('onboarding.carruselRegalo.planting');
 
   const consultaCatalogo = useQuery({ queryKey: ['tienda', 'catalogoArboles'], queryFn: obtenerCatalogoArboles });
   // Curada para esta pantalla puntual (no la tienda, que sigue mostrando el
@@ -290,7 +295,7 @@ export function CarruselArbolRegalo({
   if (consultaCatalogo.isLoading) {
     return (
       <View style={s.cargandoContenedor}>
-        <Texto style={s.cargando}>Cargando especies de árboles…</Texto>
+        <Texto style={s.cargando}>{t('onboarding.carruselRegalo.loading')}</Texto>
       </View>
     );
   }
@@ -327,7 +332,7 @@ export function CarruselArbolRegalo({
 
         <View style={s.pie}>
           <MasterButton color={colorActivo} disabled={!paqueteActual || confirmando} onPress={confirmar} style={s.botonConfirmar}>
-            {confirmando ? textoBotonConfirmando : paqueteActual ? `ELEGIR A ${paqueteActual.nombre.toUpperCase()}` : 'SIN ÁRBOLES DISPONIBLES'}
+            {confirmando ? textoConfirmando : paqueteActual ? t('onboarding.carruselRegalo.chooseTree', { nombre: paqueteActual.nombre.toUpperCase() }) : t('onboarding.carruselRegalo.noTrees')}
           </MasterButton>
         </View>
       </View>

@@ -5,6 +5,7 @@ import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, Check, Crown, Smartphone } from 'lucide-react-native';
+import { useTranslation } from 'react-i18next';
 
 import { MasterButton, MasterChip, MasterGlass, MasterIcon, obtenerTonoPaquete, Texto } from '../../../diseno';
 import { hapticSeguro } from '../../../nucleo/dispositivo/haptics';
@@ -29,6 +30,7 @@ import { useAssetsPaqueteTema } from '../usePaqueteTema';
 type TipoWidget = 'habito' | 'calendario';
 
 export function WidgetsHabitosPantalla() {
+  const { t } = useTranslation();
   const tema = useAssetsPaqueteTema();
   const esc = useEscala();
   const s = useEstilosS();
@@ -156,10 +158,10 @@ export function WidgetsHabitosPantalla() {
 
       <SafeAreaView edges={['top', 'bottom']} style={s.safeArea}>
         <View style={s.header}>
-          <Pressable accessibilityLabel="Volver" hitSlop={12} onPress={() => router.back()} style={s.botonHeader}>
+          <Pressable accessibilityLabel={t('habitos.widgets.volver')} accessibilityRole="button" hitSlop={12} onPress={() => router.back()} style={s.botonHeader}>
             <ArrowLeft color={esc.jade.l34a} size={22} strokeWidth={2.4} />
           </Pressable>
-          <Pressable accessibilityLabel="Ayuda" hitSlop={12} onPress={() => setModalAyudaVisible(true)} style={s.botonHeader}>
+          <Pressable accessibilityLabel={t('habitos.widgets.ayuda')} accessibilityRole="button" hitSlop={12} onPress={() => setModalAyudaVisible(true)} style={s.botonHeader}>
             <MasterIcon color={2} name="preguntas" size={20} />
           </Pressable>
         </View>
@@ -174,11 +176,11 @@ export function WidgetsHabitosPantalla() {
               />
             </View>
 
-            <Texto style={s.titulo}>{tieneAlgunHabito ? 'Widgets de hábitos' : 'Todavía no tenés hábitos'}</Texto>
+            <Texto style={s.titulo}>{tieneAlgunHabito ? t('habitos.widgets.titulo') : t('habitos.widgets.tituloVacio')}</Texto>
             <Texto style={s.subtitulo}>
               {tieneAlgunHabito
-                ? 'Anclá tus hábitos a la pantalla de inicio y registrá tu avance sin abrir la app.'
-                : 'Creá tu primer hábito para desbloquear los widgets de tu pantalla de inicio.'}
+                ? t('habitos.widgets.subtitulo')
+                : t('habitos.widgets.subtituloVacio')}
             </Texto>
 
             <LinearGradient
@@ -191,7 +193,7 @@ export function WidgetsHabitosPantalla() {
             {!esPro && (
               <View style={s.badgePro}>
                 <MasterIcon color={7} name="candado" size={11} />
-                <Texto style={s.badgeProTexto}>Exclusivo Horizon</Texto>
+                <Texto style={s.badgeProTexto}>{t('habitos.widgets.exclusivoHorizon')}</Texto>
               </View>
             )}
 
@@ -203,8 +205,8 @@ export function WidgetsHabitosPantalla() {
                       <MasterIcon color={2} name="hoja" size={18} />
                     </View>
                     <View style={{ flex: 1 }}>
-                      <Texto style={s.tituloBeneficio}>Widget de hábito</Texto>
-                      <Texto style={s.descBeneficio}>Navegá entre tus hábitos de hoy con los chevrones y registrá avance con un toque.</Texto>
+                      <Texto style={s.tituloBeneficio}>{t('habitos.widgets.widgetHabitoTitulo')}</Texto>
+                      <Texto style={s.descBeneficio}>{t('habitos.widgets.widgetHabitoDesc')}</Texto>
                     </View>
                   </View>
 
@@ -215,8 +217,8 @@ export function WidgetsHabitosPantalla() {
                       <MasterIcon color={2} name="calendario" size={18} />
                     </View>
                     <View style={{ flex: 1 }}>
-                      <Texto style={s.tituloBeneficio}>Widget de calendario</Texto>
-                      <Texto style={s.descBeneficio}>Un vistazo al mes: un punto verde por cada día que cumpliste algo.</Texto>
+                      <Texto style={s.tituloBeneficio}>{t('habitos.widgets.widgetCalendarioTitulo')}</Texto>
+                      <Texto style={s.descBeneficio}>{t('habitos.widgets.widgetCalendarioDesc')}</Texto>
                     </View>
                   </View>
                 </View>
@@ -229,7 +231,7 @@ export function WidgetsHabitosPantalla() {
                   }}
                   style={s.botonEstadoVacio}
                 >
-                  Crear mi primer hábito
+                  {t('habitos.widgets.crearPrimerHabito')}
                 </MasterButton>
               </View>
             ) : (
@@ -238,7 +240,7 @@ export function WidgetsHabitosPantalla() {
                   <MasterChip
                     activo={widgetSeleccionado === 'habito'}
                     icono={<MasterIcon color={2} name="hoja" size={15} />}
-                    texto="Hábito"
+                    texto={t('habitos.widgets.chipHabito')}
                     onPress={() => {
                       hapticSeguro('seleccion');
                       setWidgetSeleccionado('habito');
@@ -247,7 +249,7 @@ export function WidgetsHabitosPantalla() {
                   <MasterChip
                     activo={widgetSeleccionado === 'calendario'}
                     icono={<MasterIcon color={2} name="calendario" size={15} />}
-                    texto="Calendario"
+                    texto={t('habitos.widgets.chipCalendario')}
                     onPress={() => {
                       hapticSeguro('seleccion');
                       setWidgetSeleccionado('calendario');
@@ -267,6 +269,9 @@ export function WidgetsHabitosPantalla() {
                       return (
                         <Pressable
                           key={item.id}
+                          accessibilityLabel={t('habitos.widgets.seleccionarHabito', { titulo: item.titulo })}
+                          accessibilityRole="button"
+                          accessibilityState={{ selected: seleccionado }}
                           onPress={() => cambiarHabitoFoco(item.id)}
                           style={[s.cardHabitoOpcion, seleccionado && s.cardHabitoOpcionActiva]}
                         >
@@ -296,7 +301,7 @@ export function WidgetsHabitosPantalla() {
 
                 <View style={s.bannerInteractividad}>
                   <MasterIcon color={2} name="idea" size={16} />
-                  <Texto style={s.bannerInteractividadTexto}>Pruébalo en vivo: interactuá con el widget dentro del teléfono</Texto>
+                  <Texto style={s.bannerInteractividadTexto}>{t('habitos.widgets.bannerEnVivo')}</Texto>
                 </View>
 
                 <ChasisTelefonoAndroid ancho={anchoChasis}>
@@ -337,14 +342,14 @@ export function WidgetsHabitosPantalla() {
                     <MasterIcon color={2} name="idea" size={18} />
                     <Texto style={s.infoTitulo}>
                       {widgetSeleccionado === 'habito'
-                        ? (habitoPreview ? `Widget: ${habitoPreview.titulo}` : 'Widget de hábito')
-                        : 'Widget: Calendario mensual'}
+                        ? (habitoPreview ? t('habitos.widgets.infoHabitoTituloConNombre', { nombre: habitoPreview.titulo }) : t('habitos.widgets.infoHabitoTitulo'))
+                        : t('habitos.widgets.infoCalendarioTitulo')}
                     </Texto>
                   </View>
                   <Texto style={s.infoDescripcion}>
                     {widgetSeleccionado === 'habito'
-                      ? 'Tocá la barra para registrar avance sin abrir la app, y usá los chevrones para navegar entre tus hábitos de hoy.'
-                      : 'Un vistazo al mes: un punto verde marca cada día en el que cumpliste al menos un hábito.'}
+                      ? t('habitos.widgets.infoHabitoDesc')
+                      : t('habitos.widgets.infoCalendarioDesc')}
                   </Texto>
                 </MasterGlass>
 
@@ -354,11 +359,10 @@ export function WidgetsHabitosPantalla() {
                 <MasterGlass style={s.infoCard}>
                   <View style={{ alignItems: 'center', flexDirection: 'row', gap: 8 }}>
                     <MasterIcon color={2} name="reloj" size={18} />
-                    <Texto style={s.infoTitulo}>¿Sabías que también hay un cronómetro con notificación?</Texto>
+                    <Texto style={s.infoTitulo}>{t('habitos.widgets.cronometroTitulo')}</Texto>
                   </View>
                   <Texto style={s.infoDescripcion}>
-                    Para hábitos de tipo "duración" (como meditar), iniciá el cronómetro desde Senderos y seguí tu sesión con
-                    una notificación en vivo, incluso con la pantalla bloqueada.
+                    {t('habitos.widgets.cronometroDesc')}
                   </Texto>
                 </MasterGlass>
               </>
@@ -375,7 +379,7 @@ export function WidgetsHabitosPantalla() {
                 iconoSize={18}
                 onPress={agregarWidgetAlInicio}
               >
-                Agregar a mi pantalla de inicio
+                {t('habitos.widgets.agregarInicio')}
               </MasterButton>
             ) : (
               <View style={{ gap: 8 }}>
@@ -388,31 +392,31 @@ export function WidgetsHabitosPantalla() {
                     router.push('/horizon');
                   }}
                 >
-                  Desbloquear con Lestinaty Pro
+                  {t('habitos.widgets.desbloquearPro')}
                 </MasterButton>
-                <Texto style={s.pieNota}>Disponible con suscripción Lestinaty Pro · Cancela cuando quieras</Texto>
+                <Texto style={s.pieNota}>{t('habitos.widgets.notaPro')}</Texto>
               </View>
             )}
           </View>
         )}
 
-        <Modal animationType="slide" onRequestClose={() => setModalAyudaVisible(false)} transparent visible={modalAyudaVisible}>
+        <Modal accessibilityViewIsModal animationType="slide" onRequestClose={() => setModalAyudaVisible(false)} transparent visible={modalAyudaVisible}>
           <View style={s.modalFondo}>
             <MasterGlass style={s.modalCaja}>
               <View style={s.modalCabecera}>
                 <Smartphone color={esc.hoja.l61a} size={24} />
-                <Texto style={s.modalTitulo}>Añadir widgets en Android</Texto>
+                <Texto style={s.modalTitulo}>{t('habitos.widgets.modalTitulo')}</Texto>
               </View>
 
               <View style={s.modalPasos}>
-                <PasoInstruccion numero="1" texto="En la pantalla de inicio de tu celular, mantén presionado cualquier espacio vacío." />
-                <PasoInstruccion numero="2" texto="Toca la opción 'Widgets' en el menú flotante inferior." />
-                <PasoInstruccion numero="3" texto="Busca 'Lestinaty' en la lista y elegí el widget de Hábito o el de Calendario." />
-                <PasoInstruccion numero="4" texto="Mantenlo presionado y colócalo en el lugar perfecto de tu inicio." />
+                <PasoInstruccion numero="1" texto={t('habitos.widgets.paso1')} />
+                <PasoInstruccion numero="2" texto={t('habitos.widgets.paso2')} />
+                <PasoInstruccion numero="3" texto={t('habitos.widgets.paso3')} />
+                <PasoInstruccion numero="4" texto={t('habitos.widgets.paso4')} />
               </View>
 
               <MasterButton color={esc.hoja.l61a} onPress={() => setModalAyudaVisible(false)}>
-                Entendido
+                {t('habitos.widgets.entendido')}
               </MasterButton>
             </MasterGlass>
           </View>
@@ -424,8 +428,9 @@ export function WidgetsHabitosPantalla() {
 
 function PasoInstruccion({ numero, texto }: { numero: string; texto: string }) {
   const pi = useEstilosPi();
+  const { t } = useTranslation();
   return (
-    <View style={pi.fila}>
+    <View accessibilityLabel={t('habitos.widgets.pasoAccesibilidad', { numero, texto })} accessible style={pi.fila}>
       <View style={pi.numero}>
         <Texto style={pi.numeroTexto}>{numero}</Texto>
       </View>

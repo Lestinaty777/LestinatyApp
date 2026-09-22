@@ -1,12 +1,13 @@
+import { DIAS_POR_MAPA } from '../../habitos/senderoNiveles';
 import type { DefinicionMapaNivel } from './tipos';
 
-// A diferencia de mapaNivel1..6, este cantidadNodos NO viene de
-// DIAS_REQUERIDOS_POR_NIVEL: el nivel 7 es el máximo real (confirmado), no
-// hay un "nivel 8" que pida 42 días. Este mapa es solo la vista visual de
-// quien ya llegó al tope — un valor decorativo fijo, no una regla de progreso.
+// Nivel 7 no es un tope decorativo: es maestría infinita en ciclos de
+// DIAS_POR_MAPA[7] días (migración 20260922_46_progresion_senderos_infinita.sql).
+// Cada ciclo completado reinicia el recorrido y paga un cofre final nuevo —
+// no hay un "nivel 8".
 export const mapaNivel7: DefinicionMapaNivel = {
   nivel: 7,
-  cantidadNodos: 42,
+  cantidadNodos: DIAS_POR_MAPA[7],
   titulo: 'Hábito dominado',
   lema: 'Lo dominaste — ahora es parte de vos.',
 };

@@ -1,4 +1,5 @@
 import type { PanelHabitos } from '../habitos/tipos';
+import { i18n } from '../../servicios/i18n/i18n';
 
 // Selector de plantillas puro (sin red, sin latencia) — el agente Aby real
 // (src/modulos/aby/) está pensado para armar rutas de estudio, no reflexiones
@@ -9,12 +10,12 @@ import type { PanelHabitos } from '../habitos/tipos';
 export function elegirReflexionAby(panel: PanelHabitos): string {
   const riesgoAlto = panel.riesgo.datos.find((item) => item.nivel === 'alto');
   if (riesgoAlto) {
-    return `Noté que "${riesgoAlto.titulo}" bajó el ritmo últimamente. No pasa nada — retomarlo hoy ya cuenta.`;
+    return i18n.t('insights.reflection.highRisk', { title: riesgoAlto.titulo });
   }
 
   const sinHistorialSuficiente = panel.patrones.estado === 'sin_habitos' || panel.patrones.estado === 'sin_historial' || panel.patrones.estado === 'en_observacion';
   if (sinHistorialSuficiente) {
-    return 'Todavía estoy conociendo tus patrones — seguí registrando tus días y pronto voy a poder contarte más.';
+    return i18n.t('insights.reflection.insufficientHistory');
   }
 
   const diasConMuestras = panel.patrones.datos.filter((item) => item.muestras > 0);
@@ -23,12 +24,12 @@ export function elegirReflexionAby(panel: PanelHabitos): string {
     : 0;
 
   if (constanciaPromedio >= 70) {
-    return 'Tu constancia viene fuerte estas semanas. Esto es lo que se siente construir algo de verdad.';
+    return i18n.t('insights.reflection.strongConsistency');
   }
 
   if (panel.riesgo.datos.length > 0) {
-    return 'Vas sosteniendo tus hábitos — hay alguno que pide un poco más de atención esta semana.';
+    return i18n.t('insights.reflection.needsAttention');
   }
 
-  return 'Cada día que registrás suma, aunque hoy no se sienta como un gran cambio.';
+  return i18n.t('insights.reflection.dailyProgress');
 }

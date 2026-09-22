@@ -1,56 +1,93 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Check, Lock, Play } from 'lucide-react-native';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import { hapticSeguro } from '../../../nucleo/dispositivo/haptics';
-import type { NodoMapaSendero } from '../../senderos/datos/mapaEjercicio.mock';
 import { CLAVE_SALDO_GEMAS } from '../../tienda/useSaldoGemas';
-import { diasAcumuladosAntesDeNivel } from '../iconosHabitos';
-import { obtenerProgresoNivelHabito, registrarProgresoHabito } from '../habitos.servicio';
+import {
+  obtenerCofresReclamadosHabito,
+  obtenerProgresoNivelHabito,
+  obtenerResumenSenderoHabito,
+  reclamarCofreSendero,
+  registrarProgresoHabito,
+} from '../habitos.servicio';
+import { esMapaSoloLectura, resolverNivelSeleccionado } from './useSenderoHabito.modelo';
 
-// Cada nodo ES un día real hacia el próximo nivel — no una lección falsa ni
-// un nivel completo. "Acumulado, no se resetea" (migración 21): un día
-// perdido no vuelve a bloquear los nodos ya cumplidos.
-// La numeración del título es continua entre niveles (Día 1..3 en nivel 1,
-// Día 4..10 en nivel 2, ...) — diaInicial trae el total ya acumulado en
-// niveles previos, así el primer nodo del nivel nuevo sigue el conteo.
-function construirNodosDias(diasCompletados: number, diasRequeridos: number, nivel: number): NodoMapaSendero[] {
-  const diaInicial = diasAcumuladosAntesDeNivel(nivel);
-  return Array.from({ length: diasRequeridos }, (_, indice) => {
-    const diaEnNivel = indice + 1;
-    const diaGlobal = diaInicial + diaEnNivel;
-    return {
-      estado: diaEnNivel <= diasCompletados ? 'completado' : diaEnNivel === diasCompletados + 1 ? 'activo' : 'bloqueado',
-      icono: diaEnNivel <= diasCompletados ? Check : diaEnNivel === diasCompletados + 1 ? Play : Lock,
-      id: `dia-${diaGlobal}`,
-      subtitulo: `Nivel ${nivel} · día ${diaEnNivel} de ${diasRequeridos}`,
-      titulo: `Día ${diaGlobal}`,
-    };
-  });
-}
+import { construirNodosDias } from '../construirNodosDias';
+export { construirNodosDias };
 
 // Datos + mutación del sendero de UN hábito real, para montarse dentro de
 // cualquier pantalla (hoy: la pestaña Senderos) sin acoplarse a su layout.
-export function useSenderoHabito(id: string | undefined) {
+//
+// `consulta` sigue siendo la metadata del hábito (título, color, ícono, tipo
+// de meta) — obtenerProgresoNivelHabito no cambió en la migración de Task 2.
+// El progreso real por nivel/ciclo (nodos, cofres, si se puede avanzar hoy)
+// ahora viene de `resumen` (las siete secciones de Senderos, RPC nueva) para
+// no arrastrar el bug histórico de reiniciar días al cambiar de meta/frecuencia
+// dentro de un mismo nivel.
+export function useSenderoHabito(id: string | undefined, nivelSeleccionado?: number) {
   const cliente = useQueryClient();
   const [celebracion, setCelebracion] = useState<{ gemas: number; nivel: number } | null>(null);
   const [registrando, setRegistrando] = useState(false);
+
   const consulta = useQuery({ enabled: Boolean(id), queryKey: ['habitos', 'progreso-nivel', id], queryFn: () => obtenerProgresoNivelHabito(id as string) });
+
+  const consultaResumen = useQuery({
+    enabled: Boolean(id),
+    queryKey: ['habitos', 'sendero-resumen', id],
+    queryFn: () => obtenerResumenSenderoHabito(id as string),
+  });
+
+  const resumen = consultaResumen.data;
+  const nivelActual = resumen?.nivelActual ?? 1;
+  const nivelesDesbloqueados = useMemo(
+    () => resumen?.secciones.filter((seccion) => seccion.estado !== 'bloqueado').map((seccion) => seccion.nivel) ?? [],
+    [resumen],
+  );
+  const nivelVisible = resolverNivelSeleccionado(nivelSeleccionado, nivelActual, nivelesDesbloqueados);
+  const seccionVisible = resumen?.secciones.find((seccion) => seccion.nivel === nivelVisible);
+  const ciclo = seccionVisible?.ciclo ?? 1;
+  const soloLectura = esMapaSoloLectura(nivelVisible, nivelActual);
+
+  const consultaCofres = useQuery({
+    enabled: Boolean(id && seccionVisible),
+    queryKey: ['habitos', 'cofres', id, nivelVisible, ciclo],
+    queryFn: () => obtenerCofresReclamadosHabito(id as string, nivelVisible, ciclo),
+  });
+
+  const mapaCofresReclamados = useMemo(() => {
+    const mapa = new Map<number, number>();
+    for (const c of consultaCofres.data ?? []) {
+      mapa.set(c.nodoDia, c.gemas);
+    }
+    return mapa;
+  }, [consultaCofres.data]);
 
   const registrar = useMutation({
     mutationFn: registrarProgresoHabito,
     onSuccess: (resultado) => {
       cliente.invalidateQueries({ queryKey: ['habitos', 'progreso-nivel', id] });
+      cliente.invalidateQueries({ queryKey: ['habitos', 'sendero-resumen', id] });
       cliente.invalidateQueries({ queryKey: ['habitos', 'panel'] });
       cliente.invalidateQueries({ queryKey: ['habitos', 'detalles-hoy'] });
       cliente.invalidateQueries({ queryKey: ['habitos', 'cercania-nivel'] });
       cliente.invalidateQueries({ queryKey: ['habitos', 'mejor-racha'] });
+      cliente.invalidateQueries({ queryKey: ['habitos', 'cofres', id, nivelVisible, ciclo] });
       if (resultado.gemasGanadas > 0) cliente.invalidateQueries({ queryKey: CLAVE_SALDO_GEMAS });
-      if (resultado.subioNivel) { hapticSeguro('confirmacion'); setCelebracion({ gemas: resultado.gemasGanadas, nivel: resultado.nivel }); }
+      if (resultado.transicionSendero) { hapticSeguro('confirmacion'); setCelebracion({ gemas: resultado.transicionSendero.gemas, nivel: resultado.transicionSendero.nivelActual }); }
       else hapticSeguro('accion');
       setRegistrando(false);
     },
     onError: () => setRegistrando(false),
+  });
+
+  const reclamarCofre = useMutation({
+    mutationFn: reclamarCofreSendero,
+    onSuccess: (resultado) => {
+      cliente.invalidateQueries({ queryKey: ['habitos', 'sendero-resumen', id] });
+      cliente.invalidateQueries({ queryKey: ['habitos', 'cofres', id, nivelVisible, ciclo] });
+      if (resultado.gemas > 0) cliente.invalidateQueries({ queryKey: CLAVE_SALDO_GEMAS });
+      hapticSeguro('confirmacion');
+    },
   });
 
   useEffect(() => {
@@ -62,9 +99,32 @@ export function useSenderoHabito(id: string | undefined) {
   // Al cambiar de hábito seleccionado, cualquier registro/celebración en curso de otro hábito ya no aplica.
   useEffect(() => { setRegistrando(false); setCelebracion(null); }, [id]);
 
-  const datos = consulta.data;
-  const esNivelMaximo = datos ? datos.diasRequeridos === null : false;
-  const nodos = datos && datos.diasRequeridos !== null ? construirNodosDias(datos.diasCompletados, datos.diasRequeridos, datos.nivel) : [];
+  const nodos = seccionVisible
+    ? construirNodosDias(seccionVisible.diasCompletados, seccionVisible.diasRequeridos, seccionVisible.nivel, mapaCofresReclamados, {
+      ciclo, puedeAvanzarHoy: seccionVisible.puedeAvanzarHoy, soloLectura,
+    })
+    : [];
 
-  return { celebracion, consulta, esNivelMaximo, nodos, registrando, registrar, setRegistrando };
+  return {
+    celebracion,
+    ciclo,
+    consulta,
+    consultaCofres,
+    consultaResumen,
+    // Ya no hay "nivel máximo" en el sentido de tope: nivel 7 es maestría
+    // infinita en ciclos. Se conserva el nombre por compatibilidad con
+    // consumidores existentes; ahora solo indica que el nivel visible es 7.
+    esNivelMaximo: nivelVisible === 7,
+    nivelActual,
+    nivelesDesbloqueados,
+    nivelVisible,
+    nodos,
+    reclamarCofre,
+    registrando,
+    registrar,
+    resumen,
+    seccionVisible,
+    setRegistrando,
+    soloLectura,
+  };
 }

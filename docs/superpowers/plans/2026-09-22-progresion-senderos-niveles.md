@@ -243,7 +243,7 @@ Antes de crear las nuevas firmas, eliminar explícitamente los overloads heredad
 
 ```sql
 drop function if exists public.reclamar_cofre_sendero(uuid, integer, text, integer);
-drop function if exists comercio.reclamar_cofre_sendero(uuid, uuid, integer, text, integer);
+drop function if exists comercio.reclamar_cofre_sendero(uuid, integer, text, integer);
 drop function if exists public.obtener_cofres_reclamados_habito(uuid, integer);
 ```
 

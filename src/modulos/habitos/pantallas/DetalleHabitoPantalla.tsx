@@ -3,6 +3,7 @@ import { useRouter } from 'expo-router';
 import { Archive, ArrowLeft, Pencil, Sparkles } from 'lucide-react-native';
 import { Alert, Image, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 
 import { HojaDeslizante, MasterButton, MasterGlass, MasterIcon, MasterProgressbar, Texto } from '../../../diseno';
 import { AuroraBoreal } from '../../hoy/componentes/AuroraBoreal';
@@ -13,13 +14,14 @@ import { TonoDelHabito } from '../componentes/TonoDelHabito';
 const DIAS = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
 
 export function DetalleHabitoPantalla({ id, onCerrar }: { id: string; onCerrar: () => void }) {
+  const { t } = useTranslation();
   const detalle = useQuery({ queryKey: ['habitos', 'detalle', id], queryFn: () => obtenerDetalleHabito(id) });
   const cliente = useQueryClient();
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
   const invalidarHabitos = () => {
-    ['panel', 'activos', 'detalles-hoy', 'cercania-nivel', 'mejor-racha'].forEach((clave) => {
+    ['panel', 'activos', 'detalles-hoy', 'mejor-racha'].forEach((clave) => {
       cliente.invalidateQueries({ queryKey: ['habitos', clave] });
     });
     cliente.invalidateQueries({ queryKey: ['habitos', 'detalle', id] });
@@ -37,7 +39,7 @@ export function DetalleHabitoPantalla({ id, onCerrar }: { id: string; onCerrar: 
     return (
       <HojaDeslizante onCerrar={onCerrar}>
         <View style={s.center}>
-          <Texto>{detalle.isLoading ? 'Cargando hábito…' : 'No pudimos abrir este hábito.'}</Texto>
+          <Texto>{detalle.isLoading ? t('habitos.detalle.cargando') : t('habitos.detalle.errorCarga')}</Texto>
         </View>
       </HojaDeslizante>
     );
@@ -47,6 +49,7 @@ export function DetalleHabitoPantalla({ id, onCerrar }: { id: string; onCerrar: 
   const habito = datos.habito;
   const porcentaje = Math.min(100, Math.round((habito.valorHoy * 100) / habito.meta));
   const assets = obtenerAssetsPaqueteHabito(habito.paqueteId, datos.nivel);
+  const dias = (t('habitos.detalle.dias', { returnObjects: true }) as string[]) || DIAS;
 
   return (
     <TonoDelHabito colorPaquete={habito.color} paqueteId={habito.paqueteId}>
@@ -62,11 +65,11 @@ export function DetalleHabitoPantalla({ id, onCerrar }: { id: string; onCerrar: 
           </View>
 
           <View style={s.nav}>
-            <Pressable onPress={onCerrar}>
+            <Pressable accessibilityLabel={t('habitos.detalle.volver')} onPress={onCerrar}>
               <ArrowLeft color="#1A1335" size={23} />
             </Pressable>
-            <Texto style={s.navText}>DETALLE DEL HÁBITO</Texto>
-            <Pressable onPress={() => router.push({ pathname: '/senderos', params: { habitoId: id } })}>
+            <Texto style={s.navText}>{t('habitos.detalle.navTitulo')}</Texto>
+            <Pressable accessibilityLabel={t('habitos.detalle.verSendero')} onPress={() => router.push({ pathname: '/senderos', params: { habitoId: id } })}>
               <Sparkles color={habito.color} size={22} />
             </Pressable>
           </View>
@@ -74,9 +77,9 @@ export function DetalleHabitoPantalla({ id, onCerrar }: { id: string; onCerrar: 
           <MasterGlass style={s.hero}>
             <View style={s.heroTexto}>
               <MasterIcon alTema name={habito.iconoLucide} size={34} />
-              <Texto style={s.kicker}>NIVEL {datos.nivel}</Texto>
+              <Texto style={s.kicker}>{t('habitos.detalle.nivel', { nivel: datos.nivel })}</Texto>
               <Texto style={s.title}>{habito.titulo}</Texto>
-              <Texto style={s.sub}>{habito.descripcion || 'Una pequeña acción también hace crecer tu mundo.'}</Texto>
+              <Texto style={s.sub}>{habito.descripcion || t('habitos.detalle.descripcionPorDefecto')}</Texto>
             </View>
             <Image resizeMode="contain" source={assets.arbolPrincipal} style={s.tree} />
           </MasterGlass>
@@ -84,7 +87,7 @@ export function DetalleHabitoPantalla({ id, onCerrar }: { id: string; onCerrar: 
           <MasterGlass style={s.card}>
             <View style={s.row}>
               <View>
-                <Texto style={s.kicker}>PROGRESO DE HOY</Texto>
+                <Texto style={s.kicker}>{t('habitos.detalle.progresoHoy')}</Texto>
                 <Texto style={s.value}>{habito.valorHoy} / {habito.meta} {habito.unidad ?? ''}</Texto>
               </View>
               <Texto style={[s.percent, { color: habito.color }]}>{porcentaje}%</Texto>
@@ -95,15 +98,15 @@ export function DetalleHabitoPantalla({ id, onCerrar }: { id: string; onCerrar: 
           <MasterGlass style={s.card}>
             <View style={s.programacionTitulo}>
               <MasterIcon alTema name="calendario" size={20} />
-              <Texto style={s.value}>Programación</Texto>
+              <Texto style={s.value}>{t('habitos.detalle.programacion')}</Texto>
             </View>
-            <Texto style={s.sub}>{textoProgramacion(datos.programacion)}</Texto>
+            <Texto style={s.sub}>{textoProgramacion(datos.programacion, t)}</Texto>
             {datos.programacion.frecuencia === 'dias_semana' && (
               <View style={s.days}>
-                {DIAS.map((dia, indice) => {
+                {dias.map((dia, indice) => {
                   const activo = datos.programacion.diasSemana.includes(indice + 1);
                   return (
-                    <View key={dia} style={[s.day, activo && { backgroundColor: habito.color }]}>
+                    <View key={indice} style={[s.day, activo && { backgroundColor: habito.color }]}>
                       <Texto style={{ color: activo ? '#fff' : '#777' }}>{dia}</Texto>
                     </View>
                   );
@@ -113,32 +116,33 @@ export function DetalleHabitoPantalla({ id, onCerrar }: { id: string; onCerrar: 
           </MasterGlass>
 
           <View style={s.stats}>
-            <Stat icono="racha" etiqueta="Racha" valor={`${datos.rachaActual} días`} />
-            <Stat icono="trofeo" etiqueta="Semana" valor={`${datos.semana.completados}/${datos.semana.programados}`} />
+            <Stat icono="racha" etiqueta={t('habitos.detalle.racha')} valor={t('habitos.detalle.rachaValor', { dias: datos.rachaActual })} />
+            <Stat icono="trofeo" etiqueta={t('habitos.detalle.semana')} valor={`${datos.semana.completados}/${datos.semana.programados}`} />
           </View>
 
           <MasterButton
             color={habito.color}
             iconoIzquierda={Pencil}
-            onPress={() => Alert.alert('Editar hábito', 'El editor visual se abrirá aquí con la programación actual.')}
+            onPress={() => Alert.alert(t('habitos.detalle.alertaEditarTitulo'), t('habitos.detalle.alertaEditarMensaje'))}
             style={s.botonEditar}
           >
-            Editar hábito
+            {t('habitos.detalle.botonEditar')}
           </MasterButton>
 
           <Pressable
+            accessibilityLabel={t('habitos.detalle.botonArchivar')}
             style={s.archive}
             onPress={() => Alert.alert(
-              '¿Archivar este hábito?',
-              'Dejará de aparecer en Hábitos y Senderos. Tu historial se conservará.',
+              t('habitos.detalle.alertaArchivarTitulo'),
+              t('habitos.detalle.alertaArchivarMensaje'),
               [
-                { text: 'Cancelar', style: 'cancel' },
-                { text: 'Archivar hábito', style: 'destructive', onPress: () => archivar.mutate(id) },
+                { text: t('habitos.detalle.cancelar'), style: 'cancel' },
+                { text: t('habitos.detalle.botonArchivar'), style: 'destructive', onPress: () => archivar.mutate(id) },
               ],
             )}
           >
             <Archive color="#A53A4C" size={18} />
-            <Texto style={s.archiveText}>Archivar hábito</Texto>
+            <Texto style={s.archiveText}>{t('habitos.detalle.botonArchivar')}</Texto>
           </Pressable>
         </ScrollView>
       </HojaDeslizante>
@@ -146,10 +150,10 @@ export function DetalleHabitoPantalla({ id, onCerrar }: { id: string; onCerrar: 
   );
 }
 
-function textoProgramacion(programacion: { frecuencia: string; vecesPorSemana: number | null }) {
-  if (programacion.frecuencia === 'diaria') return 'Todos los días';
-  if (programacion.frecuencia === 'veces_semana') return `${programacion.vecesPorSemana ?? 0} veces por semana`;
-  return 'Días seleccionados';
+function textoProgramacion(programacion: { frecuencia: string; vecesPorSemana: number | null }, t: (key: string, opts?: any) => string) {
+  if (programacion.frecuencia === 'diaria') return t('habitos.detalle.frecuenciaDiaria');
+  if (programacion.frecuencia === 'veces_semana') return t('habitos.detalle.frecuenciaVecesSemana', { veces: programacion.vecesPorSemana ?? 0 });
+  return t('habitos.detalle.frecuenciaDiasSeleccionados');
 }
 
 function Stat({ icono, etiqueta, valor }: { icono: string; etiqueta: string; valor: string }) {
