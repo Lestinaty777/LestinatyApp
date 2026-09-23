@@ -41,7 +41,9 @@ export function NodoSendero({ Icono, asentado, color, estado, onCompletar, onPre
   const asentamiento = useRef(new Animated.Value(asentado ? 1 : 0)).current;
   const inspeccion = useRef(new Animated.Value(0)).current;
   const pulsoInspeccion = useRef(new Animated.Value(0)).current;
-  const bloqueado = estado === 'bloqueado';
+  // 'esperando' reusa el pedestal/oscurecido de bloqueado — la distinción de
+  // copy ("vuelve mañana") vive en el tooltip (TooltipNodoSeleccionado).
+  const bloqueado = estado === 'bloqueado' || estado === 'esperando';
 
   useEffect(() => {
     Animated.spring(halo, {

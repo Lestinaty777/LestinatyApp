@@ -7,6 +7,7 @@ const base: ResultadoRegistroHabito = {
   gemasGanadas: 0,
   habitoId: 'habito-1',
   id: 'registro-1',
+  mandalaPendiente: null,
   nivel: 2,
   nota: null,
   subioNivel: false,

@@ -11,6 +11,7 @@
     "@tanstack/react-query": "^5.102.0",
     "date-fns": "^4.4.0",
     "expo": "~57.0.15",
+    "expo-audio": "~57.0.5",
     "expo-blur": "~57.0.2",
     "expo-camera": "~57.0.4",
     "expo-clipboard": "~57.0.2",

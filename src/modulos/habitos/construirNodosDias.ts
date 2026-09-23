@@ -2,6 +2,7 @@ import { Check, Lock, Play } from 'lucide-react-native';
 import type { InfoCofre, NodoMapaSendero, TipoNodoMapa } from '../senderos/datos/mapaEjercicio.mock';
 import { diasAcumuladosAntesDeNivel } from './diasNivel';
 import { RECOMPENSA_COFRE_FINAL } from './senderoNiveles';
+import type { InfoMandalaNodo } from './mandalaNodo.tipos';
 
 // Cada nodo ES un día real hacia el próximo nivel — no una lección falsa ni
 // un nivel completo. "Acumulado, no se resetea" (migración 21): un día
@@ -27,6 +28,10 @@ export function construirNodosDias(
   nivel: number,
   cofresReclamados: Map<number, number> = new Map(),
   opciones: OpcionesNodos = {},
+  // Mandalas ya existentes de ESTE hábito, indexadas por día-en-nivel del
+  // ciclo que se está construyendo — el caller filtra por nivel/ciclo antes
+  // de pasar el mapa (ver useSenderoHabito.ts).
+  mandalasPorDia: Map<number, InfoMandalaNodo> = new Map(),
 ): NodoMapaSendero[] {
   const { ciclo = 1, puedeAvanzarHoy = true, soloLectura = false } = opciones;
   const diaInicial = diasAcumuladosAntesDeNivel(nivel, ciclo);
@@ -43,6 +48,7 @@ export function construirNodosDias(
 
     let tipoNodo: TipoNodoMapa = 'dia';
     let cofre: InfoCofre | undefined;
+    let mandala: InfoMandalaNodo | undefined;
 
     if (esFinal) {
       tipoNodo = 'cofre_final';
@@ -68,11 +74,21 @@ export function construirNodosDias(
         nodoDia: diaEnNivel,
         tipo: 'intermedio',
       };
+    } else if (completado && mandalasPorDia.has(diaEnNivel)) {
+      // Un día normal (no cofre) que ya cumplió su meta y tiene mandala:
+      // reemplaza el nodo por su orbe. Los cofres nunca se reemplazan antes
+      // de reclamarse — la rama de arriba ya cortó esos casos primero.
+      tipoNodo = 'orbe_mandala';
+      mandala = mandalasPorDia.get(diaEnNivel);
     }
 
     return {
       cofre,
-      estado: completado ? 'completado' : esActivo ? 'activo' : 'bloqueado',
+      mandala,
+      // soloLectura (nivel/ciclo histórico) nunca es 'esperando' — ahí ningún
+      // nodo se "retoma mañana", es sólo consulta; 'esperando' es exclusivo
+      // del nivel/ciclo vigente cuando hoy ya no se puede avanzar.
+      estado: completado ? 'completado' : esActivo ? 'activo' : (esProximoDia && !soloLectura) ? 'esperando' : 'bloqueado',
       icono: completado ? Check : esActivo ? Play : Lock,
       id: `dia-${diaGlobal}`,
       subtitulo: tipoNodo !== 'dia' ? (esFinal ? `Cofre Nivel ${nivel}` : `Cofre Día ${diaGlobal}`) : `Nivel ${nivel} · día ${diaEnNivel} de ${diasRequeridos}`,

@@ -77,14 +77,6 @@ export default function LayoutPrincipal() {
         options={{ href: null }}
       />
       <Tabs.Screen
-        name="metas"
-        options={{ href: null }}
-      />
-      <Tabs.Screen
-        name="mi-espacio"
-        options={{ href: null }}
-      />
-      <Tabs.Screen
         name="direccion"
         options={{ title: 'Configuración' }}
       />

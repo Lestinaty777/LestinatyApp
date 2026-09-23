@@ -6,6 +6,7 @@ import { DIAS_REQUERIDOS_POR_NIVEL } from './iconosHabitos';
 import { PAQUETE_HABITO_PREDETERMINADO, resolverPaqueteHabito } from './paqueteHabito';
 import { resumirHabitosActivos } from './resumenHabitosActivos';
 import { mapearTransicionSendero } from './senderoHabito.mapper';
+import { mapearMandalaPendiente } from './mandalaNodo.mapper';
 import { calcularDetalleHabitoHoy, type HabitoHoyDetalle } from './semanaProgramada';
 import type { EdicionHabito } from './gestionDetalleHabito';
 import { DetalleHabito, HabitoResumen, MejorRachaHabito, PanelHabitos, PlanHabitoResumen, ProximoNivelHabito, ResultadoRegistroHabito, TipoMetaHabito } from './tipos';
@@ -56,7 +57,7 @@ export async function archivarHabito(habitoId: string): Promise<void> {
   if (error) throw error;
 }
 
-type ResultadoRegistroRemoto = { id: string; habito_id: string; fecha_local: string; valor: number; nota: string | null; subio_nivel: boolean; nivel: number; gemas_ganadas: number; transicion_sendero: unknown };
+type ResultadoRegistroRemoto = { id: string; habito_id: string; fecha_local: string; valor: number; nota: string | null; subio_nivel: boolean; nivel: number; gemas_ganadas: number; transicion_sendero: unknown; mandala_pendiente: unknown };
 
 export async function registrarProgresoHabito(input: { habitoId: string; fechaLocal: string; valor: number; nota?: string | null }): Promise<ResultadoRegistroHabito> {
   const { data, error } = await obtenerClienteSupabase().rpc('registrar_progreso_habito', {
@@ -69,6 +70,7 @@ export async function registrarProgresoHabito(input: { habitoId: string; fechaLo
     gemasGanadas: Number(remoto.gemas_ganadas ?? 0),
     habitoId: remoto.habito_id,
     id: remoto.id,
+    mandalaPendiente: mapearMandalaPendiente(remoto.mandala_pendiente),
     nivel: Number(remoto.nivel),
     nota: remoto.nota,
     subioNivel: remoto.subio_nivel,

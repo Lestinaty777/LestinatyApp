@@ -1,4 +1,5 @@
 import type { TransicionSendero } from './senderoHabito.tipos';
+import type { InfoMandalaPendiente } from './mandalaNodo.tipos';
 
 export const categoriasHabitos = ['hoy', 'patrones', 'conexiones', 'riesgo', 'impacto'] as const;
 
@@ -90,6 +91,7 @@ export type ResultadoRegistroHabito = {
   gemasGanadas: number;
   habitoId: string;
   id: string;
+  mandalaPendiente: InfoMandalaPendiente | null;
   nivel: number;
   nota: string | null;
   subioNivel: boolean;

@@ -20,6 +20,7 @@ import { useTranslation } from 'react-i18next';
 
 import { NodoSendero } from './NodoSendero';
 import { NodoCofreSendero } from './NodoCofreSendero';
+import { OrbeMandalaNodo } from '../../../habitos/componentes/OrbeMandalaNodo';
 import { ModalAperturaCofre } from './ModalAperturaCofre';
 import type { InfoCofre } from '../../datos/mapaEjercicio.mock';
 import { useEscala } from '../../../../diseno/tema/MasterColorContext';
@@ -48,6 +49,14 @@ type ContenedorMapaSenderosProps = {
   progresoPastoTemprano?: number;
   /** Desplaza el primer nodo para vistas compactas, sin alterar los mapas estándar. */
   desplazamientoSuperior?: number;
+  /**
+   * master_pack_color crudo del paquete, SIN pasar por colorSeguroUi (que
+   * recorta la luminosidad a 35-65% para que sirva de color de texto/UI).
+   * Los cofres lo necesitan para teñirse con el color de marca real — si se
+   * omite, caen a `color` (puede verse apagado/oscuro para paquetes muy
+   * claros o muy oscuros).
+   */
+  colorPaquete?: string;
 };
 
 const separacionVertical = 112;
@@ -298,7 +307,8 @@ const CapaDecoracionMapa = React.memo(function CapaDecoracionMapa({
   );
 });
 
-export function ContenedorMapaSenderos({ altura, categoriaId, color, desplazamientoSuperior, enfocado, infoHabito, nivel, nodos: nodosOverride, onCompletarNodo, onReclamarCofre, paqueteId, progresoPastoTemprano, subcategoriaId }: ContenedorMapaSenderosProps) {
+export function ContenedorMapaSenderos({ altura, categoriaId, color, colorPaquete, desplazamientoSuperior, enfocado, infoHabito, nivel, nodos: nodosOverride, onCompletarNodo, onReclamarCofre, paqueteId, progresoPastoTemprano, subcategoriaId }: ContenedorMapaSenderosProps) {
+  const colorCofre = colorPaquete ?? color;
   const styles = useEstilosStyles();
   const { width } = useWindowDimensions();
   const router = useRouter();
@@ -349,12 +359,16 @@ export function ContenedorMapaSenderos({ altura, categoriaId, color, desplazamie
   const nodoSeleccionado = nodos.find((nodo) => nodo.id === seleccionado);
   const indiceNodoSeleccionado = nodos.findIndex((nodo) => nodo.id === seleccionado);
   const posicionNodoSeleccionado = indiceNodoSeleccionado >= 0 ? posiciones[indiceNodoSeleccionado] : null;
+  // En la posición del nodo actual, se respeta lo que ya trae `nodo.estado`
+  // (calculado en servidor/construirNodosDias con puedeAvanzarHoy) en vez de
+  // asumir 'activo' a ciegas — así el nodo siguiente se ve 'esperando'
+  // cuando ya se completó el día de hoy, en vez de verse disponible.
   const estadoNodoSeleccionado: EstadoNodoMapa | null = indiceNodoSeleccionado < 0
     ? null
     : indiceNodoSeleccionado <= ultimoCompletado
       ? 'completado'
       : indiceNodoSeleccionado === indiceNodoActual
-        ? 'activo'
+        ? nodos[indiceNodoSeleccionado].estado
         : 'bloqueado';
   const desplazamientoTrazo = progresoConexion.interpolate({ inputRange: [0, 1], outputRange: [176, 0] });
 
@@ -483,7 +497,7 @@ export function ContenedorMapaSenderos({ altura, categoriaId, color, desplazamie
           const posicion = posiciones[indice];
           const esNodoActual = indice === indiceNodoActual;
           const esSeleccionado = seleccionado === nodo.id;
-          const estadoVisual = indice <= ultimoCompletado ? 'completado' : esNodoActual ? 'activo' : 'bloqueado';
+          const estadoVisual = indice <= ultimoCompletado ? 'completado' : esNodoActual ? nodo.estado : 'bloqueado';
           const asentado = esSeleccionado && estadoVisual !== 'bloqueado';
           // Todos los nodos conservan el mismo peso visual: reducirlos por
           // índice hacía que los mapas largos parecieran encogerse al subir.
@@ -503,6 +517,7 @@ export function ContenedorMapaSenderos({ altura, categoriaId, color, desplazamie
                 <NodoCofreSendero
                   cofre={cofreInfo}
                   color={color}
+                  colorPaquete={colorCofre}
                   escalaEscena={escalaEscena}
                   onPress={() => {
                     seleccionarNodo(nodo.id, indice);
@@ -512,6 +527,14 @@ export function ContenedorMapaSenderos({ altura, categoriaId, color, desplazamie
                   }}
                   seleccionado={esSeleccionado}
                 />
+              </View>
+            );
+          }
+
+          if (nodo.tipoNodo === 'orbe_mandala' && nodo.mandala) {
+            return (
+              <View key={nodo.id} style={[styles.nodoPosicion, { left: posicion.x - 42, top: posicion.y - 48, zIndex: 20 }]}>
+                <OrbeMandalaNodo escalaEscena={escalaEscena} mandala={nodo.mandala} onPress={() => seleccionarNodo(nodo.id, indice)} seleccionado={esSeleccionado} />
               </View>
             );
           }
@@ -547,6 +570,7 @@ export function ContenedorMapaSenderos({ altura, categoriaId, color, desplazamie
       <ModalAperturaCofre
         cofre={cofreApertura}
         color={color}
+        colorPaquete={colorCofre}
         onCerrar={() => setCofreApertura(null)}
         onReclamar={onReclamarCofre}
         paqueteId={resolverPaqueteHabito(paqueteVisualMapa)}
@@ -577,11 +601,15 @@ function TooltipNodoSeleccionado({ anchoEscena, color, estado, infoHabito, nodo,
   const PALETA_BASE = [esc.lima.l84, esc.lima.l94, esc.lima.l89, esc.hoja.l64a, esc.hoja.l49, esc.hoja.l71a, esc.hoja.l61a, esc.hoja.l69, esc.lima.l58] as const;
   const PALETA_BLOQUEADA = [esc.lima.l99a, esc.hoja.l90, esc.lima.l87a, esc.hoja.l93, esc.hoja.l90, esc.lima.l40, esc.hoja.l89, esc.lima.l83] as const;
 
-  const colorBaseTooltip = estado === 'bloqueado' ? '#666666' : color;
-  const colorFlechita = estado === 'bloqueado' ? '#444444' : color;
+  // 'esperando' comparte el tratamiento visual "bloqueado" del tooltip —
+  // igual criterio que NodoSendero.tsx con su pedestal; el copy (más abajo)
+  // sí distingue "vuelve mañana" de "bloqueado".
+  const esApagado = estado === 'bloqueado' || estado === 'esperando';
+  const colorBaseTooltip = esApagado ? '#666666' : color;
+  const colorFlechita = esApagado ? '#444444' : color;
   const colorMaster = colorMasterMasCercano(color);
-  
-  const [colorTopeClaro, colorTopeOscuro] = estado === 'bloqueado'
+
+  const [colorTopeClaro, colorTopeOscuro] = esApagado
     ? (() => {
         const paleta = rotarPaletaHex(PALETA_BLOQUEADA, REFERENCIA_HUE, color);
         return [paleta[6], paleta[7]];
@@ -592,7 +620,7 @@ function TooltipNodoSeleccionado({ anchoEscena, color, estado, infoHabito, nodo,
       })();
 
   const colorBorde = 'rgba(255,255,255,0.2)';
-  const tono = estado === 'bloqueado' ? { aurora: '#FFFFFF' } : TONOS_TOOLTIP_MASTER[colorMaster];
+  const tono = esApagado ? { aurora: '#FFFFFF' } : TONOS_TOOLTIP_MASTER[colorMaster];
   const descripcionNodoHabito = !infoHabito
     ? t('senderos.map.genericDescription')
     : infoHabito.tipoMeta === 'check'
@@ -613,7 +641,7 @@ function TooltipNodoSeleccionado({ anchoEscena, color, estado, infoHabito, nodo,
 
   const botonDeshabilitado = esCofre
     ? cofreInfo?.estadoCofre !== 'disponible'
-    : estado === 'bloqueado';
+    : estado === 'bloqueado' || estado === 'esperando';
 
   const textoBoton = esCofre
     ? cofreInfo?.estadoCofre === 'reclamado'
@@ -623,9 +651,11 @@ function TooltipNodoSeleccionado({ anchoEscena, color, estado, infoHabito, nodo,
         : t('senderos.map.blocked')
     : estado === 'bloqueado'
       ? t('senderos.map.blocked')
-      : estado === 'completado'
-        ? t('senderos.map.review')
-        : t('senderos.map.start');
+      : estado === 'esperando'
+        ? t('senderos.map.waitingTomorrow')
+        : estado === 'completado'
+          ? t('senderos.map.review')
+          : t('senderos.map.start');
 
   return (
     <View pointerEvents="box-none" style={[styles.etiqueta, { left: izquierdaTooltip, top: posicion.y + 40 }]}>

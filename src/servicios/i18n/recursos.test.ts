@@ -88,6 +88,8 @@ describe('recursosI18n', () => {
     expect(getKeys(recursosI18n.es.translation.habitos.widgets).sort()).toEqual(getKeys(recursosI18n.en.translation.habitos.widgets).sort());
     expect(getKeys(recursosI18n.es.translation.habitos.categorias).sort()).toEqual(getKeys(recursosI18n.en.translation.habitos.categorias).sort());
     expect(getKeys(recursosI18n.es.translation.habitos.categoriaPantalla).sort()).toEqual(getKeys(recursosI18n.en.translation.habitos.categoriaPantalla).sort());
+    expect(getKeys(recursosI18n.es.translation.habitos.tareasDiarias).sort()).toEqual(getKeys(recursosI18n.en.translation.habitos.tareasDiarias).sort());
+    expect(getKeys(recursosI18n.es.translation.habitos.mandala).sort()).toEqual(getKeys(recursosI18n.en.translation.habitos.mandala).sort());
   });
 
   it('garantiza paridad completa de claves para Task 7 (subpantallas de senderos)', () => {
@@ -106,6 +108,7 @@ describe('recursosI18n', () => {
     expect(getKeys(recursosI18n.es.translation.senderos.mision).sort()).toEqual(getKeys(recursosI18n.en.translation.senderos.mision).sort());
     expect(getKeys(recursosI18n.es.translation.senderos.analisis).sort()).toEqual(getKeys(recursosI18n.en.translation.senderos.analisis).sort());
     expect(getKeys(recursosI18n.es.translation.senderos.vistaPrevia).sort()).toEqual(getKeys(recursosI18n.en.translation.senderos.vistaPrevia).sort());
+    expect(getKeys(recursosI18n.es.translation.senderos.map).sort()).toEqual(getKeys(recursosI18n.en.translation.senderos.map).sort());
   });
 
   it('declara las nueve claves de senderos.levels (progresión infinita) en ambos idiomas', () => {
@@ -130,6 +133,6 @@ describe('recursosI18n', () => {
 
   it('declara las vistas de la sección Hoy en ambos idiomas', () => {
     expect(recursosI18n.es.translation.habitos.pantalla.todayViewTimeline).toBe('Vista de sendero');
-    expect(recursosI18n.en.translation.habitos.pantalla.todayViewCards).toBe('Card view');
+    expect(recursosI18n.en.translation.habitos.pantalla.todayViewTasks).toBe('Task view');
   });
 });

@@ -12,6 +12,7 @@ import { Beaker, Users, Activity, Calculator, BookOpen, ChevronLeft, ChevronRigh
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Trophy, Leaf, Sun, Moon } from 'lucide-react-native';
 import { ContenedorMapaSenderos } from '../../senderos/componentes/mapa/ContenedorMapaSenderos';
+import { AmbienteLluviaMapa } from '../componentes/mapa/AmbienteLluviaMapa';
 import { MasterChip, MasterGlass, MasterIcon, MasterIconBg, MasterProgressbar, Texto, colores, RecuadroGlass, buscarIcono } from '../../../diseno';
 import { colorMasterMasCercano, MasterChanger } from '../../../diseno/componentes/MasterChanger';
 import { hapticSeguro } from '../../../nucleo/dispositivo/haptics';
@@ -541,11 +542,13 @@ export function MapaSenderosPantalla() {
             ) : sendero.consulta.isError || !sendero.consulta.data || sendero.consultaResumen.isError || !sendero.resumen ? (
               <View style={styles.centroMapa}><Texto style={styles.subMapa}>{t('senderos.map.trailError')}</Texto></View>
             ) : (
+              <>
               <ContenedorMapaSenderos
                 key={`${asignatura.id}-${nivelVisible}-${sendero.ciclo}`}
                 altura={alturaMapa}
                 categoriaId="habitos"
                 color={sendero.consulta.data.habito.color}
+                colorPaquete={sendero.consulta.data.habito.colorPaquete}
                 enfocado
                 infoHabito={{ meta: sendero.consulta.data.habito.meta, tipoMeta: sendero.consulta.data.habito.tipoMeta, unidad: sendero.consulta.data.habito.unidad }}
                 nodos={esPruebaDiamante ? nodosPruebaDiamante : sendero.nodos}
@@ -554,8 +557,12 @@ export function MapaSenderosPantalla() {
                   if (!puedeAvanzar) return;
                   hapticSeguro('accion');
                   const diaNumero = nodo.titulo.replace(/[^0-9]/g, '') || String(indice + 1);
+                  const tipoMetaHabito = sendero.consulta.data?.habito.tipoMeta;
+                  const rutaMision = tipoMetaHabito === 'check' ? '/senderos/mision-check'
+                    : tipoMetaHabito === 'duracion' ? '/senderos/mision-duracion'
+                      : '/senderos/mision-cantidad';
                   router.push({
-                    pathname: '/senderos/mision',
+                    pathname: rutaMision,
                     params: {
                       habitoId: asignatura.habitoReal!.id,
                       diaGlobal: diaNumero,
@@ -583,6 +590,15 @@ export function MapaSenderosPantalla() {
                   return Math.min(1, ((nivel - 1) + sendero.seccionVisible.diasCompletados / sendero.seccionVisible.diasRequeridos) / 3);
                 })()}
               />
+              {/* Ya completé hoy este hábito y sigo viendo su mapa: llueve
+                  hasta el próximo día programado (no "hasta mañana" — un
+                  hábito no diario sigue lloviendo en los días intermedios,
+                  ver spec). Se apaga sola al cambiar de hábito o salir,
+                  por el propio ciclo de montaje del componente. */}
+              {!esPruebaDiamante && sendero.seccionVisible && !sendero.seccionVisible.puedeAvanzarHoy && sendero.seccionVisible.diasCompletados > 0 && (
+                <AmbienteLluviaMapa alto={alturaMapa} />
+              )}
+              </>
             )
           ) : asignatura ? (
             <ContenedorMapaSenderos key={asignatura.id} altura={alturaMapa} categoriaId={asignatura.categoriaId} color={asignatura.color} enfocado subcategoriaId={asignatura.subcategoriaId} />

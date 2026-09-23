@@ -10,7 +10,10 @@ import {
   reclamarCofreSendero,
   registrarProgresoHabito,
 } from '../habitos.servicio';
+import { obtenerMandalasHabito } from '../mandalaNodo.servicio';
+import type { InfoMandalaNodo, InfoMandalaPendiente } from '../mandalaNodo.tipos';
 import { esMapaSoloLectura, resolverNivelSeleccionado } from './useSenderoHabito.modelo';
+import { CLAVE_TAREAS_DIARIAS } from './useTareasDiarias';
 
 import { construirNodosDias } from '../construirNodosDias';
 export { construirNodosDias };
@@ -28,6 +31,7 @@ export function useSenderoHabito(id: string | undefined, nivelSeleccionado?: num
   const cliente = useQueryClient();
   const [celebracion, setCelebracion] = useState<{ gemas: number; nivel: number } | null>(null);
   const [registrando, setRegistrando] = useState(false);
+  const [mandalaPendiente, setMandalaPendiente] = useState<InfoMandalaPendiente | null>(null);
 
   const consulta = useQuery({ enabled: Boolean(id), queryKey: ['habitos', 'progreso-nivel', id], queryFn: () => obtenerProgresoNivelHabito(id as string) });
 
@@ -62,6 +66,22 @@ export function useSenderoHabito(id: string | undefined, nivelSeleccionado?: num
     return mapa;
   }, [consultaCofres.data]);
 
+  const consultaMandalas = useQuery({
+    enabled: Boolean(id),
+    queryKey: ['habitos', 'mandalas', id],
+    queryFn: () => obtenerMandalasHabito(id as string),
+  });
+
+  // Filtradas al nivel/ciclo que se está construyendo — construirNodosDias
+  // ya no necesita saber nada de mandalas de otros niveles/ciclos.
+  const mapaMandalasPorDia = useMemo(() => {
+    const mapa = new Map<number, InfoMandalaNodo>();
+    for (const m of consultaMandalas.data ?? []) {
+      if (m.nivel === nivelVisible && m.ciclo === ciclo) mapa.set(m.nodoDia, m);
+    }
+    return mapa;
+  }, [consultaMandalas.data, nivelVisible, ciclo]);
+
   const registrar = useMutation({
     mutationFn: registrarProgresoHabito,
     onSuccess: (resultado) => {
@@ -72,9 +92,16 @@ export function useSenderoHabito(id: string | undefined, nivelSeleccionado?: num
       cliente.invalidateQueries({ queryKey: ['habitos', 'cercania-nivel'] });
       cliente.invalidateQueries({ queryKey: ['habitos', 'mejor-racha'] });
       cliente.invalidateQueries({ queryKey: ['habitos', 'cofres', id, nivelVisible, ciclo] });
+      cliente.invalidateQueries({ queryKey: ['habitos', 'mandalas', id] });
+      cliente.invalidateQueries({ queryKey: CLAVE_TAREAS_DIARIAS });
       if (resultado.gemasGanadas > 0) cliente.invalidateQueries({ queryKey: CLAVE_SALDO_GEMAS });
       if (resultado.transicionSendero) { hapticSeguro('confirmacion'); setCelebracion({ gemas: resultado.transicionSendero.gemas, nivel: resultado.transicionSendero.nivelActual }); }
       else hapticSeguro('accion');
+      // Si hay cofre, ese festejo va primero (comportamiento actual sin
+      // cambios); la mandala se muestra igual — el caller decide cuándo
+      // abrir el compositor (después de cerrar la celebración del cofre, o
+      // de inmediato si no hubo cofre).
+      if (resultado.mandalaPendiente) setMandalaPendiente(resultado.mandalaPendiente);
       setRegistrando(false);
     },
     onError: () => setRegistrando(false),
@@ -97,12 +124,12 @@ export function useSenderoHabito(id: string | undefined, nivelSeleccionado?: num
   }, [celebracion]);
 
   // Al cambiar de hábito seleccionado, cualquier registro/celebración en curso de otro hábito ya no aplica.
-  useEffect(() => { setRegistrando(false); setCelebracion(null); }, [id]);
+  useEffect(() => { setRegistrando(false); setCelebracion(null); setMandalaPendiente(null); }, [id]);
 
   const nodos = seccionVisible
     ? construirNodosDias(seccionVisible.diasCompletados, seccionVisible.diasRequeridos, seccionVisible.nivel, mapaCofresReclamados, {
       ciclo, puedeAvanzarHoy: seccionVisible.puedeAvanzarHoy, soloLectura,
-    })
+    }, mapaMandalasPorDia)
     : [];
 
   return {
@@ -110,7 +137,10 @@ export function useSenderoHabito(id: string | undefined, nivelSeleccionado?: num
     ciclo,
     consulta,
     consultaCofres,
+    consultaMandalas,
     consultaResumen,
+    mandalaPendiente,
+    setMandalaPendiente,
     // Ya no hay "nivel máximo" en el sentido de tope: nivel 7 es maestría
     // infinita en ciclos. Se conserva el nombre por compatibilidad con
     // consumidores existentes; ahora solo indica que el nivel visible es 7.

@@ -1,5 +1,6 @@
 export { entradaEncadenada, MasterAnimation } from './MasterAnimation';
 export { MasterChip } from './MasterChip';
+export { MasterCircularProgressBar } from './MasterCircularProgressBar';
 export { MasterGlass } from './MasterGlass';
 export { MasterIconBg } from './MasterIconBg';
 export { MasterProgressbar } from './MasterProgressbar';

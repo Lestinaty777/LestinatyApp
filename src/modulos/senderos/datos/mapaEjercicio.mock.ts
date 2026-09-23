@@ -1,10 +1,15 @@
 import type { LucideIcon } from 'lucide-react-native';
 import { Bike, Check, Clock3, Dumbbell, HeartPulse, Repeat2, StretchHorizontal } from 'lucide-react-native';
+import type { InfoMandalaNodo } from '../../habitos/mandalaNodo.tipos';
 
 
-export type EstadoNodoMapa = 'activo' | 'bloqueado' | 'completado';
+// 'esperando': es el siguiente nodo, pero ya se completó el de hoy — no se
+// puede avanzar hasta el próximo día programado. Distinto de 'bloqueado'
+// (nodo futuro real, aún no alcanzado) aunque hoy comparten tratamiento
+// visual — ver NodoSendero.tsx.
+export type EstadoNodoMapa = 'activo' | 'bloqueado' | 'completado' | 'esperando';
 
-export type TipoNodoMapa = 'dia' | 'cofre_intermedio' | 'cofre_final';
+export type TipoNodoMapa = 'dia' | 'cofre_intermedio' | 'cofre_final' | 'orbe_mandala';
 
 export type EstadoCofre = 'bloqueado' | 'disponible' | 'reclamado';
 
@@ -28,6 +33,7 @@ export type NodoMapaSendero = {
   titulo: string;
   tipoNodo?: TipoNodoMapa;
   cofre?: InfoCofre;
+  mandala?: InfoMandalaNodo;
 };
 
 const nodosEjercicio: NodoMapaSendero[] = [

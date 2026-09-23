@@ -937,6 +937,7 @@ export function SesionMisionPantalla() {
       <ModalAperturaCofre
         cofre={null}
         color={colorTema}
+        colorPaquete={habito?.colorPaquete ?? colorTema}
         gemasAcreditadas={transicionCofre?.gemas}
         modo="automatico"
         onCerrar={() => setTransicionCofre(null)}

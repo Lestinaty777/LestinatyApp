@@ -1,7 +1,7 @@
 import type { CategoriaMapaId } from '../algoritmo/mapaProcedural';
 import { ESCALA_ESMERALDA } from '../../../diseno/tema/escalaEsmeralda';
 
-export type CategoriaMapaMvp = 'habitos' | 'rutinas' | 'tareas';
+export type CategoriaMapaMvp = 'habitos';
 export type IconoModuloMapa = 'actividad' | 'ciencia' | 'checklist' | 'libro' | 'usuarios';
 
 export type ModuloCategoriaMapa = {
@@ -18,8 +18,6 @@ export const categoriaInicialMapa: CategoriaMapaMvp = 'habitos';
 
 export const coloresSelectorCategoria: Record<CategoriaMapaMvp, string> = {
   habitos: ESCALA_ESMERALDA.jade.l70,
-  rutinas: '#D94640',
-  tareas: '#E5A900',
 };
 
 export const modulosPorCategoria: Record<CategoriaMapaMvp, readonly ModuloCategoriaMapa[]> = {
@@ -29,13 +27,5 @@ export const modulosPorCategoria: Record<CategoriaMapaMvp, readonly ModuloCatego
     { categoriaId: 'habitos', color: '#4A8BB3', descripcion: 'Hidratación simple durante el día.', icono: 'actividad', id: 'agua', subcategoriaId: 'ejercicio', titulo: 'Tomar agua' },
     { categoriaId: 'habitos', color: '#D4AF37', descripcion: 'Movimiento ligero para activar tu día.', icono: 'actividad', id: 'caminar', subcategoriaId: 'ejercicio', titulo: 'Caminar' },
     { categoriaId: 'habitos', color: '#8E3DFF', descripcion: 'Un registro breve de tu avance.', icono: 'libro', id: 'diario', subcategoriaId: 'manana', titulo: 'Escribir diario' },
-  ],
-  rutinas: [
-    { categoriaId: 'rutinas', color: '#4A8BB3', descripcion: 'Una secuencia ligera para comenzar con claridad.', icono: 'actividad', id: 'manana', subcategoriaId: 'manana', titulo: 'Rutina de mañana' },
-    { categoriaId: 'rutinas', color: '#1463FF', descripcion: 'Bloques simples para proteger tu concentración.', icono: 'checklist', id: 'enfoque', subcategoriaId: 'ejercicio', titulo: 'Bloque de enfoque' },
-    { categoriaId: 'rutinas', color: '#734AB3', descripcion: 'Cierre amable para terminar el día.', icono: 'libro', id: 'noche', subcategoriaId: 'manana', titulo: 'Rutina de noche' },
-  ],
-  tareas: [
-    { categoriaId: 'tareas', color: '#D4AF37', descripcion: 'Un proyecto grande convertido en pasos concretos.', icono: 'checklist', id: 'proyecto-principal', subcategoriaId: 'ejercicio', titulo: 'Organizar proyecto principal' },
   ],
 };

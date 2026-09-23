@@ -11,10 +11,11 @@ import Animated, {
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { BlurMask, Canvas, Group, Path as PathSkia } from '@shopify/react-native-skia';
 import { MasterButton, MasterGlass, Texto } from '../../../../diseno';
-import { MasterChanger, colorMasterMasCercano } from '../../../../diseno/componentes/MasterChanger';
+import { MasterChanger } from '../../../../diseno/componentes/MasterChanger';
 import { hapticSeguro } from '../../../../nucleo/dispositivo/haptics';
 import { videoCofreParaPaquete } from '../../../habitos/cofreVideoPaquete';
 import type { InfoCofre } from '../../datos/mapaEjercicio.mock';
+import { calcularTinteCofre } from './cofreTinte';
 
 // OJO: el nombre de archivo es engañoso — cofre.png es el cofre CERRADO y
 // cofre-cerrado.png es el cofre ABIERTO (reclamado). Verificado visualmente.
@@ -22,17 +23,20 @@ const ASSET_CERRADO = require('../../../../../assets/ilustraciones/senderos/biom
 const ASSET_ABIERTO = require('../../../../../assets/ilustraciones/senderos/biomas/cofres/cofre-cerrado.png');
 const ASSET_GEMAS = require('../../../../../assets/icons/hoy/gemas.png');
 const RESPALDO_VIDEO_MS = 4000;
-// Hue real medido del verde de cada PNG — ver NodoCofreSendero.tsx para el
-// porqué (auto-detectar mezcla el dorado del candado y contamina el hue).
-const HUE_ORIGEN_CERRADO = 150;
-const HUE_ORIGEN_ABIERTO = 155;
 
 type Fase = 'inicial' | 'reclamando' | 'reproduciendo' | 'abierto';
 
 type Props = {
   visible: boolean;
   cofre: InfoCofre | null;
+  /** Color "seguro para UI" (ya clampeado por colorSeguroUi) — título, glow y fondo del glass. */
   color: string;
+  /**
+   * master_pack_color crudo del paquete, sin clampear — el cofre se tiñe con
+   * este para no perder vivacidad en paquetes muy claros u oscuros. Si se
+   * omite, cae a `color`.
+   */
+  colorPaquete?: string;
   paqueteId: string;
   // 'manual' (default): se abre desde un tap en el mapa, con botón "¡Abrir
   // Cofre!" que dispara onReclamar. 'automatico': ya viene con las gemas
@@ -50,6 +54,7 @@ export function ModalAperturaCofre({
   visible,
   cofre,
   color,
+  colorPaquete,
   paqueteId,
   modo = 'manual',
   gemasAcreditadas,
@@ -58,7 +63,6 @@ export function ModalAperturaCofre({
   onReclamar,
   onFinalizarAutomatico,
 }: Props) {
-  const colorMaster = colorMasterMasCercano(color);
   const [fase, setFase] = useState<Fase>(modo === 'automatico' ? 'reproduciendo' : 'inicial');
   const [gemasGanadas, setGemasGanadas] = useState<number | null>(modo === 'automatico' ? gemasAcreditadas ?? null : null);
   const [movimientoReducidoDetectado, setMovimientoReducidoDetectado] = useState(false);
@@ -164,6 +168,7 @@ export function ModalAperturaCofre({
     ? 'Has completado todos los días del nivel. Reclama tu recompensa.'
     : '¡Tu disciplina tiene recompensa! Abre el cofre para descubrir tus gemas.';
   const abierto = fase === 'abierto';
+  const tinte = calcularTinteCofre(colorPaquete ?? color, abierto);
 
   return (
     <Modal animationType="fade" onRequestClose={resetear} transparent visible={visible}>
@@ -171,7 +176,7 @@ export function ModalAperturaCofre({
         <Pressable onPress={abierto ? resetear : undefined} style={StyleSheet.absoluteFill} />
 
         <Animated.View entering={FadeInDown.duration(280)} exiting={FadeOut.duration(200)} style={styles.tarjeta}>
-          <MasterGlass blur style={styles.glass}>
+          <MasterGlass blur colorBase={color} style={styles.glass}>
             <Canvas pointerEvents="none" style={styles.lienzoBrillo}>
               <Group opacity={0.35}>
                 <PathSkia color={color} path="M10 90 C 70 20, 150 20, 210 90 S 150 160, 10 90" strokeWidth={20} style="stroke">
@@ -199,10 +204,11 @@ export function ModalAperturaCofre({
                   <MasterChanger
                     alto={140}
                     ancho={140}
-                    colorDestino={colorMaster}
                     fit="contain"
                     fuente={abierto ? ASSET_ABIERTO : ASSET_CERRADO}
-                    hueOrigen={abierto ? HUE_ORIGEN_ABIERTO : HUE_ORIGEN_CERRADO}
+                    hueDestino={tinte.hueDestino}
+                    hueOrigen={tinte.hueOrigen}
+                    saturacion={tinte.saturacion}
                     soloPixelesVerdes
                   />
                 </View>

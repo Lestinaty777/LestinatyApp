@@ -8,35 +8,34 @@ import Animated, {
   withSpring,
   withTiming,
 } from 'react-native-reanimated';
-import { MasterChanger, colorMasterMasCercano } from '../../../../diseno/componentes/MasterChanger';
+import { MasterChanger } from '../../../../diseno/componentes/MasterChanger';
 import { Texto } from '../../../../diseno';
 import type { InfoCofre } from '../../datos/mapaEjercicio.mock';
 import { hapticSeguro } from '../../../../nucleo/dispositivo/haptics';
+import { calcularTinteCofre } from './cofreTinte';
 
 // OJO: el nombre de archivo es engañoso — cofre.png es el cofre CERRADO
 // (disponible/bloqueado) y cofre-cerrado.png es el cofre ABIERTO (reclamado).
 // Verificado visualmente; no invertir esto de nuevo.
 const ASSET_CERRADO = require('../../../../../assets/ilustraciones/senderos/biomas/cofres/cofre.png');
 const ASSET_ABIERTO = require('../../../../../assets/ilustraciones/senderos/biomas/cofres/cofre-cerrado.png');
-// Hue real medido del verde de cada PNG (muestreo de píxeles, ver
-// ModalAperturaCofre.tsx) — el candado/las bisagras son doradas (~45°) y si se
-// deja que MasterChanger detecte el hue dominante automáticamente, promedia
-// verde+dorado y sale un hue contaminado (~117°) que tiñe todo mal. Con el
-// hue real fijo + soloPixelesVerdes, el dorado queda intacto y solo el cuerpo
-// verde rota al color del paquete.
-const HUE_ORIGEN_CERRADO = 150;
-const HUE_ORIGEN_ABIERTO = 155;
 
 type Props = {
   cofre: InfoCofre;
+  /** Color "seguro para UI" (ya clampeado por colorSeguroUi) — se usa para el badge de "¡Abrir!". */
   color: string;
+  /**
+   * master_pack_color crudo del paquete, sin clampear — el cofre se tiñe con
+   * este para no perder vivacidad en paquetes muy claros u oscuros. Si se
+   * omite, cae a `color` (más apagado en esos casos límite).
+   */
+  colorPaquete?: string;
   seleccionado: boolean;
   onPress: () => void;
   escalaEscena?: number;
 };
 
-export function NodoCofreSendero({ cofre, color, seleccionado, onPress, escalaEscena = 1 }: Props) {
-  const colorMaster = colorMasterMasCercano(color);
+export function NodoCofreSendero({ cofre, color, colorPaquete, seleccionado, onPress, escalaEscena = 1 }: Props) {
   const escala = useSharedValue(1);
   const rotacion = useSharedValue(0);
 
@@ -69,7 +68,7 @@ export function NodoCofreSendero({ cofre, color, seleccionado, onPress, escalaEs
   const esBloqueado = cofre.estadoCofre === 'bloqueado';
   const esReclamado = cofre.estadoCofre === 'reclamado';
   const fuente = esReclamado ? ASSET_ABIERTO : ASSET_CERRADO;
-  const hueOrigenCofre = esReclamado ? HUE_ORIGEN_ABIERTO : HUE_ORIGEN_CERRADO;
+  const tinte = calcularTinteCofre(colorPaquete ?? color, esReclamado);
 
   return (
     <View style={styles.raiz}>
@@ -100,11 +99,12 @@ export function NodoCofreSendero({ cofre, color, seleccionado, onPress, escalaEs
           <MasterChanger
             alto={76}
             ancho={76}
-            colorDestino={colorMaster}
             fit="contain"
             fuente={fuente}
-            hueOrigen={hueOrigenCofre}
+            hueDestino={tinte.hueDestino}
+            hueOrigen={tinte.hueOrigen}
             oscurecido={esBloqueado ? 0.6 : undefined}
+            saturacion={tinte.saturacion}
             soloPixelesVerdes
           />
           {cofre.estadoCofre === 'disponible' && (

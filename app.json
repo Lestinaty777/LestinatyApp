@@ -51,7 +51,8 @@
             }
           ]
         }
-      ]
+      ],
+      "expo-audio"
     ],
     "extra": {
       "eas": {

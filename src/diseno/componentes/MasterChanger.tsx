@@ -141,18 +141,31 @@ export function useHueDominante(imagen: SkImage | null): number | null {
 // y autocontenido acá (no importa colorHsl.ts de senderos/algoritmo) para que
 // este componente de diseño compartido no dependa de un módulo de feature.
 function hueDeHexLocal(hex: string): number {
+  return hueYSaturacionDeHex(hex).hue;
+}
+
+/**
+ * Hue (0-360) y saturación (0-1) exactos de un hex, sin bucketear a los 7
+ * ColorMaster — para teñir con `hueDestino` + `saturacion` cuando se necesita
+ * el color real del paquete (no "un tono similar"), p. ej. los cofres de
+ * Senderos, que además necesitan compensar contra la saturación del material
+ * de origen para no verse apagados en destinos muy saturados (ver
+ * `factorSaturacionCofre` en NodoCofreSendero.tsx/ModalAperturaCofre.tsx).
+ */
+export function hueYSaturacionDeHex(hex: string): { hue: number; saturacion: number } {
   const limpio = hex.replace('#', '');
   const r = parseInt(limpio.slice(0, 2), 16) / 255;
   const g = parseInt(limpio.slice(2, 4), 16) / 255;
   const b = parseInt(limpio.slice(4, 6), 16) / 255;
   const max = Math.max(r, g, b), min = Math.min(r, g, b);
-  if (max === min) return 0;
   const d = max - min;
+  if (d === 0) return { hue: 0, saturacion: 0 };
   let h: number;
   if (max === r) h = (g - b) / d + (g < b ? 6 : 0);
   else if (max === g) h = (b - r) / d + 2;
   else h = (r - g) / d + 4;
-  return (h / 6) * 360;
+  const saturacion = max === 0 ? 0 : d / max;
+  return { hue: (h / 6) * 360, saturacion };
 }
 
 /** El ColorMaster (1-7) cuyo hue está más cerca del de `hex` — "un tono similar", no una réplica exacta. */

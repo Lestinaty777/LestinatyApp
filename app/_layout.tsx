@@ -37,11 +37,7 @@ export default function LayoutRaiz() {
         <Stack.Screen name="index" />
         <Stack.Screen name="(publico)" />
         <Stack.Screen name="(principal)" />
-        <Stack.Screen name="senderos/analisis" />
-        <Stack.Screen name="senderos/leccion" options={{ presentation: 'fullScreenModal' }} />
-        <Stack.Screen name="senderos/[id]" />
         <Stack.Screen name="tienda/gemas" />
-        <Stack.Screen name="metas/[id]" />
         <Stack.Screen name="habitos/[id]" options={{ animation: 'fade', presentation: 'transparentModal' }} />
         <Stack.Screen name="horizon" />
         <Stack.Screen name="habitos/widgets" />
