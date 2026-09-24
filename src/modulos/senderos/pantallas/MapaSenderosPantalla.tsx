@@ -145,6 +145,13 @@ export function MapaSenderosPantalla() {
   const encargoMandalaVigente = encargoRitual && Date.now() - encargoRitual.creadoEn < VIGENCIA_ENCARGO_MS
     ? { registroId: encargoRitual.mandala.registroId }
     : null;
+  // Si el día registrado cerró el nivel, el mapa ya saltó al siguiente pero
+  // la mandala pendiente es del nivel anterior: se vuelve a ese nivel para
+  // que el ritual se abra sobre su pedestal (si no, el encargo caducaría).
+  const nivelEncargo = encargoMandalaVigente && enFoco ? encargoRitual?.mandala.nivel : undefined;
+  React.useEffect(() => {
+    if (nivelEncargo !== undefined && nivelEncargo !== nivelVisible) setNivelSeleccionado(nivelEncargo);
+  }, [nivelEncargo, nivelVisible]);
   const mapaNivelVisible = MAPAS_NIVELES[nivelVisible - 1] ?? MAPAS_NIVELES[0];
 
   const abrirModalNiveles = () => {

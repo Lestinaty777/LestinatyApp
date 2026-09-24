@@ -91,6 +91,10 @@ export function useSelloMantener({ onClimaxTerminado, onCompleto, semilla }: Opc
     soltar() {
       if (completoRef.current) return;
       const actual = progreso.value;
+      // Carrera del segundo 7: la carga ya llegó al 100 % en el hilo de UI
+      // pero su aviso (runOnJS) todavía no llegó. Soltar aquí no debe
+      // retroceder: el sello ya está hecho.
+      if (actual >= 0.999) { completar(); return; }
       cancelAnimation(progreso);
       progreso.value = withTiming(0, { duration: actual * DURACION_SELLO_MS * FACTOR_RETROCESO, easing: Easing.out(Easing.quad) });
     },
