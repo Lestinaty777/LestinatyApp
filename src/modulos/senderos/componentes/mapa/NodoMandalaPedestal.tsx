@@ -17,7 +17,7 @@ export const TAMANO_MANDALA_PEDESTAL = 54;
 // Centro de la elipse superior del pedestal (cy=119 en el lienzo 302x303 de
 // PedestalNodo.tsx). La mandala se para un poco por debajo, "plantada".
 const CENTRO_TOPE_PEDESTAL = (119 / 303) * TAMANO_PEDESTAL;
-const BASE_MANDALA = CENTRO_TOPE_PEDESTAL + 3;
+const BASE_MANDALA = CENTRO_TOPE_PEDESTAL + 7;
 const ARRIBA_MANDALA = BASE_MANDALA - TAMANO_MANDALA_PEDESTAL * 0.95;
 const LADO_PARTICULAS = 84;
 const PAUSA_GIRO_MS = 3000;

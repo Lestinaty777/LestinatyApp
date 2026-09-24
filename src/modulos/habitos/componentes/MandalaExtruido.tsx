@@ -16,7 +16,7 @@ export const ANCHO_CINTA_MANDALA = LADO_LIENZO_MANDALA * 0.06;
 export const ANGULO_REPOSO_MANDALA = -26;
 // Cuánto se recuesta la mandala hacia atrás (rotateX), sólo ella, no el
 // mapa: 0 = de pie mirando a la cámara; más grados = se ve más desde arriba.
-export const INCLINACION_MANDALA = 20;
+export const INCLINACION_MANDALA = -30;
 // Proporción de blanco en la cara: 0.7 = pastel claro del color del paquete.
 export const BLANCO_PASTEL_MANDALA = 0.7;
 // Filo blanco de la cara, en unidades del lienzo (≈0,7 px en el pedestal).
