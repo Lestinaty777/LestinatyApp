@@ -165,6 +165,16 @@ export async function crearSolicitudPrivacidad(tipo: TipoSolicitudPrivacidad): P
   return solicitud;
 }
 
+// Borrado REAL e inmediato de la cuenta (migración 20260924_49): elimina
+// auth.users del usuario autenticado, lo que cascada a todos sus datos
+// (perfil, hábitos, gemas, cofres, semillas, notificaciones). No queda nada
+// pendiente de procesar — a diferencia de crearSolicitudPrivacidad('eliminacion'),
+// que solo registraba el pedido sin borrar nada.
+export async function eliminarCuentaPropia(): Promise<void> {
+  const { error } = await obtenerClienteSupabase().rpc('eliminar_cuenta_propia');
+  if (error) throw error;
+}
+
 export async function obtenerDocumentosLegales(): Promise<DocumentoLegal[]> {
   const supabase = obtenerClienteSupabase();
   const { data, error } = await supabase
