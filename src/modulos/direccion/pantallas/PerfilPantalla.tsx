@@ -549,15 +549,19 @@ export function PerfilPantalla() {
         Alert.alert(t('perfil.alerts.subscriptionRestoredTitle'), t('perfil.alerts.subscriptionRestoredMessage'));
       } else if (resultado.estado === 'sin_compras' || resultado.estado === 'restaurada') {
         hapticSeguro('confirmacion');
-        Alert.alert(t('perfil.alerts.noActiveSubscriptionsTitle'), t('perfil.alerts.noActiveSubscriptionsMessage'));
+        Alert.alert(t('perfil.alerts.noActiveSubscriptionsTitle'), t('perfil.alerts.noActiveSubscriptionsMessage', { tienda: nombreTienda() }));
       } else {
-        Alert.alert(t('perfil.alerts.errorTitle'), t('perfil.alerts.verifySubscriptionsError'));
+        Alert.alert(t('perfil.alerts.errorTitle'), t('perfil.alerts.verifySubscriptionsError', { tienda: nombreTienda() }));
       }
     } catch {
-      Alert.alert(t('perfil.alerts.errorTitle'), t('perfil.alerts.verifySubscriptionsError'));
+      Alert.alert(t('perfil.alerts.errorTitle'), t('perfil.alerts.verifySubscriptionsError', { tienda: nombreTienda() }));
     } finally {
       setRestaurandoCompras(false);
     }
+  }
+
+  function nombreTienda(): string {
+    return Platform.OS === 'ios' ? 'App Store' : 'Google Play';
   }
 
   function abrirGestionarSuscripciones() {
@@ -1164,7 +1168,7 @@ export function PerfilPantalla() {
                         </View>
                         <View style={s.filaEnlaceColumna}>
                           <Texto {...PROPS_TEXTO_UNA_LINEA} style={s.filaEnlaceTexto}>
-                            {t('perfil.settings.manageSubscription')}
+                            {t('perfil.settings.manageSubscription', { tienda: nombreTienda() })}
                           </Texto>
                           <Texto {...PROPS_TEXTO_UNA_LINEA} style={s.filaEnlaceSubtexto}>
                             {t('perfil.settings.manageSubscriptionDesc')}
@@ -1192,7 +1196,7 @@ export function PerfilPantalla() {
                             {t('perfil.settings.restorePurchases')}
                           </Texto>
                           <Texto {...PROPS_TEXTO_UNA_LINEA} style={s.filaEnlaceSubtexto}>
-                            {t('perfil.settings.restorePurchasesDesc')}
+                            {t('perfil.settings.restorePurchasesDesc', { tienda: nombreTienda() })}
                           </Texto>
                         </View>
                         <ChevronRight color={esc.musgo.l54} size={18} />
