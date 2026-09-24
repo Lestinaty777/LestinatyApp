@@ -21,6 +21,14 @@ export const INCLINACION_MANDALA = -30;
 export const BLANCO_PASTEL_MANDALA = 0.7;
 // Filo blanco de la cara, en unidades del lienzo (≈0,7 px en el pedestal).
 const FILO_MANDALA = 4;
+// Distancia de cámara relativa al tamaño: más baja = el borde que se acerca
+// crece más, y el sentido del giro se lee sin ambigüedad.
+const PERSPECTIVA_RELATIVA = 2.6;
+// Luz fija arriba a la izquierda, hacia la cámara (normalizada): la cara se
+// aclara al girar hacia ella y se apaga al alejarse, así el giro tiene un
+// sentido visible y no "rebota" como la bailarina de la ilusión óptica.
+const LUZ = { x: -0.5, z: 0.866 };
+const SOMBRA_MAXIMA = 0.42;
 
 function canales(color: string) {
   const hex = color.replace('#', '');
@@ -37,10 +45,12 @@ function aHex(valores: number[]) {
 // que la despega de un mapa que ya es una versión clara del mismo color.
 export function coloresMandala(color: string) {
   const rgb = canales(color);
-  if (!rgb) return { canto: color, cara: color, filo: '#FFFFFF' };
+  if (!rgb) return { canto: color, cara: color, filo: '#FFFFFF', reverso: color };
   return {
     canto: aHex(rgb.map((v) => v * 0.88)),
     cara: aHex(rgb.map((v) => v + (255 - v) * BLANCO_PASTEL_MANDALA)),
+    // El reverso, un pastel más profundo y sin filo: se distingue de frente.
+    reverso: aHex(rgb.map((v) => v + (255 - v) * (BLANCO_PASTEL_MANDALA - 0.18))),
     filo: '#FFFFFF',
   };
 }
@@ -64,8 +74,9 @@ type MandalaExtruidoProps = {
 // simula como una moneda: la misma mandala repetida en láminas, cada una a
 // su profundidad z. Girar `giro` sobre Y y recostar `inclinacion` sobre X
 // lleva una lámina a profundidad z a (z·sinθ, −z·cosθ·sinφ) en pantalla
-// (misma matriz que rotateY/rotateX), y así aparece el canto. Las láminas
-// exteriores llevan la cara pastel y las interiores el color pleno.
+// (misma matriz que rotateY/rotateX), y así aparece el canto. La cara lleva
+// el pastel con filo blanco, el reverso un pastel más profundo, y las
+// láminas interiores el color pleno.
 export function MandalaExtruido({ capas = 6, color, giro, inclinacion, relieve, tamano, trazos }: MandalaExtruidoProps) {
   const caminos = useMemo(() => construirCaminosMandala(trazos, ANCHO_CINTA_MANDALA), [trazos]);
   const paleta = useMemo(() => coloresMandala(color), [color]);
@@ -75,12 +86,16 @@ export function MandalaExtruido({ capas = 6, color, giro, inclinacion, relieve, 
   return (
     <View pointerEvents="none" style={{ height: tamano, width: tamano }}>
       {Array.from({ length: capas }, (_, indice) => {
-        const exterior = indice === 0 || indice === capas - 1;
+        const frente = indice === capas - 1;
+        const reverso = indice === 0 && capas > 1;
         return (
           <CapaMandala
+            capas={capas}
             caminos={caminos}
-            color={exterior ? paleta.cara : paleta.canto}
-            filo={indice === capas - 1 ? paleta.filo : undefined}
+            cara={frente ? 1 : reverso ? -1 : 0}
+            color={frente ? paleta.cara : reverso ? paleta.reverso : paleta.canto}
+            filo={frente ? paleta.filo : undefined}
+            indice={indice}
             giro={giro}
             grosor={grosor}
             inclinacion={inclinacion}
@@ -96,13 +111,17 @@ export function MandalaExtruido({ capas = 6, color, giro, inclinacion, relieve, 
   );
 }
 
-function CapaMandala({ caminos, color, filo, giro, grosor, inclinacion, profundidad, relieve, tamano, viewBox }: {
+function CapaMandala({ capas, caminos, cara, color, filo, giro, grosor, inclinacion, indice, profundidad, relieve, tamano, viewBox }: {
+  capas: number;
   caminos: string[];
+  /** 1 = cara frontal, -1 = reverso, 0 = lámina interior del canto. */
+  cara: number;
   color: string;
   filo?: string;
   giro: SharedValue<number>;
   grosor: number;
   inclinacion?: SharedValue<number>;
+  indice: number;
   profundidad: number;
   relieve?: SharedValue<number>;
   tamano: number;
@@ -113,8 +132,12 @@ function CapaMandala({ caminos, color, filo, giro, grosor, inclinacion, profundi
     const theta = (giro.value * Math.PI) / 180;
     const phi = INCLINACION_MANDALA * (inclinacion ? inclinacion.value : 1);
     return {
+      // De espaldas, el orden de pintado se invierte: la lámina más cercana
+      // a la cámara siempre queda encima (si no, la profundidad contradice
+      // al giro y parece cambiar de sentido a mitad de vuelta).
+      zIndex: Math.cos(theta) >= 0 ? indice : capas - 1 - indice,
       transform: [
-        { perspective: tamano * 6 },
+        { perspective: tamano * PERSPECTIVA_RELATIVA },
         { translateX: z * Math.sin(theta) },
         { translateY: -z * Math.cos(theta) * Math.sin((phi * Math.PI) / 180) },
         { rotateX: `${phi}deg` },
@@ -123,13 +146,28 @@ function CapaMandala({ caminos, color, filo, giro, grosor, inclinacion, profundi
     };
   });
 
+  // Sombreado de la cara según su normal girada (sinθ, cosθ)·cara frente a
+  // la luz: sólo las dos caras exteriores, el canto ya es el color pleno.
+  const estiloSombra = useAnimatedStyle(() => {
+    const theta = (giro.value * Math.PI) / 180;
+    const luz = cara * (Math.sin(theta) * LUZ.x + Math.cos(theta) * LUZ.z);
+    return { opacity: SOMBRA_MAXIMA * (1 - Math.min(1, Math.max(0, luz))) };
+  });
+
   return (
     <Animated.View style={[StyleSheet.absoluteFill, estilo]}>
       <Svg height={tamano} viewBox={viewBox} width={tamano}>
-        {caminos.map((d, indice) => (d
-          ? <Path d={d} fill={color} key={indice} stroke={filo} strokeLinejoin="round" strokeOpacity={0.75} strokeWidth={filo ? FILO_MANDALA : 0} />
+        {caminos.map((d, i) => (d
+          ? <Path d={d} fill={color} key={i} stroke={filo} strokeLinejoin="round" strokeOpacity={0.75} strokeWidth={filo ? FILO_MANDALA : 0} />
           : null))}
       </Svg>
+      {cara !== 0 && (
+        <Animated.View style={[StyleSheet.absoluteFill, estiloSombra]}>
+          <Svg height={tamano} viewBox={viewBox} width={tamano}>
+            {caminos.map((d, i) => (d ? <Path d={d} fill="#000000" key={i} /> : null))}
+          </Svg>
+        </Animated.View>
+      )}
     </Animated.View>
   );
 }
