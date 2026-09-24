@@ -52,8 +52,11 @@ uniform float3 cara;
 
 half4 main(float2 p) {
   float2 q = (p - centro) / radio;
-  float t = q.x * 1.4 + q.y * 0.9 + giro * 0.8;
-  float3 iris = 0.5 + 0.5 * cos(6.2831 * (float3(0.0, 0.33, 0.67) + t * 0.5));
+  // El giro entra como fase con periodo exacto de una vuelta (2π): la pose
+  // de reposo y reposo+360° deben dar el mismo tono, porque las animaciones
+  // reinician el ángulo al terminar cada vuelta.
+  float t = q.x * 1.4 + q.y * 0.9;
+  float3 iris = 0.5 + 0.5 * cos(6.2831 * (float3(0.0, 0.33, 0.67) + t * 0.5) + giro);
   float3 c = mix(cara, iris, nacar);
   c += 0.06 * (1.0 - clamp(length(q), 0.0, 1.0));
   float franja = abs(q.x * 0.8 - q.y * 0.6 - sin(giro) * 1.3);
