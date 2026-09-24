@@ -7,7 +7,7 @@ import Animated, {
 import { BlurMask, Canvas, Circle, DashPathEffect, Group, Path, Skia, type SkPath } from '@shopify/react-native-skia';
 
 import { hapticSeguro } from '../../../../nucleo/dispositivo/haptics';
-import { coloresMandala } from '../../../habitos/componentes/MandalaExtruido';
+import { useEscala } from '../../../../diseno/tema/MasterColorContext';
 import { ParticulasMandala } from '../../../habitos/componentes/ParticulasMandala';
 import {
   ACTOS_SELLO, type CapaSello, DURACION_SELLO_MS, FACTOR_RETROCESO, generarGeometriaSello, giroSello,
@@ -29,10 +29,6 @@ const CHISPA_ANTES = seg(0.1);
 const CHISPA_DESPUES = seg(0.45);
 const [RESONANCIA_INI, RESONANCIA_FIN] = ACTOS_SELLO.resonancia;
 const [CONVERGENCIA_INI, CONVERGENCIA_FIN] = ACTOS_SELLO.convergencia;
-
-function aHexRgb(rgb: number[]) {
-  return `#${rgb.map((v) => Math.round(Math.min(1, Math.max(0, v)) * 255).toString(16).padStart(2, '0')).join('')}`;
-}
 
 // ─── Hook: carga, pulsos hápticos y clímax ───────────────────────────────
 
@@ -170,8 +166,6 @@ function pathRed(cx: number, cy: number, radio: number, capa: CapaSello): SkPath
 }
 
 type SelloCargaInteractivaProps = {
-  colorBase: string;
-  paqueteId?: string | null;
   semilla: string;
   tamano: number;
   progreso: SharedValue<number>;
@@ -180,13 +174,27 @@ type SelloCargaInteractivaProps = {
   children?: ReactNode;
 };
 
-export function SelloCargaInteractiva({ ascenso, children, colorBase, paqueteId, progreso, sello, semilla, tamano }: SelloCargaInteractivaProps) {
+// Los colores salen de la escala del tema del paquete (useEscala, dentro de
+// TonoDelHabito): la misma escala de la UI rotada al matiz del paquete. Sus
+// familias ya son vecinas entre sí (lima tira al amarillo, menta al
+// turquesa), así que rotadas dan una paleta análoga del paquete — Mathist
+// sale de azul a magenta — coherente con el resto de la app.
+export function SelloCargaInteractiva({ ascenso, children, progreso, sello, semilla, tamano }: SelloCargaInteractivaProps) {
   // Lienzo más grande que la caja: las órbitas y el estallido se salen.
   const lado = tamano * 1.6;
   const c = lado / 2;
   const R = tamano * 0.33;
-  const paleta = useMemo(() => coloresMandala(colorBase, paqueteId), [colorBase, paqueteId]);
-  const tonos = useMemo(() => [paleta.cara, aHexRgb(paleta.tonoA), aHexRgb(paleta.tonoB)], [paleta]);
+  const esc = useEscala();
+  // Tonos luminosos para las figuras (brillan sobre la penumbra) y uno
+  // profundo y saturado para los halos.
+  const paleta = useMemo(() => ({
+    circulo: esc.jade.l87,
+    halo: esc.jade.l59a,
+    orbitas: esc.hoja.l89,
+    resplandor: esc.jade.l52,
+    tonos: [esc.hoja.l82, esc.lima.l83, esc.menta.l76, esc.jade.l87, esc.hoja.l77a],
+  }), [esc]);
+  const tonos = paleta.tonos;
   const { capas, orbitas } = useMemo(() => generarGeometriaSello(semilla), [semilla]);
   const figuras = useMemo(() => capas.map((capa, i) => ({
     capa,
@@ -236,16 +244,16 @@ export function SelloCargaInteractiva({ ascenso, children, colorBase, paqueteId,
       </View>
       <Canvas pointerEvents="none" style={[styles.lienzo, { height: lado, left: -(lado - tamano) / 2, top: -(lado - tamano) / 2, width: lado }]}>
         <Group opacity={halo}>
-          <Circle color={paleta.canto} cx={c} cy={c} r={R * 1.15}>
+          <Circle color={paleta.halo} cx={c} cy={c} r={R * 1.15}>
             <BlurMask blur={R * 0.5} style="normal" />
           </Circle>
         </Group>
 
         <Group origin={{ x: c, y: c }} transform={transformGlobal}>
-          <Path color={paleta.cara} end={finEncendido} path={circuloEncendido} strokeWidth={1.5} style="stroke" opacity={0.85} />
-          <Orbitas c={c} color={paleta.cara} escala={escalaOrbitas} opacidad={opacidadOrbitas} orbitas={orbitas} progreso={progreso} R={R} />
+          <Path color={paleta.circulo} end={finEncendido} path={circuloEncendido} strokeWidth={1.5} style="stroke" opacity={0.85} />
+          <Orbitas c={c} color={paleta.orbitas} escala={escalaOrbitas} opacidad={opacidadOrbitas} orbitas={orbitas} progreso={progreso} R={R} />
           {figuras.map((figura, indice) => (
-            <Figura c={c} canto={paleta.canto} figura={figura} key={indice} progreso={progreso} />
+            <Figura c={c} canto={paleta.resplandor} figura={figura} key={indice} progreso={progreso} />
           ))}
           <Circle color="#FFFFFF" cx={c} cy={c} r={nucleo}>
             <BlurMask blur={6} style="solid" />

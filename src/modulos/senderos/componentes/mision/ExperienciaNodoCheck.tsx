@@ -137,7 +137,7 @@ function ContenidoCheck({ ascenso, cargando, color, manteniendo, onCompletar, on
           onPressIn={onIniciarPresion}
           onPressOut={onSoltarPresion}
         >
-          <SelloCargaInteractiva ascenso={ascenso} colorBase={color} paqueteId={paqueteId} progreso={progreso} sello={sello} semilla={semilla} tamano={300}>
+          <SelloCargaInteractiva ascenso={ascenso} progreso={progreso} sello={sello} semilla={semilla} tamano={300}>
             <MasterGlass style={styles.puntoGlass}><View style={styles.puntoBlanco} /></MasterGlass>
           </SelloCargaInteractiva>
         </Pressable>
