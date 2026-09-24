@@ -132,6 +132,7 @@ export function MapaSenderosPantalla() {
   const nivelVisible = sendero.nivelVisible;
   const enFoco = useIsFocused();
   const encargoRitual = usarRitualMandala((estado) => estado.encargo);
+  const [ritualActivo, setRitualActivo] = React.useState(false);
   const encargarRitual = usarRitualMandala((estado) => estado.encargar);
   const limpiarEncargoRitual = usarRitualMandala((estado) => estado.limpiar);
   // Registro hecho desde el propio mapa (widget inline): misma vía que al
@@ -145,6 +146,14 @@ export function MapaSenderosPantalla() {
   const encargoMandalaVigente = encargoRitual && Date.now() - encargoRitual.creadoEn < VIGENCIA_ENCARGO_MS
     ? { registroId: encargoRitual.mandala.registroId }
     : null;
+  // Un encargo que no se llegó a abrir se limpia al caducar: si no, retendría
+  // la lluvia hasta el próximo repintado de la pantalla.
+  React.useEffect(() => {
+    if (!encargoRitual) return;
+    const restante = VIGENCIA_ENCARGO_MS - (Date.now() - encargoRitual.creadoEn);
+    const plazo = setTimeout(limpiarEncargoRitual, Math.max(0, restante));
+    return () => clearTimeout(plazo);
+  }, [encargoRitual, limpiarEncargoRitual]);
   // Si el día registrado cerró el nivel, el mapa ya saltó al siguiente pero
   // la mandala pendiente es del nivel anterior: se vuelve a ese nivel para
   // que el ritual se abra sobre su pedestal (si no, el encargo caducaría).
@@ -431,6 +440,7 @@ export function MapaSenderosPantalla() {
                 nodos={sendero.nodos}
                 encargoMandala={enFoco ? encargoMandalaVigente : null}
                 onEncargoConsumido={limpiarEncargoRitual}
+                onRitualActivo={setRitualActivo}
                 onCompletarNodo={(nodo, indice) => {
                   const puedeAvanzar = !sendero.soloLectura && Boolean(sendero.seccionVisible?.puedeAvanzarHoy) && nodo.estado === 'activo';
                   if (!puedeAvanzar) return;
@@ -473,8 +483,10 @@ export function MapaSenderosPantalla() {
                   hasta el próximo día programado (no "hasta mañana" — un
                   hábito no diario sigue lloviendo en los días intermedios,
                   ver spec). Se apaga sola al cambiar de hábito o salir,
-                  por el propio ciclo de montaje del componente. */}
-              {sendero.seccionVisible && !sendero.seccionVisible.puedeAvanzarHoy && sendero.seccionVisible.diasCompletados > 0 && (
+                  por el propio ciclo de montaje del componente. La lluvia
+                  espera a que termine la mandala del día: no empieza mientras
+                  hay un ritual pendiente de abrirse o en curso. */}
+              {sendero.seccionVisible && !sendero.seccionVisible.puedeAvanzarHoy && sendero.seccionVisible.diasCompletados > 0 && !ritualActivo && !encargoMandalaVigente && (
                 <AmbienteLluviaMapa alto={alturaMapa} />
               )}
               </>

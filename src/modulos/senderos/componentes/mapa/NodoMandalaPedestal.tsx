@@ -1,14 +1,14 @@
 import { forwardRef, useEffect } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import Animated, { cancelAnimation, Easing, runOnJS, useAnimatedStyle, useSharedValue, withDelay, withRepeat, withTiming } from 'react-native-reanimated';
+import Animated, { cancelAnimation, Easing, interpolate, runOnJS, useAnimatedStyle, useSharedValue, withDelay, withRepeat, withSpring, withTiming } from 'react-native-reanimated';
 import { BlurMask, Canvas, Group, Oval } from '@shopify/react-native-skia';
 
 import { Texto } from '../../../../diseno';
 import { useEscala } from '../../../../diseno/tema/MasterColorContext';
 import { hapticSeguro } from '../../../../nucleo/dispositivo/haptics';
 import { ANGULO_REPOSO_MANDALA, MandalaExtruido } from '../../../habitos/componentes/MandalaExtruido';
-import { ParticulasMandala } from '../../../habitos/componentes/ParticulasMandala';
+import { ParticulasMandala, RafagaParticulas } from '../../../habitos/componentes/ParticulasMandala';
 import type { InfoMandalaNodo } from '../../../habitos/mandalaNodo.tipos';
 import { PedestalBase, PedestalBotonSuperior } from './PedestalNodo';
 
@@ -22,6 +22,10 @@ const ARRIBA_MANDALA = BASE_MANDALA - TAMANO_MANDALA_PEDESTAL * 0.95;
 const LADO_PARTICULAS = 84;
 const PAUSA_GIRO_MS = 3000;
 const DURACION_GIRO_MS = 1700;
+// Emergencia tras el ritual: vueltas rápidas que frenan en la pose de reposo.
+const VUELTAS_EMERGENCIA = 2;
+const DURACION_EMERGENCIA_MS = 1900;
+const LADO_RAFAGA = 120;
 
 type NodoMandalaPedestalProps = {
   color: string;
@@ -34,6 +38,9 @@ type NodoMandalaPedestalProps = {
   onPress: () => void;
   /** Plenas en la última mandala, suaves en las demás cerca de la pantalla, ninguna lejos. */
   particulas: NivelParticulas;
+  /** La mandala blanca del ritual acaba de fundirse aquí: la de nácar sube desde el pedestal. */
+  emergiendo?: boolean;
+  onEmergido?: () => void;
 };
 
 export type NivelParticulas = 'plenas' | 'suaves' | 'ninguna';
@@ -44,7 +51,7 @@ export type NivelParticulas = 'plenas' | 'suaves' | 'ninguna';
 // El ref apunta a la caja exacta de la mandala: CompositorOverlay la mide
 // para aterrizar encima sin salto.
 export const NodoMandalaPedestal = forwardRef<View, NodoMandalaPedestalProps>(function NodoMandalaPedestal(
-  { color, destacada, escalaEscena = 1, mandala, oculta, onPress, particulas },
+  { color, destacada, emergiendo = false, escalaEscena = 1, mandala, oculta, onEmergido, onPress, particulas },
   refAncla,
 ) {
   const { t } = useTranslation();
@@ -53,7 +60,9 @@ export const NodoMandalaPedestal = forwardRef<View, NodoMandalaPedestalProps>(fu
   const pendiente = !creada;
   const giro = useSharedValue(ANGULO_REPOSO_MANDALA);
   const brillo = useSharedValue(0);
-  const girando = destacada && creada && !oculta;
+  const surgir = useSharedValue(1);
+  const destelloSurgir = useSharedValue(0);
+  const girando = destacada && creada && !oculta && !emergiendo;
 
   function iniciarVueltaLenta() {
     giro.value = ANGULO_REPOSO_MANDALA;
@@ -78,6 +87,25 @@ export const NodoMandalaPedestal = forwardRef<View, NodoMandalaPedestalProps>(fu
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [girando]);
 
+  // Oculta: la mandala espera encogida dentro del pedestal. Al emerger sube
+  // con rebote desde su base, girando rápido hasta frenar en el reposo, con
+  // golpe háptico, destello y ráfaga sobre el pedestal.
+  useEffect(() => {
+    if (oculta) { surgir.value = 0; return; }
+    if (!emergiendo || !creada) { surgir.value = 1; return; }
+    hapticSeguro('impacto');
+    surgir.value = 0;
+    surgir.value = withSpring(1, { damping: 9, mass: 0.9, stiffness: 120 });
+    destelloSurgir.value = 0;
+    destelloSurgir.value = withTiming(1, { duration: 900, easing: Easing.out(Easing.cubic) });
+    cancelAnimation(giro);
+    giro.value = ANGULO_REPOSO_MANDALA - 360 * VUELTAS_EMERGENCIA;
+    giro.value = withTiming(ANGULO_REPOSO_MANDALA, { duration: DURACION_EMERGENCIA_MS, easing: Easing.out(Easing.cubic) }, (terminado) => {
+      if (terminado && onEmergido) runOnJS(onEmergido)();
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [oculta, emergiendo, creada]);
+
   useEffect(() => {
     if (!pendiente || oculta) { cancelAnimation(brillo); brillo.value = 0; return; }
     brillo.value = withRepeat(withTiming(1, { duration: 1400, easing: Easing.inOut(Easing.sin) }), -1, true);
@@ -97,6 +125,13 @@ export const NodoMandalaPedestal = forwardRef<View, NodoMandalaPedestalProps>(fu
   }
 
   const estiloBrillo = useAnimatedStyle(() => ({ opacity: 0.35 + brillo.value * 0.5 }));
+  const estiloSurgir = useAnimatedStyle(() => ({
+    transform: [{ translateY: (1 - surgir.value) * 14 }, { scale: surgir.value }],
+  }));
+  const estiloDestelloSurgir = useAnimatedStyle(() => ({
+    opacity: interpolate(destelloSurgir.value, [0, 0.12, 1], [0, 1, 0]),
+    transform: [{ scaleX: 0.7 + destelloSurgir.value * 0.6 }],
+  }));
 
   return (
     <View style={[styles.raiz, { transform: [{ scale: escalaEscena }] }]}>
@@ -108,7 +143,8 @@ export const NodoMandalaPedestal = forwardRef<View, NodoMandalaPedestalProps>(fu
         hitSlop={{ top: 24 }}
         onPress={() => {
           hapticSeguro('seleccion');
-          if (creada && !oculta) girarPorToque();
+          // Durante la emergencia el giro es de ella: un toque no la corta.
+          if (creada && !oculta && !emergiendo) girarPorToque();
           onPress();
         }}
         style={styles.boton}
@@ -140,11 +176,34 @@ export const NodoMandalaPedestal = forwardRef<View, NodoMandalaPedestalProps>(fu
           </Canvas>
         )}
 
+        {emergiendo && (
+          <Animated.View pointerEvents="none" style={[styles.destelloSurgir, estiloDestelloSurgir]}>
+            <Canvas style={StyleSheet.absoluteFill}>
+              <Oval color={color} height={26} width={78} x={3} y={7}>
+                <BlurMask blur={9} style="normal" />
+              </Oval>
+              <Oval color="#FFFFFF" height={12} width={44} x={20} y={14}>
+                <BlurMask blur={5} style="normal" />
+              </Oval>
+            </Canvas>
+          </Animated.View>
+        )}
+
+        {/* La caja medida por el ritual no se anima: la emergencia va en la
+            vista de adentro, así la medición siempre da la pose final. */}
         <View collapsable={false} pointerEvents="none" ref={refAncla} style={styles.ancla}>
           {creada && !oculta && mandala.trazos && (
-            <MandalaExtruido color={color} giro={giro} paqueteId={mandala.paqueteId} tamano={TAMANO_MANDALA_PEDESTAL} trazos={mandala.trazos} />
+            <Animated.View style={[styles.surgir, estiloSurgir]}>
+              <MandalaExtruido color={color} giro={giro} paqueteId={mandala.paqueteId} tamano={TAMANO_MANDALA_PEDESTAL} trazos={mandala.trazos} />
+            </Animated.View>
           )}
         </View>
+
+        {emergiendo && (
+          <View pointerEvents="none" style={styles.rafaga}>
+            <RafagaParticulas cantidad={16} progreso={destelloSurgir} tamano={LADO_RAFAGA} />
+          </View>
+        )}
 
         {creada && !oculta && particulas !== 'ninguna' && (
           <View pointerEvents="none" style={styles.particulas}>
@@ -180,6 +239,9 @@ const styles = StyleSheet.create({
     top: ARRIBA_MANDALA,
     width: TAMANO_MANDALA_PEDESTAL,
   },
+  surgir: { height: TAMANO_MANDALA_PEDESTAL, transformOrigin: 'bottom', width: TAMANO_MANDALA_PEDESTAL },
+  destelloSurgir: { height: 40, left: 0, position: 'absolute', top: CENTRO_TOPE_PEDESTAL - 20, width: TAMANO_PEDESTAL },
+  rafaga: { height: LADO_RAFAGA, left: (TAMANO_PEDESTAL - LADO_RAFAGA) / 2, position: 'absolute', top: CENTRO_TOPE_PEDESTAL - LADO_RAFAGA / 2, width: LADO_RAFAGA },
   particulas: {
     height: LADO_PARTICULAS,
     left: (TAMANO_PEDESTAL - LADO_PARTICULAS) / 2,

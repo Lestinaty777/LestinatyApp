@@ -2,20 +2,21 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { BackHandler, Pressable, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useQueryClient } from '@tanstack/react-query';
-import Svg, { Path } from 'react-native-svg';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import Animated, { cancelAnimation, Easing, runOnJS, useAnimatedStyle, useSharedValue, withDelay, withRepeat, withTiming } from 'react-native-reanimated';
+import Animated, { cancelAnimation, Easing, interpolate, runOnJS, useAnimatedStyle, useSharedValue, withDelay, withRepeat, withTiming } from 'react-native-reanimated';
 import { BlurMask, Canvas, Oval } from '@shopify/react-native-skia';
 
 import { Texto } from '../../../../diseno';
 import { useEscala } from '../../../../diseno/tema/MasterColorContext';
 import { hapticSeguro } from '../../../../nucleo/dispositivo/haptics';
-import { ANCHO_CINTA_MANDALA, ANGULO_REPOSO_MANDALA, coloresMandala, LADO_LIENZO_MANDALA, MandalaExtruido, RADIO_TRAZO_MANDALA } from '../../../habitos/componentes/MandalaExtruido';
-import { ParticulasMandala, RafagaParticulas } from '../../../habitos/componentes/ParticulasMandala';
-import { construirCaminosMandala } from '../../../habitos/mandalaGeometria';
+import { LADO_LIENZO_MANDALA, RADIO_TRAZO_MANDALA } from '../../../habitos/componentes/MandalaExtruido';
+import { ParticulasMandala } from '../../../habitos/componentes/ParticulasMandala';
+import { PLIEGUES_MANDALA } from '../../../habitos/mandalaGeometria';
 import { guardarMandalaRegistro } from '../../../habitos/mandalaNodo.servicio';
 import type { TrazoMandala } from '../../../habitos/mandalaNodo.tipos';
+import { haVistoPistaTrazoMandala, marcarPistaTrazoMandalaVista } from '../../../habitos/pistaTrazoMandala';
 import { CAMARA_MAPA } from './camaraMapa';
+import { CintasBlancas, EscenarioTrazo } from './EscenarioTrazo';
 
 /**
  * Centro de la mandala del pedestal y su lado, en coordenadas del viewport
@@ -23,7 +24,7 @@ import { CAMARA_MAPA } from './camaraMapa';
  */
 export type DestinoMapa = { x: number; y: number; tamano: number };
 
-type Fase = 'trazando' | 'levitando' | 'descendiendo' | 'anclado';
+type Fase = 'trazando' | 'levitando' | 'descendiendo' | 'fundiendo';
 
 const LADO = LADO_LIENZO_MANDALA;
 const TOPE_LONGITUD = 1140; // 380 + 200%, mismo tope validado en el prototipo
@@ -32,8 +33,15 @@ const MIN_LONGITUD = 26;
 const ESCALA_LEVITACION = 0.7;
 const CONTEMPLACION_MS = 3600; // ~0,6 s de levitar + 3 s quieta en el aire
 const DESCENSO_MS = 1400;
+const FUSION_MS = 560;
 const ALTURA_ARCO = 36;
-const LADO_RAFAGA = 140;
+// La mandala blanca llega al pedestal un poco más chica que la de nácar.
+const PROPORCION_LLEGADA = 0.85;
+// El velo se retira por etapas: la mandala blanca se sigue leyendo en el
+// aire y el nácar emerge ya a plena luz.
+const VELO_TRAZO = 1;
+const VELO_LEVITACION = 0.6;
+const VELO_DESCENSO = 0.36;
 
 function distancia(a: TrazoMandala, b: TrazoMandala) {
   return Math.hypot(a.x - b.x, a.y - b.y);
@@ -52,13 +60,20 @@ function limitarAlAnillo(p: TrazoMandala): TrazoMandala {
   return { x: p.x * k, y: p.y * k };
 }
 
+// Qué tan cerca de un rayo guía pasa el dedo: 1 encima, 0 a medio camino.
+function cercaniaRayo(p: TrazoMandala) {
+  const sector = (Math.PI * 2) / PLIEGUES_MANDALA;
+  const angulo = ((Math.atan2(p.y, p.x) % sector) + sector) % sector;
+  const d = Math.min(angulo, sector - angulo);
+  return Math.max(0, 1 - d / (sector / 2));
+}
+
 type CompositorOverlayProps = {
   color: string;
-  paqueteId?: string | null;
   registroId: string;
   /** Dónde está la mandala del pedestal en el plano del mapa (ver NodoMandalaPedestal). */
   medirDestino: () => Promise<DestinoMapa | null>;
-  /** La mandala tocó su pedestal: el mapa ya debe mostrarla con estos trazos. */
+  /** La mandala blanca se fundió en el pedestal: el mapa hace emerger la de nácar con estos trazos. */
   onAnclado: (trazos: TrazoMandala[]) => void;
   /** El ritual se abandonó o no se pudo guardar: el pedestal queda pendiente. */
   onCancelado: () => void;
@@ -67,25 +82,26 @@ type CompositorOverlayProps = {
 
 // Ritual de la mandala montado encima del mapa (fuera del viewport inclinado,
 // así queda plano frente a la cámara), en cuatro actos:
-//   1. trazando: velo ahumado, un solo gesto con simetría radial de 7.
-//   2. levitando: el velo se disuelve, la mandala gana grosor, se achica a
-//      0,7 y flota girando con su sombra lejos, abajo.
-//   3. descendiendo: baja en arco hasta su pedestal, encogiéndose e
-//      inclinándose al plano del mapa, y termina en la pose de reposo.
-//   4. anclado: golpe háptico, destello en el suelo; la mandala real del
-//      mapa ya está debajo en la misma pose, así que el overlay se va sin
-//      que se note.
-export function CompositorOverlay({ color, medirDestino, onAnclado, onCancelado, onTerminado, paqueteId, registroId }: CompositorOverlayProps) {
+//   1. trazando: el escenario del Sello — penumbra, polvo de luz, rayos guía,
+//      anillo de tinta y puntas de luz; la mandala se traza en blanco.
+//   2. levitando: el velo se retira a medias, la mandala blanca se achica y
+//      flota girando despacio, con su sombra lejos, abajo.
+//   3. descendiendo: baja en arco hasta su pedestal por la capa-cámara del
+//      mapa (misma proyección que el viewport).
+//   4. fundiendo: se hunde y se aplana en el pedestal, que se enciende; ahí
+//      el mapa hace emerger la mandala de nácar (NodoMandalaPedestal).
+export function CompositorOverlay({ color, medirDestino, onAnclado, onCancelado, onTerminado, registroId }: CompositorOverlayProps) {
   const { t } = useTranslation();
   const esc = useEscala();
   const cliente = useQueryClient();
+  const aura = esc.jade.l70;
 
   const [fase, setFase] = useState<Fase>('trazando');
   const [puntos, setPuntos] = useState<TrazoMandala[]>([]);
-  const [capeado, setCapeado] = useState(false);
   const [trazoFinal, setTrazoFinal] = useState<TrazoMandala[] | null>(null);
-  const [destello, setDestello] = useState<{ x: number; y: number } | null>(null);
+  const [charco, setCharco] = useState<{ x: number; y: number; ancho: number } | null>(null);
   const [dims, setDims] = useState({ alto: 0, ancho: 0 });
+  const [mostrarPista, setMostrarPista] = useState(false);
 
   const dimsRef = useRef(dims);
   const trazandoRef = useRef(false);
@@ -100,19 +116,17 @@ export function CompositorOverlay({ color, medirDestino, onAnclado, onCancelado,
   const poema = useSharedValue(0);
   const sombra = useSharedValue(0);
   const salida = useSharedValue(1);
-  const mandalaOpacidad = useSharedValue(1);
+  const polvo = useSharedValue(0);
+  const tinta = useSharedValue(0);
+  const brilloRayos = useSharedValue(0);
   const escala = useSharedValue(1);
   const escalaDestino = useSharedValue(ESCALA_LEVITACION);
   const flotar = useSharedValue(0);
+  const rotacion = useSharedValue(0);
   const progreso = useSharedValue(0);
+  const fusion = useSharedValue(0);
   const dx = useSharedValue(0);
   const dy = useSharedValue(0);
-  const giro = useSharedValue(0);
-  const relieve = useSharedValue(0);
-  const inclinacion = useSharedValue(0);
-  const polvo = useSharedValue(0);
-  const paleta = useMemo(() => coloresMandala(color, paqueteId), [color, paqueteId]);
-  const destelloProgreso = useSharedValue(0);
 
   function cambiarFase(siguiente: Fase) {
     faseRef.current = siguiente;
@@ -125,8 +139,10 @@ export function CompositorOverlay({ color, medirDestino, onAnclado, onCancelado,
 
   useEffect(() => {
     montadoRef.current = true;
-    velo.value = withTiming(1, { duration: 420, easing: Easing.out(Easing.quad) });
+    velo.value = withTiming(VELO_TRAZO, { duration: 420, easing: Easing.out(Easing.quad) });
     textos.value = withDelay(120, withTiming(1, { duration: 420 }));
+    polvo.value = withDelay(200, withTiming(1, { duration: 900 }));
+    haVistoPistaTrazoMandala().then((vista) => { if (!vista && montadoRef.current && puntosRef.current.length === 0) setMostrarPista(true); }, () => undefined);
     return () => {
       montadoRef.current = false;
       temporizadoresRef.current.forEach(clearTimeout);
@@ -160,12 +176,18 @@ export function CompositorOverlay({ color, medirDestino, onAnclado, onCancelado,
   function actualizarPuntos(siguientes: TrazoMandala[]) {
     puntosRef.current = siguientes;
     setPuntos(siguientes);
+    tinta.value = Math.min(1, longitudTrazo(siguientes) / TOPE_LONGITUD);
+    const ultimo = siguientes[siguientes.length - 1];
+    brilloRayos.value = ultimo ? cercaniaRayo(ultimo) : 0;
   }
 
   function iniciarTrazo(x: number, y: number) {
     if (faseRef.current !== 'trazando') return;
     trazandoRef.current = true;
-    setCapeado(false);
+    if (mostrarPista) {
+      setMostrarPista(false);
+      void marcarPistaTrazoMandalaVista().catch(() => undefined);
+    }
     actualizarPuntos([limitarAlAnillo({ x, y })]);
   }
 
@@ -179,8 +201,9 @@ export function CompositorOverlay({ color, medirDestino, onAnclado, onCancelado,
     const siguiente = limitarAlAnillo({ x, y });
     const paso = distancia(ultimo, siguiente);
     if (largoActual + paso >= TOPE_LONGITUD) {
+      // Se acabó la tinta: un toque avisa que ya se puede soltar.
       const k = paso > 0 ? Math.max(0, TOPE_LONGITUD - largoActual) / paso : 0;
-      setCapeado(true);
+      hapticSeguro('accion');
       actualizarPuntos([...actuales, { x: ultimo.x + (siguiente.x - ultimo.x) * k, y: ultimo.y + (siguiente.y - ultimo.y) * k }]);
       return;
     }
@@ -207,15 +230,11 @@ export function CompositorOverlay({ color, medirDestino, onAnclado, onCancelado,
     // Se guarda en paralelo a la contemplación; el descenso lo espera.
     guardadoRef.current = guardarMandalaRegistro(registroId, trazo).then(() => true, () => false);
 
-    velo.value = withTiming(0, { duration: 800, easing: Easing.out(Easing.quad) });
+    velo.value = withTiming(VELO_LEVITACION, { duration: 800, easing: Easing.out(Easing.quad) });
     textos.value = withTiming(0, { duration: 300 });
+    polvo.value = withTiming(0.55, { duration: 900 });
     escala.value = withTiming(ESCALA_LEVITACION, { duration: 900, easing: Easing.out(Easing.cubic) });
-    relieve.value = withDelay(150, withTiming(1, { duration: 600, easing: Easing.out(Easing.cubic) }));
-    // Se recuesta a su inclinación de pedestal mientras levita: así llega
-    // al mapa ya en la misma pose que la mandala del nodo.
-    inclinacion.value = withDelay(250, withTiming(1, { duration: 900, easing: Easing.inOut(Easing.cubic) }));
-    polvo.value = withDelay(400, withTiming(1, { duration: 900 }));
-    giro.value = withDelay(150, withRepeat(withTiming(360, { duration: 4200, easing: Easing.linear }), -1, false));
+    rotacion.value = withRepeat(withTiming(360, { duration: 24000, easing: Easing.linear }), -1, false);
     flotar.value = withDelay(500, withRepeat(withTiming(1, { duration: 1600, easing: Easing.inOut(Easing.sin) }), -1, true));
     sombra.value = withDelay(300, withTiming(1, { duration: 700 }));
     poema.value = withDelay(700, withTiming(1, { duration: 700 }));
@@ -245,39 +264,39 @@ export function CompositorOverlay({ color, medirDestino, onAnclado, onCancelado,
 
     // El overlay ocupa la misma caja que el viewport del mapa, así que las
     // coordenadas del plano del mapa valen tal cual dentro de la capa-cámara.
+    // La mandala blanca va al tope del pedestal (la base de la de nácar).
+    const baseY = destino.y + destino.tamano * 0.45;
     dx.value = destino.x - dimsRef.current.ancho / 2;
-    dy.value = destino.y - dimsRef.current.alto / 2;
-    escalaDestino.value = destino.tamano / LADO;
-    setDestello({ x: destino.x, y: destino.y + destino.tamano * 0.45 });
+    dy.value = baseY - dimsRef.current.alto / 2;
+    escalaDestino.value = (destino.tamano * PROPORCION_LLEGADA) / LADO;
+    setCharco({ ancho: destino.tamano * 1.1, x: destino.x, y: baseY });
     cambiarFase('descendiendo');
 
     poema.value = withTiming(0, { duration: 300 });
+    polvo.value = withTiming(0, { duration: 700 });
+    velo.value = withTiming(VELO_DESCENSO, { duration: DESCENSO_MS });
     // El flote queda congelado y se desvanece con el progreso del descenso.
     cancelAnimation(flotar);
-
-    // Termina exactamente en la pose de reposo, con al menos casi una
-    // vuelta de frenado para que el giro se sienta continuo.
-    const actual = giro.value;
-    cancelAnimation(giro);
-    let giroFinal = ANGULO_REPOSO_MANDALA + 360 * Math.ceil((actual - ANGULO_REPOSO_MANDALA) / 360);
-    if (giroFinal - actual < 300) giroFinal += 360;
-    giro.value = withTiming(giroFinal, { duration: DESCENSO_MS, easing: Easing.out(Easing.cubic) });
     progreso.value = withTiming(1, { duration: DESCENSO_MS, easing: Easing.inOut(Easing.cubic) }, (terminado) => {
-      if (terminado) runOnJS(anclar)(trazo);
+      if (terminado) runOnJS(fundir)(trazo);
     });
   }
 
-  // ── Acto 4: el anclaje ─────────────────────────────────────────────
-  function anclar(trazo: TrazoMandala[]) {
-    hapticSeguro('impacto');
-    cambiarFase('anclado');
+  // ── Acto 4: la fusión ──────────────────────────────────────────────
+  function fundir(trazo: TrazoMandala[]) {
+    hapticSeguro('confirmacion');
+    cambiarFase('fundiendo');
+    velo.value = withTiming(0, { duration: FUSION_MS + 300 });
+    fusion.value = withTiming(1, { duration: FUSION_MS, easing: Easing.in(Easing.cubic) }, (terminado) => {
+      if (terminado) runOnJS(emerger)(trazo);
+    });
+  }
+
+  function emerger(trazo: TrazoMandala[]) {
+    // El pedestal ya brilla: desde aquí la mandala de nácar sube (el mapa).
     onAnclado(trazo);
     cliente.invalidateQueries({ queryKey: ['habitos', 'mandalas'] });
-    destelloProgreso.value = withTiming(1, { duration: 800, easing: Easing.out(Easing.cubic) });
-    // Un instante de superposición con la mandala real del mapa (misma pose,
-    // mismo lugar) antes de irse, para que nunca quede un cuadro vacío.
-    mandalaOpacidad.value = withDelay(140, withTiming(0, { duration: 160 }));
-    programar(onTerminado, 860);
+    programar(() => salir(onTerminado), 420);
   }
 
   const gesto = Gesture.Pan()
@@ -291,9 +310,8 @@ export function CompositorOverlay({ color, medirDestino, onAnclado, onCancelado,
   const estiloPoema = useAnimatedStyle(() => ({ opacity: poema.value, transform: [{ translateY: (1 - poema.value) * 8 }] }));
 
   // Capa-cámara: misma matriz y mismo origen que el viewport del mapa
-  // (camaraMapa.ts), inclinándose a la par del descenso. La mandala viaja
-  // dentro en coordenadas del plano del mapa; al llegar, ella y la del
-  // pedestal pasan por la misma proyección y coinciden píxel a píxel.
+  // (camaraMapa.ts), inclinándose a la par del descenso: la mandala viaja
+  // dentro en coordenadas del plano del mapa y llega al pedestal exacto.
   const estiloCamara = useAnimatedStyle(() => {
     const p = progreso.value;
     return {
@@ -305,22 +323,24 @@ export function CompositorOverlay({ color, medirDestino, onAnclado, onCancelado,
     };
   });
 
+  // Al fundirse se hunde un poco, se aplana contra el pedestal y se apaga.
   const estiloMandala = useAnimatedStyle(() => {
     const p = progreso.value;
+    const f = fusion.value;
     const flote = -12 * flotar.value * (1 - p);
     const arco = -Math.sin(p * Math.PI) * ALTURA_ARCO;
     return {
-      opacity: mandalaOpacidad.value,
+      opacity: 1 - f,
       transform: [
         { translateX: dx.value * p },
-        { translateY: dy.value * p + flote + arco },
+        { translateY: dy.value * p + flote + arco + f * 6 },
         { scale: escala.value + (escalaDestino.value - escala.value) * p },
+        { scaleY: 1 - 0.85 * f },
+        { rotate: `${rotacion.value}deg` },
       ],
     };
   });
 
-  // La sombra se achica y aclara cuando la mandala sube, como si se alejara
-  // del suelo; durante el descenso se funde con la del pedestal.
   const estiloSombra = useAnimatedStyle(() => {
     const p = progreso.value;
     return {
@@ -329,23 +349,20 @@ export function CompositorOverlay({ color, medirDestino, onAnclado, onCancelado,
     };
   });
 
-  const estiloAnillo = useAnimatedStyle(() => ({
-    opacity: destelloProgreso.value === 0 ? 0 : 0.9 * (1 - destelloProgreso.value),
-    transform: [{ scale: 0.3 + destelloProgreso.value * 2.1 }],
-  }));
-  const estiloResplandor = useAnimatedStyle(() => ({
-    opacity: destelloProgreso.value === 0 ? 0 : 0.55 * (1 - destelloProgreso.value),
-    transform: [{ scale: 0.5 + destelloProgreso.value * 1.2 }],
+  // El tope del pedestal se enciende mientras la mandala se funde en él.
+  const estiloCharco = useAnimatedStyle(() => ({
+    opacity: interpolate(fusion.value, [0, 0.7, 1], [0, 1, 0.85]),
+    transform: [{ scaleX: 0.6 + fusion.value * 0.4 }],
   }));
 
-  const caminos = construirCaminosMandala(puntos.length > 1 ? puntos : [{ x: 0, y: 0 }, { x: 0.01, y: 0 }], ANCHO_CINTA_MANDALA);
-  const viewBox = `${-LADO / 2} ${-LADO / 2} ${LADO} ${LADO}`;
-  const estado = capeado
-    ? t('habitos.mandala.compositor.listoParaSoltar')
-    : puntos.length > 0
-      ? t('habitos.mandala.compositor.formando')
-      : t('habitos.mandala.compositor.instruccion');
   const ySombra = Math.min(dims.alto / 2 + LADO * ESCALA_LEVITACION * 0.5 + 72, dims.alto - 110);
+  const ladoPolvo = Math.max(dims.alto, dims.ancho);
+  // Memorizado: el polvo no debe repintarse con cada movimiento del dedo.
+  const capaPolvo = useMemo(() => (ladoPolvo > 0 ? (
+    <View pointerEvents="none" style={[styles.polvo, { height: ladoPolvo, left: (dims.ancho - ladoPolvo) / 2, top: (dims.alto - ladoPolvo) / 2, width: ladoPolvo }]}>
+      <ParticulasMandala cantidad={30} escalaPunto={1.5} intensidad={1} tamano={ladoPolvo} visibilidad={polvo} />
+    </View>
+  ) : null), [dims.alto, dims.ancho, ladoPolvo, polvo]);
 
   return (
     <Animated.View
@@ -357,6 +374,7 @@ export function CompositorOverlay({ color, medirDestino, onAnclado, onCancelado,
       style={[StyleSheet.absoluteFill, styles.raiz, estiloRaiz]}
     >
       <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.velo, estiloVelo]} />
+      {capaPolvo}
 
       {dims.alto > 0 && (
         <Animated.View pointerEvents="none" style={[styles.sombra, { left: dims.ancho / 2 - 110, top: ySombra - 30 }, estiloSombra]}>
@@ -369,14 +387,17 @@ export function CompositorOverlay({ color, medirDestino, onAnclado, onCancelado,
       )}
 
       <Animated.View pointerEvents="box-none" style={[StyleSheet.absoluteFill, styles.camara, estiloCamara]}>
-        {destello && (
-          <View pointerEvents="none" style={[styles.destello, { left: destello.x - 40, top: destello.y - 40 }]}>
-            <Animated.View style={[styles.resplandor, { backgroundColor: color }, estiloResplandor]} />
-            <Animated.View style={[styles.anillo, estiloAnillo]} />
-            <View style={styles.rafaga}>
-              <RafagaParticulas progreso={destelloProgreso} tamano={LADO_RAFAGA} />
-            </View>
-          </View>
+        {charco && (
+          <Animated.View pointerEvents="none" style={[styles.charco, { height: charco.ancho * 0.5, left: charco.x - charco.ancho, top: charco.y - charco.ancho * 0.25, width: charco.ancho * 2 }, estiloCharco]}>
+            <Canvas style={StyleSheet.absoluteFill}>
+              <Oval color={color} height={charco.ancho * 0.36} opacity={0.9} width={charco.ancho * 1.5} x={charco.ancho * 0.25} y={charco.ancho * 0.07}>
+                <BlurMask blur={charco.ancho * 0.18} style="normal" />
+              </Oval>
+              <Oval color="#FFFFFF" height={charco.ancho * 0.16} width={charco.ancho * 0.9} x={charco.ancho * 0.55} y={charco.ancho * 0.17}>
+                <BlurMask blur={charco.ancho * 0.08} style="normal" />
+              </Oval>
+            </Canvas>
+          </Animated.View>
         )}
 
         {dims.alto > 0 && (
@@ -384,19 +405,11 @@ export function CompositorOverlay({ color, medirDestino, onAnclado, onCancelado,
             {fase === 'trazando' || !trazoFinal ? (
               <GestureDetector gesture={gesto}>
                 <View style={styles.superficie}>
-                  <Animated.View style={[styles.guia, { borderColor: color }, estiloTextos]} />
-                  <Svg height={LADO} pointerEvents="none" style={StyleSheet.absoluteFill} viewBox={viewBox} width={LADO}>
-                    {puntos.length > 1 && caminos.map((d, indice) => (d
-                      ? <Path d={d} fill={paleta.cara} key={indice} stroke={paleta.filo} strokeLinejoin="round" strokeOpacity={0.75} strokeWidth={4} />
-                      : null))}
-                  </Svg>
+                  <EscenarioTrazo brilloRayos={brilloRayos} colorTinta={aura} mostrarPista={mostrarPista} puntos={puntos} tinta={tinta} />
                 </View>
               </GestureDetector>
             ) : (
-              <>
-                <MandalaExtruido color={color} giro={giro} paqueteId={paqueteId} inclinacion={inclinacion} relieve={relieve} tamano={LADO} trazos={trazoFinal} />
-                <ParticulasMandala cantidad={18} escalaPunto={2.6} intensidad={1} tamano={LADO} visibilidad={polvo} />
-              </>
+              <CintasBlancas aura={aura} trazos={trazoFinal} />
             )}
           </Animated.View>
         )}
@@ -404,10 +417,10 @@ export function CompositorOverlay({ color, medirDestino, onAnclado, onCancelado,
 
       <Animated.View pointerEvents="none" style={[styles.cabecera, estiloTextos]}>
         <Texto style={styles.titulo}>{t('habitos.mandala.compositor.titulo')}</Texto>
+        <Texto style={styles.instruccion}>{t('habitos.mandala.compositor.instruccion')}</Texto>
       </Animated.View>
 
       <Animated.View pointerEvents={fase === 'trazando' ? 'box-none' : 'none'} style={[styles.pie, estiloTextos]}>
-        <Texto style={styles.estado}>{estado}</Texto>
         <Pressable accessibilityRole="button" hitSlop={12} onPress={cancelar}>
           <Texto style={styles.masTarde}>{t('habitos.mandala.ritual.masTarde')}</Texto>
         </Pressable>
@@ -425,20 +438,16 @@ export function CompositorOverlay({ color, medirDestino, onAnclado, onCancelado,
 const styles = StyleSheet.create({
   raiz: { elevation: 100, zIndex: 100 },
   velo: { backgroundColor: 'rgba(7, 16, 12, 0.82)' },
+  polvo: { position: 'absolute' },
   lienzo: { height: LADO, position: 'absolute', width: LADO },
-  superficie: { alignItems: 'center', height: LADO, justifyContent: 'center', width: LADO },
-  guia: { borderRadius: LADO / 2, borderWidth: 1.5, height: LADO * 0.94, opacity: 0.4, position: 'absolute', width: LADO * 0.94 },
+  superficie: { height: LADO, width: LADO },
   sombra: { height: 60, position: 'absolute', width: 220 },
   camara: { transformOrigin: CAMARA_MAPA.origen },
-  destello: { alignItems: 'center', height: 80, justifyContent: 'center', position: 'absolute', transform: [{ scaleY: 0.38 }], width: 80 },
-  anillo: { borderColor: '#FFFFFF', borderRadius: 40, borderWidth: 3, height: 80, position: 'absolute', width: 80 },
-  resplandor: { borderRadius: 40, height: 80, position: 'absolute', width: 80 },
-  // Dentro de `destello` (achatado 0,38): la ráfaga se abre sobre el suelo.
-  rafaga: { height: LADO_RAFAGA, position: 'absolute', transform: [{ scaleY: 1 / 0.38 }], width: LADO_RAFAGA },
-  cabecera: { alignItems: 'center', left: 24, position: 'absolute', right: 24, top: 28 },
+  charco: { position: 'absolute' },
+  cabecera: { alignItems: 'center', gap: 6, left: 24, position: 'absolute', right: 24, top: 28 },
   titulo: { color: '#FFFFFF', fontFamily: 'MontserratAlternates-Bold', fontSize: 18, textAlign: 'center' },
-  pie: { alignItems: 'center', bottom: 28, gap: 14, left: 24, position: 'absolute', right: 24 },
-  estado: { color: 'rgba(255, 255, 255, 0.78)', fontFamily: 'Montserrat-Medium', fontSize: 13, textAlign: 'center' },
+  instruccion: { color: 'rgba(255, 255, 255, 0.7)', fontFamily: 'Montserrat-Medium', fontSize: 13, textAlign: 'center' },
+  pie: { alignItems: 'center', bottom: 28, left: 24, position: 'absolute', right: 24 },
   masTarde: { color: 'rgba(255, 255, 255, 0.55)', fontFamily: 'Montserrat-SemiBold', fontSize: 13 },
   poema: { alignItems: 'center', bottom: 40, left: 24, position: 'absolute', right: 24 },
   poemaPildora: { backgroundColor: 'rgba(255, 255, 255, 0.78)', borderRadius: 20, paddingHorizontal: 18, paddingVertical: 9 },

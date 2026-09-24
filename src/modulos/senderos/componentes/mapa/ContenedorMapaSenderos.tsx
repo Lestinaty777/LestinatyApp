@@ -62,9 +62,14 @@ type ContenedorMapaSenderosProps = {
   /** Mandala recién ganada (al volver de una misión): el mapa abre el ritual sobre su pedestal en cuanto el nodo aparece. */
   encargoMandala?: { registroId: string } | null;
   onEncargoConsumido?: () => void;
+  /** true desde que se abre el ritual hasta que la mandala de nácar terminó de emerger (p. ej. para retener la lluvia). */
+  onRitualActivo?: (activo: boolean) => void;
 };
 
-type RitualMandala = { anclado: boolean; color: string; paqueteId: string | null; registroId: string };
+// anclado: la mandala blanca se fundió y la de nácar emerge del pedestal.
+// El ritual termina cuando el overlay ya se fue Y la emergencia terminó (o
+// nunca hubo anclaje: cancelado).
+type RitualMandala = { anclado: boolean; color: string; emergido: boolean; overlayVisible: boolean; registroId: string };
 
 const separacionVertical = 112;
 // Debe reflejar el arranque compacto que usa generarMapaProcedural; así el
@@ -313,7 +318,7 @@ const CapaDecoracionMapa = React.memo(function CapaDecoracionMapa({
   );
 });
 
-export function ContenedorMapaSenderos({ altura, categoriaId, color, colorPaquete, desplazamientoSuperior, encargoMandala, enfocado, infoHabito, nivel, nodos: nodosOverride, onCompletarNodo, onEncargoConsumido, onReclamarCofre, paqueteId, progresoPastoTemprano, subcategoriaId }: ContenedorMapaSenderosProps) {
+export function ContenedorMapaSenderos({ altura, categoriaId, color, colorPaquete, desplazamientoSuperior, encargoMandala, enfocado, infoHabito, nivel, nodos: nodosOverride, onCompletarNodo, onEncargoConsumido, onReclamarCofre, onRitualActivo, paqueteId, progresoPastoTemprano, subcategoriaId }: ContenedorMapaSenderosProps) {
   const colorCofre = colorPaquete ?? color;
   const styles = useEstilosStyles();
   const { width } = useWindowDimensions();
@@ -403,11 +408,34 @@ export function ContenedorMapaSenderos({ altura, categoriaId, color, colorPaquet
 
   function abrirRitual(mandala: InfoMandalaNodo, indice: number) {
     if (ritual) return;
+    // Aviso inmediato (no en un efecto): en el mismo cuadro en que se
+    // consume el encargo, así la lluvia no alcanza a arrancar entre medio.
+    onRitualActivo?.(true);
     // Sin tooltip: el nodo queda despejado para que la mandala aterrice.
     setSeleccionado('');
     enfocarNodo(indice);
-    setRitual({ anclado: false, color: mandala.color ?? colorCofre, paqueteId: mandala.paqueteId ?? paqueteId ?? null, registroId: mandala.registroId });
+    setRitual({ anclado: false, color: mandala.color ?? colorCofre, emergido: false, overlayVisible: true, registroId: mandala.registroId });
   }
+
+  const ritualConcluido = ritual !== null && !ritual.overlayVisible && (ritual.emergido || !ritual.anclado);
+  useEffect(() => {
+    if (ritualConcluido) setRitual(null);
+  }, [ritualConcluido]);
+
+  // Plan B: si la emergencia no avisa (p. ej. el nodo se desmontó), el
+  // ritual igual termina — nunca queda el mapa sin scroll ni lluvia.
+  const esperandoEmergencia = ritual !== null && ritual.anclado && !ritual.emergido;
+  useEffect(() => {
+    if (!esperandoEmergencia) return;
+    const plazo = setTimeout(() => setRitual((actual) => actual && { ...actual, emergido: true }), 3000);
+    return () => clearTimeout(plazo);
+  }, [esperandoEmergencia]);
+
+  const ritualActivo = ritual !== null;
+  useEffect(() => {
+    onRitualActivo?.(ritualActivo);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ritualActivo]);
 
   useEffect(() => {
     if (!encargoMandala || !enfocado || ritual) return;
@@ -593,7 +621,9 @@ export function ContenedorMapaSenderos({ altura, categoriaId, color, colorPaquet
                     : Math.abs(posicion.y - (desplazamientoMapa + altura / 2)) < altura / 2 + margenDecoracion / 2 ? 'suaves' : 'ninguna'}
                   escalaEscena={escalaEscena}
                   mandala={mandala}
+                  emergiendo={ritual?.registroId === mandala.registroId && ritual.anclado && !ritual.emergido}
                   oculta={ritual?.registroId === mandala.registroId && !ritual.anclado}
+                  onEmergido={() => setRitual((actual) => actual && actual.registroId === mandala.registroId ? { ...actual, emergido: true } : actual)}
                   onPress={() => {
                     if (mandala.estado === 'pendiente') { abrirRitual(mandala, indice); return; }
                     seleccionarNodo(nodo.id, indice);
@@ -647,18 +677,17 @@ export function ContenedorMapaSenderos({ altura, categoriaId, color, colorPaquet
     )}
     </View>
     {/* Fuera del viewport inclinado: el ritual queda plano frente a la cámara. */}
-    {ritual && (
+    {ritual?.overlayVisible && (
       <CompositorOverlay
         color={ritual.color}
         key={ritual.registroId}
-        paqueteId={ritual.paqueteId}
         medirDestino={() => medirAnclaMandala(ritual.registroId)}
         onAnclado={(trazos) => {
           setTrazosAnclados((actuales) => new Map(actuales).set(ritual.registroId, trazos));
           setRitual((actual) => actual && { ...actual, anclado: true });
         }}
         onCancelado={() => setRitual(null)}
-        onTerminado={() => setRitual(null)}
+        onTerminado={() => setRitual((actual) => actual && { ...actual, overlayVisible: false })}
         registroId={ritual.registroId}
       />
     )}
