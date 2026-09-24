@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Image, View } from 'react-native';
+import { ActivityIndicator, Image, Platform, View } from 'react-native';
 import type { PurchasesPackage } from 'react-native-purchases';
 import { useTranslation } from 'react-i18next';
 
@@ -14,7 +14,7 @@ export function TiendaPantalla() {
   const { t } = useTranslation();
   const cliente = useQueryClient();
   const { data: saldoGemas } = useSaldoGemas();
-  const consultaCatalogo = useQuery({ queryKey: ['tienda', 'catalogoGemasIap'], queryFn: obtenerCatalogoGemasIap });
+  const consultaCatalogo = useQuery({ queryKey: ['tienda', 'catalogoGemasIap', Platform.OS], queryFn: () => obtenerCatalogoGemasIap(Platform.OS === 'ios' ? 'ios' : 'android') });
   const [paquetesRevenueCat, setPaquetesRevenueCat] = useState<PurchasesPackage[]>([]);
   const [comprando, setComprando] = useState<string | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);

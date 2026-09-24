@@ -88,17 +88,33 @@ Deno.serve(async (request) => {
     return responder(200, { accion: 'trial_horizon_iniciado' });
   }
 
+  // Resuelve el paquete lógico por su product_id_revenuecat real (App Store o
+  // Play Store), sin depender de ningún dato de plataforma enviado por el
+  // cliente — el product_id ya es único por tienda.
+  const { data: producto, error: errorProducto } = await cliente
+    .from('paquetes_gemas_iap_productos')
+    .select('paquete_id')
+    .eq('product_id_revenuecat', evento.product_id ?? '')
+    .eq('activo', true)
+    .maybeSingle();
+
+  if (errorProducto) return responder(502, { codigo: 'catalogo', mensaje: 'No se pudo leer el catálogo de productos.' });
+  if (!producto) {
+    // product_id no es un paquete de gemas conocido (podría ser otro producto
+    // futuro, ej. una suscripción) — no es un error nuestro, solo ignorar.
+    return responder(200, { accion: 'producto_no_es_gemas', producto: evento.product_id });
+  }
+
   const { data: paquete, error: errorPaquete } = await cliente
     .from('paquetes_gemas_iap')
     .select('cantidad_gemas')
-    .eq('product_id_revenuecat', evento.product_id ?? '')
+    .eq('id', producto.paquete_id)
     .eq('activo', true)
     .maybeSingle();
 
   if (errorPaquete) return responder(502, { codigo: 'catalogo', mensaje: 'No se pudo leer el catálogo de paquetes.' });
   if (!paquete) {
-    // product_id no es un paquete de gemas conocido (podría ser otro producto
-    // futuro, ej. una suscripción) — no es un error nuestro, solo ignorar.
+    // El paquete lógico se desactivó aunque su producto de tienda siga activo.
     return responder(200, { accion: 'producto_no_es_gemas', producto: evento.product_id });
   }
 

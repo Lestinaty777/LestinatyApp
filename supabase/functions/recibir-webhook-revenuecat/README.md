@@ -6,7 +6,7 @@
 
 1. Crear los productos de gemas reales en App Store Connect y Google Play Console (consumibles, no suscripciones).
 2. Crearlos también en RevenueCat y anotar sus `product_id`.
-3. Actualizar `public.paquetes_gemas_iap` con esos `product_id_revenuecat` reales — las filas que trae la migración 17 son placeholders (`com.tuapp.gemas.100`, etc.).
+3. Insertar esos `product_id_revenuecat` reales en `public.paquetes_gemas_iap_productos` (una fila por `paquete_id` + `plataforma`) — las filas `android` que trae la migración 51 heredan los placeholders históricos (`com.tuapp.gemas.100`, etc.) de `paquetes_gemas_iap`; `ios` todavía no tiene ninguna fila hasta crear los productos reales en App Store Connect.
 4. En el cliente (Expo), al iniciar sesión llamar `Purchases.logIn(auth.uid())` de RevenueCat **con el mismo id de Supabase** — la función usa `event.app_user_id` para saber a quién acreditarle, así que si no coincide con `auth.uid()` la compra no se puede acreditar.
 
 ## Secretos requeridos
@@ -28,5 +28,5 @@ La función exige el header `Authorization` con el secreto exacto, por lo que `-
 ## Qué hace y qué ignora
 
 - Solo acredita gemas para los eventos `INITIAL_PURCHASE` y `NON_RENEWING_PURCHASE` (compras consumibles de una sola vez). El resto (`CANCELLATION`, `EXPIRATION`, `BILLING_ISSUE`, renovaciones de suscripción, `TEST` del dashboard) responde `200` sin acreditar nada, para que RevenueCat no reintente.
-- Si `product_id` no está en `paquetes_gemas_iap` (por ejemplo, un producto futuro que no sea de gemas), también responde `200` sin acreditar.
+- Si `product_id` no está en `paquetes_gemas_iap_productos` (por ejemplo, un producto futuro que no sea de gemas), también responde `200` sin acreditar. No usa ningún dato de plataforma enviado por el cliente — el `product_id` ya es único por tienda.
 - Es idempotente: usa `event.id` de RevenueCat como referencia en el ledger (`comercio.movimientos_gemas`), así que un reintento del mismo webhook nunca acredita dos veces.

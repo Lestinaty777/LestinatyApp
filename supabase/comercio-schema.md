@@ -11,7 +11,7 @@
 | `billeteras_gemas` | Saldo actual de gemas por persona. | Una fila por persona; nunca baja de cero (`check`). |
 | `movimientos_gemas` | Historial inmutable de créditos y gastos. | Solo lo escriben `comprar_articulo` y `acreditar_gemas`. |
 
-`public.paquetes_gemas_iap` (product_id de RevenueCat -> cantidad de gemas, lectura pública de filas activas) vive en `public`, no en `comercio`, porque el cliente necesita leerlo para saber qué ofrecer al comprar gemas — pero solo la Edge Function (vía `service_role`) puede escribir en él.
+`public.paquetes_gemas_iap` (paquete lógico: cantidad de gemas y precio de referencia, lectura pública de filas activas) vive en `public`, no en `comercio`, porque el cliente necesita leerlo para saber qué ofrecer al comprar gemas — pero solo la Edge Function (vía `service_role`) puede escribir en él. Sus identificadores de tienda reales viven aparte, uno por plataforma, en `public.paquetes_gemas_iap_productos` (`paquete_id`, `plataforma` ios|android, `product_id_revenuecat`) — el webhook de RevenueCat resuelve el paquete por esa tabla hija, nunca por el `product_id_revenuecat` legado que aún conserva `paquetes_gemas_iap` para rollback de esta primera entrega iOS.
 
 ## Funciones Privadas
 

@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { createContext, memo, useCallback, useContext, useEffect, useRef, useState } from 'react';
-import { Alert, View, Image, ScrollView, StyleSheet } from 'react-native';
+import { Alert, View, Image, Platform, ScrollView, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -505,7 +505,7 @@ export function TiendaArbolesPantalla() {
   const consultaSemillas = useQuery({ queryKey: CLAVE_SEMILLAS_DISPONIBLES, queryFn: obtenerSemillasDisponibles });
   // Misma queryKey que TiendaPantalla.tsx (/tienda/gemas) — comparten caché,
   // el catálogo de paquetes IAP es idéntico sin importar desde dónde se pida.
-  const consultaCatalogoGemas = useQuery({ queryKey: ['tienda', 'catalogoGemasIap'], queryFn: obtenerCatalogoGemasIap });
+  const consultaCatalogoGemas = useQuery({ queryKey: ['tienda', 'catalogoGemasIap', Platform.OS], queryFn: () => obtenerCatalogoGemasIap(Platform.OS === 'ios' ? 'ios' : 'android') });
   const [paquetesRevenueCat, setPaquetesRevenueCat] = useState<PurchasesPackage[]>([]);
   const [comprandoGemasId, setComprandoGemasId] = useState<string | null>(null);
 

@@ -28,12 +28,31 @@ export async function obtenerComprasTienda(): Promise<CompraTienda[]> {
   return (data as FilaCompra[]).map((fila) => ({ articuloId: fila.articulo_id, compradoEn: fila.comprado_en }));
 }
 
-type FilaPaqueteIap = { id: string; product_id_revenuecat: string; cantidad_gemas: number; precio_referencia_usd: number | null };
+type FilaProductoIap = {
+  paquete_id: string;
+  product_id_revenuecat: string;
+  paquete: { cantidad_gemas: number; precio_referencia_usd: number | null; activo: boolean } | null;
+};
 
-export async function obtenerCatalogoGemasIap(): Promise<PaqueteGemasIap[]> {
-  const { data, error } = await obtenerClienteSupabase().from('paquetes_gemas_iap').select('id, product_id_revenuecat, cantidad_gemas, precio_referencia_usd').eq('activo', true);
+// Un mismo paquete lógico (id, cantidad, precio de referencia) tiene un
+// product_id_revenuecat distinto por tienda — nunca devuelve el producto de
+// la otra plataforma. Ver supabase/migrations/20260924_51_productos_iap_plataforma.sql.
+export async function obtenerCatalogoGemasIap(plataforma: 'android' | 'ios'): Promise<PaqueteGemasIap[]> {
+  const { data, error } = await obtenerClienteSupabase()
+    .from('paquetes_gemas_iap_productos')
+    .select('paquete_id, product_id_revenuecat, paquete:paquetes_gemas_iap(cantidad_gemas, precio_referencia_usd, activo)')
+    .eq('plataforma', plataforma)
+    .eq('activo', true);
   if (error) throw error;
-  return (data as FilaPaqueteIap[]).map((fila) => ({ id: fila.id, productIdRevenueCat: fila.product_id_revenuecat, cantidadGemas: Number(fila.cantidad_gemas), precioReferenciaUsd: fila.precio_referencia_usd === null ? null : Number(fila.precio_referencia_usd) }));
+
+  return (data as unknown as FilaProductoIap[])
+    .filter((fila) => fila.paquete?.activo)
+    .map((fila) => ({
+      id: fila.paquete_id,
+      productIdRevenueCat: fila.product_id_revenuecat,
+      cantidadGemas: Number(fila.paquete!.cantidad_gemas),
+      precioReferenciaUsd: fila.paquete!.precio_referencia_usd === null ? null : Number(fila.paquete!.precio_referencia_usd),
+    }));
 }
 
 type ResultadoCompraRemoto = { articulo_id: string; ya_poseido: boolean; saldo_restante: number };
