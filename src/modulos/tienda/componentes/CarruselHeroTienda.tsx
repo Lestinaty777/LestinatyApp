@@ -16,6 +16,7 @@ import { useEscala } from '../../../diseno/tema/MasterColorContext';
 import type { EscalaMaster } from '../../../diseno/tema/escalaEsmeralda';
 import { conAlfa } from '../../../diseno/tema/masterColor';
 import { useAssetsPaqueteTema } from '../../habitos/usePaqueteTema';
+import { capacidades } from '../../../plataforma/capacidades';
 
 type CarruselHeroTiendaProps = {
   onIrAReferidos: () => void;
@@ -47,7 +48,7 @@ export function CarruselHeroTienda({
     if (onIrAPro) {
       onIrAPro();
     } else {
-      router.push('/habitos/widgets');
+      router.push(capacidades.widgets ? '/habitos/widgets' : '/(principal)/hoy');
     }
   }
 

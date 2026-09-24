@@ -25,10 +25,11 @@ type MandalaNodoProps = {
   animado?: boolean;
 };
 
-// Mandala vectorial en blanco + halo pastel del color del paquete (Skia,
-// mismo patrón de blur que SombraSuelo/NodoCofreSendero en el mapa) +
-// respiro lento vía Reanimated (mismo criterio que AnilloProgreso.tsx: un
-// solo useSharedValue, sin animar los puntos del path).
+// Mandala vectorial en el color saturado real del paquete (nunca blanco ni
+// pastel) + halo del mismo color detrás (Skia, mismo patrón de blur que
+// SombraSuelo/NodoCofreSendero en el mapa) + respiro lento vía Reanimated
+// (mismo criterio que AnilloProgreso.tsx: un solo useSharedValue, sin
+// animar los puntos del path).
 export function MandalaNodo({ animado = true, color, estado, semilla, tamano = 72, trazos }: MandalaNodoProps) {
   const respiro = useSharedValue(0);
 
@@ -59,7 +60,7 @@ export function MandalaNodo({ animado = true, color, estado, semilla, tamano = 7
       </Canvas>
       <Animated.View style={[StyleSheet.absoluteFill, estiloRespiro, { opacity: opacidad }]}>
         <Svg height={tamano} viewBox={`${-VIEWBOX / 2} ${-VIEWBOX / 2} ${VIEWBOX} ${VIEWBOX}`} width={tamano}>
-          {caminos.map((d, indice) => (d ? <Path d={d} fill="#FFFFFF" fillOpacity={0.94} key={indice} /> : null))}
+          {caminos.map((d, indice) => (d ? <Path d={d} fill={color} fillOpacity={0.96} key={indice} /> : null))}
         </Svg>
       </Animated.View>
     </View>

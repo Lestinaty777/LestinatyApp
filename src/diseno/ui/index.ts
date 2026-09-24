@@ -4,6 +4,7 @@ export { MasterCircularProgressBar } from './MasterCircularProgressBar';
 export { MasterGlass } from './MasterGlass';
 export { MasterIconBg } from './MasterIconBg';
 export { MasterProgressbar } from './MasterProgressbar';
+export { MasterSand } from './MasterSand';
 export { Rebote } from './Rebote';
 export { MasterKicker } from './MasterKicker';
 export {

@@ -61,6 +61,7 @@ import {
 import { etiquetaSolicitudActiva, formatearFechaConfiguracion } from '../../configuracion/configuracion.presentacion';
 import { cerrarSesion, recuperarAcceso } from '../../acceso/acceso.servicio';
 import { obtenerHabitoMejorRacha, obtenerPanelHabitos, obtenerResumenPlanesHabitos } from '../../habitos/habitos.servicio';
+import { capacidades } from '../../../plataforma/capacidades';
 
 type TabPerfil = 'resumen' | 'tema' | 'ajustes';
 type LlavePermiso = keyof PermisosDatos;
@@ -826,6 +827,7 @@ export function PerfilPantalla() {
               ) : (
                 <View style={s.tabContenido}>
                   {/* Tarjeta de Widgets de Inicio */}
+                  {capacidades.widgets && (
                   <Animated.View entering={entradaEncadenada(0)}>
                     <MasterGlass style={s.tarjetaModulo}>
                       <View style={s.moduloHeader}>
@@ -864,6 +866,7 @@ export function PerfilPantalla() {
                       </MasterButton>
                     </MasterGlass>
                   </Animated.View>
+                  )}
 
                   {/* Banner de Suscripción Lestinaty Pro */}
                   <Animated.View entering={entradaEncadenada(1)}>

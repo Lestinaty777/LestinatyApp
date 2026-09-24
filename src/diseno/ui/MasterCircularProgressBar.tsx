@@ -49,8 +49,13 @@ export function MasterCircularProgressBar({ children, colorBase, grosor = 12, po
   const circunferencia = 2 * Math.PI * radio;
   const centro = tamano / 2;
 
+  // Mezcla más ceñida al color real que MasterProgressbar (0.2/0.4): un
+  // anillo circular grande deja ver mucho más superficie del color que una
+  // barra delgada, así que ir hasta 40% hacia blanco se leía pastel. Aquí el
+  // tramo lleno se queda cerca del color saturado del paquete de principio a
+  // fin; sólo la pista vacía se aclara para dar contraste.
   const coloresGradiente: [string, string, ...string[]] = colorBase
-    ? [mezclarColor(colorBase, 0.2, false), colorBase, mezclarColor(colorBase, 0.4, true)]
+    ? [mezclarColor(colorBase, 0.1, false), colorBase, mezclarColor(colorBase, 0.12, true)]
     : g.progreso;
   const coloresFondo: [string, string, ...string[]] = colorBase
     ? [mezclarColor(colorBase, 0.85, true), mezclarColor(colorBase, 0.92, true)]

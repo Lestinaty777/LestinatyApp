@@ -1,16 +1,16 @@
-import Svg, { Rect, Defs, Pattern, Path, Circle, Line } from 'react-native-svg';
+import Svg, { Rect, Defs, Pattern, Circle } from 'react-native-svg';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Alert, FlatList, StyleSheet, View, useWindowDimensions, Pressable, Text as TextoRN, Image } from 'react-native';
+import { Alert, FlatList, StyleSheet, View, useWindowDimensions, Pressable, Image } from 'react-native';
 import { ScrollView } from 'react-native-gesture-handler';
 import { BotonTab } from '../../../nucleo/navegacion/BarraTabs';
 import { PixelartIcon } from '../../../diseno/iconos/PixelartIcon';
 import Animated, { useSharedValue, useAnimatedStyle, useAnimatedProps, withTiming, Easing, withSpring, withRepeat } from 'react-native-reanimated';
-import { Beaker, Users, Activity, Calculator, BookOpen, ChevronLeft, ChevronRight, Lock, Play } from 'lucide-react-native';
+import { BookOpen } from 'lucide-react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Trophy, Leaf, Sun, Moon } from 'lucide-react-native';
+import { Trophy, Leaf, Sun, Moon, ChevronDown } from 'lucide-react-native';
 import { ContenedorMapaSenderos } from '../../senderos/componentes/mapa/ContenedorMapaSenderos';
 import { AmbienteLluviaMapa } from '../componentes/mapa/AmbienteLluviaMapa';
 import { MasterChip, MasterGlass, MasterIcon, MasterIconBg, MasterProgressbar, Texto, colores, RecuadroGlass, buscarIcono } from '../../../diseno';
@@ -21,15 +21,15 @@ import { TarjetaHabitoCompacta } from '../../habitos/componentes/TarjetaHabitoCo
 import { TonoDelHabito } from '../../habitos/componentes/TonoDelHabito';
 import { WidgetRegistrarProgreso } from '../../habitos/componentes/WidgetRegistrarProgreso';
 import { useSenderoHabito } from '../../habitos/hooks/useSenderoHabito';
-import { CarruselNivelesSendero } from '../componentes/niveles/CarruselNivelesSendero';
-import { buscarIconoHabito, diasAcumuladosAntesDeNivel } from '../../habitos/iconosHabitos';
+import { ModalNivelesSendero } from '../componentes/niveles/ModalNivelesSendero';
+import { buscarIconoHabito } from '../../habitos/iconosHabitos';
 import { obtenerDetallesHabitosHoy, obtenerHabitosActivos } from '../../habitos/habitos.servicio';
 import { EstadoVacioSenderos } from '../componentes/EstadoVacioSenderos';
 import type { HabitoResumen } from '../../habitos/tipos';
 import { CLAVE_SALDO_GEMAS, useSaldoGemas } from '../../tienda/useSaldoGemas';
 import { comprarSemillasArbol, obtenerCatalogoArboles } from '../../tienda/gemas.servicio';
 import { CLAVE_SEMILLAS_DISPONIBLES } from '../../tienda/pantallas/TiendaArbolesPantalla';
-import { categoriaInicialMapa, coloresSelectorCategoria, modulosPorCategoria, type CategoriaMapaMvp, type IconoModuloMapa, type ModuloCategoriaMapa } from '../datos/modulosCategorias';
+import { coloresSelectorCategoria, type ModuloCategoriaMapa } from '../datos/modulosCategorias';
 import { MAPAS_NIVELES } from '../Mapas';
 import { obtenerAssetsPaquete } from '../algoritmo/registroPaquetesArbol';
 import { useEscala } from '../../../diseno/tema/MasterColorContext';
@@ -42,36 +42,10 @@ const ALTURA_NAVBAR_BASE = 88;
 const PEEK_SIGUIENTE_TARJETA = 32;
 const TOTAL_NODOS_PROGRESION = MAPAS_NIVELES.reduce((total, mapa) => total + mapa.cantidadNodos, 0);
 
-type AsignaturaVisible = ModuloCategoriaMapa & { habitoReal?: HabitoResumen };
+type AsignaturaVisible = ModuloCategoriaMapa & { habitoReal: HabitoResumen };
 
-const CLAVES_CATEGORIA: Record<CategoriaMapaMvp, { subtitulo: string; titulo: string }> = {
-  habitos: { titulo: 'senderos.map.categories.habits', subtitulo: 'senderos.map.categories.habitsSubtitle' },
-  rutinas: { titulo: 'senderos.map.categories.routines', subtitulo: 'senderos.map.categories.routinesSubtitle' },
-  tareas: { titulo: 'senderos.map.categories.tasks', subtitulo: 'senderos.map.categories.tasksSubtitle' },
-};
-
-
-// Nombres del registro de iconos: hoy/habitos es verde (sigue el tema), rutinas y tareas no.
-const iconosCategoriasMapa: Record<CategoriaMapaMvp, string> = {
-  habitos: 'hoy/habitos',
-  rutinas: 'hoy/rutinas',
-  tareas: 'hoy/tareas',
-};
-
-function IconoModulo({ color, nombre, size = 24 }: { color: string; nombre: IconoModuloMapa; size?: number }) {
-  const Icono = nombre === 'actividad' ? Activity : nombre === 'ciencia' ? Beaker : nombre === 'usuarios' ? Users : nombre === 'libro' ? BookOpen : Calculator;
-  return <Icono color={color} size={size} />;
-}
-
-// Los hábitos reales tienen su propio icono elegido en el wizard — a diferencia
-// de rutinas/tareas (aún mock), que usan el set fijo de IconoModulo.
-function IconoAsignatura({ asignatura, color, size = 24 }: { asignatura: AsignaturaVisible; color: string; size?: number }) {
-  if (asignatura.habitoReal) {
-    const icono = buscarIconoHabito(asignatura.habitoReal.iconoLucide);
-    if (icono) return <MasterIcon name={icono.id} size={size} />;
-  }
-  return <IconoModulo color={color} nombre={asignatura.icono} size={size} />;
-}
+const CLAVES_HABITOS = { titulo: 'senderos.map.categories.habits', subtitulo: 'senderos.map.categories.habitsSubtitle' };
+const ICONO_HABITOS = 'hoy/habitos';
 
 
 // Panel "tus hábitos" del menú del libro — réplica del mockup de referencia.
@@ -107,13 +81,10 @@ export function MapaSenderosPantalla() {
   const parametros = useLocalSearchParams<{ habitoId?: string | string[] }>();
   const habitoIdParametro = Array.isArray(parametros.habitoId) ? parametros.habitoId[0] : parametros.habitoId;
 
-  const [activeMenu, setActiveMenu] = React.useState<'none' | 'categories' | 'courses' | 'store'>('none');
-  const [categoriaActiva, setCategoriaActiva] = React.useState<CategoriaMapaMvp>(categoriaInicialMapa);
-  const [filtroMomento, setFiltroMomento] = React.useState<'manana' | 'noche' | 'tarde' | 'todos'>('todos');
-  const [nivelVistaPrueba, setNivelVistaPrueba] = React.useState(1);
+  const [activeMenu, setActiveMenu] = React.useState<'none' | 'courses' | 'store'>('none');
   const animMenuState = useSharedValue(0);
 
-  const handleToggleMenu = (menu: 'categories' | 'courses' | 'store') => {
+  const handleToggleMenu = (menu: 'courses' | 'store') => {
     hapticSeguro('seleccion');
     if (activeMenu === menu) {
       setActiveMenu('none');
@@ -133,14 +104,13 @@ export function MapaSenderosPantalla() {
     habitoReal: habito, icono: 'actividad', id: habito.id, subcategoriaId: habito.id, titulo: habito.titulo,
   })), [habitosReales]);
 
-  const ASIGNATURAS: readonly AsignaturaVisible[] = categoriaActiva === 'habitos' ? asignaturasHabitos : modulosPorCategoria[categoriaActiva];
+  const ASIGNATURAS: readonly AsignaturaVisible[] = asignaturasHabitos;
   const [asignaturaId, setAsignaturaId] = React.useState<string | undefined>(habitoIdParametro);
   const asignatura = ASIGNATURAS.find((item) => item.id === asignaturaId) ?? ASIGNATURAS[0];
 
   // Preselecciona el hábito indicado por navegación (ej. "Comenzar" desde Hábitos) en cuanto llegan sus datos reales.
   React.useEffect(() => {
     if (habitoIdParametro && asignaturasHabitos.some((item) => item.id === habitoIdParametro)) {
-      setCategoriaActiva('habitos');
       setAsignaturaId(habitoIdParametro);
     }
   }, [habitoIdParametro, asignaturasHabitos]);
@@ -152,42 +122,27 @@ export function MapaSenderosPantalla() {
 
   const idHabitoSeleccionado = asignatura?.habitoReal?.id;
   const [nivelSeleccionado, setNivelSeleccionado] = React.useState<number | undefined>(undefined);
-  React.useEffect(() => { setNivelSeleccionado(undefined); }, [idHabitoSeleccionado]);
-  const sendero = useSenderoHabito(idHabitoSeleccionado, nivelSeleccionado);
-  const esPruebaDiamante = sendero.consulta.data?.habito.paqueteId === 'diamante'
-    && sendero.consulta.data.habito.titulo.trim().toLocaleLowerCase('es') === 'prueba diamante';
-  const nivelVisible = esPruebaDiamante ? nivelVistaPrueba : sendero.nivelVisible;
-  const mapaNivelVisible = MAPAS_NIVELES[nivelVisible - 1] ?? MAPAS_NIVELES[0];
-  const nodosPruebaDiamante = React.useMemo(() => {
-    const diaInicial = diasAcumuladosAntesDeNivel(nivelVisible);
-    return Array.from({ length: mapaNivelVisible.cantidadNodos }, (_, indice) => ({
-      estado: indice === 0 ? 'activo' as const : 'bloqueado' as const,
-      icono: indice === 0 ? Play : Lock,
-      id: `prueba-diamante-${nivelVisible}-${indice + 1}`,
-      subtitulo: t('senderos.map.nodeSubtitle', { day: indice + 1, level: nivelVisible, total: mapaNivelVisible.cantidadNodos }),
-      titulo: t('senderos.map.nodeTitle', { day: diaInicial + indice + 1 }),
-    }));
-  }, [mapaNivelVisible.cantidadNodos, nivelVisible, t]);
-
+  const [modalNivelesVisible, setModalNivelesVisible] = React.useState(false);
   React.useEffect(() => {
-    if (!esPruebaDiamante) setNivelVistaPrueba(1);
-  }, [esPruebaDiamante]);
+    setNivelSeleccionado(undefined);
+    setModalNivelesVisible(false);
+  }, [idHabitoSeleccionado]);
+  const sendero = useSenderoHabito(idHabitoSeleccionado, nivelSeleccionado);
+  const nivelVisible = sendero.nivelVisible;
+  const mapaNivelVisible = MAPAS_NIVELES[nivelVisible - 1] ?? MAPAS_NIVELES[0];
 
-  const cambiarCategoria = (categoria: CategoriaMapaMvp) => {
+  const abrirModalNiveles = () => {
+    if (sendero.registrando || sendero.celebracion) return;
     hapticSeguro('seleccion');
-    setCategoriaActiva(categoria);
-    const lista = categoria === 'habitos' ? asignaturasHabitos : modulosPorCategoria[categoria];
-    setAsignaturaId(lista[0]?.id);
-    setActiveMenu('none');
+    setModalNivelesVisible(true);
   };
 
   React.useEffect(() => {
     const isAnyOpen = activeMenu !== 'none';
     animMenuState.value = withTiming(isAnyOpen ? 1 : 0, { duration: 180, easing: Easing.out(Easing.cubic) });
-  }, [activeMenu, categoriaActiva]);
+  }, [activeMenu]);
 
-  // Altura del menú de hábitos fijada a 260px para dar un margen inferior cómodo
-  const alturaPanelMenu = activeMenu === 'courses' ? (categoriaActiva === 'habitos' ? 260 : 200) : activeMenu === 'categories' ? 132 : 260;
+  const alturaPanelMenu = 260;
 
   const animContenidoEstilos = useAnimatedStyle(() => ({
     opacity: animMenuState.value,
@@ -213,22 +168,18 @@ export function MapaSenderosPantalla() {
           <View style={styles.navbarContenedor}>
             <MasterGlass blur style={styles.navbarGlass}>
             <View style={styles.navbarFila}>
-              <Pressable onPress={() => handleToggleMenu('categories')}>
-                <View style={activeMenu === 'categories' ? styles.badgeCategoriaActivo : undefined}>
-                  <MasterIconBg fuente={buscarIcono(iconosCategoriasMapa[categoriaActiva])!.fuente} hue={buscarIcono(iconosCategoriasMapa[categoriaActiva])!.hue} size={TAMANO_ICONO_CATEGORIA} />
-                </View>
-              </Pressable>
+              <MasterIconBg fuente={buscarIcono(ICONO_HABITOS)!.fuente} hue={buscarIcono(ICONO_HABITOS)!.hue} size={TAMANO_ICONO_CATEGORIA} />
 
               <View style={styles.navInfo}>
-                <Texto numberOfLines={1} style={[styles.tituloAsignatura, { color: oscurecer(coloresSelectorCategoria[categoriaActiva], 0.4) }]}>{t(CLAVES_CATEGORIA[categoriaActiva].titulo)}</Texto>
-                <Texto numberOfLines={2} style={[styles.descAsignatura, { color: oscurecer(coloresSelectorCategoria[categoriaActiva], 0.6) }]}>{t(CLAVES_CATEGORIA[categoriaActiva].subtitulo)}</Texto>
+                <Texto numberOfLines={1} style={[styles.tituloAsignatura, { color: oscurecer(coloresSelectorCategoria.habitos, 0.4) }]}>{t(CLAVES_HABITOS.titulo)}</Texto>
+                <Texto numberOfLines={2} style={[styles.descAsignatura, { color: oscurecer(coloresSelectorCategoria.habitos, 0.6) }]}>{t(CLAVES_HABITOS.subtitulo)}</Texto>
               </View>
 
               <Pressable accessibilityLabel={t('senderos.map.accessibility.viewHabits')} onPress={() => handleToggleMenu('courses')}>
                 <MasterGlass blur compacto style={styles.botonCristal}>
-                  <View style={[styles.botonPildora, activeMenu === 'courses' && { backgroundColor: aclarar(coloresSelectorCategoria[categoriaActiva], 0.84) }]}>
-                    <BookOpen color={activeMenu === 'courses' ? oscurecer(coloresSelectorCategoria[categoriaActiva], 0.4) : '#53505B'} size={22} strokeWidth={2.35} />
-                    <Texto style={{ fontSize: 14, fontFamily: 'Montserrat-Bold', color: activeMenu === 'courses' ? oscurecer(coloresSelectorCategoria[categoriaActiva], 0.4) : '#53505B', marginTop: -2 }}>{ASIGNATURAS.length}</Texto>
+                  <View style={[styles.botonPildora, activeMenu === 'courses' && { backgroundColor: aclarar(coloresSelectorCategoria.habitos, 0.84) }]}>
+                    <BookOpen color={activeMenu === 'courses' ? oscurecer(coloresSelectorCategoria.habitos, 0.4) : '#53505B'} size={22} strokeWidth={2.35} />
+                    <Texto style={{ fontSize: 14, fontFamily: 'Montserrat-Bold', color: activeMenu === 'courses' ? oscurecer(coloresSelectorCategoria.habitos, 0.4) : '#53505B', marginTop: -2 }}>{ASIGNATURAS.length}</Texto>
                   </View>
                 </MasterGlass>
               </Pressable>
@@ -246,22 +197,7 @@ export function MapaSenderosPantalla() {
             {activeMenu !== 'none' && (
               <MasterGlass style={[styles.panelDesplegable, { height: alturaPanelMenu }]}>
             <Animated.View pointerEvents="auto" style={[styles.contenidoDesplegable, animContenidoEstilos]}>
-              {activeMenu === 'categories' && (
-                <View style={styles.tooltipCategorias}>
-                  <Texto style={styles.tooltipCategoriasTitulo}>{t('senderos.map.categories.change')}</Texto>
-                  <View style={styles.tooltipCategoriasFila}>
-                    {(Object.keys(iconosCategoriasMapa) as CategoriaMapaMvp[]).map((categoria) => {
-                      const activa = categoria === categoriaActiva;
-                      const etiqueta = t(CLAVES_CATEGORIA[categoria].titulo);
-                      return <Pressable key={categoria} accessibilityRole="button" accessibilityState={{ selected: activa }} onPress={() => cambiarCategoria(categoria)} style={({ pressed }) => [styles.tooltipCategoriaOpcion, activa && styles.tooltipCategoriaOpcionActiva, pressed && styles.tooltipCategoriaOpcionPresionada]}>
-                        <MasterIcon name={iconosCategoriasMapa[categoria]} size={32} />
-                        <Texto style={styles.tooltipCategoriaTexto}>{etiqueta}</Texto>
-                      </Pressable>;
-                    })}
-                  </View>
-                </View>
-              )}
-              {activeMenu === 'courses' && categoriaActiva === 'habitos' && (() => {
+              {activeMenu === 'courses' && (() => {
                 const habitosPendientesHoy = Math.max(0, habitosReales.length - habitosCompletadosHoy);
                 const fraccionHoy = habitosReales.length > 0 ? habitosCompletadosHoy / habitosReales.length : 0;
                 const anchoCarta = 260; // Ancho fijo para nuevo layout de row
@@ -321,102 +257,6 @@ export function MapaSenderosPantalla() {
                   </View>
                 );
               })()}
-              {activeMenu === 'courses' && categoriaActiva !== 'habitos' && (
-                <View style={{ flex: 1, paddingHorizontal: 20, paddingTop: 5, paddingBottom: 5 }}>
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 20 }}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                      <View style={{ width: 42, height: 42 }}>
-                        <View style={{ position: 'absolute', top: 4, left: 0, right: 0, bottom: -4, backgroundColor: oscurecer('#4A8BB3', 0.6), borderRadius: 8 }} />
-                        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: '#4A8BB3', borderRadius: 8, justifyContent: 'center', alignItems: 'center' }}>
-                          <BookOpen color="#FFFFFF" size={24} fill="#FFFFFF" />
-                        </View>
-                      </View>
-                      <View>
-                        <Texto style={{ fontSize: 9, color: 'rgba(0,0,0,0.5)', fontFamily: 'Montserrat-Bold', letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 0 }}>{t('senderos.map.habitsPanel.inventory')}</Texto>
-                        <Texto style={{ fontSize: 22, fontFamily: 'Montserrat-Bold', color: '#111111' }}>{t('senderos.map.habitsPanel.modules', { count: ASIGNATURAS.length })}</Texto>
-                      </View>
-                    </View>
-                    <View style={{ alignItems: 'flex-end' }}>
-                      <Texto style={{ fontSize: 8, color: 'rgba(0,0,0,0.5)', fontFamily: 'Montserrat-Bold', letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 2 }}>{t('senderos.map.habitsPanel.globalProgress')}</Texto>
-                      <View style={{ backgroundColor: '#111111', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, borderBottomWidth: 2, borderBottomColor: '#000000' }}>
-                        <Texto style={{ fontSize: 13, fontFamily: 'Montserrat-Bold', color: '#FFFFFF' }}>12%</Texto>
-                      </View>
-                    </View>
-                  </View>
-
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 15, paddingBottom: 15 }} style={{ flex: 1, overflow: 'visible' }}>
-                                {ASIGNATURAS.map(asig => {
-                  const h = 85;
-                  // Scroll Mode: Ancho dinámico
-                  const bodyWidth = Math.min(220, Math.max(95, 16 + (asig.titulo.length * 8.2) + 10));
-                  const w = bodyWidth + 45;
-                  
-                  const cutoutStart = bodyWidth;
-                  const cutoutEnd = bodyWidth + 16;
-                  const dashX = bodyWidth + 8;
-                  
-                  const path = `M 0,0 L ${cutoutStart},0 A 8,8 0 0,0 ${cutoutEnd},0 L ${w},0 L ${w},${h} L ${cutoutEnd},${h} A 8,8 0 0,0 ${cutoutStart},${h} L 0,${h} Z`;
-                  
-                  return (
-                    <Pressable key={asig.id} style={[{ width: w, height: h + 4 }]} onPress={() => { hapticSeguro('seleccion'); setAsignaturaId(asig.id); setActiveMenu('none'); }}>
-                      {({ pressed }) => (
-                        <>
-                          {/* Capa Base: Sombra 3D Sólida */}
-                          <View style={StyleSheet.absoluteFill} pointerEvents="none">
-                            <Svg width="100%" height="100%" viewBox={`0 0 ${w} ${h + 4}`}>
-                              <Path d={path} fill={oscurecer(asig.color, 0.6)} transform="translate(0, 4)" />
-                            </Svg>
-                          </View>
-
-                          {/* Capa Principal: Se hunde 4px cuando está presionada */}
-                          <View style={[StyleSheet.absoluteFill, { transform: [{ translateY: pressed ? 4 : 0 }] }]}>
-                            
-                            <View style={StyleSheet.absoluteFill} pointerEvents="none">
-                              <Svg width="100%" height="100%" viewBox={`0 0 ${w} ${h + 4}`}>
-                                {/* Cuerpo del Boleto */}
-                                <Path d={path} fill={asig.color} />
-                                
-                                {/* Línea punteada de desgarre */}
-                                <Line x1={dashX} y1="12" x2={dashX} y2={h - 12} stroke="rgba(255,255,255,0.4)" strokeWidth="1.5" strokeDasharray="3 3" />
-                                
-                                {/* Simulación de Código de Barras en el Stub (Derecha) */}
-                                <Rect x={dashX + 15} y="25" width="2" height="35" fill="rgba(255,255,255,0.6)" />
-                                <Rect x={dashX + 19} y="25" width="4" height="35" fill="rgba(255,255,255,0.6)" />
-                                <Rect x={dashX + 25} y="25" width="1" height="35" fill="rgba(255,255,255,0.6)" />
-                                <Rect x={dashX + 28} y="25" width="3" height="35" fill="rgba(255,255,255,0.6)" />
-                              </Svg>
-                              {/* Pequeño texto en el stub inferior derecho */}
-                              <TextoRN style={{ position: 'absolute', right: 8, bottom: 8, fontSize: 7, color: 'rgba(255,255,255,0.6)', fontFamily: 'Montserrat-Bold' }}>{t('senderos.map.habitsPanel.number', { id: asig.id })}</TextoRN>
-                            </View>
-                            
-                            {/* Textura pixel art enmascarada */}
-                            <View style={{ position: 'absolute', left: 0, top: 0, width: dashX, height: h, overflow: 'hidden', opacity: 0.3 }} pointerEvents="none">
-                              <TexturaPixelArt />
-                            </View>
-
-                            {/* Brillo diagonal rasante (Infinito) */}
-                            <View style={[styles.tarjetaBrilloCarrusel, { top: -50, left: -40, height: 350, width: 25, backgroundColor: 'rgba(255,255,255,0.08)' }]} pointerEvents="none" />
-
-                            {/* Icono Principal (Arriba Izquierda) */}
-                            <View style={{ position: 'absolute', top: 12, left: 12 }}>
-                              <IconoAsignatura asignatura={asig} color="#FFFFFF" />
-                            </View>
-                            
-                            {/* Título y Label (Abajo Izquierda) */}
-                            <View style={{ position: 'absolute', bottom: 12, left: 12, right: 45 }}>
-                              <Texto style={{ fontSize: 6, color: 'rgba(255,255,255,0.6)', fontFamily: 'Montserrat-Bold', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 2 }} numberOfLines={1}>{t('senderos.map.habitsPanel.accessPass')}</Texto>
-                              <Texto style={[styles.textoCarruselTitulo, { fontSize: 13, lineHeight: 14 }]} numberOfLines={1}>{asig.titulo}</Texto>
-                            </View>
-
-                          </View>
-                        </>
-                      )}
-                    </Pressable>
-                  );
-                })}
-              </ScrollView>
-                </View>
-              )}
               {activeMenu === 'store' && <PanelTienda saldoGemas={saldoGemas ?? 0} />}
             </Animated.View>
             </MasterGlass>
@@ -431,112 +271,121 @@ export function MapaSenderosPantalla() {
           // asignatura.color es solo el fallback mientras esa consulta carga.
           const colorEfectivo = sendero.consulta.data?.habito.color ?? asignatura.color;
           const colorTexto = oscurecer(colorEfectivo, 0.5);
-          const colorSub = oscurecer(colorEfectivo, 0.62);
-          const iconoHabito = asignatura.habitoReal ? buscarIconoHabito(asignatura.habitoReal.iconoLucide) : null;
+          const iconoHabito = buscarIconoHabito(asignatura.habitoReal.iconoLucide);
           const nodosPrevios = MAPAS_NIVELES.slice(0, nivelVisible - 1).reduce((total, mapa) => total + mapa.cantidadNodos, 0);
-          const nodosNivelCompletados = esPruebaDiamante
-            ? mapaNivelVisible.cantidadNodos
-            : Math.min(sendero.seccionVisible?.diasCompletados ?? 0, mapaNivelVisible.cantidadNodos);
+          const nodosNivelCompletados = Math.min(sendero.seccionVisible?.diasCompletados ?? 0, mapaNivelVisible.cantidadNodos);
           const porcentajeProgresion = Math.round(Math.min(100, ((nodosPrevios + nodosNivelCompletados) / TOTAL_NODOS_PROGRESION) * 100));
-          const insigniaNivel = buscarIconoHabito(`nivel${nivelVisible}`)?.fuente;
-          return (
-            <View style={styles.tarjetaContenedor}>
-              <RecuadroGlass blur degradado={{ inicio: aclarar(colorEfectivo, 0.86), fin: aclarar(colorEfectivo, 0.5) }} style={styles.tarjetaAsignatura}>
-                <View style={{ alignItems: 'center', flexDirection: 'row', flex: 1, gap: 12, padding: 14, paddingRight: sendero.registrando ? 14 : 82 }}>
-                  {!sendero.celebracion && !sendero.registrando && (
-                    asignatura.habitoReal && iconoHabito ? (
-                      <MasterIconBg
-                        colorBordeInicio={aclarar(colorEfectivo, 0.7)}
-                        colorBordeFin={oscurecer(colorEfectivo, 0.75)}
-                        degradadoInicio={aclarar(colorEfectivo, 0.93)}
-                        degradadoFin={aclarar(colorEfectivo, 0.72)}
-                        size={48}
-                        tinte={colorEfectivo}
-                      >
-                        <MasterChanger ancho={41} alto={41} colorDestino={colorMasterMasCercano(colorEfectivo)} fuente={iconoHabito.fuente} />
-                      </MasterIconBg>
-                    ) : (
-                      <MasterIconBg size={48}><IconoModulo color={colorTexto} nombre={asignatura.icono} size={24} /></MasterIconBg>
-                    )
-                  )}
-                  <View style={{ flex: 1, minWidth: 0 }}>
-                    {sendero.celebracion ? (
-                      <View style={{ alignItems: 'center', flexDirection: 'row', gap: 8 }}>
-                        <Trophy color={esc.jade.l34} size={22} />
-                        <Texto numberOfLines={1} style={{ color: esc.jade.l34, fontFamily: 'MontserratAlternates-Bold', fontSize: 16 }}>{t('senderos.map.levelCelebration', { gems: sendero.celebracion.gemas > 0 ? t('senderos.map.gemsReward', { gems: sendero.celebracion.gemas }) : '', level: sendero.celebracion.nivel })}</Texto>
-                      </View>
-                    ) : sendero.registrando && asignatura.habitoReal && sendero.consulta.data ? (
-                      <WidgetRegistrarProgreso
-                        colorBase={colorEfectivo}
-                        guardando={sendero.registrar.isPending}
-                        meta={sendero.consulta.data.habito.meta}
-                        onCerrar={() => sendero.setRegistrando(false)}
-                        onGuardar={(valor) => sendero.registrar.mutate({ habitoId: asignatura.habitoReal!.id, fechaLocal: fechaLocalHoy(), valor })}
-                        tipoMeta={sendero.consulta.data.habito.tipoMeta}
-                        titulo={sendero.consulta.data.habito.titulo}
-                        unidad={sendero.consulta.data.habito.unidad}
-                        valorInicial={sendero.consulta.data.habito.valorHoy}
-                      />
-                    ) : (
-                      <>
-                        <Texto numberOfLines={1} style={{ color: colorTexto, fontFamily: 'MontserratAlternates-Bold', fontSize: 16 }}>{asignatura.titulo}</Texto>
-                        {asignatura.habitoReal && sendero.consulta.data ? (
-                          <View style={styles.progresoNivelContenedor}>
-                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                              <Texto style={[styles.progresoNivelPorcentaje, { color: colorTexto }]}>{porcentajeProgresion}%</Texto>
-                              <View style={{ flex: 1 }}>
-                                <MasterProgressbar altura={9} porcentaje={porcentajeProgresion} colorBase={colorEfectivo} />
-                              </View>
+          const contenidoTarjeta = (
+            <RecuadroGlass blur degradado={{ inicio: aclarar(colorEfectivo, 0.86), fin: aclarar(colorEfectivo, 0.5) }} style={styles.tarjetaAsignatura}>
+              <View style={{ alignItems: 'center', flexDirection: 'row', flex: 1, gap: 12, padding: 14, paddingRight: sendero.registrando ? 14 : 82 }}>
+                {!sendero.celebracion && !sendero.registrando && (
+                  iconoHabito ? (
+                    <MasterIconBg
+                      colorBordeInicio={aclarar(colorEfectivo, 0.7)}
+                      colorBordeFin={oscurecer(colorEfectivo, 0.75)}
+                      degradadoInicio={aclarar(colorEfectivo, 0.93)}
+                      degradadoFin={aclarar(colorEfectivo, 0.72)}
+                      size={48}
+                      tinte={colorEfectivo}
+                    >
+                      <MasterChanger ancho={41} alto={41} colorDestino={colorMasterMasCercano(colorEfectivo)} fuente={iconoHabito.fuente} />
+                    </MasterIconBg>
+                  ) : null
+                )}
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  {sendero.celebracion ? (
+                    <View style={{ alignItems: 'center', flexDirection: 'row', gap: 8 }}>
+                      <Trophy color={esc.jade.l34} size={22} />
+                      <Texto numberOfLines={1} style={{ color: esc.jade.l34, fontFamily: 'MontserratAlternates-Bold', fontSize: 16 }}>{t('senderos.map.levelCelebration', { gems: sendero.celebracion.gemas > 0 ? t('senderos.map.gemsReward', { gems: sendero.celebracion.gemas }) : '', level: sendero.celebracion.nivel })}</Texto>
+                    </View>
+                  ) : sendero.registrando && asignatura.habitoReal && sendero.consulta.data ? (
+                    <WidgetRegistrarProgreso
+                      colorBase={colorEfectivo}
+                      guardando={sendero.registrar.isPending}
+                      meta={sendero.consulta.data.habito.meta}
+                      onCerrar={() => sendero.setRegistrando(false)}
+                      onGuardar={(valor) => sendero.registrar.mutate({ habitoId: asignatura.habitoReal!.id, fechaLocal: fechaLocalHoy(), valor })}
+                      tipoMeta={sendero.consulta.data.habito.tipoMeta}
+                      titulo={sendero.consulta.data.habito.titulo}
+                      unidad={sendero.consulta.data.habito.unidad}
+                      valorInicial={sendero.consulta.data.habito.valorHoy}
+                    />
+                  ) : (
+                    <>
+                      <Texto numberOfLines={1} style={{ color: colorTexto, fontFamily: 'MontserratAlternates-Bold', fontSize: 16 }}>{asignatura.titulo}</Texto>
+                      {sendero.consulta.data ? (
+                        <View style={styles.progresoNivelContenedor}>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                            <Texto style={[styles.progresoNivelPorcentaje, { color: colorTexto }]}>{porcentajeProgresion}%</Texto>
+                            <View style={{ flex: 1 }}>
+                              <MasterProgressbar altura={9} porcentaje={porcentajeProgresion} colorBase={colorEfectivo} />
                             </View>
                           </View>
-                        ) : (
-                          <Texto numberOfLines={1} style={{ color: colorSub, fontFamily: 'Montserrat-Medium', fontSize: 12, marginTop: 1 }}>{asignatura.descripcion}</Texto>
-                        )}
-                      </>
-                    )}
-                  </View>
-                  {!sendero.celebracion && !sendero.registrando && asignatura.habitoReal && sendero.consulta.data && (
-                    <View style={styles.insigniaNivelContenedor}>
-                      {esPruebaDiamante && (
-                        <Pressable accessibilityLabel={t('senderos.map.accessibility.previousLevel')} disabled={nivelVisible === 1} hitSlop={8} onPress={() => { hapticSeguro('seleccion'); setNivelVistaPrueba((nivel) => Math.max(1, nivel - 1)); }} style={[styles.botonNivelPrueba, nivelVisible === 1 && styles.botonNivelPruebaDeshabilitado]}>
-                          <ChevronLeft color={colorTexto} size={16} strokeWidth={3} />
-                        </Pressable>
-                      )}
-                      <MasterGlass 
-                        colorBase={colorEfectivo}
-                        compacto 
-                        style={{ paddingHorizontal: 10, paddingVertical: 6, borderRadius: 12, flexDirection: 'row', alignItems: 'center' }}
-                      >
-                        <MasterIcon color={colorMasterMasCercano(colorEfectivo)} name={`nivel${nivelVisible}`} size={24} />
-                      </MasterGlass>
-                      {esPruebaDiamante && (
-                        <Pressable accessibilityLabel={t('senderos.map.accessibility.nextLevel')} disabled={nivelVisible === 7} hitSlop={8} onPress={() => { hapticSeguro('seleccion'); setNivelVistaPrueba((nivel) => Math.min(7, nivel + 1)); }} style={[styles.botonNivelPrueba, nivelVisible === 7 && styles.botonNivelPruebaDeshabilitado]}>
-                          <ChevronRight color={colorTexto} size={16} strokeWidth={3} />
-                        </Pressable>
-                      )}
-                    </View>
+                        </View>
+                      ) : null}
+                    </>
                   )}
                 </View>
-              </RecuadroGlass>
+                {!sendero.celebracion && !sendero.registrando && sendero.consulta.data && (
+                  <Pressable
+                    accessibilityLabel={t('senderos.levels.modalTitle')}
+                    accessibilityRole="button"
+                    hitSlop={8}
+                    onPress={abrirModalNiveles}
+                    style={styles.insigniaNivelContenedor}
+                  >
+                    <MasterGlass 
+                      colorBase={colorEfectivo}
+                      compacto 
+                      style={{ paddingHorizontal: 8, paddingVertical: 5, borderRadius: 12, flexDirection: 'row', alignItems: 'center', gap: 4 }}
+                    >
+                      <MasterIcon color={colorMasterMasCercano(colorEfectivo)} name={`nivel${nivelVisible}`} size={22} />
+                      <ChevronDown color={colorTexto} size={14} strokeWidth={2.5} />
+                    </MasterGlass>
+                  </Pressable>
+                )}
+              </View>
+            </RecuadroGlass>
+          );
+
+          return (
+            <View style={styles.tarjetaContenedor}>
+              {!sendero.celebracion && !sendero.registrando ? (
+                <Pressable
+                  accessibilityLabel={t('senderos.levels.modalTitle')}
+                  accessibilityRole="button"
+                  onPress={abrirModalNiveles}
+                  style={{ flex: 1 }}
+                >
+                  {contenidoTarjeta}
+                </Pressable>
+              ) : (
+                contenidoTarjeta
+              )}
             </View>
           );
         })()}
 
-        {/* Carrusel de niveles — una sola sección seleccionable por vez, nunca 7 mapas montados */}
-        {asignatura?.habitoReal && sendero.consulta.data && sendero.resumen && !esPruebaDiamante && (
-          <CarruselNivelesSendero
+        {/* Modal de niveles del sendero desplegable al tocar la tarjeta o insignia */}
+        {asignatura && sendero.consulta.data && sendero.resumen && (
+          <ModalNivelesSendero
+            colorEfectivo={sendero.consulta.data?.habito.color ?? asignatura.color}
             colorPaquete={sendero.consulta.data.habito.color}
+            iconoHabito={buscarIconoHabito(asignatura.habitoReal.iconoLucide)}
             nivelSeleccionado={nivelVisible}
-            onSeleccionar={setNivelSeleccionado}
+            onCerrar={() => setModalNivelesVisible(false)}
+            onSeleccionar={(nivel) => setNivelSeleccionado(nivel)}
             paqueteId={sendero.consulta.data.habito.paqueteId}
             secciones={sendero.resumen.secciones}
+            tituloHabito={asignatura.titulo}
+            visible={modalNivelesVisible}
           />
         )}
 
         {/* Contenedor del Mapa / Estado Vacío (ocupa el espacio entre navbar y barra de navegación inferior) */}
         <TonoDelHabito colorPaquete={sendero.consulta.data?.habito.colorPaquete} paqueteId={sendero.consulta.data?.habito.paqueteId}>
         <View style={[styles.capaMapa, !asignatura && styles.capaMapaVacia]}>
-          {asignatura?.habitoReal ? (
+          {asignatura ? (
             sendero.consulta.isLoading || sendero.consultaResumen.isLoading ? (
               <View style={styles.centroMapa}><Texto style={styles.subMapa}>{t('senderos.map.loadingTrail')}</Texto></View>
             ) : sendero.consulta.isError || !sendero.consulta.data || sendero.consultaResumen.isError || !sendero.resumen ? (
@@ -551,8 +400,8 @@ export function MapaSenderosPantalla() {
                 colorPaquete={sendero.consulta.data.habito.colorPaquete}
                 enfocado
                 infoHabito={{ meta: sendero.consulta.data.habito.meta, tipoMeta: sendero.consulta.data.habito.tipoMeta, unidad: sendero.consulta.data.habito.unidad }}
-                nodos={esPruebaDiamante ? nodosPruebaDiamante : sendero.nodos}
-                onCompletarNodo={esPruebaDiamante ? () => undefined : (nodo, indice) => {
+                nodos={sendero.nodos}
+                onCompletarNodo={(nodo, indice) => {
                   const puedeAvanzar = !sendero.soloLectura && Boolean(sendero.seccionVisible?.puedeAvanzarHoy) && nodo.estado === 'activo';
                   if (!puedeAvanzar) return;
                   hapticSeguro('accion');
@@ -595,13 +444,11 @@ export function MapaSenderosPantalla() {
                   hábito no diario sigue lloviendo en los días intermedios,
                   ver spec). Se apaga sola al cambiar de hábito o salir,
                   por el propio ciclo de montaje del componente. */}
-              {!esPruebaDiamante && sendero.seccionVisible && !sendero.seccionVisible.puedeAvanzarHoy && sendero.seccionVisible.diasCompletados > 0 && (
+              {sendero.seccionVisible && !sendero.seccionVisible.puedeAvanzarHoy && sendero.seccionVisible.diasCompletados > 0 && (
                 <AmbienteLluviaMapa alto={alturaMapa} />
               )}
               </>
             )
-          ) : asignatura ? (
-            <ContenedorMapaSenderos key={asignatura.id} altura={alturaMapa} categoriaId={asignatura.categoriaId} color={asignatura.color} enfocado subcategoriaId={asignatura.subcategoriaId} />
           ) : (
             <View style={[styles.centroMapa, { paddingBottom: insets.bottom + 96 }]}>
               {consultaHabitos.isLoading ? (

@@ -11,21 +11,23 @@ type ReboteProps = {
   hitSlop?: number | Insets;
   onPress?: () => void;
   overlay?: ReactNode;
+  disabled?: boolean;
 };
 
 // Envoltorio de rebote táctil compartido (antes duplicado en CrearHabitoWizard
 // y WidgetRegistrarProgreso) — tap-scale + haptic, para usarse en cualquier
 // elemento presionable que quiera sentirse "premium".
-export function Rebote({ accessibilityLabel, children, estilo, hitSlop, onPress, overlay }: ReboteProps) {
+export function Rebote({ accessibilityLabel, children, estilo, hitSlop, onPress, overlay, disabled }: ReboteProps) {
   const escala = useSharedValue(1);
   const estiloAnimado = useAnimatedStyle(() => ({ transform: [{ scale: escala.value }] }));
   return (
     <Pressable
       accessibilityLabel={accessibilityLabel}
+      disabled={disabled}
       hitSlop={hitSlop}
-      onPress={() => { if (onPress) { hapticSeguro('seleccion'); onPress(); } }}
-      onPressIn={() => { if (onPress) escala.value = withTiming(0.94, { duration: 90 }); }}
-      onPressOut={() => { if (onPress) escala.value = withSpring(1, { damping: 9, stiffness: 260 }); }}
+      onPress={() => { if (onPress && !disabled) { hapticSeguro('seleccion'); onPress(); } }}
+      onPressIn={() => { if (onPress && !disabled) escala.value = withTiming(0.94, { duration: 90 }); }}
+      onPressOut={() => { if (onPress && !disabled) escala.value = withSpring(1, { damping: 9, stiffness: 260 }); }}
       style={estilo}
     >
       {/* overlay va fuera del envoltorio de escala (que se ajusta a su

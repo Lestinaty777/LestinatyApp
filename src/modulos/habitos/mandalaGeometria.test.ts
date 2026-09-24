@@ -1,6 +1,22 @@
 import { describe, expect, it } from 'vitest';
 
-import { construirCaminosMandala, rotarPuntos, suavizarTrazo, trazoDesdeSemilla } from './mandalaGeometria';
+import { construirCaminosMandala, resamplearTrazo, rotarPuntos, suavizarTrazo, trazoDesdeSemilla } from './mandalaGeometria';
+
+describe('resamplearTrazo', () => {
+  it('devuelve exactamente n puntos, evenmente espaciados por longitud de arco', () => {
+    const puntos = [{ x: 0, y: 0 }, { x: 100, y: 0 }];
+    const resultado = resamplearTrazo(puntos, 9);
+    expect(resultado).toHaveLength(9);
+    expect(resultado[0]).toEqual({ x: 0, y: 0 });
+    expect(resultado[8].x).toBeCloseTo(100, 5);
+    expect(resultado[4].x).toBeCloseTo(50, 5);
+  });
+
+  it('con menos de 2 puntos, devuelve el trazo tal cual', () => {
+    const puntos = [{ x: 3, y: 4 }];
+    expect(resamplearTrazo(puntos, 9)).toEqual(puntos);
+  });
+});
 
 describe('trazoDesdeSemilla', () => {
   it('es determinista: misma semilla, mismos puntos', () => {

@@ -27,7 +27,7 @@ type WidgetRegistrarProgresoProps = {
 // glass verde o acorde al bioma), la vista de progreso general por un control
 // interactivo de registro diario ágil, tactile y elegante.
 export function WidgetRegistrarProgreso({
-  colorBase = esc.hoja.l61a,
+  colorBase = "#color",
   guardando,
   meta,
   onCerrar,
@@ -64,7 +64,7 @@ export function WidgetRegistrarProgreso({
           </View>
           {hecho && (
             <View style={s.badgeCompletado}>
-              <Check color={esc.hoja.l61a} size={9} strokeWidth={3} />
+              <Check color={"#color"} size={9} strokeWidth={3} />
               <Texto style={s.badgeCompletadoTexto}>{t('habitos.progressWidget.readyToday')}</Texto>
             </View>
           )}
@@ -143,7 +143,7 @@ function ControlCheck({
   return (
     <Rebote
       accessibilityLabel={hecho ? t('habitos.progressWidget.habitCompleted') : t('habitos.progressWidget.completeHabit')}
-      deshabilitado={guardando}
+      disabled={guardando}
       onPress={() => {
         hapticSeguro('confirmacion');
         onGuardar(hecho ? 0 : 1);
@@ -194,7 +194,7 @@ function ControlContador({
     <View style={s.contadorFila}>
       <Rebote
         accessibilityLabel={t('habitos.progressWidget.subtract')}
-        deshabilitado={guardando || valor <= 0}
+        disabled={guardando || valor <= 0}
         onPress={() => cambiar(-1)}
         estilo={[
           s.botonStepper,
@@ -220,7 +220,7 @@ function ControlContador({
 
       <Rebote
         accessibilityLabel={t('habitos.progressWidget.add')}
-        deshabilitado={guardando}
+        disabled={guardando}
         onPress={() => cambiar(1)}
         estilo={[s.botonStepper, { backgroundColor: color, borderColor: color }]}
       >
@@ -292,7 +292,7 @@ function ControlCronometro({
 
       <Rebote
         accessibilityLabel={t('habitos.progressWidget.saveTime')}
-        deshabilitado={guardando || segundos === 0}
+        disabled={guardando || segundos === 0}
         onPress={guardar}
         estilo={[
           s.botonStepper,
@@ -351,7 +351,7 @@ const crearEstilosS = (esc: EscalaMaster) => StyleSheet.create({
   },
   badgeCompletado: {
     alignItems: 'center',
-    backgroundColor: conAlfa(esc.hoja.l61a, 0.14),
+    backgroundColor: conAlfa("#color", 0.14),
     borderRadius: 6,
     flexDirection: 'row',
     gap: 3,

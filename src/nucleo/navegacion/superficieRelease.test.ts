@@ -57,3 +57,11 @@ describe('Senderos de producción', () => {
     expect(contenedor).not.toContain('MOCKUP: Al darle comenzar');
   });
 });
+
+describe('compras de producción', () => {
+  it('no muestra productos IAP pendientes como Próximamente', () => {
+    const tienda = leer('src/modulos/tienda/pantallas/TiendaPantalla.tsx');
+
+    expect(tienda).not.toContain('tienda.gemas.proximamente');
+  });
+});

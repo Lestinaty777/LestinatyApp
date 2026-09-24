@@ -11,6 +11,7 @@ import { comprarHorizon, obtenerPaquetesHorizon, restaurarHorizon } from '../../
 import { CLAVE_HORIZON } from '../../../nucleo/compras/useHorizon';
 import { useEscala } from '../../../diseno/tema/MasterColorContext';
 import type { EscalaMaster } from '../../../diseno/tema/escalaEsmeralda';
+import { capacidades } from '../../../plataforma/capacidades';
 
 const CLAVES_BENEFICIOS = [
   { titulo: 'horizon.paywall.beneficios.b1Titulo', descripcion: 'horizon.paywall.beneficios.b1Desc' },
@@ -36,7 +37,10 @@ export function HorizonPaywallPantalla() {
     setAviso(null); setComprando(true);
     try {
       const resultado = await comprarHorizon(paquete);
-      if (resultado.exito) { await actualizarAcceso(); router.replace('/habitos/widgets'); }
+      if (resultado.exito) { 
+        await actualizarAcceso(); 
+        router.replace(capacidades.widgets ? '/habitos/widgets' : '/(principal)/hoy'); 
+      }
     } catch { setAviso(t('horizon.paywall.avisoErrorCompra')); } finally { setComprando(false); }
   }
   async function restaurar() {
@@ -45,7 +49,7 @@ export function HorizonPaywallPantalla() {
     try {
       const estado = await restaurarHorizon();
       await actualizarAcceso();
-      if (estado === 'activo') router.replace('/habitos/widgets');
+      if (estado === 'activo') router.replace(capacidades.widgets ? '/habitos/widgets' : '/(principal)/hoy');
       else setAviso(estado === 'noDisponible' ? t('horizon.paywall.avisoNoDisponible') : t('horizon.paywall.avisoNoEncontrada'));
     } finally { setRestaurando(false); }
   }

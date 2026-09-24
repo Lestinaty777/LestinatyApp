@@ -1,4 +1,7 @@
-import { expect, it } from 'vitest';
+import { expect, it, vi } from 'vitest';
+
+vi.mock('react-native', () => ({ Platform: { OS: 'android' } }));
+vi.mock('../../plataforma/capacidades', () => ({ capacidades: { widgets: true, googleSignIn: true, comprasNativas: true, notificacionesPush: true } }));
 
 import { rutaParaHorizon } from './horizonAcceso';
 

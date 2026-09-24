@@ -61,13 +61,15 @@ export function TiendaPantalla() {
 
       {consultaCatalogo.data?.map((paquete) => {
         const disponible = paquetesRevenueCat.find((p) => p.product.identifier === paquete.productIdRevenueCat);
-        const precio = disponible?.product.priceString ?? (paquete.precioReferenciaUsd !== null ? `~$${paquete.precioReferenciaUsd.toFixed(2)} USD` : null);
+        if (!disponible) return null;
+
+        const precio = disponible.product.priceString;
         return (
           <Tarjeta key={paquete.id}>
             <Texto variante="subtitulo">{t('tienda.gemas.cantidadGemas', { cantidad: paquete.cantidadGemas })}</Texto>
-            {precio && <Texto variante="cuerpo">{precio}{!disponible ? t('tienda.gemas.precioReferencia') : ''}</Texto>}
-            <Boton disabled={comprando === paquete.id || !disponible} onPress={() => void comprar(paquete)}>
-              {comprando === paquete.id ? t('tienda.gemas.comprando') : disponible ? t('tienda.gemas.comprar') : t('tienda.gemas.proximamente')}
+            <Texto variante="cuerpo">{precio}</Texto>
+            <Boton disabled={comprando === paquete.id} onPress={() => void comprar(paquete)}>
+              {comprando === paquete.id ? t('tienda.gemas.comprando') : t('tienda.gemas.comprar')}
             </Boton>
           </Tarjeta>
         );

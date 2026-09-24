@@ -699,7 +699,7 @@ export function SesionMisionPantalla() {
                 <View style={s.stepperFila}>
                   <Rebote
                     accessibilityLabel={t('senderos.mision.restar')}
-                    deshabilitado={conteo <= 0 || mutacion.isPending}
+                    disabled={conteo <= 0 || mutacion.isPending}
                     onPress={() => {
                       hapticSeguro('seleccion');
                       setConteo((prev) => Math.max(0, prev - 1));
@@ -717,7 +717,7 @@ export function SesionMisionPantalla() {
 
                   <Rebote
                     accessibilityLabel={t('senderos.mision.sumar')}
-                    deshabilitado={mutacion.isPending}
+                    disabled={mutacion.isPending}
                     onPress={() => {
                       hapticSeguro('seleccion');
                       setConteo((prev) => prev + 1);
@@ -789,7 +789,7 @@ export function SesionMisionPantalla() {
                 <View style={s.cronoBotonera}>
                   <Rebote
                     accessibilityLabel={t('senderos.mision.reiniciarTiempo')}
-                    deshabilitado={segundos === 0 || mutacion.isPending}
+                    disabled={segundos === 0 || mutacion.isPending}
                     onPress={() => {
                       hapticSeguro('seleccion');
                       setCorriendo(false);
@@ -806,7 +806,7 @@ export function SesionMisionPantalla() {
 
                   <Rebote
                     accessibilityLabel={corriendo ? t('senderos.mision.pausarSesion') : t('senderos.mision.comenzarSesion')}
-                    deshabilitado={mutacion.isPending}
+                    disabled={mutacion.isPending}
                     onPress={() => {
                       hapticSeguro('accion');
                       setCorriendo((c) => {
@@ -1354,14 +1354,14 @@ const s = StyleSheet.create({
     width: 64,
   },
   celebracionOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     alignItems: 'center',
     justifyContent: 'center',
     padding: 24,
     zIndex: 99,
   },
   celebracionBackdrop: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(26, 19, 53, 0.55)',
   },
   tarjetaVictoriaContenedor: {

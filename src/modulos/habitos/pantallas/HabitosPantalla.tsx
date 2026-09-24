@@ -178,7 +178,7 @@ export function HabitosPantalla() {
     if (id === 'creacion') { setCrearAbierto(true); return; }
     if (id === 'progresion') { alternarVista('progresion'); return; }
     if (id === 'recordatorios') { alternarVista('recordatorios'); return; }
-    router.push('/habitos/categoria/patrones');
+    router.push('/insights');
   }
 
   function abrirHorizon() {

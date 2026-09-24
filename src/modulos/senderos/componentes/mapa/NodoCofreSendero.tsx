@@ -21,6 +21,16 @@ const ASSET_CERRADO = require('../../../../../assets/ilustraciones/senderos/biom
 const ASSET_ABIERTO = require('../../../../../assets/ilustraciones/senderos/biomas/cofres/cofre-cerrado.png');
 
 type Props = {
+  /**
+   * Bloqueo REAL del nodo (día aún no alcanzable) — nunca `cofre.estadoCofre
+   * === 'bloqueado'`, que sólo dice "el premio todavía no es reclamable".
+   * Un cofre final/intermedio ES el nodo del día: si ese día ya es el
+   * actual (activo/esperando) hay que poder tocarlo para HACER la misión,
+   * aunque el cofre en sí siga sin reclamarse — si se usara
+   * `cofre.estadoCofre` acá, el día quedaría en un candado sin salida
+   * (nunca se puede completar porque nunca se puede tocar).
+   */
+  bloqueado: boolean;
   cofre: InfoCofre;
   /** Color "seguro para UI" (ya clampeado por colorSeguroUi) — se usa para el badge de "¡Abrir!". */
   color: string;
@@ -35,7 +45,7 @@ type Props = {
   escalaEscena?: number;
 };
 
-export function NodoCofreSendero({ cofre, color, colorPaquete, seleccionado, onPress, escalaEscena = 1 }: Props) {
+export function NodoCofreSendero({ bloqueado, cofre, color, colorPaquete, seleccionado, onPress, escalaEscena = 1 }: Props) {
   const escala = useSharedValue(1);
   const rotacion = useSharedValue(0);
 
@@ -65,8 +75,8 @@ export function NodoCofreSendero({ cofre, color, colorPaquete, seleccionado, onP
     ],
   }));
 
-  const esBloqueado = cofre.estadoCofre === 'bloqueado';
   const esReclamado = cofre.estadoCofre === 'reclamado';
+  const esDisponible = cofre.estadoCofre === 'disponible';
   const fuente = esReclamado ? ASSET_ABIERTO : ASSET_CERRADO;
   const tinte = calcularTinteCofre(colorPaquete ?? color, esReclamado);
 
@@ -74,16 +84,18 @@ export function NodoCofreSendero({ cofre, color, colorPaquete, seleccionado, onP
     <View style={styles.raiz}>
       <Pressable
         accessibilityLabel={
-          esBloqueado
+          bloqueado
             ? 'Cofre bloqueado'
             : esReclamado
               ? 'Cofre ya reclamado'
-              : 'Cofre disponible para reclamar'
+              : esDisponible
+                ? 'Cofre disponible para reclamar'
+                : 'Completa este día para desbloquear el cofre'
         }
         accessibilityRole="button"
-        disabled={esBloqueado}
+        disabled={bloqueado}
         onPress={() => {
-          if (esBloqueado) return;
+          if (bloqueado) return;
           hapticSeguro('seleccion');
           onPress();
         }}
@@ -103,11 +115,11 @@ export function NodoCofreSendero({ cofre, color, colorPaquete, seleccionado, onP
             fuente={fuente}
             hueDestino={tinte.hueDestino}
             hueOrigen={tinte.hueOrigen}
-            oscurecido={esBloqueado ? 0.6 : undefined}
+            oscurecido={bloqueado ? 0.6 : undefined}
             saturacion={tinte.saturacion}
             soloPixelesVerdes
           />
-          {cofre.estadoCofre === 'disponible' && (
+          {esDisponible && (
             <View style={[styles.badgeAbrir, { backgroundColor: color }]}>
               <Texto style={styles.badgeTexto}>¡Abrir!</Texto>
             </View>

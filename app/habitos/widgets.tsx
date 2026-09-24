@@ -1,3 +1,5 @@
-import { WidgetsHabitosPantalla } from '../../src/modulos/habitos/pantallas/WidgetsHabitosPantalla';
+import { Redirect } from 'expo-router';
 
-export default WidgetsHabitosPantalla;
+export default function WidgetsNoDisponiblesRoute() {
+  return <Redirect href="/(principal)/hoy" />;
+}

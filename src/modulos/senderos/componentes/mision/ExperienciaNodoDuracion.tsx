@@ -1,12 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Pause, Play, RotateCcw } from 'lucide-react-native';
 
-import { MasterButton, MasterGlass, Rebote, Texto, useTintarHex } from '../../../../diseno';
-import { useEscala } from '../../../../diseno/tema/MasterColorContext';
+import { useTintarHex } from '../../../../diseno';
 import { TonoDelHabito } from '../../../habitos/componentes/TonoDelHabito';
 import { hapticSeguro } from '../../../../nucleo/dispositivo/haptics';
 import { reproducirSonido } from '../../../../nucleo/dispositivo/sonido';
@@ -19,15 +16,20 @@ import {
   suscribirEventoCronometro,
 } from '../../../../../modules/habito-widget';
 import { sincronizarSesionesCronometroPendientes } from '../../../habitos/cronometro.servicio';
-import type { ResultadoRegistroHabito } from '../../../habitos/tipos';
-import { RelojCronometro } from './RelojCronometro';
+import { calcularHitos } from './hitosMision';
+import { PantallaMisionAnillo } from './PantallaMisionAnillo';
 import { useMisionHabito } from './useMisionHabito';
-import { FlujoCelebracionMandala } from './FlujoCelebracionMandala';
 
-// Spec 1C, reconstruida sobre el sistema Master: el reloj es RelojCronometro
-// (versión hero del cronómetro de los widgets SDUI — corona, pulsador,
-// cristal — con el anillo real MasterCircularProgressBar por dentro,
-// teñido del paquete del hábito). El cronómetro nativo no cambia.
+function formatearMmSs(segundos: number) {
+  const minutos = Math.floor(segundos / 60);
+  const segundosResto = segundos % 60;
+  return `${String(minutos).padStart(2, '0')}:${String(segundosResto).padStart(2, '0')}`;
+}
+
+// Spec 1C sobre el shell compartido PantallaMisionAnillo: anillo "arena" con
+// el tiempo transcurrido en el centro, hitos a 20/50/80/100% de la meta en
+// minutos. El cronómetro nativo (Android) no cambia — sigue siendo la
+// misma fuente de verdad de segundos/corriendo.
 export function ExperienciaNodoDuracion() {
   const params = useLocalSearchParams<{ habitoId: string }>();
   const router = useRouter();
@@ -82,9 +84,10 @@ export function ExperienciaNodoDuracion() {
     });
   }, [habitoId]);
 
-  const colorPaquete = mision.habito?.colorPaquete ?? mision.habito?.color ?? esm('#7FE3B0');
+  const color = mision.habito?.colorPaquete ?? mision.habito?.color ?? esm('#7FE3B0');
   const meta = mision.habito?.meta ?? 25;
-  const porcentaje = Math.min(100, Math.round(((segundos / 60) / Math.max(1, meta)) * 100));
+  const minutosActuales = segundos / 60;
+  const porcentaje = Math.min(100, Math.round((minutosActuales / Math.max(1, meta)) * 100));
 
   function alternarCorrerPausar() {
     hapticSeguro('accion');
@@ -93,7 +96,7 @@ export function ExperienciaNodoDuracion() {
       const nuevo = !c;
       if (nuevo) {
         if (sesionNativaActivaRef.current) reanudarCronometroNativo();
-        else { sesionNativaActivaRef.current = true; iniciarCronometroNativo({ color: colorPaquete, habitoId, segundosIniciales: segundos, titulo: mision.habito?.titulo || '' }); }
+        else { sesionNativaActivaRef.current = true; iniciarCronometroNativo({ color, habitoId, segundosIniciales: segundos, titulo: mision.habito?.titulo || '' }); }
       } else {
         pausarCronometroNativo();
       }
@@ -118,111 +121,40 @@ export function ExperienciaNodoDuracion() {
     mision.enviarRegistro(Math.max(1, Math.round(segundos / 60)));
   }
 
+  const hitos = calcularHitos(meta, minutosActuales, (valor) => `${valor}min`);
+  const textoPrincipal = corriendo
+    ? t('senderos.mision.pausarSesion')
+    : segundos > 0
+      ? t('senderos.mision.continuarSesion')
+      : t('senderos.mision.comenzarSesion');
+
   return (
     <TonoDelHabito colorPaquete={mision.habito?.colorPaquete} paqueteId={mision.habito?.paqueteId}>
-      <ContenidoDuracion
+      <PantallaMisionAnillo
+        botonPrincipalDisabled={mision.registrar.isPending}
+        botonPrincipalIcono={corriendo ? Pause : Play}
+        botonPrincipalTexto={textoPrincipal}
+        botonReiniciarDisabled={segundos === 0 || mision.registrar.isPending}
+        botonReiniciarIcono={RotateCcw}
+        botonReiniciarTexto={t('senderos.mision.reiniciarTiempo')}
+        botonTerminarDisabled={mision.registrar.isPending || mision.registrar.isSuccess || segundos < 30}
+        botonTerminarTexto={t('senderos.mision.terminar')}
         cargando={mision.consulta.isLoading}
-        color={colorPaquete}
-        corriendo={corriendo}
-        meta={meta}
-        onAlternar={alternarCorrerPausar}
-        onReiniciar={reiniciar}
+        chipTexto={t('senderos.mision.chipSesionHoy', { minutos: meta })}
+        color={color}
+        hitos={hitos}
+        iconoLucide={mision.habito?.iconoLucide}
+        onBotonPrincipal={alternarCorrerPausar}
+        onBotonReiniciar={reiniciar}
+        onBotonTerminar={terminarYGuardar}
         onTerminado={() => router.back()}
-        onTerminarYGuardar={terminarYGuardar}
         paqueteId={mision.habito?.paqueteId ?? ''}
         porcentaje={porcentaje}
-        registrado={mision.registrar.isSuccess}
-        registrando={mision.registrar.isPending}
         resultado={mision.registrar.data}
-        segundos={segundos}
         titulo={mision.habito?.titulo}
+        valorMetaTexto={t('senderos.mision.deValor', { valor: formatearMmSs(meta * 60) })}
+        valorPrincipalTexto={formatearMmSs(segundos)}
       />
     </TonoDelHabito>
   );
 }
-
-// Aparte a propósito: useEscala() debe leerse dentro del TonoDelHabito.
-function ContenidoDuracion({ cargando, color, corriendo, meta, onAlternar, onReiniciar, onTerminado, onTerminarYGuardar, paqueteId, porcentaje, registrado, registrando, resultado, segundos, titulo }: {
-  cargando: boolean;
-  color: string;
-  corriendo: boolean;
-  meta: number;
-  onAlternar: () => void;
-  onReiniciar: () => void;
-  onTerminado: () => void;
-  onTerminarYGuardar: () => void;
-  paqueteId: string;
-  porcentaje: number;
-  registrado: boolean;
-  registrando: boolean;
-  resultado: ResultadoRegistroHabito | undefined;
-  segundos: number;
-  titulo: string | undefined;
-}) {
-  const insets = useSafeAreaInsets();
-  const esc = useEscala();
-  const { t } = useTranslation();
-
-  const minutos = Math.floor(segundos / 60);
-  const segundosResto = segundos % 60;
-  const textoTiempo = `${String(minutos).padStart(2, '0')}:${String(segundosResto).padStart(2, '0')}`;
-
-  if (cargando) {
-    return <View style={styles.centroCarga}><ActivityIndicator color={color} /></View>;
-  }
-
-  return (
-    <View style={[styles.raiz, { backgroundColor: esc.hoja.l97, paddingBottom: insets.bottom + 32, paddingTop: insets.top + 32 }]}>
-      <Texto style={[styles.titulo, { color: esc.hoja.l22 }]}>{titulo}</Texto>
-      <View style={styles.dialCentro}>
-        <RelojCronometro colorBase={color} grosor={18} porcentaje={porcentaje} tamano={280}>
-          <Texto style={[styles.numeroGrande, { color: corriendo ? color : esc.hoja.l22 }]}>{textoTiempo}</Texto>
-          <Texto style={[styles.metaTexto, { color: esc.musgo.l42 }]}>{t('senderos.mision.cronoMeta', { meta, minutos: Math.round((segundos / 60) * 10) / 10 })}</Texto>
-        </RelojCronometro>
-      </View>
-      <Texto style={[styles.estadoTexto, { color: corriendo ? color : esc.musgo.l42 }]}>{corriendo ? t('senderos.mision.cronoActivo') : t('senderos.mision.cronoPausa')}</Texto>
-      <MasterGlass style={styles.tarjeta}>
-        <View style={styles.botonera}>
-          <Rebote
-            accessibilityLabel={t('senderos.mision.reiniciarTiempo')}
-            estilo={[styles.secundarioBtn, (segundos === 0 || registrando) && styles.botonApagado]}
-            onPress={segundos === 0 || registrando ? undefined : onReiniciar}
-          >
-            <MasterGlass style={styles.secundarioGlass}><RotateCcw color={esc.musgo.l42} size={18} strokeWidth={2.4} /></MasterGlass>
-          </Rebote>
-          <Rebote
-            accessibilityLabel={corriendo ? t('senderos.mision.pausarSesion') : t('senderos.mision.comenzarSesion')}
-            estilo={[styles.principalBtn, registrando && styles.botonApagado]}
-            onPress={registrando ? undefined : onAlternar}
-          >
-            <MasterGlass colorBase={color} style={styles.principalGlass}>
-              {corriendo ? <Pause color="#FFFFFF" fill="#FFFFFF" size={26} /> : <Play color="#FFFFFF" fill="#FFFFFF" size={26} />}
-            </MasterGlass>
-          </Rebote>
-        </View>
-        <MasterButton color={color} disabled={registrando || registrado || segundos < 30} onPress={onTerminarYGuardar} style={styles.boton}>
-          {t('senderos.mision.terminarGuardar', { minutos: Math.max(1, Math.round(segundos / 60)) })}
-        </MasterButton>
-      </MasterGlass>
-      <FlujoCelebracionMandala color={color} onTerminado={onTerminado} paqueteId={paqueteId} resultado={resultado} />
-    </View>
-  );
-}
-
-const styles = StyleSheet.create({
-  raiz: { alignItems: 'center', flex: 1, gap: 20, paddingHorizontal: 20 },
-  centroCarga: { alignItems: 'center', flex: 1, justifyContent: 'center' },
-  titulo: { fontFamily: 'MontserratAlternates-Bold', fontSize: 18, textAlign: 'center' },
-  tarjeta: { alignItems: 'center', borderRadius: 26, padding: 20, width: '100%' },
-  estadoTexto: { fontFamily: 'Montserrat-SemiBold', fontSize: 11, letterSpacing: 0.8 },
-  dialCentro: { alignItems: 'center', justifyContent: 'center', marginVertical: 10 },
-  numeroGrande: { fontFamily: 'MontserratAlternates-Bold', fontSize: 40, letterSpacing: 1.5 },
-  metaTexto: { fontFamily: 'Montserrat-Medium', fontSize: 11, marginTop: 4 },
-  botonera: { alignItems: 'center', flexDirection: 'row', gap: 20, justifyContent: 'center', marginTop: 14 },
-  secundarioBtn: { borderRadius: 24 },
-  botonApagado: { opacity: 0.4 },
-  secundarioGlass: { alignItems: 'center', borderRadius: 24, height: 48, justifyContent: 'center', width: 48 },
-  principalBtn: { borderRadius: 32 },
-  principalGlass: { alignItems: 'center', borderRadius: 32, height: 64, justifyContent: 'center', width: 64 },
-  boton: { marginTop: 14, width: '100%' },
-});

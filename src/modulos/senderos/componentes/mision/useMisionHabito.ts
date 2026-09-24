@@ -23,6 +23,7 @@ export function useMisionHabito(habitoId: string) {
       cliente.invalidateQueries({ queryKey: ['habitos', 'progreso-nivel', habitoId] });
       cliente.invalidateQueries({ queryKey: ['habitos', 'sendero-resumen', habitoId] });
       cliente.invalidateQueries({ queryKey: ['habitos', 'mandalas', habitoId] });
+      cliente.invalidateQueries({ queryKey: ['habitos', 'cofres', habitoId] });
       cliente.invalidateQueries({ queryKey: ['habitos', 'panel'] });
       cliente.invalidateQueries({ queryKey: ['habitos', 'detalles-hoy'] });
       cliente.invalidateQueries({ queryKey: ['habitos', 'cercania-nivel'] });

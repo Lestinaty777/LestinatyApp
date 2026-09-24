@@ -8,6 +8,7 @@ import { runOnJS } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Texto, useTintarHex } from '../../../../diseno';
+import { useEscala } from '../../../../diseno/tema/MasterColorContext';
 import { hapticSeguro } from '../../../../nucleo/dispositivo/haptics';
 import { construirCaminosMandala } from '../../../habitos/mandalaGeometria';
 import { guardarMandalaRegistro } from '../../../habitos/mandalaNodo.servicio';
@@ -47,6 +48,7 @@ export function CompositorMandalaNodo() {
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
   const esm = useTintarHex();
+  const esc = useEscala();
   const color = params.color || esm('#7FE3B0');
 
   const [puntos, setPuntos] = useState<TrazoMandala[]>([]);
@@ -148,29 +150,29 @@ export function CompositorMandalaNodo() {
         : t('habitos.mandala.compositor.instruccion');
 
   return (
-    <View style={[styles.raiz, { paddingBottom: insets.bottom + 24, paddingTop: insets.top + 24 }]}>
-      <Texto style={styles.titulo}>{t('habitos.mandala.compositor.titulo')}</Texto>
+    <View style={[styles.raiz, { backgroundColor: esc.hoja.l97, paddingBottom: insets.bottom + 24, paddingTop: insets.top + 24 }]}>
+      <Texto style={[styles.titulo, { color: esc.hoja.l22 }]}>{t('habitos.mandala.compositor.titulo')}</Texto>
       <View style={styles.centro}>
         <GestureDetector gesture={gesto}>
           <View style={[styles.superficie, { height: LADO, width: LADO }]}>
             <View style={[styles.guia, { borderColor: color }]} />
             <Svg height={LADO} pointerEvents="none" style={StyleSheet.absoluteFill}
               viewBox={`${-viewBoxLado / 2} ${-viewBoxLado / 2} ${viewBoxLado} ${viewBoxLado}`} width={LADO}>
-              {caminos.map((d, indice) => (d ? <Path d={d} fill={color} fillOpacity={0.92} key={indice} /> : null))}
+              {caminos.map((d, indice) => (d ? <Path d={d} fill={color} fillOpacity={0.94} key={indice} /> : null))}
             </Svg>
           </View>
         </GestureDetector>
       </View>
-      <Texto style={styles.estado}>{estado}</Texto>
+      <Texto style={[styles.estado, { color: esc.musgo.l42 }]}>{estado}</Texto>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  raiz: { alignItems: 'center', backgroundColor: '#0A0D1A', flex: 1, justifyContent: 'space-between', paddingHorizontal: 24 },
-  titulo: { color: '#D6DCF7', fontFamily: 'MontserratAlternates-Bold', fontSize: 18, textAlign: 'center' },
+  raiz: { alignItems: 'center', flex: 1, justifyContent: 'space-between', paddingHorizontal: 24 },
+  titulo: { fontFamily: 'MontserratAlternates-Bold', fontSize: 18, textAlign: 'center' },
   centro: { alignItems: 'center', flex: 1, justifyContent: 'center' },
   superficie: { alignItems: 'center', justifyContent: 'center' },
-  guia: { borderRadius: LADO / 2, borderWidth: 1, height: LADO * 0.94, opacity: 0.35, position: 'absolute', width: LADO * 0.94 },
-  estado: { color: '#8B92BD', fontFamily: 'Montserrat-Medium', fontSize: 13, marginBottom: 12, textAlign: 'center' },
+  guia: { borderRadius: LADO / 2, borderWidth: 1.5, height: LADO * 0.94, opacity: 0.4, position: 'absolute', width: LADO * 0.94 },
+  estado: { fontFamily: 'Montserrat-Medium', fontSize: 13, marginBottom: 12, textAlign: 'center' },
 });

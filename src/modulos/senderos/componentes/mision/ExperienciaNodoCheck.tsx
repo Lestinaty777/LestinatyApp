@@ -4,13 +4,15 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { MasterButton, MasterCircularProgressBar, MasterGlass, Texto, useTintarHex } from '../../../../diseno';
+import { MasterButton, MasterGlass, Texto, useTintarHex } from '../../../../diseno';
 import { useEscala } from '../../../../diseno/tema/MasterColorContext';
 import { TonoDelHabito } from '../../../habitos/componentes/TonoDelHabito';
 import { hapticSeguro } from '../../../../nucleo/dispositivo/haptics';
 import type { ResultadoRegistroHabito } from '../../../habitos/tipos';
 import { useMisionHabito } from './useMisionHabito';
 import { FlujoCelebracionMandala } from './FlujoCelebracionMandala';
+import { EncabezadoMision } from './EncabezadoMision';
+import { MandalaCargaInteractiva } from './MandalaCargaInteractiva';
 
 const DURACION_MANTENER_MS = 7000;
 const INTERVALO_MS = 60;
@@ -29,6 +31,7 @@ export function ExperienciaNodoCheck() {
   const [manteniendo, setManteniendo] = useState(false);
   const intervaloRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const inicioRef = useRef(0);
+  const ultimoHitoRef = useRef(0);
 
   const colorPaquete = mision.habito?.colorPaquete ?? mision.habito?.color ?? esm('#7FE3B0');
 
@@ -47,11 +50,19 @@ export function ExperienciaNodoCheck() {
     hapticSeguro('seleccion');
     setManteniendo(true);
     inicioRef.current = Date.now();
+    ultimoHitoRef.current = 0;
     limpiarIntervalo();
     intervaloRef.current = setInterval(() => {
       const transcurrido = Date.now() - inicioRef.current;
       const nuevo = Math.min(100, (transcurrido / DURACION_MANTENER_MS) * 100);
       setPorcentaje(nuevo);
+      
+      const hitoActual = Math.floor(nuevo / 15);
+      if (hitoActual > ultimoHitoRef.current && nuevo < 100) {
+        ultimoHitoRef.current = hitoActual;
+        hapticSeguro('seleccion');
+      }
+
       if (nuevo >= 100) {
         limpiarIntervalo();
         setManteniendo(false);
@@ -116,8 +127,8 @@ function ContenidoCheck({ cargando, color, manteniendo, onCompletar, onIniciarPr
   }
 
   return (
-    <View style={[styles.raiz, { backgroundColor: esc.hoja.l97, paddingBottom: insets.bottom + 32, paddingTop: insets.top + 40 }]}>
-      <Texto style={[styles.titulo, { color: esc.hoja.l22 }]}>{titulo}</Texto>
+    <View style={[styles.raiz, { backgroundColor: esc.hoja.l97, paddingBottom: insets.bottom + 32 }]}>
+      <EncabezadoMision color={color} titulo={titulo} />
       <View style={styles.centro}>
         <Pressable
           accessibilityHint={t('habitos.mandala.check.mantenerAccesibilidad')}
@@ -125,9 +136,9 @@ function ContenidoCheck({ cargando, color, manteniendo, onCompletar, onIniciarPr
           onPressIn={onIniciarPresion}
           onPressOut={onSoltarPresion}
         >
-          <MasterCircularProgressBar colorBase={color} grosor={16} porcentaje={porcentaje} tamano={240}>
+          <MandalaCargaInteractiva colorBase={color} porcentaje={porcentaje} tamano={300}>
             <MasterGlass style={styles.puntoGlass}><View style={styles.puntoBlanco} /></MasterGlass>
-          </MasterCircularProgressBar>
+          </MandalaCargaInteractiva>
         </Pressable>
         <Texto style={[styles.instruccion, { color: esc.musgo.l42 }]}>{manteniendo ? t('habitos.mandala.check.manteniendo') : t('habitos.mandala.check.instruccion')}</Texto>
       </View>
@@ -142,7 +153,6 @@ function ContenidoCheck({ cargando, color, manteniendo, onCompletar, onIniciarPr
 const styles = StyleSheet.create({
   raiz: { alignItems: 'center', flex: 1, justifyContent: 'space-between', paddingHorizontal: 24 },
   centroCarga: { alignItems: 'center', flex: 1, justifyContent: 'center' },
-  titulo: { fontFamily: 'MontserratAlternates-Bold', fontSize: 18, textAlign: 'center' },
   centro: { alignItems: 'center', flex: 1, justifyContent: 'center' },
   puntoGlass: { alignItems: 'center', borderRadius: 32, height: 64, justifyContent: 'center', width: 64 },
   puntoBlanco: { backgroundColor: '#FFFFFF', borderRadius: 8, height: 16, width: 16 },

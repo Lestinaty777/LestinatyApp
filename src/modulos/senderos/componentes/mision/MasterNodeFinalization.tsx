@@ -5,18 +5,12 @@ import { useTranslation } from 'react-i18next';
 import Animated, { FadeIn, useAnimatedStyle, useSharedValue, withDelay, withTiming } from 'react-native-reanimated';
 
 import { Texto, useTintarHex } from '../../../../diseno';
-import { AuroraBoreal, type TemaAurora } from '../../../hoy/componentes/AuroraBoreal';
+import { AuroraBoreal } from '../../../hoy/componentes/AuroraBoreal';
 import { hapticSeguro } from '../../../../nucleo/dispositivo/haptics';
-import { colorMasterMasCercano } from '../../../../diseno/componentes/MasterChanger';
+import { useEscala } from '../../../../diseno/tema/MasterColorContext';
 import { MandalaNodo } from '../../../habitos/componentes/MandalaNodo';
 import type { TrazoMandala } from '../../../habitos/mandalaNodo.tipos';
-
-// No hay ColorMaster→TemaAurora exacto (7 buckets contra 5 temas
-// disponibles) — se toma el tema más cercano en vez de agregar un tema
-// nuevo sólo para esta pantalla.
-const TEMA_POR_COLOR_MASTER: Record<number, TemaAurora> = {
-  1: 'grafito', 2: 'verde', 3: 'amarillo', 4: 'rojo', 5: 'rojo', 6: 'morado', 7: 'morado',
-};
+import { temaAuroraDesdeColor } from './temaAuroraMision';
 
 // Ritual común a los 3 tipos de hábito, deliberadamente abstracto — sólo
 // SVG, tipografía, luz, color y movimiento (sin ilustraciones de semilla,
@@ -37,7 +31,8 @@ export function MasterNodeFinalization() {
     }
   })();
 
-  const tema = TEMA_POR_COLOR_MASTER[colorMasterMasCercano(color)];
+  const tema = temaAuroraDesdeColor(color);
+  const esc = useEscala();
   const escala = useSharedValue(1);
   const opacidadTexto = useSharedValue(0);
 
@@ -58,21 +53,21 @@ export function MasterNodeFinalization() {
   const estiloTexto = useAnimatedStyle(() => ({ opacity: opacidadTexto.value }));
 
   return (
-    <View style={styles.raiz}>
+    <View style={[styles.raiz, { backgroundColor: esc.hoja.l97 }]}>
       <View style={StyleSheet.absoluteFill}><AuroraBoreal tema={tema} /></View>
       <Animated.View entering={FadeIn.duration(400)} style={[styles.centro, estiloMandala]}>
         <MandalaNodo animado={false} color={color} estado="creada" semilla={`nodo-${params.nodoDia ?? '1'}`} tamano={220} trazos={trazos} />
       </Animated.View>
       <Animated.View style={[styles.textoContenedor, estiloTexto]}>
-        <Texto style={styles.texto}>{t('habitos.mandala.finalizacion.nodoCultivado')}</Texto>
+        <Texto style={[styles.texto, { color: esc.hoja.l22 }]}>{t('habitos.mandala.finalizacion.nodoCultivado')}</Texto>
       </Animated.View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  raiz: { alignItems: 'center', backgroundColor: 'rgba(6,8,18,0.92)', flex: 1, justifyContent: 'center' },
+  raiz: { alignItems: 'center', flex: 1, justifyContent: 'center' },
   centro: { alignItems: 'center', justifyContent: 'center' },
   textoContenedor: { bottom: 96, position: 'absolute' },
-  texto: { color: '#FFFFFF', fontFamily: 'MontserratAlternates-Bold', fontSize: 16, letterSpacing: 0.4 },
+  texto: { fontFamily: 'MontserratAlternates-Bold', fontSize: 16, letterSpacing: 0.4 },
 });

@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Image, type ImageSourcePropType, ScrollView, StyleSheet, useWindowDimensions, View, Pressable, TouchableWithoutFeedback } from 'react-native';
-import { useRouter } from 'expo-router';
 import Svg, { Path } from 'react-native-svg';
 import { BlurMask, Canvas, Group, Oval, Path as PathSkia } from '@shopify/react-native-skia';
 
@@ -64,7 +63,6 @@ const separacionVertical = 112;
 // primer nodo entra cerca al cambiar de nivel, sin efecto de alejamiento.
 const margenSuperior = 222;
 const margenInferior = 64;
-const AnimatedPath = Animated.createAnimatedComponent(Path);
 const zIndexPorCapa = { fondo: 1, medio: 3, frente: 4 } as const;
 
 // Sombra de contacto muy sutil bajo cada elemento del terreno,
@@ -311,20 +309,28 @@ export function ContenedorMapaSenderos({ altura, categoriaId, color, colorPaquet
   const colorCofre = colorPaquete ?? color;
   const styles = useEstilosStyles();
   const { width } = useWindowDimensions();
-  const router = useRouter();
   const scrollRef = useRef<ScrollView>(null);
   const [anchoMapa, setAnchoMapa] = useState(0);
   const [desplazamientoMapa, setDesplazamientoMapa] = useState(0);
   const [cofreApertura, setCofreApertura] = useState<InfoCofre | null>(null);
   const desplazamientoDecoracionRef = useRef(0);
   const nodos = nodosOverride ?? obtenerNodosMapaMock(subcategoriaId);
-  const ultimoCompletadoInicial = Math.max(-1, nodos.reduce((ultimo, nodo, indice) => nodo.estado === 'completado' ? indice : ultimo, -1));
-  const [ultimoCompletado, setUltimoCompletado] = useState(ultimoCompletadoInicial);
+  // Derivado en cada render a partir de `nodos` — NO useState: `nodos` llega
+  // como prop desde React Query y cambia cuando se completa un día (p. ej.
+  // al volver de la pantalla de misión sin que este componente se
+  // desmonte). Antes era un useState con valor inicial fijo, así que quedaba
+  // congelado en el primer cálculo y el mapa se "trababa" un nodo atrás del
+  // real hasta que la pantalla se desmontaba por completo.
+  const ultimoCompletado = Math.max(-1, nodos.reduce((ultimo, nodo, indice) => nodo.estado === 'completado' ? indice : ultimo, -1));
   const indiceNodoActual = Math.min(nodos.length - 1, ultimoCompletado + 1);
   const idNodoActual = nodos[indiceNodoActual]?.id ?? '';
   const [seleccionado, setSeleccionado] = useState(idNodoActual);
-  const [conexionEnCurso, setConexionEnCurso] = useState<number | null>(null);
-  const progresoConexion = useRef(new Animated.Value(0)).current;
+  const idNodoActualRef = useRef(idNodoActual);
+  useEffect(() => {
+    if (idNodoActualRef.current === idNodoActual) return;
+    idNodoActualRef.current = idNodoActual;
+    setSeleccionado(idNodoActual);
+  }, [idNodoActual]);
   const margenSuperiorEfectivo = desplazamientoSuperior ?? margenSuperior;
   const altoContenido = Math.max(altura, margenSuperiorEfectivo + Math.max(0, nodos.length - 1) * separacionVertical + 430);
   // El lienzo de nodos y conexiones nunca se virtualiza: es interactivo y
@@ -370,8 +376,6 @@ export function ContenedorMapaSenderos({ altura, categoriaId, color, colorPaquet
       : indiceNodoSeleccionado === indiceNodoActual
         ? nodos[indiceNodoSeleccionado].estado
         : 'bloqueado';
-  const desplazamientoTrazo = progresoConexion.interpolate({ inputRange: [0, 1], outputRange: [176, 0] });
-
   if (nodos.length === 0) return null;
 
   function seleccionarNodo(id: string, indice: number) {
@@ -384,23 +388,6 @@ export function ContenedorMapaSenderos({ altura, categoriaId, color, colorPaquet
 
   function completarNodo(indice: number) {
     if (onCompletarNodo) { onCompletarNodo(nodos[indice], indice); return; }
-
-    // MOCKUP: Al darle comenzar, navegamos a la pantalla de lección para ver el SDUI
-    router.push({ pathname: '/senderos/leccion', params: { color } });
-    return;
-
-    if (indice !== indiceNodoActual || indice >= nodos.length - 1) return;
-
-    setUltimoCompletado(indice);
-    setSeleccionado(nodos[indice + 1].id);
-    setConexionEnCurso(indice);
-    progresoConexion.setValue(0);
-    Animated.sequence([
-      Animated.delay(180),
-      Animated.timing(progresoConexion, { duration: 560, toValue: 1, useNativeDriver: false }),
-    ]).start(({ finished }) => {
-      if (finished) setConexionEnCurso(null);
-    });
   }
 
   function medirAnchoMapa(ancho: number) {
@@ -466,7 +453,6 @@ export function ContenedorMapaSenderos({ altura, categoriaId, color, colorPaquet
         <Svg height={altoContenido} pointerEvents="none" style={[StyleSheet.absoluteFill, { zIndex: 2 }]} width={anchoEscena}>
           {conexiones.map((conexion, indice) => {
             const completa = indice < ultimoCompletado;
-            const animando = conexionEnCurso === indice;
             return (
               <React.Fragment key={conexion.id}>
                 <Path
@@ -477,17 +463,6 @@ export function ContenedorMapaSenderos({ altura, categoriaId, color, colorPaquet
                   strokeLinecap="round"
                   strokeWidth={completa ? Math.max(3.5, 7 - indice * 0.7) : 3.5}
                 />
-                {animando ? (
-                  <AnimatedPath
-                    d={conexion.d}
-                    fill="none"
-                    stroke={color}
-                    strokeDasharray="176 176"
-                    strokeDashoffset={desplazamientoTrazo as any}
-                    strokeLinecap="round"
-                    strokeWidth={Math.max(3.5, 7 - indice * 0.7)}
-                  />
-                ) : null}
               </React.Fragment>
             );
           })}
@@ -515,6 +490,7 @@ export function ContenedorMapaSenderos({ altura, categoriaId, color, colorPaquet
             return (
               <View key={nodo.id} style={[styles.nodoPosicion, { left: posicion.x - 42, top: posicion.y - 48, zIndex: 20 }]}>
                 <NodoCofreSendero
+                  bloqueado={estadoVisual === 'bloqueado'}
                   cofre={cofreInfo}
                   color={color}
                   colorPaquete={colorCofre}
@@ -631,16 +607,31 @@ function TooltipNodoSeleccionado({ anchoEscena, color, estado, infoHabito, nodo,
 
   const esCofre = nodo.tipoNodo === 'cofre_intermedio' || nodo.tipoNodo === 'cofre_final';
   const cofreInfo = nodo.cofre;
+  // Un cofre ES el nodo del día final/intermedio — antes de completarse, su
+  // `cofre.estadoCofre` es 'bloqueado' (el PREMIO no es reclamable todavía),
+  // pero eso NO significa que el día sea inalcanzable: si `estado` (el
+  // estado real del nodo) dice 'activo'/'esperando', hay que dejar que el
+  // usuario entre a hacer la misión de ese día — si no, el cofre queda como
+  // un candado sin salida (nunca se puede completar porque nunca se puede
+  // tocar). Sólo cuando `estado === 'bloqueado'` de verdad (día futuro, aún
+  // no alcanzable) el cofre se muestra genuinamente bloqueado.
+  const cofrePendienteDeHacer = esCofre && cofreInfo?.estadoCofre !== 'disponible' && cofreInfo?.estadoCofre !== 'reclamado';
   const descripcionFinal = esCofre
     ? cofreInfo?.estadoCofre === 'reclamado'
       ? `Cofre ya reclamado (+${cofreInfo.gemasReclamadas ?? cofreInfo.gemasMin} gemas).`
       : cofreInfo?.estadoCofre === 'disponible'
         ? `¡Listo para abrir! Contiene de ${cofreInfo.gemasMin} a ${cofreInfo.gemasMax} gemas.`
-        : 'Completa los días de constancia previos para desbloquear este cofre.'
+        : cofrePendienteDeHacer && estado !== 'bloqueado'
+          ? descripcionNodoHabito
+          : 'Completa los días de constancia previos para desbloquear este cofre.'
     : descripcionNodoHabito;
 
   const botonDeshabilitado = esCofre
-    ? cofreInfo?.estadoCofre !== 'disponible'
+    ? cofreInfo?.estadoCofre === 'disponible'
+      ? false
+      : cofreInfo?.estadoCofre === 'reclamado'
+        ? true
+        : estado === 'bloqueado' || estado === 'esperando'
     : estado === 'bloqueado' || estado === 'esperando';
 
   const textoBoton = esCofre
@@ -648,7 +639,11 @@ function TooltipNodoSeleccionado({ anchoEscena, color, estado, infoHabito, nodo,
       ? 'Reclamado'
       : cofreInfo?.estadoCofre === 'disponible'
         ? '¡Abrir Cofre!'
-        : t('senderos.map.blocked')
+        : estado === 'esperando'
+          ? t('senderos.map.waitingTomorrow')
+          : estado === 'bloqueado'
+            ? t('senderos.map.blocked')
+            : t('senderos.map.start')
     : estado === 'bloqueado'
       ? t('senderos.map.blocked')
       : estado === 'esperando'

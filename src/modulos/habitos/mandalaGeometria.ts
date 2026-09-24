@@ -44,6 +44,42 @@ export function trazoDesdeSemilla(semillaTexto: string, radioMaximo = 118): Traz
   return puntos;
 }
 
+// Cuántos puntos de control sobreviven antes de suavizar — con tan pocos,
+// un temblor de cursor o un cambio brusco de dirección deja de poder
+// representarse: el trazo sale redondeado siempre, no sólo al final.
+// Validado en el prototipo interactivo (artifact "Mandala de Sendero" v8).
+export const PUNTOS_CURVA_IDEAL = 9;
+
+function longitudAcumulada(puntos: TrazoMandala[]): number[] {
+  const acumulado = [0];
+  for (let i = 1; i < puntos.length; i += 1) {
+    acumulado.push(acumulado[i - 1] + Math.hypot(puntos[i].x - puntos[i - 1].x, puntos[i].y - puntos[i - 1].y));
+  }
+  return acumulado;
+}
+
+// Re-muestrea el trazo crudo a `n` puntos equidistantes por longitud de
+// arco — el "espacio que respeta las leyes" que limita las formas
+// representables, en vez de suavizar libremente sobre el trazo original.
+export function resamplearTrazo(puntos: TrazoMandala[], n = PUNTOS_CURVA_IDEAL): TrazoMandala[] {
+  if (puntos.length < 2) return puntos;
+  const acumulado = longitudAcumulada(puntos);
+  const total = acumulado[acumulado.length - 1];
+  if (total <= 0) return puntos;
+  const salida: TrazoMandala[] = [];
+  for (let i = 0; i < n; i += 1) {
+    const objetivo = (i / (n - 1)) * total;
+    let j = 0;
+    while (j < acumulado.length - 2 && acumulado[j + 1] < objetivo) j += 1;
+    const p0 = puntos[j];
+    const p1 = puntos[Math.min(j + 1, puntos.length - 1)];
+    const largoSegmento = acumulado[j + 1] - acumulado[j] || 1;
+    const t = (objetivo - acumulado[j]) / largoSegmento;
+    salida.push({ x: p0.x + (p1.x - p0.x) * t, y: p0.y + (p1.y - p0.y) * t });
+  }
+  return salida;
+}
+
 function puntoCatmullRom(p0: TrazoMandala, p1: TrazoMandala, p2: TrazoMandala, p3: TrazoMandala, t: number): TrazoMandala {
   const t2 = t * t;
   const t3 = t2 * t;
@@ -150,10 +186,11 @@ export function trazarCintaSvg(puntos: TrazoMandala[], anchoBase: number): strin
   return d;
 }
 
-// Pipeline completo: suaviza una sola vez y rota+traza 7 veces — listo para
-// pasar cada `d` a un <Path>.
+// Pipeline completo: re-muestrea a 9 puntos (siempre — en vivo y al fijar,
+// nunca sólo al soltar), suaviza una sola vez y rota+traza 7 veces — listo
+// para pasar cada `d` a un <Path>.
 export function construirCaminosMandala(puntosCrudos: TrazoMandala[], anchoBase: number): string[] {
-  const suave = suavizarTrazo(puntosCrudos);
+  const suave = suavizarTrazo(resamplearTrazo(puntosCrudos));
   const caminos: string[] = [];
   for (let k = 0; k < PLIEGUES_MANDALA; k += 1) {
     caminos.push(trazarCintaSvg(rotarPuntos(suave, (k / PLIEGUES_MANDALA) * Math.PI * 2), anchoBase));
