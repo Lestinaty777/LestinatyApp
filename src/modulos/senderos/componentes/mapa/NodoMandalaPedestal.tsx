@@ -13,15 +13,15 @@ import type { InfoMandalaNodo } from '../../../habitos/mandalaNodo.tipos';
 import { PedestalBase, PedestalBotonSuperior } from './PedestalNodo';
 
 const TAMANO_PEDESTAL = 84;
-export const TAMANO_MANDALA_PEDESTAL = 54;
+export const TAMANO_MANDALA_PEDESTAL = 64;
 // Centro de la elipse superior del pedestal (cy=119 en el lienzo 302x303 de
 // PedestalNodo.tsx). La mandala se para un poco por debajo, "plantada".
 const CENTRO_TOPE_PEDESTAL = (119 / 303) * TAMANO_PEDESTAL;
-const BASE_MANDALA = CENTRO_TOPE_PEDESTAL + 7;
+const BASE_MANDALA = CENTRO_TOPE_PEDESTAL + 9;
 const ARRIBA_MANDALA = BASE_MANDALA - TAMANO_MANDALA_PEDESTAL * 0.95;
 const LADO_PARTICULAS = 84;
 const PAUSA_GIRO_MS = 3000;
-const DURACION_GIRO_MS = 1600;
+const DURACION_GIRO_MS = 1700;
 
 type NodoMandalaPedestalProps = {
   color: string;
