@@ -8,6 +8,7 @@ import { BlurMask, Canvas, Circle, DashPathEffect, Group, Path, Skia, type SkPat
 
 import { hapticSeguro } from '../../../../nucleo/dispositivo/haptics';
 import { coloresMandala } from '../../../habitos/componentes/MandalaExtruido';
+import { ParticulasMandala } from '../../../habitos/componentes/ParticulasMandala';
 import {
   ACTOS_SELLO, type CapaSello, DURACION_SELLO_MS, FACTOR_RETROCESO, generarGeometriaSello, giroSello,
   type OrbitasSello, pulsosSello, seg, ventanaCapa,
@@ -17,6 +18,7 @@ const DURACION_CLIMAX_MS = 750;
 const RETRASO_ASCENSO_MS = 650;
 const DURACION_ASCENSO_MS = 750;
 const MOTAS_ESTALLIDO = 18;
+const PARTICULAS_POLVO = 26;
 
 const ENCENDIDO_FIN = ACTOS_SELLO.encendido[1];
 // Márgenes en fracción de progreso, precalculados: dentro de un worklet no
@@ -117,32 +119,49 @@ export function useSelloMantener({ onClimaxTerminado, onCompleto, semilla }: Opc
 
 // ─── Visual ──────────────────────────────────────────────────────────────
 
-function pathPoligono(cx: number, cy: number, radio: number, capa: CapaSello): SkPath {
+function anguloVertice(capa: CapaSello, i: number) {
+  return capa.rotInicial + (i * Math.PI * 2) / capa.lados - Math.PI / 2;
+}
+
+function pathCapa(cx: number, cy: number, radio: number, capa: CapaSello): SkPath {
   const path = Skia.Path.Make();
-  if (capa.lados === 0) { path.addCircle(cx, cy, radio); return path; }
-  for (let i = 0; i <= capa.lados; i += 1) {
-    const a = capa.rotInicial + (i * Math.PI * 2) / capa.lados - Math.PI / 2;
+  if (capa.forma === 'circulo') { path.addCircle(cx, cy, radio); return path; }
+  if (capa.forma === 'roseta') {
+    // Cada pétalo es un círculo de medio radio que pasa por el centro.
+    for (let i = 0; i < capa.lados; i += 1) {
+      const a = anguloVertice(capa, i);
+      path.addCircle(cx + (radio / 2) * Math.cos(a), cy + (radio / 2) * Math.sin(a), radio / 2);
+    }
+    return path;
+  }
+  // Polígono (salto 1) o estrella {lados/salto}: un solo trazo cerrado.
+  for (let k = 0; k <= capa.lados; k += 1) {
+    const a = anguloVertice(capa, (k * capa.salto) % capa.lados);
     const x = cx + radio * Math.cos(a);
     const y = cy + radio * Math.sin(a);
-    if (i === 0) path.moveTo(x, y); else path.lineTo(x, y);
+    if (k === 0) path.moveTo(x, y); else path.lineTo(x, y);
   }
   path.close();
   return path;
 }
 
+// Puntos donde destella la figura al cerrarse: sus vértices, o la punta
+// exterior de cada pétalo.
 function verticesCapa(cx: number, cy: number, radio: number, capa: CapaSello) {
+  if (capa.forma === 'circulo') return [];
   return Array.from({ length: capa.lados }, (_, i) => {
-    const a = capa.rotInicial + (i * Math.PI * 2) / capa.lados - Math.PI / 2;
+    const a = anguloVertice(capa, i);
     return { x: cx + radio * Math.cos(a), y: cy + radio * Math.sin(a) };
   });
 }
 
 // La red de la resonancia: estrella interna (i → i+2) en polígonos de 5+
-// lados, radios al centro en triángulos y cuadrados.
-function pathRed(cx: number, cy: number, radio: number, capa: CapaSello): SkPath {
+// lados, radios al centro en el resto; círculos y rosetas no llevan red.
+function pathRed(cx: number, cy: number, radio: number, capa: CapaSello): SkPath | null {
+  if (capa.forma === 'circulo' || capa.forma === 'roseta') return null;
   const path = Skia.Path.Make();
   const vertices = verticesCapa(cx, cy, radio, capa);
-  if (capa.lados >= 5) {
+  if (capa.forma === 'poligono' && capa.lados >= 5) {
     vertices.forEach((v, i) => { const w = vertices[(i + 2) % vertices.length]; path.moveTo(v.x, v.y); path.lineTo(w.x, w.y); });
   } else {
     vertices.forEach((v) => { path.moveTo(cx, cy); path.lineTo(v.x, v.y); });
@@ -172,9 +191,9 @@ export function SelloCargaInteractiva({ ascenso, children, colorBase, paqueteId,
   const figuras = useMemo(() => capas.map((capa, i) => ({
     capa,
     color: tonos[i % tonos.length],
-    path: pathPoligono(c, c, R * capa.radio, capa),
-    red: capa.lados > 0 ? pathRed(c, c, R * capa.radio, capa) : null,
-    vertices: capa.lados > 0 ? verticesCapa(c, c, R * capa.radio, capa) : [],
+    path: pathCapa(c, c, R * capa.radio, capa),
+    red: pathRed(c, c, R * capa.radio, capa),
+    vertices: verticesCapa(c, c, R * capa.radio, capa),
     ventana: ventanaCapa(i, capas.length),
   })), [R, c, capas, tonos]);
   const circuloEncendido = useMemo(() => { const p = Skia.Path.Make(); p.addCircle(c, c, R * 1.08); return p; }, [R, c]);
@@ -200,6 +219,9 @@ export function SelloCargaInteractiva({ ascenso, children, colorBase, paqueteId,
   const opacidadOnda = useDerivedValue(() => (sello.value === 0 ? 0 : 0.9 * (1 - sello.value)));
   const destello = useDerivedValue(() => interpolate(sello.value, [0, 0.08, 0.5], [0, 0.85, 0], Extrapolation.CLAMP));
   const transformGlobal = useDerivedValue(() => [{ scale: escala.value }]);
+  // Polvo de luz blanco: aparece con la penumbra y se intensifica hacia el
+  // sello; tras el estallido se apaga con el punto de luz.
+  const polvo = useDerivedValue(() => interpolate(progreso.value, [0, ENCENDIDO_FIN, RESONANCIA_INI, CONVERGENCIA_FIN], [0, 0.45, 0.75, 1], Extrapolation.CLAMP) * (1 - ascenso.value));
 
   // El punto de luz final: todo se comprime y sube fuera de la pantalla.
   const estiloAscenso = useAnimatedStyle(() => ({
@@ -209,6 +231,9 @@ export function SelloCargaInteractiva({ ascenso, children, colorBase, paqueteId,
 
   return (
     <Animated.View style={[{ height: tamano, width: tamano }, estiloAscenso]}>
+      <View pointerEvents="none" style={[styles.lienzo, { height: lado, left: -(lado - tamano) / 2, top: -(lado - tamano) / 2, width: lado }]}>
+        <ParticulasMandala cantidad={PARTICULAS_POLVO} escalaPunto={1.5} intensidad={1} tamano={lado} visibilidad={polvo} />
+      </View>
       <Canvas pointerEvents="none" style={[styles.lienzo, { height: lado, left: -(lado - tamano) / 2, top: -(lado - tamano) / 2, width: lado }]}>
         <Group opacity={halo}>
           <Circle color={paleta.canto} cx={c} cy={c} r={R * 1.15}>

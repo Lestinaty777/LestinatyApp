@@ -21,7 +21,7 @@ import { SelloCargaInteractiva, useSelloMantener } from './SelloCargaInteractiva
 // salida al mapa espera a que el punto de luz termine de subir — la
 // celebración no corta el clímax.
 export function ExperienciaNodoCheck() {
-  const params = useLocalSearchParams<{ habitoId: string }>();
+  const params = useLocalSearchParams<{ habitoId: string; diaGlobal?: string }>();
   const router = useRouter();
   const esm = useTintarHex();
   const mision = useMisionHabito(params.habitoId ?? '');
@@ -29,7 +29,9 @@ export function ExperienciaNodoCheck() {
   const [climaxTerminado, setClimaxTerminado] = useState(false);
 
   const colorPaquete = mision.habito?.colorPaquete ?? mision.habito?.color ?? esm('#7FE3B0');
-  const semilla = mision.habito?.titulo ?? 'mandala';
+  // Hábito + día: cada check dibuja un sello distinto, y reabrir el mismo
+  // día muestra el mismo.
+  const semilla = `${params.habitoId ?? mision.habito?.titulo ?? 'mandala'}:${params.diaGlobal ?? ''}`;
 
   const selloMantener = useSelloMantener({
     onClimaxTerminado: () => setClimaxTerminado(true),

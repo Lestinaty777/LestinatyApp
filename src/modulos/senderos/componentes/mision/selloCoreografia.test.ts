@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { ACTOS_SELLO, generarGeometriaSello, giroSello, pulsosSello, seg, ventanaCapa, VUELTAS_SELLO } from './selloCoreografia';
+import { ACTOS_SELLO, FAMILIAS_SELLO, generarGeometriaSello, giroSello, pulsosSello, seg, ventanaCapa, VUELTAS_SELLO } from './selloCoreografia';
 
 describe('coreografía del sello', () => {
   it('los actos cubren los 7 segundos sin huecos', () => {
@@ -32,6 +32,28 @@ describe('coreografía del sello', () => {
       const { capas } = generarGeometriaSello(`hábito ${i}`);
       expect(capas.length).toBeGreaterThanOrEqual(2);
       for (const capa of capas) expect(Number.isInteger(capa.velocidad)).toBe(true);
+    }
+  });
+
+  it('cada día de cada hábito da un sello distinto', () => {
+    const firmas = new Set<string>();
+    for (let habito = 0; habito < 5; habito += 1) {
+      for (let dia = 1; dia <= 60; dia += 1) firmas.add(JSON.stringify(generarGeometriaSello(`habito-${habito}:${dia}`).capas));
+    }
+    expect(firmas.size).toBe(300);
+  });
+
+  it('aparecen las cinco familias', () => {
+    const familias = new Set(Array.from({ length: 200 }, (_, i) => generarGeometriaSello(`h:${i}`).familia));
+    expect([...familias].sort()).toEqual([...FAMILIAS_SELLO].sort());
+  });
+
+  it('las estrellas {n/k} se cierran en un solo trazo (n y k coprimos)', () => {
+    const mcd = (a: number, b: number): number => (b === 0 ? a : mcd(b, a % b));
+    for (let i = 0; i < 300; i += 1) {
+      for (const capa of generarGeometriaSello(`e:${i}`).capas) {
+        if (capa.forma === 'estrella') expect(mcd(capa.lados, capa.salto)).toBe(1);
+      }
     }
   });
 
