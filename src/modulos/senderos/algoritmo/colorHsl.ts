@@ -63,6 +63,14 @@ export function hueDeHex(hex: string): number {
   return rgbAHsl(r, g, b).h;
 }
 
+/** Rota el hue y, si hace falta, sube la saturación a un mínimo (para paquetes casi grises). */
+export function ajustarHueSaturacionHex(hex: string, deltaGrados: number, saturacionMinima = 0): string {
+  const { r, g, b } = hexARgb(hex);
+  const { h, s, l } = rgbAHsl(r, g, b);
+  const ajustado = hslARgb(h + deltaGrados, Math.max(s, saturacionMinima), l);
+  return rgbAHex(ajustado.r, ajustado.g, ajustado.b);
+}
+
 export function rotarHueHex(hex: string, deltaGrados: number): string {
   const { r, g, b } = hexARgb(hex);
   const { h, s, l } = rgbAHsl(r, g, b);

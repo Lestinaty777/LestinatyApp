@@ -54,6 +54,7 @@ function limitarAlAnillo(p: TrazoMandala): TrazoMandala {
 
 type CompositorOverlayProps = {
   color: string;
+  paqueteId?: string | null;
   registroId: string;
   /** Dónde está la mandala del pedestal en el plano del mapa (ver NodoMandalaPedestal). */
   medirDestino: () => Promise<DestinoMapa | null>;
@@ -74,7 +75,7 @@ type CompositorOverlayProps = {
 //   4. anclado: golpe háptico, destello en el suelo; la mandala real del
 //      mapa ya está debajo en la misma pose, así que el overlay se va sin
 //      que se note.
-export function CompositorOverlay({ color, medirDestino, onAnclado, onCancelado, onTerminado, registroId }: CompositorOverlayProps) {
+export function CompositorOverlay({ color, medirDestino, onAnclado, onCancelado, onTerminado, paqueteId, registroId }: CompositorOverlayProps) {
   const { t } = useTranslation();
   const esc = useEscala();
   const cliente = useQueryClient();
@@ -110,7 +111,7 @@ export function CompositorOverlay({ color, medirDestino, onAnclado, onCancelado,
   const relieve = useSharedValue(0);
   const inclinacion = useSharedValue(0);
   const polvo = useSharedValue(0);
-  const paleta = useMemo(() => coloresMandala(color), [color]);
+  const paleta = useMemo(() => coloresMandala(color, paqueteId), [color, paqueteId]);
   const destelloProgreso = useSharedValue(0);
 
   function cambiarFase(siguiente: Fase) {
@@ -393,7 +394,7 @@ export function CompositorOverlay({ color, medirDestino, onAnclado, onCancelado,
               </GestureDetector>
             ) : (
               <>
-                <MandalaExtruido color={color} giro={giro} inclinacion={inclinacion} relieve={relieve} tamano={LADO} trazos={trazoFinal} />
+                <MandalaExtruido color={color} giro={giro} paqueteId={paqueteId} inclinacion={inclinacion} relieve={relieve} tamano={LADO} trazos={trazoFinal} />
                 <ParticulasMandala cantidad={18} escalaPunto={2.6} intensidad={1} tamano={LADO} visibilidad={polvo} />
               </>
             )}

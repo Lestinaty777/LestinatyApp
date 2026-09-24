@@ -20,6 +20,7 @@ const PENDIENTES: string[] = [];
 // tema ni la escala), así que se mantienen literales.
 const EXENTOS_POR_DISENO: Record<string, string> = {
   'src/modulos/habitos/widgets/VistaPreviaWidgetHabito.tsx': 'vista previa que imita el widget de Android: hex exactos del widget',
+  'src/modulos/habitos/nacarMandala.ts': 'master_pack_color reales de arboles_paquetes (datos del paquete, no UI): identifican el paquete por color',
 };
 
 // app/ también: ahí vive la barra de navegación (_layout), que se escapó cuando solo se miraba src/.

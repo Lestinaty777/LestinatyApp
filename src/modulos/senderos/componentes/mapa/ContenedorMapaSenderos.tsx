@@ -64,7 +64,7 @@ type ContenedorMapaSenderosProps = {
   onEncargoConsumido?: () => void;
 };
 
-type RitualMandala = { anclado: boolean; color: string; registroId: string };
+type RitualMandala = { anclado: boolean; color: string; paqueteId: string | null; registroId: string };
 
 const separacionVertical = 112;
 // Debe reflejar el arranque compacto que usa generarMapaProcedural; así el
@@ -406,7 +406,7 @@ export function ContenedorMapaSenderos({ altura, categoriaId, color, colorPaquet
     // Sin tooltip: el nodo queda despejado para que la mandala aterrice.
     setSeleccionado('');
     enfocarNodo(indice);
-    setRitual({ anclado: false, color: mandala.color ?? colorCofre, registroId: mandala.registroId });
+    setRitual({ anclado: false, color: mandala.color ?? colorCofre, paqueteId: mandala.paqueteId ?? paqueteId ?? null, registroId: mandala.registroId });
   }
 
   useEffect(() => {
@@ -651,6 +651,7 @@ export function ContenedorMapaSenderos({ altura, categoriaId, color, colorPaquet
       <CompositorOverlay
         color={ritual.color}
         key={ritual.registroId}
+        paqueteId={ritual.paqueteId}
         medirDestino={() => medirAnclaMandala(ritual.registroId)}
         onAnclado={(trazos) => {
           setTrazosAnclados((actuales) => new Map(actuales).set(ritual.registroId, trazos));

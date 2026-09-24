@@ -3,9 +3,9 @@ import { StyleSheet, View } from 'react-native';
 import { type SharedValue, useDerivedValue } from 'react-native-reanimated';
 import { Canvas, Path, Shader, Skia, type SkPath } from '@shopify/react-native-skia';
 
-import { rotarHueHex } from '../../senderos/algoritmo/colorHsl';
 import { construirContornosMandala } from '../mandalaGeometria';
 import { prepararPoligonos, proyectarExtrusion, TONOS_PARED } from '../mandalaExtrusion';
+import { tonosNacarMandala } from '../nacarMandala';
 import type { TrazoMandala } from '../mandalaNodo.tipos';
 
 // Mismo espacio de coordenadas que el lienzo donde se traza (radio ~150,
@@ -25,9 +25,7 @@ export const BLANCO_PASTEL_MANDALA = 0.7;
 export const GROSOR_MANDALA = 0.08;
 // Cuánto del nácar se mezcla con el pastel (0 = pastel liso).
 export const INTENSIDAD_NACAR = 0.5;
-// Tonos vecinos del paquete que recorre el nácar: ± estos grados de matiz
-// (Mathist va de azul a magenta; Esmeralda, de verde-amarillo a turquesa).
-export const APERTURA_NACAR = 40;
+// Hacia qué tonos vecinos abre el nácar de cada paquete: nacarMandala.ts.
 // Blanco de los tonos del nácar: algo menos que la cara, para que se noten.
 const BLANCO_NACAR = 0.5;
 // Brillo de la franja de luz que cruza la cara al girar (0 = sin destello).
@@ -89,27 +87,31 @@ function aHex(valores: number[]) {
 // Cara pastel (el color del paquete mezclado con blanco) y canto en el color
 // pleno, como una joya: suave de frente, intensa de costado — el canto es lo
 // que la despega de un mapa que ya es una versión clara del mismo color.
-export function coloresMandala(color: string) {
+export function coloresMandala(color: string, paqueteId?: string | null) {
   const rgb = canales(color) ?? [178, 95, 251];
+  const nacar = tonosNacarMandala(paqueteId, aHex(rgb));
+  const rgbCanto = canales(nacar.canto) ?? rgb;
   const mezclar = (blanco: number, base = rgb) => base.map((v) => v + (255 - v) * blanco);
-  const vecino = (grados: number) => mezclar(BLANCO_NACAR, canales(rotarHueHex(aHex(rgb), grados)) ?? rgb).map((v) => v / 255);
+  const reflejo = (tono: string) => mezclar(BLANCO_NACAR, canales(tono) ?? rgb).map((v) => v / 255);
   return {
-    canto: aHex(rgb.map((v) => v * 0.88)),
+    canto: aHex(rgbCanto),
     cara: aHex(mezclar(BLANCO_PASTEL_MANDALA)),
     // El reverso, un pastel más profundo y sin filo: se distingue del frente.
     reverso: aHex(mezclar(BLANCO_PASTEL_MANDALA - 0.18)),
     filo: '#FFFFFF',
     caraRgb: mezclar(BLANCO_PASTEL_MANDALA).map((v) => v / 255),
     reversoRgb: mezclar(BLANCO_PASTEL_MANDALA - 0.18).map((v) => v / 255),
-    paredes: BRILLO_PAREDES.map((k) => aHex(rgb.map((v) => v * 0.88 * k))),
-    tonoA: vecino(-APERTURA_NACAR),
-    tonoB: vecino(APERTURA_NACAR),
+    paredes: BRILLO_PAREDES.map((k) => aHex(rgbCanto.map((v) => v * k))),
+    tonoA: reflejo(nacar.tonoA),
+    tonoB: reflejo(nacar.tonoB),
   };
 }
 
 type MandalaExtruidoProps = {
   /** Color pleno del paquete; la cara pastel y el canto se derivan de él. */
   color: string;
+  /** Paquete de la mandala: elige hacia qué tonos abre su nácar. */
+  paqueteId?: string | null;
   trazos: TrazoMandala[];
   tamano: number;
   /** Giro sobre el eje vertical, en grados. */
@@ -151,9 +153,9 @@ function armarCuadrilateros(cuadrilateros: number[]): SkPath {
 // y dibujadas en un solo Canvas de Skia — sin láminas apiladas, así el canto
 // se ve macizo. Sólo se dibujan la cara que mira a cámara y las paredes
 // visibles; como la cara es siempre lo más cercano, va encima de todo.
-export function MandalaExtruido({ color, giro, inclinacion, relieve, tamano, trazos }: MandalaExtruidoProps) {
+export function MandalaExtruido({ color, giro, inclinacion, paqueteId, relieve, tamano, trazos }: MandalaExtruidoProps) {
   const poligonos = useMemo(() => prepararPoligonos(construirContornosMandala(trazos, ANCHO_CINTA_MANDALA)), [trazos]);
-  const paleta = useMemo(() => coloresMandala(color), [color]);
+  const paleta = useMemo(() => coloresMandala(color, paqueteId), [color, paqueteId]);
   const margen = tamano * MARGEN_LIENZO;
   const lado = tamano + margen * 2;
   const centro = lado / 2;

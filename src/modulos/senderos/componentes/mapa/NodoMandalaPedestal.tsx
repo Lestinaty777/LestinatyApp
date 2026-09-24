@@ -142,7 +142,7 @@ export const NodoMandalaPedestal = forwardRef<View, NodoMandalaPedestalProps>(fu
 
         <View collapsable={false} pointerEvents="none" ref={refAncla} style={styles.ancla}>
           {creada && !oculta && mandala.trazos && (
-            <MandalaExtruido color={color} giro={giro} tamano={TAMANO_MANDALA_PEDESTAL} trazos={mandala.trazos} />
+            <MandalaExtruido color={color} giro={giro} paqueteId={mandala.paqueteId} tamano={TAMANO_MANDALA_PEDESTAL} trazos={mandala.trazos} />
           )}
         </View>
 
