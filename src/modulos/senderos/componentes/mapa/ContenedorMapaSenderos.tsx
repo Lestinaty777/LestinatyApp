@@ -21,7 +21,8 @@ import { NodoSendero } from './NodoSendero';
 import { NodoCofreSendero } from './NodoCofreSendero';
 import type { InfoMandalaNodo, TrazoMandala } from '../../../habitos/mandalaNodo.tipos';
 import { NodoMandalaPedestal } from './NodoMandalaPedestal';
-import { CompositorOverlay, type RectPantalla } from './CompositorOverlay';
+import { CompositorOverlay, type DestinoMapa } from './CompositorOverlay';
+import { CAMARA_MAPA } from './camaraMapa';
 import { ModalAperturaCofre } from './ModalAperturaCofre';
 import type { InfoCofre } from '../../datos/mapaEjercicio.mock';
 import { useEscala } from '../../../../diseno/tema/MasterColorContext';
@@ -326,6 +327,11 @@ export function ContenedorMapaSenderos({ altura, categoriaId, color, colorPaquet
   // el pedestal debe mostrar la mandala en el mismo cuadro en que aterriza.
   const [trazosAnclados, setTrazosAnclados] = useState<Map<string, TrazoMandala[]>>(() => new Map());
   const anclasMandalaRef = useRef(new Map<string, View>());
+  const contenidoRef = useRef<View>(null);
+  // Scroll real del mapa (cada evento, sin el filtro de la decoración) y alto
+  // visible: con ambos se pasa del plano del contenido al del viewport.
+  const scrollYRef = useRef(0);
+  const altoScrollRef = useRef(0);
   const nodosBase = nodosOverride ?? obtenerNodosMapaMock(subcategoriaId);
   const nodos = useMemo(() => trazosAnclados.size === 0 ? nodosBase : nodosBase.map((nodo) => {
     const trazos = nodo.mandala ? trazosAnclados.get(nodo.mandala.registroId) : undefined;
@@ -415,11 +421,19 @@ export function ContenedorMapaSenderos({ altura, categoriaId, color, colorPaquet
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [encargoMandala, enfocado, nodos, ritual]);
 
+  // Posición de la mandala del pedestal en el plano del mapa, sin la
+  // proyección del viewport: measureLayout contra el contenido del scroll
+  // ignora la inclinación (es de un ancestro común), y se descuenta el scroll.
   function medirAnclaMandala(registroId: string) {
-    return new Promise<RectPantalla | null>((resolver) => {
+    return new Promise<DestinoMapa | null>((resolver) => {
       const ancla = anclasMandalaRef.current.get(registroId);
-      if (!ancla) { resolver(null); return; }
-      ancla.measureInWindow((x, y, ancho, alto) => resolver({ alto, ancho, x, y }));
+      const contenido = contenidoRef.current;
+      if (!ancla || !contenido) { resolver(null); return; }
+      ancla.measureLayout(
+        contenido,
+        (izquierda, arriba, ancho, alto) => resolver({ tamano: ancho, x: izquierda + ancho / 2, y: arriba + alto / 2 - scrollYRef.current }),
+        () => resolver(null),
+      );
     });
   }
 
@@ -429,6 +443,9 @@ export function ContenedorMapaSenderos({ altura, categoriaId, color, colorPaquet
     if (!enfocado) return;
     const destino = Math.max(0, margenSuperiorEfectivo + indice * separacionVertical - altura * 0.34);
     scrollRef.current?.scrollTo({ animated: true, y: destino });
+    // El último evento de scroll puede llegar filtrado por el throttle; el
+    // destino final ya se conoce (acotado al recorrido real del contenido).
+    if (altoScrollRef.current > 0) scrollYRef.current = Math.min(destino, Math.max(0, altoContenido - altoScrollRef.current));
   }
 
   function seleccionarNodo(id: string, indice: number) {
@@ -450,8 +467,12 @@ export function ContenedorMapaSenderos({ altura, categoriaId, color, colorPaquet
     <ScrollView
       ref={scrollRef}
       nestedScrollEnabled
-      onLayout={({ nativeEvent }) => medirAnchoMapa(nativeEvent.layout.width)}
+      onLayout={({ nativeEvent }) => {
+        altoScrollRef.current = nativeEvent.layout.height;
+        medirAnchoMapa(nativeEvent.layout.width);
+      }}
       onScroll={({ nativeEvent }) => {
+        scrollYRef.current = nativeEvent.contentOffset.y;
         if (!limitarDecoracion) return;
         const siguiente = nativeEvent.contentOffset.y;
         // Evita volver a reconciliar la escena a cada píxel: la ventana se
@@ -468,7 +489,7 @@ export function ContenedorMapaSenderos({ altura, categoriaId, color, colorPaquet
       contentContainerStyle={[styles.contenido, { minHeight: altoContenido }]}
     >
       <TouchableWithoutFeedback onPress={() => setSeleccionado('')}>
-      <View style={{ height: altoContenido, width: anchoEscena }}>
+      <View collapsable={false} ref={contenidoRef} style={{ height: altoContenido, width: anchoEscena }}>
         
         {/* Bases Isométricas decorativas a los lados (FUERA de la perspectiva 3D para evitar aplastamiento).
             Los paquetes de árbol reales (aurelia, diamante...) no tienen arte de "base" propio —
@@ -779,8 +800,9 @@ const crearEstilosStyles = (esc: EscalaMaster) => StyleSheet.create({
   viewportPerspectiva: {
     flex: 1,
     overflow: 'hidden',
-    transform: [{ perspective: 1200 }, { rotateX: '7deg' }, { scaleY: 0.98 }],
-    transformOrigin: 'center bottom',
+    // Cámara isométrica compartida con el ritual de la mandala: ajustar en camaraMapa.ts.
+    transform: [{ perspective: CAMARA_MAPA.perspectiva }, { rotateX: `${CAMARA_MAPA.inclinacionGrados}deg` }, { scaleY: CAMARA_MAPA.escalaY }],
+    transformOrigin: CAMARA_MAPA.origen,
   },
   ambiente: {
     position: 'absolute',

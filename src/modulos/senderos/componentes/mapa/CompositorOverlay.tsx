@@ -14,8 +14,13 @@ import { ANCHO_CINTA_MANDALA, ANGULO_REPOSO_MANDALA, LADO_LIENZO_MANDALA, Mandal
 import { construirCaminosMandala } from '../../../habitos/mandalaGeometria';
 import { guardarMandalaRegistro } from '../../../habitos/mandalaNodo.servicio';
 import type { TrazoMandala } from '../../../habitos/mandalaNodo.tipos';
+import { CAMARA_MAPA } from './camaraMapa';
 
-export type RectPantalla = { x: number; y: number; ancho: number; alto: number };
+/**
+ * Centro de la mandala del pedestal y su lado, en coordenadas del viewport
+ * del mapa ANTES de su proyección (sin inclinación, ya descontado el scroll).
+ */
+export type DestinoMapa = { x: number; y: number; tamano: number };
 
 type Fase = 'trazando' | 'levitando' | 'descendiendo' | 'anclado';
 
@@ -27,7 +32,6 @@ const ESCALA_LEVITACION = 0.7;
 const CONTEMPLACION_MS = 3600; // ~0,6 s de levitar + 3 s quieta en el aire
 const DESCENSO_MS = 1400;
 const ALTURA_ARCO = 36;
-const INCLINACION_MAPA = 7; // mismo rotateX del viewport del mapa
 
 function distancia(a: TrazoMandala, b: TrazoMandala) {
   return Math.hypot(a.x - b.x, a.y - b.y);
@@ -49,8 +53,8 @@ function limitarAlAnillo(p: TrazoMandala): TrazoMandala {
 type CompositorOverlayProps = {
   color: string;
   registroId: string;
-  /** Caja en pantalla de la mandala sobre su pedestal (ver NodoMandalaPedestal). */
-  medirDestino: () => Promise<RectPantalla | null>;
+  /** Dónde está la mandala del pedestal en el plano del mapa (ver NodoMandalaPedestal). */
+  medirDestino: () => Promise<DestinoMapa | null>;
   /** La mandala tocó su pedestal: el mapa ya debe mostrarla con estos trazos. */
   onAnclado: (trazos: TrazoMandala[]) => void;
   /** El ritual se abandonó o no se pudo guardar: el pedestal queda pendiente. */
@@ -80,7 +84,6 @@ export function CompositorOverlay({ color, medirDestino, onAnclado, onCancelado,
   const [destello, setDestello] = useState<{ x: number; y: number } | null>(null);
   const [dims, setDims] = useState({ alto: 0, ancho: 0 });
 
-  const raizRef = useRef<View>(null);
   const dimsRef = useRef(dims);
   const trazandoRef = useRef(false);
   const puntosRef = useRef<TrazoMandala[]>([]);
@@ -210,13 +213,6 @@ export function CompositorOverlay({ color, medirDestino, onAnclado, onCancelado,
     programar(() => { void descender(trazo); }, CONTEMPLACION_MS);
   }
 
-  function medirRaiz() {
-    return new Promise<RectPantalla | null>((resolver) => {
-      if (!raizRef.current) { resolver(null); return; }
-      raizRef.current.measureInWindow((x, y, ancho, alto) => resolver({ alto, ancho, x, y }));
-    });
-  }
-
   // ── Acto 3: el descenso ────────────────────────────────────────────
   async function descender(trazo: TrazoMandala[]) {
     const guardado = await (guardadoRef.current ?? Promise.resolve(false));
@@ -228,21 +224,21 @@ export function CompositorOverlay({ color, medirDestino, onAnclado, onCancelado,
       return;
     }
 
-    const [destino, raiz] = await Promise.all([medirDestino(), medirRaiz()]);
+    const destino = await medirDestino();
     if (!montadoRef.current) return;
-    if (!destino || !raiz || destino.ancho <= 0) {
+    if (!destino || destino.tamano <= 0) {
       onAnclado(trazo);
       cliente.invalidateQueries({ queryKey: ['habitos', 'mandalas'] });
       salir(onTerminado);
       return;
     }
 
-    const centroX = destino.x - raiz.x + destino.ancho / 2;
-    const centroY = destino.y - raiz.y + destino.alto / 2;
-    dx.value = centroX - dimsRef.current.ancho / 2;
-    dy.value = centroY - dimsRef.current.alto / 2;
-    escalaDestino.value = destino.ancho / LADO;
-    setDestello({ x: centroX, y: destino.y - raiz.y + destino.alto * 0.95 });
+    // El overlay ocupa la misma caja que el viewport del mapa, así que las
+    // coordenadas del plano del mapa valen tal cual dentro de la capa-cámara.
+    dx.value = destino.x - dimsRef.current.ancho / 2;
+    dy.value = destino.y - dimsRef.current.alto / 2;
+    escalaDestino.value = destino.tamano / LADO;
+    setDestello({ x: destino.x, y: destino.y + destino.tamano * 0.45 });
     cambiarFase('descendiendo');
 
     poema.value = withTiming(0, { duration: 300 });
@@ -284,6 +280,21 @@ export function CompositorOverlay({ color, medirDestino, onAnclado, onCancelado,
   const estiloTextos = useAnimatedStyle(() => ({ opacity: textos.value }));
   const estiloPoema = useAnimatedStyle(() => ({ opacity: poema.value, transform: [{ translateY: (1 - poema.value) * 8 }] }));
 
+  // Capa-cámara: misma matriz y mismo origen que el viewport del mapa
+  // (camaraMapa.ts), inclinándose a la par del descenso. La mandala viaja
+  // dentro en coordenadas del plano del mapa; al llegar, ella y la del
+  // pedestal pasan por la misma proyección y coinciden píxel a píxel.
+  const estiloCamara = useAnimatedStyle(() => {
+    const p = progreso.value;
+    return {
+      transform: [
+        { perspective: CAMARA_MAPA.perspectiva },
+        { rotateX: `${CAMARA_MAPA.inclinacionGrados * p}deg` },
+        { scaleY: 1 - (1 - CAMARA_MAPA.escalaY) * p },
+      ],
+    };
+  });
+
   const estiloMandala = useAnimatedStyle(() => {
     const p = progreso.value;
     const flote = -12 * flotar.value * (1 - p);
@@ -291,11 +302,8 @@ export function CompositorOverlay({ color, medirDestino, onAnclado, onCancelado,
     return {
       opacity: mandalaOpacidad.value,
       transform: [
-        { perspective: 1200 },
         { translateX: dx.value * p },
         { translateY: dy.value * p + flote + arco },
-        { rotateX: `${INCLINACION_MAPA * p}deg` },
-        { scaleY: 1 - 0.02 * p },
         { scale: escala.value + (escalaDestino.value - escala.value) * p },
       ],
     };
@@ -336,7 +344,6 @@ export function CompositorOverlay({ color, medirDestino, onAnclado, onCancelado,
         dimsRef.current = siguiente;
         setDims(siguiente);
       }}
-      ref={raizRef}
       style={[StyleSheet.absoluteFill, styles.raiz, estiloRaiz]}
     >
       <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.velo, estiloVelo]} />
@@ -351,29 +358,31 @@ export function CompositorOverlay({ color, medirDestino, onAnclado, onCancelado,
         </Animated.View>
       )}
 
-      {destello && (
-        <View pointerEvents="none" style={[styles.destello, { left: destello.x - 40, top: destello.y - 40 }]}>
-          <Animated.View style={[styles.resplandor, { backgroundColor: color }, estiloResplandor]} />
-          <Animated.View style={[styles.anillo, estiloAnillo]} />
-        </View>
-      )}
+      <Animated.View pointerEvents="box-none" style={[StyleSheet.absoluteFill, styles.camara, estiloCamara]}>
+        {destello && (
+          <View pointerEvents="none" style={[styles.destello, { left: destello.x - 40, top: destello.y - 40 }]}>
+            <Animated.View style={[styles.resplandor, { backgroundColor: color }, estiloResplandor]} />
+            <Animated.View style={[styles.anillo, estiloAnillo]} />
+          </View>
+        )}
 
-      {dims.alto > 0 && (
-        <Animated.View style={[styles.lienzo, { left: (dims.ancho - LADO) / 2, top: (dims.alto - LADO) / 2 }, estiloMandala]}>
-          {fase === 'trazando' || !trazoFinal ? (
-            <GestureDetector gesture={gesto}>
-              <View style={styles.superficie}>
-                <Animated.View style={[styles.guia, { borderColor: color }, estiloTextos]} />
-                <Svg height={LADO} pointerEvents="none" style={StyleSheet.absoluteFill} viewBox={viewBox} width={LADO}>
-                  {puntos.length > 1 && caminos.map((d, indice) => (d ? <Path d={d} fill={color} key={indice} /> : null))}
-                </Svg>
-              </View>
-            </GestureDetector>
-          ) : (
-            <MandalaExtruido capas={8} color={color} giro={giro} relieve={relieve} tamano={LADO} trazos={trazoFinal} />
-          )}
-        </Animated.View>
-      )}
+        {dims.alto > 0 && (
+          <Animated.View style={[styles.lienzo, { left: (dims.ancho - LADO) / 2, top: (dims.alto - LADO) / 2 }, estiloMandala]}>
+            {fase === 'trazando' || !trazoFinal ? (
+              <GestureDetector gesture={gesto}>
+                <View style={styles.superficie}>
+                  <Animated.View style={[styles.guia, { borderColor: color }, estiloTextos]} />
+                  <Svg height={LADO} pointerEvents="none" style={StyleSheet.absoluteFill} viewBox={viewBox} width={LADO}>
+                    {puntos.length > 1 && caminos.map((d, indice) => (d ? <Path d={d} fill={color} key={indice} /> : null))}
+                  </Svg>
+                </View>
+              </GestureDetector>
+            ) : (
+              <MandalaExtruido capas={8} color={color} giro={giro} relieve={relieve} tamano={LADO} trazos={trazoFinal} />
+            )}
+          </Animated.View>
+        )}
+      </Animated.View>
 
       <Animated.View pointerEvents="none" style={[styles.cabecera, estiloTextos]}>
         <Texto style={styles.titulo}>{t('habitos.mandala.compositor.titulo')}</Texto>
@@ -402,6 +411,7 @@ const styles = StyleSheet.create({
   superficie: { alignItems: 'center', height: LADO, justifyContent: 'center', width: LADO },
   guia: { borderRadius: LADO / 2, borderWidth: 1.5, height: LADO * 0.94, opacity: 0.4, position: 'absolute', width: LADO * 0.94 },
   sombra: { height: 60, position: 'absolute', width: 220 },
+  camara: { transformOrigin: CAMARA_MAPA.origen },
   destello: { alignItems: 'center', height: 80, justifyContent: 'center', position: 'absolute', transform: [{ scaleY: 0.38 }], width: 80 },
   anillo: { borderColor: '#FFFFFF', borderRadius: 40, borderWidth: 3, height: 80, position: 'absolute', width: 80 },
   resplandor: { borderRadius: 40, height: 80, position: 'absolute', width: 80 },
