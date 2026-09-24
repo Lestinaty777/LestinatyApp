@@ -7,7 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 
 import { MasterGlass, MasterIconBg, Texto } from '../../../diseno';
-import { comprarHorizon, obtenerPaquetesHorizon, restaurarHorizon } from '../../../nucleo/compras/horizon';
+import { comprarHorizon, obtenerCatalogoHorizon, restaurarHorizon } from '../../../nucleo/compras/horizon';
 import { CLAVE_HORIZON } from '../../../nucleo/compras/useHorizon';
 import { useEscala } from '../../../diseno/tema/MasterColorContext';
 import type { EscalaMaster } from '../../../diseno/tema/escalaEsmeralda';
@@ -25,32 +25,42 @@ export function HorizonPaywallPantalla() {
   const s = useEstilosS();
   const router = useRouter();
   const cliente = useQueryClient();
-  const paquetes = useQuery({ queryKey: ['compras', 'horizon', 'paquetes'], queryFn: obtenerPaquetesHorizon, staleTime: 30_000 });
+  const paquetes = useQuery({ queryKey: ['compras', 'horizon', 'paquetes'], queryFn: obtenerCatalogoHorizon, staleTime: 30_000 });
   const [comprando, setComprando] = useState(false);
   const [restaurando, setRestaurando] = useState(false);
   const [aviso, setAviso] = useState<string | null>(null);
-  const paquete = paquetes.data?.[0] ?? null;
+  const paquete = paquetes.data?.estado === 'lista' ? (paquetes.data.paquetes[0] ?? null) : null;
 
   async function actualizarAcceso() { await cliente.invalidateQueries({ queryKey: CLAVE_HORIZON }); }
   async function comprar() {
     if (!paquete || comprando) return;
     setAviso(null); setComprando(true);
     try {
-      const resultado = await comprarHorizon(paquete);
-      if (resultado.exito) { 
-        await actualizarAcceso(); 
-        router.replace(capacidades.widgets ? '/habitos/widgets' : '/(principal)/hoy'); 
+      const resultado = await comprarHorizon(paquete.id);
+      if (resultado.estado === 'completada') {
+        await actualizarAcceso();
+        router.replace(capacidades.widgets ? '/habitos/widgets' : '/(principal)/hoy');
+      } else if (resultado.estado === 'pendiente') {
+        setAviso(t('horizon.paywall.avisoPendiente'));
+      } else if (resultado.estado === 'error') {
+        setAviso(t('horizon.paywall.avisoErrorCompra'));
       }
+      // 'cancelada' no muestra aviso — el usuario decidió no continuar.
     } catch { setAviso(t('horizon.paywall.avisoErrorCompra')); } finally { setComprando(false); }
   }
   async function restaurar() {
     if (restaurando) return;
     setAviso(null); setRestaurando(true);
     try {
-      const estado = await restaurarHorizon();
+      const resultado = await restaurarHorizon();
       await actualizarAcceso();
-      if (estado === 'activo') router.replace(capacidades.widgets ? '/habitos/widgets' : '/(principal)/hoy');
-      else setAviso(estado === 'noDisponible' ? t('horizon.paywall.avisoNoDisponible') : t('horizon.paywall.avisoNoEncontrada'));
+      if (resultado.estado === 'restaurada' && resultado.horizonActivo) {
+        router.replace(capacidades.widgets ? '/habitos/widgets' : '/(principal)/hoy');
+      } else if (resultado.estado === 'sin_compras' || resultado.estado === 'restaurada') {
+        setAviso(t('horizon.paywall.avisoNoEncontrada'));
+      } else {
+        setAviso(t('horizon.paywall.avisoNoDisponible'));
+      }
     } finally { setRestaurando(false); }
   }
 
@@ -59,7 +69,7 @@ export function HorizonPaywallPantalla() {
     <View style={s.hero}><MasterIconBg size={74}><Crown color={esc.jade.l42a} fill={esc.jade.l42a} size={34} /></MasterIconBg><Texto style={s.sobrelinea}>{t('horizon.paywall.sobrelinea')}</Texto><Texto style={s.titulo}>{t('horizon.paywall.titulo')}</Texto><Texto style={s.subtitulo}>{t('horizon.paywall.subtitulo')}</Texto></View>
     <MasterGlass style={s.previa}><View style={s.previaCabecera}><Smartphone color={esc.jade.l42a} size={20} /><Texto style={s.previaTitulo}>{t('horizon.paywall.previaTitulo')}</Texto></View><View style={s.previaWidgets}><View style={s.widgetMini}><Texto style={s.widgetNumero}>2/4</Texto><Texto style={s.widgetTexto}>{t('horizon.paywall.habitosHoy')}</Texto></View><View style={s.widgetMini}><View style={s.anillo}><Check color="#FFFFFF" size={17} strokeWidth={3} /></View><Texto style={s.widgetTexto}>{t('horizon.paywall.registrar')}</Texto></View></View></MasterGlass>
     <View style={s.beneficios}>{CLAVES_BENEFICIOS.map(({ titulo, descripcion }) => <MasterGlass key={titulo} style={s.beneficio}><View style={s.check}><Check color="#FFFFFF" size={15} strokeWidth={3} /></View><View style={s.beneficioTexto}><Texto style={s.beneficioTitulo}>{t(titulo)}</Texto><Texto style={s.beneficioDescripcion}>{t(descripcion)}</Texto></View></MasterGlass>)}</View>
-    {paquetes.isLoading ? <ActivityIndicator color={esc.jade.l42a} style={s.cargando} /> : <Pressable accessibilityLabel={t('horizon.paywall.suscribirseAccesibilidad')} disabled={!paquete || comprando} onPress={() => void comprar()} style={[s.cta, (!paquete || comprando) && s.ctaDeshabilitado]}><Crown color="#FFFFFF" fill="#FFFFFF" size={19} /><Texto style={s.ctaTexto}>{comprando ? t('horizon.paywall.procesando') : (paquete ? t('horizon.paywall.ctaPrecio', { precio: paquete.product.priceString }) : t('horizon.paywall.cta'))}</Texto></Pressable>}
+    {paquetes.isLoading ? <ActivityIndicator color={esc.jade.l42a} style={s.cargando} /> : <Pressable accessibilityLabel={t('horizon.paywall.suscribirseAccesibilidad')} disabled={!paquete || comprando} onPress={() => void comprar()} style={[s.cta, (!paquete || comprando) && s.ctaDeshabilitado]}><Crown color="#FFFFFF" fill="#FFFFFF" size={19} /><Texto style={s.ctaTexto}>{comprando ? t('horizon.paywall.procesando') : (paquete ? t('horizon.paywall.ctaPrecio', { precio: paquete.precioTexto }) : t('horizon.paywall.cta'))}</Texto></Pressable>}
     {!paquetes.isLoading && !paquete && <Texto style={s.nota}>{t('horizon.paywall.noPaqueteNota')}</Texto>}
     {aviso && <Texto style={s.aviso}>{aviso}</Texto>}
     <Pressable accessibilityLabel={t('horizon.paywall.restaurar')} disabled={restaurando} onPress={() => void restaurar()} style={s.restaurar}><RefreshCw color={esc.jade.l42a} size={16} /><Texto style={s.restaurarTexto}>{restaurando ? t('horizon.paywall.restaurando') : t('horizon.paywall.restaurar')}</Texto></Pressable><Texto style={s.legal}>{t('horizon.paywall.legal')}</Texto>

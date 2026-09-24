@@ -1,11 +1,11 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Image, Platform, View } from 'react-native';
-import type { PurchasesPackage } from 'react-native-purchases';
 import { useTranslation } from 'react-i18next';
 
 import { Boton, Pantalla, Tarjeta, Texto } from '../../../diseno';
-import { comprarPaqueteGemas, obtenerPaquetesGemas } from '../../../nucleo/compras/revenueCat';
+import { comprarPaquete, obtenerCatalogoGemas } from '../../../nucleo/compras/revenueCat';
+import type { PaqueteCompra } from '../../../plataforma/compras/contrato';
 import { obtenerCatalogoGemasIap } from '../gemas.servicio';
 import type { PaqueteGemasIap } from '../gemas.tipos';
 import { CLAVE_SALDO_GEMAS, useSaldoGemas } from '../useSaldoGemas';
@@ -15,31 +15,36 @@ export function TiendaPantalla() {
   const cliente = useQueryClient();
   const { data: saldoGemas } = useSaldoGemas();
   const consultaCatalogo = useQuery({ queryKey: ['tienda', 'catalogoGemasIap', Platform.OS], queryFn: () => obtenerCatalogoGemasIap(Platform.OS === 'ios' ? 'ios' : 'android') });
-  const [paquetesRevenueCat, setPaquetesRevenueCat] = useState<PurchasesPackage[]>([]);
+  const [paquetesCompra, setPaquetesCompra] = useState<PaqueteCompra[]>([]);
   const [comprando, setComprando] = useState<string | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
 
   useEffect(() => {
     let vigente = true;
-    void obtenerPaquetesGemas().then((paquetes) => { if (vigente) setPaquetesRevenueCat(paquetes); });
+    void obtenerCatalogoGemas().then((estado) => { if (vigente && estado.estado === 'lista') setPaquetesCompra(estado.paquetes); });
     return () => { vigente = false; };
   }, []);
 
   async function comprar(paquete: PaqueteGemasIap) {
-    const paqueteRevenueCat = paquetesRevenueCat.find((p) => p.product.identifier === paquete.productIdRevenueCat);
-    if (!paqueteRevenueCat) {
+    const paqueteCompra = paquetesCompra.find((p) => p.productId === paquete.productIdRevenueCat);
+    if (!paqueteCompra) {
       setAviso(t('tienda.gemas.avisoNoDisponible'));
       return;
     }
     setAviso(null);
     setComprando(paquete.id);
     try {
-      const resultado = await comprarPaqueteGemas(paqueteRevenueCat);
-      if (resultado.exito) {
+      const resultado = await comprarPaquete(paqueteCompra.id);
+      if (resultado.estado === 'completada') {
         setAviso(t('tienda.gemas.avisoExito'));
         cliente.invalidateQueries({ queryKey: CLAVE_SALDO_GEMAS });
         setTimeout(() => cliente.invalidateQueries({ queryKey: CLAVE_SALDO_GEMAS }), 4000);
+      } else if (resultado.estado === 'pendiente') {
+        setAviso(t('tienda.gemas.avisoPendiente'));
+      } else if (resultado.estado === 'error') {
+        setAviso(t('tienda.gemas.avisoError'));
       }
+      // 'cancelada' no muestra aviso — el usuario decidió no continuar.
     } catch {
       setAviso(t('tienda.gemas.avisoError'));
     } finally {
@@ -60,14 +65,13 @@ export function TiendaPantalla() {
       {consultaCatalogo.isLoading && <ActivityIndicator style={{ marginTop: 24 }} />}
 
       {consultaCatalogo.data?.map((paquete) => {
-        const disponible = paquetesRevenueCat.find((p) => p.product.identifier === paquete.productIdRevenueCat);
+        const disponible = paquetesCompra.find((p) => p.productId === paquete.productIdRevenueCat);
         if (!disponible) return null;
 
-        const precio = disponible.product.priceString;
         return (
           <Tarjeta key={paquete.id}>
             <Texto variante="subtitulo">{t('tienda.gemas.cantidadGemas', { cantidad: paquete.cantidadGemas })}</Texto>
-            <Texto variante="cuerpo">{precio}</Texto>
+            <Texto variante="cuerpo">{disponible.precioTexto}</Texto>
             <Boton disabled={comprando === paquete.id} onPress={() => void comprar(paquete)}>
               {comprando === paquete.id ? t('tienda.gemas.comprando') : t('tienda.gemas.comprar')}
             </Boton>

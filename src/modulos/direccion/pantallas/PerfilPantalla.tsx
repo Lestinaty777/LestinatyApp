@@ -52,6 +52,7 @@ import {
   actualizarPreferenciaNotificacion,
   cargarConfiguracion,
   crearSolicitudPrivacidad,
+  eliminarCuentaPropia,
 } from '../../configuracion/configuracion.servicio';
 import {
   ConfiguracionUsuario,
@@ -518,16 +519,14 @@ export function PerfilPantalla() {
                   onPress: async () => {
                     try {
                       hapticSeguro('accion');
-                      await crearSolicitudPrivacidad('eliminacion');
+                      // Borrado real e inmediato (no una solicitud pendiente
+                      // por procesar): elimina auth.users y cascada a todos
+                      // los datos del usuario. Ver migración 20260924_49.
+                      await eliminarCuentaPropia();
                       await cerrarSesion();
                       router.replace('/(publico)/iniciar-sesion');
                     } catch {
-                      try {
-                        await cerrarSesion();
-                        router.replace('/(publico)/iniciar-sesion');
-                      } catch {
-                        Alert.alert(t('perfil.alerts.errorTitle'), t('perfil.alerts.deleteAccountError'));
-                      }
+                      Alert.alert(t('perfil.alerts.errorTitle'), t('perfil.alerts.deleteAccountError'));
                     }
                   },
                 },
@@ -543,13 +542,16 @@ export function PerfilPantalla() {
     hapticSeguro('accion');
     setRestaurandoCompras(true);
     try {
-      const estado = await restaurarHorizon();
+      const resultado = await restaurarHorizon();
       await clienteQuery.invalidateQueries({ queryKey: ['horizon'] });
-      hapticSeguro('confirmacion');
-      if (estado === 'activo') {
+      if (resultado.estado === 'restaurada' && resultado.horizonActivo) {
+        hapticSeguro('confirmacion');
         Alert.alert(t('perfil.alerts.subscriptionRestoredTitle'), t('perfil.alerts.subscriptionRestoredMessage'));
-      } else {
+      } else if (resultado.estado === 'sin_compras' || resultado.estado === 'restaurada') {
+        hapticSeguro('confirmacion');
         Alert.alert(t('perfil.alerts.noActiveSubscriptionsTitle'), t('perfil.alerts.noActiveSubscriptionsMessage'));
+      } else {
+        Alert.alert(t('perfil.alerts.errorTitle'), t('perfil.alerts.verifySubscriptionsError'));
       }
     } catch {
       Alert.alert(t('perfil.alerts.errorTitle'), t('perfil.alerts.verifySubscriptionsError'));
@@ -560,6 +562,10 @@ export function PerfilPantalla() {
 
   function abrirGestionarSuscripciones() {
     hapticSeguro('accion');
+    if (Platform.OS === 'ios') {
+      Linking.openURL('https://apps.apple.com/account/subscriptions').catch(() => undefined);
+      return;
+    }
     Linking.openURL('https://play.google.com/store/account/subscriptions?package=com.lestinaty.app').catch(() => {
       Linking.openURL('https://play.google.com/store/account/subscriptions');
     });
@@ -577,7 +583,7 @@ export function PerfilPantalla() {
 
   function contactarSoporte() {
     hapticSeguro('accion');
-    Linking.openURL('mailto:soporte@lestinaty.com?subject=Soporte%20Lestinaty%20App').catch(() => {
+    Linking.openURL('mailto:lestinaty@gmail.com?subject=Soporte%20Lestinaty%20App').catch(() => {
       Alert.alert(t('perfil.alerts.supportContactTitle'), t('perfil.alerts.supportContactMessage'));
     });
   }
@@ -1210,7 +1216,7 @@ export function PerfilPantalla() {
                             {t('perfil.settings.contactSupport')}
                           </Texto>
                           <Texto {...PROPS_TEXTO_UNA_LINEA} style={s.filaEnlaceSubtexto}>
-                            soporte@lestinaty.com
+                            lestinaty@gmail.com
                           </Texto>
                         </View>
                         <ChevronRight color={esc.musgo.l54} size={18} />
@@ -1219,7 +1225,7 @@ export function PerfilPantalla() {
                       <View style={s.divisorAjustes} />
 
                       <Pressable
-                        onPress={() => abrirUrl('https://lestinaty.com/faq')}
+                        onPress={() => abrirUrl('https://lestinaty.com/soporte')}
                         style={s.filaEnlace}
                       >
                         <View style={s.iconoRanura}>

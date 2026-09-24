@@ -5,7 +5,6 @@ import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
-import type { PurchasesPackage } from 'react-native-purchases';
 import { useTranslation } from 'react-i18next';
 
 import { MasterGlass, Texto, MasterIcon, MasterIconBg, Rebote, MasterChip, MasterButton, MasterKicker, entradaEncadenada, MasterAnimation, Skeleton } from '../../../diseno';
@@ -13,7 +12,8 @@ import { hapticSeguro } from '../../../nucleo/dispositivo/haptics';
 import { colorMasterMasCercano } from '../../../diseno/componentes/MasterChanger';
 import { obtenerAssetsPaquete } from '../../senderos/algoritmo/registroPaquetesArbol';
 import { AuroraBoreal } from '../../hoy/componentes/AuroraBoreal';
-import { comprarPaqueteGemas, obtenerPaquetesGemas } from '../../../nucleo/compras/revenueCat';
+import { comprarPaquete, obtenerCatalogoGemas } from '../../../nucleo/compras/revenueCat';
+import type { PaqueteCompra } from '../../../plataforma/compras/contrato';
 import { CLAVE_PAQUETES_DESBLOQUEADOS } from '../usePaquetesDesbloqueados';
 import { comprarSemillasArbol, obtenerCatalogoArboles, obtenerCatalogoGemasIap, obtenerSemillasDisponibles } from '../gemas.servicio';
 import type { ArbolPaquete, PaqueteGemasIap, SemillaArbol } from '../gemas.tipos';
@@ -230,7 +230,7 @@ const SeccionesContenido = memo(function SeccionesContenido({
   onComprar: (paqueteId: string) => void;
   onPlantar: () => void;
   catalogoGemas: PaqueteGemasIap[];
-  paquetesRevenueCat: PurchasesPackage[];
+  paquetesRevenueCat: PaqueteCompra[];
   comprandoGemasId: string | null;
   cargandoCatalogoGemas?: boolean;
   onComprarGemas: (paquete: PaqueteGemasIap) => void;
@@ -334,8 +334,8 @@ const SeccionesContenido = memo(function SeccionesContenido({
               ) : (
                 <MasterAnimation>
                   {catalogoGemas.map((paq, idx) => {
-                    const disponible = paquetesRevenueCat.find((p) => p.product.identifier === paq.productIdRevenueCat);
-                    const precio = disponible?.product.priceString ?? (paq.precioReferenciaUsd !== null ? `~$${paq.precioReferenciaUsd.toFixed(2)}` : '—');
+                    const disponible = paquetesRevenueCat.find((p) => p.productId === paq.productIdRevenueCat);
+                    const precio = disponible?.precioTexto ?? (paq.precioReferenciaUsd !== null ? `~$${paq.precioReferenciaUsd.toFixed(2)}` : '—');
                     const comprandoEsta = comprandoGemasId === paq.id;
                     return (
                       <Rebote key={paq.id}>
@@ -506,12 +506,12 @@ export function TiendaArbolesPantalla() {
   // Misma queryKey que TiendaPantalla.tsx (/tienda/gemas) — comparten caché,
   // el catálogo de paquetes IAP es idéntico sin importar desde dónde se pida.
   const consultaCatalogoGemas = useQuery({ queryKey: ['tienda', 'catalogoGemasIap', Platform.OS], queryFn: () => obtenerCatalogoGemasIap(Platform.OS === 'ios' ? 'ios' : 'android') });
-  const [paquetesRevenueCat, setPaquetesRevenueCat] = useState<PurchasesPackage[]>([]);
+  const [paquetesRevenueCat, setPaquetesRevenueCat] = useState<PaqueteCompra[]>([]);
   const [comprandoGemasId, setComprandoGemasId] = useState<string | null>(null);
 
   useEffect(() => {
     let vigente = true;
-    void obtenerPaquetesGemas().then((paquetes) => { if (vigente) setPaquetesRevenueCat(paquetes); });
+    void obtenerCatalogoGemas().then((estado) => { if (vigente && estado.estado === 'lista') setPaquetesRevenueCat(estado.paquetes); });
     return () => { vigente = false; };
   }, []);
 
@@ -530,7 +530,7 @@ export function TiendaArbolesPantalla() {
   });
 
   async function comprarGemas(paquete: PaqueteGemasIap) {
-    const paqueteRevenueCat = paquetesRevenueCat.find((p) => p.product.identifier === paquete.productIdRevenueCat);
+    const paqueteRevenueCat = paquetesRevenueCat.find((p) => p.productId === paquete.productIdRevenueCat);
     if (!paqueteRevenueCat) {
       Alert.alert(t('tienda.screen.gems.unavailableTitle'), t('tienda.screen.gems.unavailableDescription'));
       return;
@@ -538,13 +538,18 @@ export function TiendaArbolesPantalla() {
     hapticSeguro('seleccion');
     setComprandoGemasId(paquete.id);
     try {
-      const resultado = await comprarPaqueteGemas(paqueteRevenueCat);
-      if (resultado.exito) {
+      const resultado = await comprarPaquete(paqueteRevenueCat.id);
+      if (resultado.estado === 'completada') {
         hapticSeguro('confirmacion');
         queryClient.invalidateQueries({ queryKey: CLAVE_SALDO_GEMAS });
         setTimeout(() => queryClient.invalidateQueries({ queryKey: CLAVE_SALDO_GEMAS }), 4000);
         Alert.alert(t('tienda.screen.gems.receivedTitle'), t('tienda.screen.gems.receivedDescription'));
+      } else if (resultado.estado === 'pendiente') {
+        Alert.alert(t('tienda.screen.gems.receivedTitle'), t('tienda.gemas.avisoPendiente'));
+      } else if (resultado.estado === 'error') {
+        Alert.alert(t('tienda.screen.gems.purchaseErrorTitle'), t('tienda.screen.gems.purchaseErrorDescription'));
       }
+      // 'cancelada' no muestra alerta — el usuario decidió no continuar.
     } catch {
       Alert.alert(t('tienda.screen.gems.purchaseErrorTitle'), t('tienda.screen.gems.purchaseErrorDescription'));
     } finally {

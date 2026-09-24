@@ -1,5 +1,5 @@
-import type { PurchasesPackage } from 'react-native-purchases';
+import type { PaqueteCompra } from '../../../plataforma/compras/contrato';
 
-export function textoCtaHorizon(paquete: Pick<PurchasesPackage, 'product'> | null) {
-  return paquete ? `Horizon por ${paquete.product.priceString} al mes` : 'Horizon por $129 MXN al mes';
+export function textoCtaHorizon(paquete: Pick<PaqueteCompra, 'precioTexto'> | null) {
+  return paquete ? `Horizon por ${paquete.precioTexto} al mes` : 'Horizon por $129 MXN al mes';
 }
