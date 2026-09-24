@@ -7,12 +7,10 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { ProveedoresApp } from '../src/nucleo/proveedor/ProveedoresApp';
 import { AnimacionApertura } from '../src/nucleo/arranque/AnimacionApertura';
-import { inicializarOneSignal } from '../src/nucleo/notificaciones/oneSignal';
-import { inicializarCompras } from '../src/nucleo/compras/revenueCat';
-import { inicializarGoogle } from '../src/plataforma/autenticacion/google';
+import { inicializarPlataforma } from '../src/plataforma/inicializarPlataforma';
 
 export default function LayoutRaiz() {
-  useEffect(() => { inicializarOneSignal(); inicializarCompras(); inicializarGoogle(); }, []);
+  useEffect(() => { void inicializarPlataforma(); }, []);
   // Se ve en CADA apertura en frío (no es un "visto una sola vez" como el
   // carrusel de introducción) — se superpone a todo mientras la resolución
   // de sesión/routing de más abajo sigue trabajando por detrás, así al
