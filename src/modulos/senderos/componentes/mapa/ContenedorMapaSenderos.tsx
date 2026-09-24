@@ -406,7 +406,7 @@ export function ContenedorMapaSenderos({ altura, categoriaId, color, colorPaquet
     // Sin tooltip: el nodo queda despejado para que la mandala aterrice.
     setSeleccionado('');
     enfocarNodo(indice);
-    setRitual({ anclado: false, color: mandala.color ?? color, registroId: mandala.registroId });
+    setRitual({ anclado: false, color: mandala.color ?? colorCofre, registroId: mandala.registroId });
   }
 
   useEffect(() => {
@@ -584,8 +584,13 @@ export function ContenedorMapaSenderos({ altura, categoriaId, color, colorPaquet
             return (
               <View key={nodo.id} style={[styles.nodoPosicion, { left: posicion.x - 42, top: posicion.y - 48, zIndex: 20 }]}>
                 <NodoMandalaPedestal
-                  color={mandala.color ?? color}
+                  color={mandala.color ?? colorCofre}
                   destacada={indice === indiceUltimaMandala}
+                  particulas={indice === indiceUltimaMandala
+                    ? 'plenas'
+                    // Las suaves sólo cerca de la pantalla: el lienzo de nodos
+                    // no se virtualiza y cada una anima su propio Canvas.
+                    : Math.abs(posicion.y - (desplazamientoMapa + altura / 2)) < altura / 2 + margenDecoracion / 2 ? 'suaves' : 'ninguna'}
                   escalaEscena={escalaEscena}
                   mandala={mandala}
                   oculta={ritual?.registroId === mandala.registroId && !ritual.anclado}

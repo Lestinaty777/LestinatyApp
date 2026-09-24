@@ -8,6 +8,7 @@ import { Texto } from '../../../../diseno';
 import { useEscala } from '../../../../diseno/tema/MasterColorContext';
 import { hapticSeguro } from '../../../../nucleo/dispositivo/haptics';
 import { ANGULO_REPOSO_MANDALA, MandalaExtruido } from '../../../habitos/componentes/MandalaExtruido';
+import { ParticulasMandala } from '../../../habitos/componentes/ParticulasMandala';
 import type { InfoMandalaNodo } from '../../../habitos/mandalaNodo.tipos';
 import { PedestalBase, PedestalBotonSuperior } from './PedestalNodo';
 
@@ -18,6 +19,7 @@ export const TAMANO_MANDALA_PEDESTAL = 54;
 const CENTRO_TOPE_PEDESTAL = (119 / 303) * TAMANO_PEDESTAL;
 const BASE_MANDALA = CENTRO_TOPE_PEDESTAL + 3;
 const ARRIBA_MANDALA = BASE_MANDALA - TAMANO_MANDALA_PEDESTAL * 0.95;
+const LADO_PARTICULAS = 84;
 const PAUSA_GIRO_MS = 3000;
 const DURACION_GIRO_MS = 1600;
 
@@ -30,7 +32,11 @@ type NodoMandalaPedestalProps = {
   /** Mientras el ritual la trae en vuelo, el pedestal espera vacío y sin brillo. */
   oculta: boolean;
   onPress: () => void;
+  /** Plenas en la última mandala, suaves en las demás cerca de la pantalla, ninguna lejos. */
+  particulas: NivelParticulas;
 };
+
+export type NivelParticulas = 'plenas' | 'suaves' | 'ninguna';
 
 // Nodo de día terminado con mandala: el mismo pedestal de los nodos del
 // sendero y, encima, la mandala de pie con volumen. `pendiente` (el ritual
@@ -38,7 +44,7 @@ type NodoMandalaPedestalProps = {
 // El ref apunta a la caja exacta de la mandala: CompositorOverlay la mide
 // para aterrizar encima sin salto.
 export const NodoMandalaPedestal = forwardRef<View, NodoMandalaPedestalProps>(function NodoMandalaPedestal(
-  { color, destacada, escalaEscena = 1, mandala, oculta, onPress },
+  { color, destacada, escalaEscena = 1, mandala, oculta, onPress, particulas },
   refAncla,
 ) {
   const { t } = useTranslation();
@@ -139,6 +145,17 @@ export const NodoMandalaPedestal = forwardRef<View, NodoMandalaPedestalProps>(fu
             <MandalaExtruido capas={4} color={color} giro={giro} tamano={TAMANO_MANDALA_PEDESTAL} trazos={mandala.trazos} />
           )}
         </View>
+
+        {creada && !oculta && particulas !== 'ninguna' && (
+          <View pointerEvents="none" style={styles.particulas}>
+            <ParticulasMandala
+              cantidad={particulas === 'plenas' ? 8 : 4}
+              escalaPunto={particulas === 'plenas' ? 1.1 : 0.9}
+              intensidad={particulas === 'plenas' ? 1 : 0.45}
+              tamano={LADO_PARTICULAS}
+            />
+          </View>
+        )}
       </Pressable>
 
       {pendiente && !oculta && (
@@ -162,6 +179,13 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: ARRIBA_MANDALA,
     width: TAMANO_MANDALA_PEDESTAL,
+  },
+  particulas: {
+    height: LADO_PARTICULAS,
+    left: (TAMANO_PEDESTAL - LADO_PARTICULAS) / 2,
+    position: 'absolute',
+    top: ARRIBA_MANDALA + TAMANO_MANDALA_PEDESTAL / 2 - LADO_PARTICULAS * 0.6,
+    width: LADO_PARTICULAS,
   },
   badge: {
     borderRadius: 8,

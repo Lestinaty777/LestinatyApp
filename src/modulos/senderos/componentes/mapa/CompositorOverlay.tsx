@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { BackHandler, Pressable, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useQueryClient } from '@tanstack/react-query';
@@ -10,7 +10,8 @@ import { BlurMask, Canvas, Oval } from '@shopify/react-native-skia';
 import { Texto } from '../../../../diseno';
 import { useEscala } from '../../../../diseno/tema/MasterColorContext';
 import { hapticSeguro } from '../../../../nucleo/dispositivo/haptics';
-import { ANCHO_CINTA_MANDALA, ANGULO_REPOSO_MANDALA, LADO_LIENZO_MANDALA, MandalaExtruido, RADIO_TRAZO_MANDALA } from '../../../habitos/componentes/MandalaExtruido';
+import { ANCHO_CINTA_MANDALA, ANGULO_REPOSO_MANDALA, coloresMandala, LADO_LIENZO_MANDALA, MandalaExtruido, RADIO_TRAZO_MANDALA } from '../../../habitos/componentes/MandalaExtruido';
+import { ParticulasMandala, RafagaParticulas } from '../../../habitos/componentes/ParticulasMandala';
 import { construirCaminosMandala } from '../../../habitos/mandalaGeometria';
 import { guardarMandalaRegistro } from '../../../habitos/mandalaNodo.servicio';
 import type { TrazoMandala } from '../../../habitos/mandalaNodo.tipos';
@@ -32,6 +33,7 @@ const ESCALA_LEVITACION = 0.7;
 const CONTEMPLACION_MS = 3600; // ~0,6 s de levitar + 3 s quieta en el aire
 const DESCENSO_MS = 1400;
 const ALTURA_ARCO = 36;
+const LADO_RAFAGA = 140;
 
 function distancia(a: TrazoMandala, b: TrazoMandala) {
   return Math.hypot(a.x - b.x, a.y - b.y);
@@ -106,6 +108,9 @@ export function CompositorOverlay({ color, medirDestino, onAnclado, onCancelado,
   const dy = useSharedValue(0);
   const giro = useSharedValue(0);
   const relieve = useSharedValue(0);
+  const inclinacion = useSharedValue(0);
+  const polvo = useSharedValue(0);
+  const paleta = useMemo(() => coloresMandala(color), [color]);
   const destelloProgreso = useSharedValue(0);
 
   function cambiarFase(siguiente: Fase) {
@@ -205,6 +210,10 @@ export function CompositorOverlay({ color, medirDestino, onAnclado, onCancelado,
     textos.value = withTiming(0, { duration: 300 });
     escala.value = withTiming(ESCALA_LEVITACION, { duration: 900, easing: Easing.out(Easing.cubic) });
     relieve.value = withDelay(150, withTiming(1, { duration: 600, easing: Easing.out(Easing.cubic) }));
+    // Se recuesta a su inclinación de pedestal mientras levita: así llega
+    // al mapa ya en la misma pose que la mandala del nodo.
+    inclinacion.value = withDelay(250, withTiming(1, { duration: 900, easing: Easing.inOut(Easing.cubic) }));
+    polvo.value = withDelay(400, withTiming(1, { duration: 900 }));
     giro.value = withDelay(150, withRepeat(withTiming(360, { duration: 4200, easing: Easing.linear }), -1, false));
     flotar.value = withDelay(500, withRepeat(withTiming(1, { duration: 1600, easing: Easing.inOut(Easing.sin) }), -1, true));
     sombra.value = withDelay(300, withTiming(1, { duration: 700 }));
@@ -363,6 +372,9 @@ export function CompositorOverlay({ color, medirDestino, onAnclado, onCancelado,
           <View pointerEvents="none" style={[styles.destello, { left: destello.x - 40, top: destello.y - 40 }]}>
             <Animated.View style={[styles.resplandor, { backgroundColor: color }, estiloResplandor]} />
             <Animated.View style={[styles.anillo, estiloAnillo]} />
+            <View style={styles.rafaga}>
+              <RafagaParticulas progreso={destelloProgreso} tamano={LADO_RAFAGA} />
+            </View>
           </View>
         )}
 
@@ -373,12 +385,17 @@ export function CompositorOverlay({ color, medirDestino, onAnclado, onCancelado,
                 <View style={styles.superficie}>
                   <Animated.View style={[styles.guia, { borderColor: color }, estiloTextos]} />
                   <Svg height={LADO} pointerEvents="none" style={StyleSheet.absoluteFill} viewBox={viewBox} width={LADO}>
-                    {puntos.length > 1 && caminos.map((d, indice) => (d ? <Path d={d} fill={color} key={indice} /> : null))}
+                    {puntos.length > 1 && caminos.map((d, indice) => (d
+                      ? <Path d={d} fill={paleta.cara} key={indice} stroke={paleta.filo} strokeLinejoin="round" strokeOpacity={0.75} strokeWidth={4} />
+                      : null))}
                   </Svg>
                 </View>
               </GestureDetector>
             ) : (
-              <MandalaExtruido capas={8} color={color} giro={giro} relieve={relieve} tamano={LADO} trazos={trazoFinal} />
+              <>
+                <MandalaExtruido capas={8} color={color} giro={giro} inclinacion={inclinacion} relieve={relieve} tamano={LADO} trazos={trazoFinal} />
+                <ParticulasMandala cantidad={18} escalaPunto={2.6} intensidad={1} tamano={LADO} visibilidad={polvo} />
+              </>
             )}
           </Animated.View>
         )}
@@ -415,6 +432,8 @@ const styles = StyleSheet.create({
   destello: { alignItems: 'center', height: 80, justifyContent: 'center', position: 'absolute', transform: [{ scaleY: 0.38 }], width: 80 },
   anillo: { borderColor: '#FFFFFF', borderRadius: 40, borderWidth: 3, height: 80, position: 'absolute', width: 80 },
   resplandor: { borderRadius: 40, height: 80, position: 'absolute', width: 80 },
+  // Dentro de `destello` (achatado 0,38): la ráfaga se abre sobre el suelo.
+  rafaga: { height: LADO_RAFAGA, position: 'absolute', transform: [{ scaleY: 1 / 0.38 }], width: LADO_RAFAGA },
   cabecera: { alignItems: 'center', left: 24, position: 'absolute', right: 24, top: 28 },
   titulo: { color: '#FFFFFF', fontFamily: 'MontserratAlternates-Bold', fontSize: 18, textAlign: 'center' },
   pie: { alignItems: 'center', bottom: 28, gap: 14, left: 24, position: 'absolute', right: 24 },
