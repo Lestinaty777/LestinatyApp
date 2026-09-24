@@ -19,7 +19,9 @@ import { useTranslation } from 'react-i18next';
 
 import { NodoSendero } from './NodoSendero';
 import { NodoCofreSendero } from './NodoCofreSendero';
-import { OrbeMandalaNodo } from '../../../habitos/componentes/OrbeMandalaNodo';
+import type { InfoMandalaNodo, TrazoMandala } from '../../../habitos/mandalaNodo.tipos';
+import { NodoMandalaPedestal } from './NodoMandalaPedestal';
+import { CompositorOverlay, type RectPantalla } from './CompositorOverlay';
 import { ModalAperturaCofre } from './ModalAperturaCofre';
 import type { InfoCofre } from '../../datos/mapaEjercicio.mock';
 import { useEscala } from '../../../../diseno/tema/MasterColorContext';
@@ -56,7 +58,12 @@ type ContenedorMapaSenderosProps = {
    * claros o muy oscuros).
    */
   colorPaquete?: string;
+  /** Mandala recién ganada (al volver de una misión): el mapa abre el ritual sobre su pedestal en cuanto el nodo aparece. */
+  encargoMandala?: { registroId: string } | null;
+  onEncargoConsumido?: () => void;
 };
+
+type RitualMandala = { anclado: boolean; color: string; registroId: string };
 
 const separacionVertical = 112;
 // Debe reflejar el arranque compacto que usa generarMapaProcedural; así el
@@ -305,7 +312,7 @@ const CapaDecoracionMapa = React.memo(function CapaDecoracionMapa({
   );
 });
 
-export function ContenedorMapaSenderos({ altura, categoriaId, color, colorPaquete, desplazamientoSuperior, enfocado, infoHabito, nivel, nodos: nodosOverride, onCompletarNodo, onReclamarCofre, paqueteId, progresoPastoTemprano, subcategoriaId }: ContenedorMapaSenderosProps) {
+export function ContenedorMapaSenderos({ altura, categoriaId, color, colorPaquete, desplazamientoSuperior, encargoMandala, enfocado, infoHabito, nivel, nodos: nodosOverride, onCompletarNodo, onEncargoConsumido, onReclamarCofre, paqueteId, progresoPastoTemprano, subcategoriaId }: ContenedorMapaSenderosProps) {
   const colorCofre = colorPaquete ?? color;
   const styles = useEstilosStyles();
   const { width } = useWindowDimensions();
@@ -314,7 +321,16 @@ export function ContenedorMapaSenderos({ altura, categoriaId, color, colorPaquet
   const [desplazamientoMapa, setDesplazamientoMapa] = useState(0);
   const [cofreApertura, setCofreApertura] = useState<InfoCofre | null>(null);
   const desplazamientoDecoracionRef = useRef(0);
-  const nodos = nodosOverride ?? obtenerNodosMapaMock(subcategoriaId);
+  const [ritual, setRitual] = useState<RitualMandala | null>(null);
+  // Trazos recién anclados, mientras la consulta de mandalas se refresca:
+  // el pedestal debe mostrar la mandala en el mismo cuadro en que aterriza.
+  const [trazosAnclados, setTrazosAnclados] = useState<Map<string, TrazoMandala[]>>(() => new Map());
+  const anclasMandalaRef = useRef(new Map<string, View>());
+  const nodosBase = nodosOverride ?? obtenerNodosMapaMock(subcategoriaId);
+  const nodos = useMemo(() => trazosAnclados.size === 0 ? nodosBase : nodosBase.map((nodo) => {
+    const trazos = nodo.mandala ? trazosAnclados.get(nodo.mandala.registroId) : undefined;
+    return trazos && nodo.mandala ? { ...nodo, mandala: { ...nodo.mandala, estado: 'creada' as const, trazos } } : nodo;
+  }), [nodosBase, trazosAnclados]);
   // Derivado en cada render a partir de `nodos` — NO useState: `nodos` llega
   // como prop desde React Query y cambia cuando se completa un día (p. ej.
   // al volver de la pantalla de misión sin que este componente se
@@ -376,14 +392,48 @@ export function ContenedorMapaSenderos({ altura, categoriaId, color, colorPaquet
       : indiceNodoSeleccionado === indiceNodoActual
         ? nodos[indiceNodoSeleccionado].estado
         : 'bloqueado';
+  // La más reciente de las mandalas creadas es la que gira sola.
+  const indiceUltimaMandala = nodos.reduce((ultimo, nodo, indice) => nodo.mandala?.estado === 'creada' ? indice : ultimo, -1);
+
+  function abrirRitual(mandala: InfoMandalaNodo, indice: number) {
+    if (ritual) return;
+    // Sin tooltip: el nodo queda despejado para que la mandala aterrice.
+    setSeleccionado('');
+    enfocarNodo(indice);
+    setRitual({ anclado: false, color: mandala.color ?? color, registroId: mandala.registroId });
+  }
+
+  useEffect(() => {
+    if (!encargoMandala || !enfocado || ritual) return;
+    const indice = nodos.findIndex((nodo) => nodo.mandala?.registroId === encargoMandala.registroId);
+    // El nodo puede tardar en llegar (la consulta de mandalas se está
+    // refrescando tras el registro): se espera al siguiente render.
+    if (indice < 0) return;
+    const mandala = nodos[indice].mandala!;
+    onEncargoConsumido?.();
+    if (mandala.estado === 'pendiente') abrirRitual(mandala, indice);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [encargoMandala, enfocado, nodos, ritual]);
+
+  function medirAnclaMandala(registroId: string) {
+    return new Promise<RectPantalla | null>((resolver) => {
+      const ancla = anclasMandalaRef.current.get(registroId);
+      if (!ancla) { resolver(null); return; }
+      ancla.measureInWindow((x, y, ancho, alto) => resolver({ alto, ancho, x, y }));
+    });
+  }
+
   if (nodos.length === 0) return null;
+
+  function enfocarNodo(indice: number) {
+    if (!enfocado) return;
+    const destino = Math.max(0, margenSuperiorEfectivo + indice * separacionVertical - altura * 0.34);
+    scrollRef.current?.scrollTo({ animated: true, y: destino });
+  }
 
   function seleccionarNodo(id: string, indice: number) {
     setSeleccionado(id);
-    if (enfocado) {
-      const destino = Math.max(0, margenSuperiorEfectivo + indice * separacionVertical - altura * 0.34);
-      scrollRef.current?.scrollTo({ animated: true, y: destino });
-    }
+    enfocarNodo(indice);
   }
 
   function completarNodo(indice: number) {
@@ -395,6 +445,7 @@ export function ContenedorMapaSenderos({ altura, categoriaId, color, colorPaquet
   }
 
   return (
+    <View style={styles.escenario}>
     <View style={[styles.viewportPerspectiva, { backgroundColor: aclarar(color, 0.88) }]}>
     <ScrollView
       ref={scrollRef}
@@ -411,7 +462,7 @@ export function ContenedorMapaSenderos({ altura, categoriaId, color, colorPaquet
       }}
       overScrollMode="never"
       scrollEventThrottle={96}
-      scrollEnabled={true}
+      scrollEnabled={!ritual}
       showsVerticalScrollIndicator={false}
       style={[styles.raiz, { backgroundColor: aclarar(color, 0.88) }]}
       contentContainerStyle={[styles.contenido, { minHeight: altoContenido }]}
@@ -508,9 +559,24 @@ export function ContenedorMapaSenderos({ altura, categoriaId, color, colorPaquet
           }
 
           if (nodo.tipoNodo === 'orbe_mandala' && nodo.mandala) {
+            const mandala = nodo.mandala;
             return (
               <View key={nodo.id} style={[styles.nodoPosicion, { left: posicion.x - 42, top: posicion.y - 48, zIndex: 20 }]}>
-                <OrbeMandalaNodo escalaEscena={escalaEscena} mandala={nodo.mandala} onPress={() => seleccionarNodo(nodo.id, indice)} seleccionado={esSeleccionado} />
+                <NodoMandalaPedestal
+                  color={mandala.color ?? color}
+                  destacada={indice === indiceUltimaMandala}
+                  escalaEscena={escalaEscena}
+                  mandala={mandala}
+                  oculta={ritual?.registroId === mandala.registroId && !ritual.anclado}
+                  onPress={() => {
+                    if (mandala.estado === 'pendiente') { abrirRitual(mandala, indice); return; }
+                    seleccionarNodo(nodo.id, indice);
+                  }}
+                  ref={(vista) => {
+                    if (vista) anclasMandalaRef.current.set(mandala.registroId, vista);
+                    else anclasMandalaRef.current.delete(mandala.registroId);
+                  }}
+                />
               </View>
             );
           }
@@ -551,6 +617,22 @@ export function ContenedorMapaSenderos({ altura, categoriaId, color, colorPaquet
         onReclamar={onReclamarCofre}
         paqueteId={resolverPaqueteHabito(paqueteVisualMapa)}
         visible={cofreApertura !== null}
+      />
+    )}
+    </View>
+    {/* Fuera del viewport inclinado: el ritual queda plano frente a la cámara. */}
+    {ritual && (
+      <CompositorOverlay
+        color={ritual.color}
+        key={ritual.registroId}
+        medirDestino={() => medirAnclaMandala(ritual.registroId)}
+        onAnclado={(trazos) => {
+          setTrazosAnclados((actuales) => new Map(actuales).set(ritual.registroId, trazos));
+          setRitual((actual) => actual && { ...actual, anclado: true });
+        }}
+        onCancelado={() => setRitual(null)}
+        onTerminado={() => setRitual(null)}
+        registroId={ritual.registroId}
       />
     )}
     </View>
@@ -690,6 +772,9 @@ const crearEstilosStyles = (esc: EscalaMaster) => StyleSheet.create({
   },
   contenido: {
     position: 'relative',
+  },
+  escenario: {
+    flex: 1,
   },
   viewportPerspectiva: {
     flex: 1,

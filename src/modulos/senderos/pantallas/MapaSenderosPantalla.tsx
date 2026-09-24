@@ -2,7 +2,7 @@ import Svg, { Rect, Defs, Pattern, Circle } from 'react-native-svg';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useIsFocused, useLocalSearchParams, useRouter } from 'expo-router';
 import { Alert, FlatList, StyleSheet, View, useWindowDimensions, Pressable, Image } from 'react-native';
 import { ScrollView } from 'react-native-gesture-handler';
 import { BotonTab } from '../../../nucleo/navegacion/BarraTabs';
@@ -21,6 +21,7 @@ import { TarjetaHabitoCompacta } from '../../habitos/componentes/TarjetaHabitoCo
 import { TonoDelHabito } from '../../habitos/componentes/TonoDelHabito';
 import { WidgetRegistrarProgreso } from '../../habitos/componentes/WidgetRegistrarProgreso';
 import { useSenderoHabito } from '../../habitos/hooks/useSenderoHabito';
+import { usarRitualMandala, VIGENCIA_ENCARGO_MS } from '../../habitos/estado/ritualMandala.estado';
 import { ModalNivelesSendero } from '../componentes/niveles/ModalNivelesSendero';
 import { buscarIconoHabito } from '../../habitos/iconosHabitos';
 import { obtenerDetallesHabitosHoy, obtenerHabitosActivos } from '../../habitos/habitos.servicio';
@@ -129,6 +130,21 @@ export function MapaSenderosPantalla() {
   }, [idHabitoSeleccionado]);
   const sendero = useSenderoHabito(idHabitoSeleccionado, nivelSeleccionado);
   const nivelVisible = sendero.nivelVisible;
+  const enFoco = useIsFocused();
+  const encargoRitual = usarRitualMandala((estado) => estado.encargo);
+  const encargarRitual = usarRitualMandala((estado) => estado.encargar);
+  const limpiarEncargoRitual = usarRitualMandala((estado) => estado.limpiar);
+  // Registro hecho desde el propio mapa (widget inline): misma vía que al
+  // volver de una pantalla de misión, el ritual se abre sobre el pedestal.
+  const { mandalaPendiente, setMandalaPendiente } = sendero;
+  React.useEffect(() => {
+    if (!mandalaPendiente) return;
+    encargarRitual(mandalaPendiente);
+    setMandalaPendiente(null);
+  }, [encargarRitual, mandalaPendiente, setMandalaPendiente]);
+  const encargoMandalaVigente = encargoRitual && Date.now() - encargoRitual.creadoEn < VIGENCIA_ENCARGO_MS
+    ? { registroId: encargoRitual.mandala.registroId }
+    : null;
   const mapaNivelVisible = MAPAS_NIVELES[nivelVisible - 1] ?? MAPAS_NIVELES[0];
 
   const abrirModalNiveles = () => {
@@ -406,6 +422,8 @@ export function MapaSenderosPantalla() {
                 enfocado
                 infoHabito={{ meta: sendero.consulta.data.habito.meta, tipoMeta: sendero.consulta.data.habito.tipoMeta, unidad: sendero.consulta.data.habito.unidad }}
                 nodos={sendero.nodos}
+                encargoMandala={enFoco ? encargoMandalaVigente : null}
+                onEncargoConsumido={limpiarEncargoRitual}
                 onCompletarNodo={(nodo, indice) => {
                   const puedeAvanzar = !sendero.soloLectura && Boolean(sendero.seccionVisible?.puedeAvanzarHoy) && nodo.estado === 'activo';
                   if (!puedeAvanzar) return;

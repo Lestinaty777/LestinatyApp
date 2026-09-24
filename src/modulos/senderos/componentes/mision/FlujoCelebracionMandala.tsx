@@ -1,48 +1,31 @@
 import { useEffect, useState } from 'react';
-import { useRouter } from 'expo-router';
 
 import { ModalAperturaCofre } from '../mapa/ModalAperturaCofre';
 import type { InfoCofre } from '../../datos/mapaEjercicio.mock';
 import type { ResultadoRegistroHabito } from '../../../habitos/tipos';
+import { usarRitualMandala } from '../../../habitos/estado/ritualMandala.estado';
 
 type Fase = 'cofre' | null;
 
 // Secuencia compartida por las 3 pantallas dedicadas tras un registro
 // exitoso: si hubo transición de cofre (nivel/ciclo), se festeja primero
 // (mismo ModalAperturaCofre ya existente, modo automático — las gemas ya
-// se acreditaron en registrar_progreso_habito); al cerrarse, si además hay
-// una mandala pendiente, se navega al compositor. Sin cofre, va directo al
-// compositor. Sin ninguno de los dos, `onTerminado` — el caller decide qué
-// hacer (normalmente, volver al mapa).
-//
-// Transiciones de ruta con `replace`, nunca `push`: mision-* → compositor →
-// finalización quedan en el mismo nivel del stack, así que un solo
-// `router.back()` desde la finalización vuelve directo al mapa, sin
-// importar cuántos pasos hubo en el medio.
+// se acreditaron en registrar_progreso_habito). Después, siempre
+// `onTerminado` (volver al mapa); si además hay una mandala pendiente, antes
+// se deja el encargo del ritual: el mapa lo toma al recuperar el foco y lo
+// abre sobre el pedestal del nodo (CompositorOverlay), sin cambiar de ruta.
 export function FlujoCelebracionMandala({ color, paqueteId, resultado, onTerminado }: {
   color: string;
   paqueteId: string;
   resultado: ResultadoRegistroHabito | undefined;
   onTerminado: () => void;
 }) {
-  const router = useRouter();
+  const encargarRitual = usarRitualMandala((estado) => estado.encargar);
   const [fase, setFase] = useState<Fase>(null);
   const [cofreSintetico, setCofreSintetico] = useState<InfoCofre | null>(null);
 
-  function abrirCompositorOTerminar() {
-    if (resultado?.mandalaPendiente) {
-      const mandala = resultado.mandalaPendiente;
-      router.replace({
-        pathname: '/senderos/mandala-compositor',
-        params: {
-          color: mandala.color ?? color,
-          nodoDia: String(mandala.nodoDia),
-          paqueteId: mandala.paqueteId ?? paqueteId,
-          registroId: mandala.registroId,
-        },
-      });
-      return;
-    }
+  function dejarRitualYTerminar() {
+    if (resultado?.mandalaPendiente) encargarRitual(resultado.mandalaPendiente);
     onTerminado();
   }
 
@@ -60,7 +43,7 @@ export function FlujoCelebracionMandala({ color, paqueteId, resultado, onTermina
       setFase('cofre');
       return;
     }
-    abrirCompositorOTerminar();
+    dejarRitualYTerminar();
     // Sólo debe reaccionar cuando `resultado` cambia de vacío a un registro nuevo.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [resultado]);
@@ -75,7 +58,7 @@ export function FlujoCelebracionMandala({ color, paqueteId, resultado, onTermina
         onCerrar={() => setFase(null)}
         onFinalizarAutomatico={() => {
           setFase(null);
-          abrirCompositorOTerminar();
+          dejarRitualYTerminar();
         }}
         paqueteId={paqueteId}
         visible

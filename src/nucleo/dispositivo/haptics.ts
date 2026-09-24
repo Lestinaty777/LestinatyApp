@@ -1,11 +1,12 @@
 import * as Haptics from 'expo-haptics';
 import { Platform, Vibration } from 'react-native';
 
-type TipoHaptic = 'accion' | 'confirmacion' | 'seleccion' | 'toggle';
+type TipoHaptic = 'accion' | 'confirmacion' | 'impacto' | 'seleccion' | 'toggle';
 
 const duracionesFallback: Record<TipoHaptic, number> = {
   accion: 16,
   confirmacion: 22,
+  impacto: 40,
   seleccion: 12,
   toggle: 16,
 };
@@ -37,6 +38,14 @@ export function hapticSeguro(tipo: TipoHaptic = 'seleccion') {
 
   void (async () => {
     try {
+      // Golpe profundo (p. ej. una mandala que aterriza en su pedestal):
+      // impactAsync pesado en ambas plataformas, ninguna constante de
+      // AndroidHaptics tiene ese cuerpo.
+      if (tipo === 'impacto' && typeof Haptics.impactAsync === 'function') {
+        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+        return;
+      }
+
       if (Platform.OS === 'android' && typeof Haptics.performAndroidHapticsAsync === 'function') {
         await Haptics.performAndroidHapticsAsync(obtenerHapticAndroid(tipo));
         return;

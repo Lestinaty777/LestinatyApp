@@ -98,6 +98,10 @@ export const recursosI18n = {
           listoParaSoltar: 'Ready — release to fix it',
           guardando: 'Saving…',
         },
+        ritual: {
+          contemplacion: 'One more step on your path',
+          masTarde: 'Later',
+        },
       }, crearWizard: {
         stepCounter: '{{current}} of {{total}}', cancel: 'Cancel', continue: 'Continue',
         actions: { createHabit: 'Create my habit', creating: 'Creating…' },
@@ -1002,6 +1006,10 @@ export const recursosI18n = {
           formando: 'Formando la mandala…',
           listoParaSoltar: 'Listo — suelta para dejarla fija',
           guardando: 'Guardando…',
+        },
+        ritual: {
+          contemplacion: 'Un paso más en tu sendero',
+          masTarde: 'Más tarde',
         },
       }, crearWizard: {
         stepCounter: '{{current}} de {{total}}', cancel: 'Cancelar', continue: 'Continuar',
