@@ -1,34 +1,67 @@
 import { useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
-import Animated, { type SharedValue, useAnimatedStyle } from 'react-native-reanimated';
-import Svg, { Path } from 'react-native-svg';
+import { type SharedValue, useDerivedValue } from 'react-native-reanimated';
+import { Canvas, Path, Shader, Skia, type SkPath } from '@shopify/react-native-skia';
 
-import { construirCaminosMandala } from '../mandalaGeometria';
+import { construirContornosMandala } from '../mandalaGeometria';
+import { prepararPoligonos, proyectarExtrusion, TONOS_PARED } from '../mandalaExtrusion';
 import type { TrazoMandala } from '../mandalaNodo.tipos';
 
 // Mismo espacio de coordenadas que el lienzo donde se traza (radio ~150,
 // centrado en 0,0) y el mismo ancho de cinta: así la mandala trazada y la
-// extruida son idénticas en el instante del relevo, sin salto visual.
+// extruida tienen la misma silueta en el instante del relevo.
 export const LADO_LIENZO_MANDALA = 320;
 export const RADIO_TRAZO_MANDALA = 150;
 export const ANCHO_CINTA_MANDALA = LADO_LIENZO_MANDALA * 0.06;
 // Pose de reposo: tres cuartos de giro, para que el grosor se lea aun quieta.
 export const ANGULO_REPOSO_MANDALA = -26;
-// Cuánto se recuesta la mandala hacia atrás (rotateX), sólo ella, no el
-// mapa: 0 = de pie mirando a la cámara; más grados = se ve más desde arriba.
+// Cuánto se recuesta la mandala (rotateX), sólo ella, no el mapa: 0 = de
+// pie mirando a la cámara.
 export const INCLINACION_MANDALA = -30;
 // Proporción de blanco en la cara: 0.7 = pastel claro del color del paquete.
 export const BLANCO_PASTEL_MANDALA = 0.7;
-// Filo blanco de la cara, en unidades del lienzo (≈0,7 px en el pedestal).
+// Grosor de la extrusión, relativo al tamaño de la mandala.
+export const GROSOR_MANDALA = 0.08;
+// Cuánto del arcoíris del nácar se mezcla con el pastel (0 = pastel liso).
+export const INTENSIDAD_NACAR = 0.16;
+// Brillo de la franja de luz que cruza la cara al girar (0 = sin destello).
+export const INTENSIDAD_DESTELLO = 0.3;
+// Filo blanco de la cara, en unidades del lienzo.
 const FILO_MANDALA = 4;
 // Distancia de cámara relativa al tamaño: más baja = el borde que se acerca
 // crece más, y el sentido del giro se lee sin ambigüedad.
 const PERSPECTIVA_RELATIVA = 2.6;
-// Luz fija arriba a la izquierda, hacia la cámara (normalizada): la cara se
-// aclara al girar hacia ella y se apaga al alejarse, así el giro tiene un
-// sentido visible y no "rebota" como la bailarina de la ilusión óptica.
-const LUZ = { x: -0.5, z: 0.866 };
-const SOMBRA_MAXIMA = 0.42;
+// El dibujo proyectado puede salirse de su caja (perspectiva, canto): el
+// Canvas se agranda este margen por lado, sin mover la caja que se mide.
+const MARGEN_LIENZO = 0.3;
+// Tono de cada pared según cuánta luz recibe, del más oscuro al más claro.
+const BRILLO_PAREDES = [0.58, 0.72, 0.86, 1];
+
+// Nácar: el pastel con un arcoíris suave que se desplaza con la posición y
+// el giro (como el interior de una concha), un leve resplandor central y una
+// franja especular que cruza la cara mientras gira. `luz` apaga la cara
+// cuando se aleja de la luz; `cara` es el pastel del frente o del reverso.
+const NACAR = Skia.RuntimeEffect.Make(`
+uniform float2 centro;
+uniform float radio;
+uniform float giro;
+uniform float luz;
+uniform float nacar;
+uniform float destello;
+uniform float3 cara;
+
+half4 main(float2 p) {
+  float2 q = (p - centro) / radio;
+  float t = q.x * 1.4 + q.y * 0.9 + giro * 0.8;
+  float3 iris = 0.5 + 0.5 * cos(6.2831 * (float3(0.0, 0.33, 0.67) + t * 0.5));
+  float3 c = mix(cara, iris, nacar);
+  c += 0.06 * (1.0 - clamp(length(q), 0.0, 1.0));
+  float franja = abs(q.x * 0.8 - q.y * 0.6 - sin(giro) * 1.3);
+  c += destello * (1.0 - smoothstep(0.0, 0.28, franja));
+  c *= luz;
+  return half4(half3(clamp(c, 0.0, 1.0)), 1.0);
+}
+`);
 
 function canales(color: string) {
   const hex = color.replace('#', '');
@@ -44,14 +77,17 @@ function aHex(valores: number[]) {
 // pleno, como una joya: suave de frente, intensa de costado — el canto es lo
 // que la despega de un mapa que ya es una versión clara del mismo color.
 export function coloresMandala(color: string) {
-  const rgb = canales(color);
-  if (!rgb) return { canto: color, cara: color, filo: '#FFFFFF', reverso: color };
+  const rgb = canales(color) ?? [178, 95, 251];
+  const mezclar = (blanco: number) => rgb.map((v) => v + (255 - v) * blanco);
   return {
     canto: aHex(rgb.map((v) => v * 0.88)),
-    cara: aHex(rgb.map((v) => v + (255 - v) * BLANCO_PASTEL_MANDALA)),
-    // El reverso, un pastel más profundo y sin filo: se distingue de frente.
-    reverso: aHex(rgb.map((v) => v + (255 - v) * (BLANCO_PASTEL_MANDALA - 0.18))),
+    cara: aHex(mezclar(BLANCO_PASTEL_MANDALA)),
+    // El reverso, un pastel más profundo y sin filo: se distingue del frente.
+    reverso: aHex(mezclar(BLANCO_PASTEL_MANDALA - 0.18)),
     filo: '#FFFFFF',
+    caraRgb: mezclar(BLANCO_PASTEL_MANDALA).map((v) => v / 255),
+    reversoRgb: mezclar(BLANCO_PASTEL_MANDALA - 0.18).map((v) => v / 255),
+    paredes: BRILLO_PAREDES.map((k) => aHex(rgb.map((v) => v * 0.88 * k))),
   };
 }
 
@@ -66,108 +102,93 @@ type MandalaExtruidoProps = {
   relieve?: SharedValue<number>;
   /** 0 = de pie, 1 = recostada INCLINACION_MANDALA grados. Sin él, recostada. */
   inclinacion?: SharedValue<number>;
-  /** Láminas apiladas que forman el canto; menos en el mapa, más en primer plano. */
-  capas?: number;
 };
 
-// React Native no apila vistas en profundidad real, así que el volumen se
-// simula como una moneda: la misma mandala repetida en láminas, cada una a
-// su profundidad z. Girar `giro` sobre Y y recostar `inclinacion` sobre X
-// lleva una lámina a profundidad z a (z·sinθ, −z·cosθ·sinφ) en pantalla
-// (misma matriz que rotateY/rotateX), y así aparece el canto. La cara lleva
-// el pastel con filo blanco, el reverso un pastel más profundo, y las
-// láminas interiores el color pleno.
-export function MandalaExtruido({ capas = 6, color, giro, inclinacion, relieve, tamano, trazos }: MandalaExtruidoProps) {
-  const caminos = useMemo(() => construirCaminosMandala(trazos, ANCHO_CINTA_MANDALA), [trazos]);
+function armarPath(poligonos: number[][]): SkPath {
+  'worklet';
+  const path = Skia.Path.Make();
+  for (let p = 0; p < poligonos.length; p += 1) {
+    const puntos = poligonos[p];
+    if (puntos.length < 6) continue;
+    path.moveTo(puntos[0], puntos[1]);
+    for (let i = 2; i < puntos.length; i += 2) path.lineTo(puntos[i], puntos[i + 1]);
+    path.close();
+  }
+  return path;
+}
+
+function armarCuadrilateros(cuadrilateros: number[]): SkPath {
+  'worklet';
+  const path = Skia.Path.Make();
+  for (let i = 0; i + 7 < cuadrilateros.length; i += 8) {
+    path.moveTo(cuadrilateros[i], cuadrilateros[i + 1]);
+    path.lineTo(cuadrilateros[i + 2], cuadrilateros[i + 3]);
+    path.lineTo(cuadrilateros[i + 4], cuadrilateros[i + 5]);
+    path.lineTo(cuadrilateros[i + 6], cuadrilateros[i + 7]);
+    path.close();
+  }
+  return path;
+}
+
+// Extrusión geométrica real: del contorno de cada cinta salen sus paredes
+// (mandalaExtrusion.ts), proyectadas a cada cuadro del giro en el hilo de UI
+// y dibujadas en un solo Canvas de Skia — sin láminas apiladas, así el canto
+// se ve macizo. Sólo se dibujan la cara que mira a cámara y las paredes
+// visibles; como la cara es siempre lo más cercano, va encima de todo.
+export function MandalaExtruido({ color, giro, inclinacion, relieve, tamano, trazos }: MandalaExtruidoProps) {
+  const poligonos = useMemo(() => prepararPoligonos(construirContornosMandala(trazos, ANCHO_CINTA_MANDALA)), [trazos]);
   const paleta = useMemo(() => coloresMandala(color), [color]);
-  const grosor = tamano * 0.08;
-  const viewBox = `${-LADO_LIENZO_MANDALA / 2} ${-LADO_LIENZO_MANDALA / 2} ${LADO_LIENZO_MANDALA} ${LADO_LIENZO_MANDALA}`;
+  const margen = tamano * MARGEN_LIENZO;
+  const lado = tamano + margen * 2;
+  const centro = lado / 2;
+  const escala = tamano / LADO_LIENZO_MANDALA;
+
+  const geometria = useDerivedValue(() => {
+    const proyeccion = proyectarExtrusion(poligonos, {
+      centro,
+      distancia: tamano * PERSPECTIVA_RELATIVA,
+      escala,
+      giroGrados: giro.value,
+      grosor: tamano * GROSOR_MANDALA * (relieve ? relieve.value : 1),
+      inclinacionGrados: INCLINACION_MANDALA * (inclinacion ? inclinacion.value : 1),
+    });
+    const paredes: SkPath[] = [];
+    for (let t = 0; t < TONOS_PARED; t += 1) paredes.push(armarCuadrilateros(proyeccion.paredesPorTono[t]));
+    return { cara: armarPath(proyeccion.cara), frenteVisible: proyeccion.frenteVisible, luzCara: proyeccion.luzCara, paredes };
+  });
+
+  const pathCara = useDerivedValue(() => geometria.value.cara);
+  const pared0 = useDerivedValue(() => geometria.value.paredes[0]);
+  const pared1 = useDerivedValue(() => geometria.value.paredes[1]);
+  const pared2 = useDerivedValue(() => geometria.value.paredes[2]);
+  const pared3 = useDerivedValue(() => geometria.value.paredes[3]);
+  const opacidadFilo = useDerivedValue(() => (geometria.value.frenteVisible ? 0.75 : 0));
+  const uniformes = useDerivedValue(() => ({
+    cara: geometria.value.frenteVisible ? paleta.caraRgb : paleta.reversoRgb,
+    centro: [centro, centro],
+    destello: INTENSIDAD_DESTELLO,
+    giro: (giro.value * Math.PI) / 180,
+    luz: 0.62 + 0.38 * geometria.value.luzCara,
+    nacar: INTENSIDAD_NACAR,
+    radio: tamano / 2,
+  }));
 
   return (
     <View pointerEvents="none" style={{ height: tamano, width: tamano }}>
-      {Array.from({ length: capas }, (_, indice) => {
-        const frente = indice === capas - 1;
-        const reverso = indice === 0 && capas > 1;
-        return (
-          <CapaMandala
-            capas={capas}
-            caminos={caminos}
-            cara={frente ? 1 : reverso ? -1 : 0}
-            color={frente ? paleta.cara : reverso ? paleta.reverso : paleta.canto}
-            filo={frente ? paleta.filo : undefined}
-            indice={indice}
-            giro={giro}
-            grosor={grosor}
-            inclinacion={inclinacion}
-            key={indice}
-            profundidad={capas > 1 ? indice / (capas - 1) - 0.5 : 0}
-            relieve={relieve}
-            tamano={tamano}
-            viewBox={viewBox}
-          />
-        );
-      })}
+      <Canvas pointerEvents="none" style={[styles.lienzo, { height: lado, left: -margen, top: -margen, width: lado }]}>
+        <Path color={paleta.paredes[0]} path={pared0} />
+        <Path color={paleta.paredes[1]} path={pared1} />
+        <Path color={paleta.paredes[2]} path={pared2} />
+        <Path color={paleta.paredes[3]} path={pared3} />
+        <Path path={pathCara}>
+          {NACAR ? <Shader source={NACAR} uniforms={uniformes} /> : null}
+        </Path>
+        <Path color={paleta.filo} opacity={opacidadFilo} path={pathCara} strokeJoin="round" strokeWidth={FILO_MANDALA * escala} style="stroke" />
+      </Canvas>
     </View>
   );
 }
 
-function CapaMandala({ capas, caminos, cara, color, filo, giro, grosor, inclinacion, indice, profundidad, relieve, tamano, viewBox }: {
-  capas: number;
-  caminos: string[];
-  /** 1 = cara frontal, -1 = reverso, 0 = lámina interior del canto. */
-  cara: number;
-  color: string;
-  filo?: string;
-  giro: SharedValue<number>;
-  grosor: number;
-  inclinacion?: SharedValue<number>;
-  indice: number;
-  profundidad: number;
-  relieve?: SharedValue<number>;
-  tamano: number;
-  viewBox: string;
-}) {
-  const estilo = useAnimatedStyle(() => {
-    const z = profundidad * grosor * (relieve ? relieve.value : 1);
-    const theta = (giro.value * Math.PI) / 180;
-    const phi = INCLINACION_MANDALA * (inclinacion ? inclinacion.value : 1);
-    return {
-      // De espaldas, el orden de pintado se invierte: la lámina más cercana
-      // a la cámara siempre queda encima (si no, la profundidad contradice
-      // al giro y parece cambiar de sentido a mitad de vuelta).
-      zIndex: Math.cos(theta) >= 0 ? indice : capas - 1 - indice,
-      transform: [
-        { perspective: tamano * PERSPECTIVA_RELATIVA },
-        { translateX: z * Math.sin(theta) },
-        { translateY: -z * Math.cos(theta) * Math.sin((phi * Math.PI) / 180) },
-        { rotateX: `${phi}deg` },
-        { rotateY: `${giro.value}deg` },
-      ],
-    };
-  });
-
-  // Sombreado de la cara según su normal girada (sinθ, cosθ)·cara frente a
-  // la luz: sólo las dos caras exteriores, el canto ya es el color pleno.
-  const estiloSombra = useAnimatedStyle(() => {
-    const theta = (giro.value * Math.PI) / 180;
-    const luz = cara * (Math.sin(theta) * LUZ.x + Math.cos(theta) * LUZ.z);
-    return { opacity: SOMBRA_MAXIMA * (1 - Math.min(1, Math.max(0, luz))) };
-  });
-
-  return (
-    <Animated.View style={[StyleSheet.absoluteFill, estilo]}>
-      <Svg height={tamano} viewBox={viewBox} width={tamano}>
-        {caminos.map((d, i) => (d
-          ? <Path d={d} fill={color} key={i} stroke={filo} strokeLinejoin="round" strokeOpacity={0.75} strokeWidth={filo ? FILO_MANDALA : 0} />
-          : null))}
-      </Svg>
-      {cara !== 0 && (
-        <Animated.View style={[StyleSheet.absoluteFill, estiloSombra]}>
-          <Svg height={tamano} viewBox={viewBox} width={tamano}>
-            {caminos.map((d, i) => (d ? <Path d={d} fill="#000000" key={i} /> : null))}
-          </Svg>
-        </Animated.View>
-      )}
-    </Animated.View>
-  );
-}
+const styles = StyleSheet.create({
+  lienzo: { position: 'absolute' },
+});

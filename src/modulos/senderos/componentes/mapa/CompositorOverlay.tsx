@@ -393,7 +393,7 @@ export function CompositorOverlay({ color, medirDestino, onAnclado, onCancelado,
               </GestureDetector>
             ) : (
               <>
-                <MandalaExtruido capas={8} color={color} giro={giro} inclinacion={inclinacion} relieve={relieve} tamano={LADO} trazos={trazoFinal} />
+                <MandalaExtruido color={color} giro={giro} inclinacion={inclinacion} relieve={relieve} tamano={LADO} trazos={trazoFinal} />
                 <ParticulasMandala cantidad={18} escalaPunto={2.6} intensidad={1} tamano={LADO} visibilidad={polvo} />
               </>
             )}

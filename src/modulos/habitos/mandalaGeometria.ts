@@ -136,13 +136,14 @@ function puntosCasquete(centro: TrazoMandala, tx: number, ty: number, radio: num
   return puntos;
 }
 
-// Cinta rellena de ancho casi constante (95%→100%→95% del ancho base) con
-// casquetes redondos reales en las puntas — nunca una punta cuadrada, nunca
-// el efecto de pincel dramático de una primera versión descartada. Mismo
-// algoritmo validado en el prototipo interactivo (artifact "Mandala de
-// Sendero"). Devuelve un `d` de SVG centrado en (0,0).
-export function trazarCintaSvg(puntos: TrazoMandala[], anchoBase: number): string {
-  if (puntos.length < 2) return '';
+// Contorno de una cinta rellena de ancho casi constante (95%→100%→95% del
+// ancho base) con casquetes redondos reales en las puntas — nunca una punta
+// cuadrada, nunca el efecto de pincel dramático de una primera versión
+// descartada. Mismo algoritmo validado en el prototipo interactivo (artifact
+// "Mandala de Sendero"). Devuelve el polígono cerrado, centrado en (0,0):
+// borde izquierdo, casquete final, borde derecho de vuelta, casquete inicial.
+export function contornoCinta(puntos: TrazoMandala[], anchoBase: number): TrazoMandala[] {
+  if (puntos.length < 2) return [];
   const n = puntos.length;
   const izquierda: TrazoMandala[] = [];
   const derecha: TrazoMandala[] = [];
@@ -170,20 +171,34 @@ export function trazarCintaSvg(puntos: TrazoMandala[], anchoBase: number): strin
     derecha.push({ x: puntos[i].x - (nx * ancho) / 2, y: puntos[i].y - (ny * ancho) / 2 });
   }
 
-  const f = (p: TrazoMandala) => `${p.x.toFixed(1)} ${p.y.toFixed(1)}`;
-  let d = `M ${f(izquierda[0])}`;
-  for (let a = 1; a < izquierda.length; a += 1) d += ` L ${f(izquierda[a])}`;
-
+  const contorno: TrazoMandala[] = [...izquierda];
   const casqueteFinal = puntosCasquete(puntos[n - 1], tangenteFinal.x, tangenteFinal.y, anchos[n - 1] / 2, 8);
-  for (let e = 1; e < casqueteFinal.length; e += 1) d += ` L ${f(casqueteFinal[e])}`;
-
-  for (let b = derecha.length - 2; b >= 0; b -= 1) d += ` L ${f(derecha[b])}`;
-
+  for (let e = 1; e < casqueteFinal.length; e += 1) contorno.push(casqueteFinal[e]);
+  for (let b = derecha.length - 2; b >= 0; b -= 1) contorno.push(derecha[b]);
   const casqueteInicial = puntosCasquete(puntos[0], -tangenteInicial.x, -tangenteInicial.y, anchos[0] / 2, 8);
-  for (let s = 1; s < casqueteInicial.length; s += 1) d += ` L ${f(casqueteInicial[s])}`;
+  for (let s = 1; s < casqueteInicial.length; s += 1) contorno.push(casqueteInicial[s]);
+  return contorno;
+}
 
-  d += ' Z';
-  return d;
+// El mismo contorno como `d` de SVG.
+export function trazarCintaSvg(puntos: TrazoMandala[], anchoBase: number): string {
+  const contorno = contornoCinta(puntos, anchoBase);
+  if (contorno.length === 0) return '';
+  const f = (p: TrazoMandala) => `${p.x.toFixed(1)} ${p.y.toFixed(1)}`;
+  let d = `M ${f(contorno[0])}`;
+  for (let i = 1; i < contorno.length; i += 1) d += ` L ${f(contorno[i])}`;
+  return `${d} Z`;
+}
+
+// Los 7 contornos de la mandala como polígonos — la base de la extrusión
+// real (MandalaExtruido): de cada lado del polígono sale una pared.
+export function construirContornosMandala(puntosCrudos: TrazoMandala[], anchoBase: number): TrazoMandala[][] {
+  const suave = suavizarTrazo(resamplearTrazo(puntosCrudos));
+  const contornos: TrazoMandala[][] = [];
+  for (let k = 0; k < PLIEGUES_MANDALA; k += 1) {
+    contornos.push(contornoCinta(rotarPuntos(suave, (k / PLIEGUES_MANDALA) * Math.PI * 2), anchoBase));
+  }
+  return contornos;
 }
 
 // Pipeline completo: re-muestrea a 9 puntos (siempre — en vivo y al fijar,
