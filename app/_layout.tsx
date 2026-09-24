@@ -9,10 +9,10 @@ import { ProveedoresApp } from '../src/nucleo/proveedor/ProveedoresApp';
 import { AnimacionApertura } from '../src/nucleo/arranque/AnimacionApertura';
 import { inicializarOneSignal } from '../src/nucleo/notificaciones/oneSignal';
 import { inicializarCompras } from '../src/nucleo/compras/revenueCat';
-import { inicializarGoogleSignIn } from '../src/modulos/acceso/googleSignIn';
+import { inicializarGoogle } from '../src/plataforma/autenticacion/google';
 
 export default function LayoutRaiz() {
-  useEffect(() => { inicializarOneSignal(); inicializarCompras(); inicializarGoogleSignIn(); }, []);
+  useEffect(() => { inicializarOneSignal(); inicializarCompras(); inicializarGoogle(); }, []);
   // Se ve en CADA apertura en frío (no es un "visto una sola vez" como el
   // carrusel de introducción) — se superpone a todo mientras la resolución
   // de sesión/routing de más abajo sigue trabajando por detrás, así al

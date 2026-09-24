@@ -1,5 +1,3 @@
-import { GoogleSignin, isCancelledResponse, isSuccessResponse } from '@react-native-google-signin/google-signin';
-
 import { entorno } from '../../nucleo/configuracion/entorno';
 import { obtenerClienteSupabase } from '../../servicios/base-datos/supabase';
 import { i18n } from '../../servicios/i18n/i18n';
@@ -109,49 +107,10 @@ export async function iniciarSesionConEmail({ email, password }: CredencialesAcc
   return data.user ? mapearUsuarioSesion(data.user) : null;
 }
 
-// null = el usuario canceló el picker de Google (no es un error a mostrar).
-// Cualquier otro problema (sin idToken, Supabase rechaza el token, etc.) sí
-// se propaga como error real.
-//
-// `codigoReferido`: a diferencia de crearCuentaConEmail (signUp SÍ acepta
-// options.data), signInWithIdToken no tiene forma de mandar
-// raw_user_meta_data en esta versión del cliente — el trigger de auth.users
-// nunca se entera. Por eso el código se aplica DESPUÉS, con un RPC propio
-// (aplicar_codigo_referido, idempotente: no hace nada si la cuenta ya tenía
-// un referente o si el código no existe) en vez de en el alta misma.
-export async function iniciarSesionConGoogle(codigoReferido?: string): Promise<UsuarioSesion | null> {
-  await GoogleSignin.hasPlayServices();
-  const respuesta = await GoogleSignin.signIn();
-
-  if (isCancelledResponse(respuesta)) {
-    return null;
-  }
-  if (!isSuccessResponse(respuesta) || !respuesta.data.idToken) {
-    throw new Error('No pudimos obtener tu identidad de Google. Intentá de nuevo.');
-  }
-
-  const supabase = obtenerClienteSupabase();
-  const { data, error } = await supabase.auth.signInWithIdToken({
-    provider: 'google',
-    token: respuesta.data.idToken,
-  });
-
-  if (error) {
-    throw new Error(obtenerMensajeError(error));
-  }
-
-  const codigoLimpio = codigoReferido?.trim();
-  if (codigoLimpio) {
-    // Nunca debe tumbar el login si falla — el usuario ya quedó autenticado.
-    try {
-      await supabase.rpc('aplicar_codigo_referido', { p_codigo: codigoLimpio });
-    } catch {
-      // silencioso a propósito
-    }
-  }
-
-  return data.user ? mapearUsuarioSesion(data.user) : null;
-}
+// Google Sign-In vive detrás de un contrato por plataforma: Metro resuelve
+// google.android.ts (SDK real) en Android y google.ts (no-op) en iOS/web —
+// así el binario iOS nunca enlaza el SDK de Google.
+export { iniciarSesionConGoogle } from '../../plataforma/autenticacion/google';
 
 export async function recuperarAcceso(email: string) {
   const supabase = obtenerClienteSupabase();

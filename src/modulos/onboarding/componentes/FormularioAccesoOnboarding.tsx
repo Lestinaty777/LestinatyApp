@@ -2,10 +2,11 @@ import { router } from 'expo-router';
 import { Gift, Mail } from 'lucide-react-native';
 import { Controller, useForm } from 'react-hook-form';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Linking, StyleSheet, Text, View } from 'react-native';
+import { Linking, Platform, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
 import { CampoContrasena, CampoTexto, Checkbox, MasterButton, MasterIcon, Rebote, Texto } from '../../../diseno';
+import { capacidades } from '../../../plataforma/capacidades';
 import { usarEstadoAcceso } from '../../acceso/acceso.estado';
 import { crearCuentaConEmail, iniciarSesionConEmail, iniciarSesionConGoogle, reenviarOtpRegistro, verificarCodigoReferido, verificarRegistroConOtp } from '../../acceso/acceso.servicio';
 import { AccionAcceso } from '../../acceso/componentes/PantallaAcceso';
@@ -130,9 +131,9 @@ export function FormularioAccesoOnboarding() {
     setErrorGoogle(null);
     setCargandoGoogle(true);
     try {
-      const usuario = await iniciarSesionConGoogle(modo === 'crear' ? codigoReferido : undefined);
-      if (usuario) {
-        definirUsuario(usuario);
+      const resultado = await iniciarSesionConGoogle(modo === 'crear' ? codigoReferido : undefined);
+      if (resultado.estado === 'autenticado') {
+        definirUsuario(resultado.usuario);
         router.replace('/(principal)/hoy');
       }
     } catch (error) {
@@ -377,14 +378,22 @@ export function FormularioAccesoOnboarding() {
             {esCrear ? (isSubmitting ? t('onboarding.formularioAcceso.submittingCreate') : t('onboarding.formularioAcceso.submitCreate')) : (isSubmitting ? t('onboarding.formularioAcceso.submittingLogin') : t('onboarding.formularioAcceso.submitLogin'))}
           </MasterButton>
 
-          <View style={s.divisorFila}>
-            <View style={s.divisorLinea} />
-            <Texto style={s.divisorTexto}>{t('onboarding.formularioAcceso.orDivider')}</Texto>
-            <View style={s.divisorLinea} />
-          </View>
+          {capacidades.googleSignIn ? (
+            <>
+              <View style={s.divisorFila}>
+                <View style={s.divisorLinea} />
+                <Texto style={s.divisorTexto}>{t('onboarding.formularioAcceso.orDivider')}</Texto>
+                <View style={s.divisorLinea} />
+              </View>
 
-          {errorGoogle ? <Texto style={s.error}>{errorGoogle}</Texto> : null}
-          <BotonGoogle cargando={cargandoGoogle} deshabilitado={esCrear && !terminosAceptados} onPress={entrarConGoogle} />
+              {errorGoogle ? <Texto style={s.error}>{errorGoogle}</Texto> : null}
+              <BotonGoogle cargando={cargandoGoogle} deshabilitado={esCrear && !terminosAceptados} onPress={entrarConGoogle} />
+            </>
+          ) : null}
+
+          {Platform.OS === 'ios' ? (
+            <Texto style={[s.textoCrearCuenta, { textAlign: 'center' }]}>{t('auth.login.googleAccountRecoveryHint')}</Texto>
+          ) : null}
 
           <View style={s.filaCrearCuenta}>
             <MasterIcon alTema name={esCrear ? 'candado' : 'idea'} size={16} />

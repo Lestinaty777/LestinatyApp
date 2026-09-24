@@ -3,9 +3,10 @@ import { Mail } from 'lucide-react-native';
 import { Controller, useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
-import { StyleSheet, View, useWindowDimensions } from 'react-native';
+import { Platform, StyleSheet, View, useWindowDimensions } from 'react-native';
 
 import { CampoContrasena, CampoTexto, Texto } from '../../../diseno';
+import { capacidades } from '../../../plataforma/capacidades';
 import { usarEstadoAcceso } from '../acceso.estado';
 import { iniciarSesionConEmail, iniciarSesionConGoogle } from '../acceso.servicio';
 import { BotonGoogle } from '../componentes/BotonGoogle';
@@ -54,11 +55,12 @@ export function IniciarSesionPantalla() {
     setErrorGoogle(null);
     setCargandoGoogle(true);
     try {
-      const usuario = await iniciarSesionConGoogle();
-      if (usuario) {
-        definirUsuario(usuario);
+      const resultado = await iniciarSesionConGoogle();
+      if (resultado.estado === 'autenticado') {
+        definirUsuario(resultado.usuario);
         router.replace('/(principal)/hoy');
       }
+      // 'cancelado' y 'no_disponible' no son errores a mostrar.
     } catch (error) {
       setErrorGoogle(error instanceof Error ? error.message : t('validation.invalidCredentials'));
     } finally {
@@ -111,16 +113,24 @@ export function IniciarSesionPantalla() {
             {isSubmitting ? `${t('auth.signIn')}...` : t('auth.login.button')}
           </BotonAcceso>
 
-          <View style={s.divisorFila}>
-            <View style={s.divisorLinea} />
-            <Texto style={s.divisorTexto}>{t('auth.orContinueWith', { defaultValue: 'o' })}</Texto>
-            <View style={s.divisorLinea} />
-          </View>
+          {capacidades.googleSignIn ? (
+            <>
+              <View style={s.divisorFila}>
+                <View style={s.divisorLinea} />
+                <Texto style={s.divisorTexto}>{t('auth.orContinueWith', { defaultValue: 'o' })}</Texto>
+                <View style={s.divisorLinea} />
+              </View>
 
-          {errorGoogle ? (
-            <Texto style={[estilosAcceso.error, { fontSize: 13 * escala, lineHeight: 18 * escala }]}>{errorGoogle}</Texto>
+              {errorGoogle ? (
+                <Texto style={[estilosAcceso.error, { fontSize: 13 * escala, lineHeight: 18 * escala }]}>{errorGoogle}</Texto>
+              ) : null}
+              <BotonGoogle cargando={cargandoGoogle} onPress={entrarConGoogle} />
+            </>
           ) : null}
-          <BotonGoogle cargando={cargandoGoogle} onPress={entrarConGoogle} />
+
+          {Platform.OS === 'ios' ? (
+            <Texto style={[s.divisorTexto, { textAlign: 'center' }]}>{t('auth.login.googleAccountRecoveryHint')}</Texto>
+          ) : null}
 
           <Texto style={estiloEnlaces}>
             {t('auth.login.noAccount')}{' '}

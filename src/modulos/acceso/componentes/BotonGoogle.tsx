@@ -3,6 +3,7 @@ import Svg, { Path } from 'react-native-svg';
 
 import { Texto } from '../../../diseno';
 import { useEscala } from '../../../diseno/tema/MasterColorContext';
+import { capacidades } from '../../../plataforma/capacidades';
 
 // Botón plano con el logo oficial de Google — deliberadamente NO usa
 // BotonAcceso (tema de colores rotativos de PantallaAcceso) ni MasterButton
@@ -27,6 +28,10 @@ function LogoGoogle({ size = 18 }: { size?: number }) {
 // cargando confundiría al usuario haciéndole pensar que el botón está
 // procesando algo.
 export function BotonGoogle({ cargando, deshabilitado, onPress, texto = 'Continuar con Google' }: { cargando?: boolean; deshabilitado?: boolean; onPress: () => void; texto?: string }) {
+  if (!capacidades.googleSignIn) {
+    return null;
+  }
+
   const bloqueado = cargando || deshabilitado;
   return (
     <Pressable
