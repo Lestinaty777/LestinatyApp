@@ -1,17 +1,18 @@
 import { Check, Lock, Play } from 'lucide-react-native';
-import type { InfoCofre, NodoMapaSendero, TipoNodoMapa } from '../senderos/datos/mapaEjercicio.mock';
+import type { EstadoNodoMapa, InfoCofre, NodoMapaSendero, TipoNodoMapa } from '../senderos/datos/mapaEjercicio.mock';
 import { diasAcumuladosAntesDeNivel } from './diasNivel';
 import { RECOMPENSA_COFRE_FINAL } from './senderoNiveles';
 import type { InfoMandalaNodo } from './mandalaNodo.tipos';
 
-// Cada nodo ES un día real hacia el próximo nivel — no una lección falsa ni
+// Cada nodo de acción ES un día real hacia el próximo nivel — no una lección falsa ni
 // un nivel completo. "Acumulado, no se resetea" (migración 21): un día
 // perdido no vuelve a bloquear los nodos ya cumplidos.
 // La numeración del título es continua entre niveles (Día 1..3 en nivel 1,
 // Día 4..10 en nivel 2, ...) — diaInicial trae el total ya acumulado en
 // niveles previos, así el primer nodo del nivel nuevo sigue el conteo.
 //
-// Los cofres aparecen cada 3 días (intermedios: 8-15 gemas) y al final del nivel
+// Los cofres son nodos de recompensa independientes del flujo de acción de los días:
+// aparecen intercalados cada 3 días (intermedios: 8-15 gemas) y al final del nivel
 // (final: recompensa del wizard, ver RECOMPENSA_COFRE_FINAL).
 //
 // Nivel 7 es maestría infinita: `ciclo` distingue una vuelta de otra sobre el
@@ -37,63 +38,91 @@ export function construirNodosDias(
   const diaInicial = diasAcumuladosAntesDeNivel(nivel, ciclo);
   const gemasFinal = RECOMPENSA_COFRE_FINAL[nivel as keyof typeof RECOMPENSA_COFRE_FINAL] ?? 5 * (nivel + 1);
 
-  return Array.from({ length: diasRequeridos }, (_, indice) => {
-    const diaEnNivel = indice + 1;
+  const nodos: NodoMapaSendero[] = [];
+
+  for (let diaEnNivel = 1; diaEnNivel <= diasRequeridos; diaEnNivel++) {
     const diaGlobal = diaInicial + diaEnNivel;
-    const esFinal = diaEnNivel === diasRequeridos;
-    const esCofreIntermedio = !esFinal && diaEnNivel % 3 === 0;
     const completado = diaEnNivel <= diasCompletados;
     const esProximoDia = diaEnNivel === diasCompletados + 1;
     const esActivo = !soloLectura && puedeAvanzarHoy && esProximoDia;
 
     let tipoNodo: TipoNodoMapa = 'dia';
-    let cofre: InfoCofre | undefined;
     let mandala: InfoMandalaNodo | undefined;
 
-    if (esFinal) {
-      tipoNodo = 'cofre_final';
-      const yaReclamado = cofresReclamados.has(diaEnNivel);
-      cofre = {
-        ciclo,
-        estadoCofre: yaReclamado ? 'reclamado' : completado ? 'disponible' : 'bloqueado',
-        gemasMax: gemasFinal,
-        gemasMin: gemasFinal,
-        gemasReclamadas: cofresReclamados.get(diaEnNivel),
-        nodoDia: diaEnNivel,
-        tipo: 'final',
-      };
-    } else if (esCofreIntermedio) {
-      tipoNodo = 'cofre_intermedio';
-      const yaReclamado = cofresReclamados.has(diaEnNivel);
-      cofre = {
-        ciclo,
-        estadoCofre: yaReclamado ? 'reclamado' : completado ? 'disponible' : 'bloqueado',
-        gemasMax: 15,
-        gemasMin: 8,
-        gemasReclamadas: cofresReclamados.get(diaEnNivel),
-        nodoDia: diaEnNivel,
-        tipo: 'intermedio',
-      };
-    } else if (completado && mandalasPorDia.has(diaEnNivel)) {
-      // Un día normal (no cofre) que ya cumplió su meta y tiene mandala:
-      // reemplaza el nodo por su orbe. Los cofres nunca se reemplazan antes
-      // de reclamarse — la rama de arriba ya cortó esos casos primero.
+    if (completado && mandalasPorDia.has(diaEnNivel)) {
       tipoNodo = 'orbe_mandala';
       mandala = mandalasPorDia.get(diaEnNivel);
     }
 
-    return {
-      cofre,
-      mandala,
-      // soloLectura (nivel/ciclo histórico) nunca es 'esperando' — ahí ningún
-      // nodo se "retoma mañana", es sólo consulta; 'esperando' es exclusivo
-      // del nivel/ciclo vigente cuando hoy ya no se puede avanzar.
+    nodos.push({
       estado: completado ? 'completado' : esActivo ? 'activo' : (esProximoDia && !soloLectura) ? 'esperando' : 'bloqueado',
       icono: completado ? Check : esActivo ? Play : Lock,
       id: `dia-${diaGlobal}`,
-      subtitulo: tipoNodo !== 'dia' ? (esFinal ? `Cofre Nivel ${nivel}` : `Cofre Día ${diaGlobal}`) : `Nivel ${nivel} · día ${diaEnNivel} de ${diasRequeridos}`,
+      mandala,
+      subtitulo: `Nivel ${nivel} · día ${diaEnNivel} de ${diasRequeridos}`,
       tipoNodo,
-      titulo: tipoNodo !== 'dia' ? (esFinal ? 'Cofre Final' : `Cofre Día ${diaGlobal}`) : `Día ${diaGlobal}`,
-    };
+      titulo: `Día ${diaGlobal}`,
+    });
+
+    // Cofre intermedio cada 3 días (siempre que no sea el último día del nivel)
+    if (diaEnNivel % 3 === 0 && diaEnNivel < diasRequeridos) {
+      const cofreCompletado = diasCompletados >= diaEnNivel;
+      const yaReclamado = cofresReclamados.has(diaEnNivel);
+      const estadoCofre = yaReclamado ? 'reclamado' : cofreCompletado ? 'disponible' : 'bloqueado';
+      const estadoNodoCofre: EstadoNodoMapa = !cofreCompletado
+        ? 'bloqueado'
+        : yaReclamado || diasCompletados > diaEnNivel || soloLectura
+          ? 'completado'
+          : 'activo';
+
+      nodos.push({
+        cofre: {
+          ciclo,
+          estadoCofre,
+          gemasMax: 15,
+          gemasMin: 8,
+          gemasReclamadas: cofresReclamados.get(diaEnNivel),
+          nodoDia: diaEnNivel,
+          tipo: 'intermedio',
+        },
+        estado: estadoNodoCofre,
+        icono: yaReclamado ? Check : cofreCompletado ? Play : Lock,
+        id: `cofre-intermedio-${diaGlobal}`,
+        subtitulo: `Cofre Día ${diaGlobal}`,
+        tipoNodo: 'cofre_intermedio',
+        titulo: `Cofre Día ${diaGlobal}`,
+      });
+    }
+  }
+
+  // Cofre final al terminar todos los días del nivel
+  const cofreFinalCompletado = diasCompletados >= diasRequeridos;
+  const yaReclamadoFinal = cofresReclamados.has(diasRequeridos);
+  const estadoCofreFinal = yaReclamadoFinal ? 'reclamado' : cofreFinalCompletado ? 'disponible' : 'bloqueado';
+  const estadoNodoFinal: EstadoNodoMapa = !cofreFinalCompletado
+    ? 'bloqueado'
+    : yaReclamadoFinal || soloLectura
+      ? 'completado'
+      : 'activo';
+
+  nodos.push({
+    cofre: {
+      ciclo,
+      estadoCofre: estadoCofreFinal,
+      gemasMax: gemasFinal,
+      gemasMin: gemasFinal,
+      gemasReclamadas: cofresReclamados.get(diasRequeridos),
+      nodoDia: diasRequeridos,
+      tipo: 'final',
+    },
+    estado: estadoNodoFinal,
+    icono: yaReclamadoFinal ? Check : cofreFinalCompletado ? Play : Lock,
+    id: `cofre-final-nivel-${nivel}-ciclo-${ciclo}`,
+    subtitulo: `Cofre Nivel ${nivel}`,
+    tipoNodo: 'cofre_final',
+    titulo: 'Cofre Final',
   });
+
+  return nodos;
 }
+

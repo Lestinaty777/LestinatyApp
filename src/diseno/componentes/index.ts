@@ -8,7 +8,7 @@ export { CampoTexto } from './CampoTexto';
 export { Checkbox } from './Checkbox';
 export { Divisor } from './Divisor';
 export { HojaDeslizante } from './HojaDeslizante';
-export { MasterChanger, useHueDominante } from './MasterChanger';
+export { MasterChanger, useHueDominante, colorMasterMasCercano } from './MasterChanger';
 export type { ColorMaster } from './MasterChanger';
 export { Pantalla } from './Pantalla';
 export { RecuadroGlass } from './RecuadroGlass';

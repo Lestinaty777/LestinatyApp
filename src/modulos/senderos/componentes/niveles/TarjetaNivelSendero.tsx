@@ -25,13 +25,14 @@ export function TarjetaNivelSendero({ seccion, paqueteId, colorPaquete, seleccio
   const assets = obtenerAssetsPaqueteHabito(paqueteId, seccion.nivel);
 
   const esMaestria = seccion.nivel === 7;
+  const nivelTexto = t('senderos.levels.levelTitle', { level: seccion.nivel });
   const titulo = seccion.estado === 'bloqueado'
-    ? `Nivel ${seccion.nivel} · ${t('senderos.levels.locked')}`
+    ? `${nivelTexto} · ${t('senderos.levels.locked')}`
     : seccion.estado === 'completado'
-      ? `Nivel ${seccion.nivel} · ${t('senderos.levels.completed')}`
+      ? `${nivelTexto} · ${t('senderos.levels.completed')}`
       : esMaestria
         ? t('senderos.levels.masteryCycle', { cycle: seccion.ciclo })
-        : `Nivel ${seccion.nivel}`;
+        : nivelTexto;
 
   const subtitulo = seccion.estado === 'bloqueado'
     ? t('senderos.levels.completePrevious')

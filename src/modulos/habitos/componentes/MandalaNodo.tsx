@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
-import Svg, { Path } from 'react-native-svg';
+import Svg, { Path, G, Circle } from 'react-native-svg';
 import Animated, { useAnimatedStyle, useSharedValue, withRepeat, withSequence, withTiming } from 'react-native-reanimated';
 import { BlurMask, Canvas, Group, Oval } from '@shopify/react-native-skia';
 
@@ -45,22 +45,40 @@ export function MandalaNodo({ animado = true, color, estado, semilla, tamano = 7
   const estiloRespiro = useAnimatedStyle(() => ({ transform: [{ scale: 1 + respiro.value * 0.045 }] }));
 
   const puntos = trazos && trazos.length > 1 ? trazos : trazoDesdeSemilla(semilla, RADIO_GEOMETRIA * 0.75);
-  const anchoBase = tamano * 0.24;
+  // El ancho base del trazo DEBE ser relativo al espacio de coordenadas del VIEWBOX vectorial,
+  // NO al `tamano` en pantalla. De lo contrario, al escalar el componente a gran tamaño,
+  // los lazos se vuelven gigantes y se deforman. 13.6% del viewBox = ~43.5px lógicos.
+  const anchoBase = VIEWBOX * 0.136; 
   const caminos = construirCaminosMandala(puntos, anchoBase);
   const opacidad = estado === 'creada' ? 1 : 0.55;
 
+  const rView = VIEWBOX / 2;
+  const rHalo = tamano * 0.48;
+
   return (
     <View style={{ height: tamano, width: tamano }}>
+      {/* Halo del orbe (color del paquete, extendido) */}
       <Canvas pointerEvents="none" style={StyleSheet.absoluteFill}>
-        <Group opacity={0.4 * opacidad}>
-          <Oval color={color} height={tamano * 0.62} width={tamano * 0.62} x={tamano * 0.19} y={tamano * 0.19}>
-            <BlurMask blur={Math.max(2, tamano * 0.09)} style="normal" />
+        <Group opacity={0.35 * opacidad}>
+          <Oval color={color} height={rHalo} width={rHalo} x={(tamano - rHalo) / 2} y={(tamano - rHalo) / 2}>
+            <BlurMask blur={Math.max(2, tamano * 0.12)} style="normal" />
           </Oval>
         </Group>
       </Canvas>
       <Animated.View style={[StyleSheet.absoluteFill, estiloRespiro, { opacity: opacidad }]}>
         <Svg height={tamano} viewBox={`${-VIEWBOX / 2} ${-VIEWBOX / 2} ${VIEWBOX} ${VIEWBOX}`} width={tamano}>
-          {caminos.map((d, indice) => (d ? <Path d={d} fill={color} fillOpacity={0.96} key={indice} /> : null))}
+          
+          {/* Fondo fantasma de la mandala (blanco tenue, como en el artefacto HTML) */}
+          <G opacity={0.22}>
+            {caminos.map((d, indice) => (d ? <Path d={d} fill="#FFFFFF" key={indice} /> : null))}
+          </G>
+
+          {/* Anillo del Orbe */}
+          <Circle cx={0} cy={0} r={rView * 0.26} fill="none" stroke="#FFFFFF" strokeOpacity={0.7} strokeWidth={rView * 0.03} />
+          
+          {/* Núcleo del Orbe (Color del hábito) */}
+          <Circle cx={0} cy={0} r={rView * 0.14} fill={color} />
+          
         </Svg>
       </Animated.View>
     </View>

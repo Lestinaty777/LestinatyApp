@@ -9,8 +9,8 @@ describe('construirNodosDias', () => {
     const nodos = construirNodosDias(42, 42, 7, new Map(), {
       ciclo: 2, puedeAvanzarHoy: false, soloLectura: true,
     });
-    expect(nodos[2].cofre).toMatchObject({ ciclo: 2, nodoDia: 3, tipo: 'intermedio' });
-    expect(nodos[41].cofre).toMatchObject({ ciclo: 2, gemasMin: 35, gemasMax: 35, tipo: 'final' });
+    expect(nodos[3].cofre).toMatchObject({ ciclo: 2, nodoDia: 3, tipo: 'intermedio' });
+    expect(nodos[nodos.length - 1].cofre).toMatchObject({ ciclo: 2, gemasMin: 35, gemasMax: 35, tipo: 'final' });
     expect(nodos.every((nodo) => nodo.estado !== 'activo')).toBe(true);
   });
 
@@ -18,21 +18,21 @@ describe('construirNodosDias', () => {
     const nodos = construirNodosDias(1, 3, 1, new Map(), {
       ciclo: 1, puedeAvanzarHoy: false, soloLectura: false,
     });
-    expect(nodos.map((nodo) => nodo.estado)).toEqual(['completado', 'esperando', 'bloqueado']);
+    expect(nodos.map((nodo) => nodo.estado)).toEqual(['completado', 'esperando', 'bloqueado', 'bloqueado']);
   });
 
   it('un nivel/ciclo histórico (soloLectura) nunca marca esperando, incluso en el nodo siguiente', () => {
     const nodos = construirNodosDias(1, 3, 1, new Map(), {
       ciclo: 1, puedeAvanzarHoy: false, soloLectura: true,
     });
-    expect(nodos.map((nodo) => nodo.estado)).toEqual(['completado', 'bloqueado', 'bloqueado']);
+    expect(nodos.map((nodo) => nodo.estado)).toEqual(['completado', 'bloqueado', 'bloqueado', 'bloqueado']);
   });
 
   it('habilita el nodo siguiente como activo cuando se puede avanzar hoy', () => {
     const nodos = construirNodosDias(1, 3, 1, new Map(), {
       ciclo: 1, puedeAvanzarHoy: true, soloLectura: false,
     });
-    expect(nodos.map((nodo) => nodo.estado)).toEqual(['completado', 'activo', 'bloqueado']);
+    expect(nodos.map((nodo) => nodo.estado)).toEqual(['completado', 'activo', 'bloqueado', 'bloqueado']);
   });
 
   const mandalaEjemplo = {
@@ -47,11 +47,13 @@ describe('construirNodosDias', () => {
     expect(nodos[0].mandala).toEqual(mandalaEjemplo);
   });
 
-  it('un cofre nunca se reemplaza por orbe_mandala aunque tenga mandala asociada', () => {
+  it('el día de acción muestra su orbe_mandala y el cofre final se mantiene independiente', () => {
     const mandalaDelCofre = { ...mandalaEjemplo, nodoDia: 3 };
     const mandalasPorDia = new Map([[3, mandalaDelCofre]]);
     const nodos = construirNodosDias(3, 3, 1, new Map(), { ciclo: 1, puedeAvanzarHoy: true }, mandalasPorDia);
-    expect(nodos[2].tipoNodo).toBe('cofre_final');
+    expect(nodos[2].tipoNodo).toBe('orbe_mandala');
+    expect(nodos[2].mandala).toEqual(mandalaDelCofre);
+    expect(nodos[3].tipoNodo).toBe('cofre_final');
   });
 
   it('sin mandala para ese día, un día normal completado sigue siendo tipoNodo "dia"', () => {

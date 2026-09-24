@@ -136,7 +136,7 @@ function ContenidoCheck({ cargando, color, manteniendo, onCompletar, onIniciarPr
           onPressIn={onIniciarPresion}
           onPressOut={onSoltarPresion}
         >
-          <MandalaCargaInteractiva colorBase={color} porcentaje={porcentaje} tamano={300}>
+          <MandalaCargaInteractiva colorBase={color} porcentaje={porcentaje} semilla={titulo ?? 'mandala'} tamano={300}>
             <MasterGlass style={styles.puntoGlass}><View style={styles.puntoBlanco} /></MasterGlass>
           </MandalaCargaInteractiva>
         </Pressable>

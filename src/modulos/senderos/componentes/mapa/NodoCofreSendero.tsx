@@ -93,9 +93,7 @@ export function NodoCofreSendero({ bloqueado, cofre, color, colorPaquete, selecc
                 : 'Completa este día para desbloquear el cofre'
         }
         accessibilityRole="button"
-        disabled={bloqueado}
         onPress={() => {
-          if (bloqueado) return;
           hapticSeguro('seleccion');
           onPress();
         }}

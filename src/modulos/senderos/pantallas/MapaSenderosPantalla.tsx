@@ -335,11 +335,11 @@ export function MapaSenderosPantalla() {
                     style={styles.insigniaNivelContenedor}
                   >
                     <MasterGlass 
-                      colorBase={colorEfectivo}
+                      blur
                       compacto 
                       style={{ paddingHorizontal: 8, paddingVertical: 5, borderRadius: 12, flexDirection: 'row', alignItems: 'center', gap: 4 }}
                     >
-                      <MasterIcon color={colorMasterMasCercano(colorEfectivo)} name={`nivel${nivelVisible}`} size={22} />
+                      <MasterIcon alTema name={`nivel${nivelVisible}`} size={22} />
                       <ChevronDown color={colorTexto} size={14} strokeWidth={2.5} />
                     </MasterGlass>
                   </Pressable>
@@ -348,21 +348,26 @@ export function MapaSenderosPantalla() {
             </RecuadroGlass>
           );
 
+          const colorPaqueteHabito = sendero.consulta.data?.habito.colorPaquete ?? asignatura.habitoReal.colorPaquete;
+          const paqueteIdHabito = sendero.consulta.data?.habito.paqueteId ?? asignatura.habitoReal.paqueteId;
+
           return (
-            <View style={styles.tarjetaContenedor}>
-              {!sendero.celebracion && !sendero.registrando ? (
-                <Pressable
-                  accessibilityLabel={t('senderos.levels.modalTitle')}
-                  accessibilityRole="button"
-                  onPress={abrirModalNiveles}
-                  style={{ flex: 1 }}
-                >
-                  {contenidoTarjeta}
-                </Pressable>
-              ) : (
-                contenidoTarjeta
-              )}
-            </View>
+            <TonoDelHabito colorPaquete={colorPaqueteHabito} paqueteId={paqueteIdHabito}>
+              <View style={styles.tarjetaContenedor}>
+                {!sendero.celebracion && !sendero.registrando ? (
+                  <Pressable
+                    accessibilityLabel={t('senderos.levels.modalTitle')}
+                    accessibilityRole="button"
+                    onPress={abrirModalNiveles}
+                    style={{ flex: 1 }}
+                  >
+                    {contenidoTarjeta}
+                  </Pressable>
+                ) : (
+                  contenidoTarjeta
+                )}
+              </View>
+            </TonoDelHabito>
           );
         })()}
 

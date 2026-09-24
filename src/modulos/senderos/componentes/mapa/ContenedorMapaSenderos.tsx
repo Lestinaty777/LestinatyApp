@@ -490,7 +490,7 @@ export function ContenedorMapaSenderos({ altura, categoriaId, color, colorPaquet
             return (
               <View key={nodo.id} style={[styles.nodoPosicion, { left: posicion.x - 42, top: posicion.y - 48, zIndex: 20 }]}>
                 <NodoCofreSendero
-                  bloqueado={estadoVisual === 'bloqueado'}
+                  bloqueado={cofreInfo.estadoCofre === 'bloqueado'}
                   cofre={cofreInfo}
                   color={color}
                   colorPaquete={colorCofre}
@@ -607,31 +607,16 @@ function TooltipNodoSeleccionado({ anchoEscena, color, estado, infoHabito, nodo,
 
   const esCofre = nodo.tipoNodo === 'cofre_intermedio' || nodo.tipoNodo === 'cofre_final';
   const cofreInfo = nodo.cofre;
-  // Un cofre ES el nodo del día final/intermedio — antes de completarse, su
-  // `cofre.estadoCofre` es 'bloqueado' (el PREMIO no es reclamable todavía),
-  // pero eso NO significa que el día sea inalcanzable: si `estado` (el
-  // estado real del nodo) dice 'activo'/'esperando', hay que dejar que el
-  // usuario entre a hacer la misión de ese día — si no, el cofre queda como
-  // un candado sin salida (nunca se puede completar porque nunca se puede
-  // tocar). Sólo cuando `estado === 'bloqueado'` de verdad (día futuro, aún
-  // no alcanzable) el cofre se muestra genuinamente bloqueado.
-  const cofrePendienteDeHacer = esCofre && cofreInfo?.estadoCofre !== 'disponible' && cofreInfo?.estadoCofre !== 'reclamado';
   const descripcionFinal = esCofre
     ? cofreInfo?.estadoCofre === 'reclamado'
       ? `Cofre ya reclamado (+${cofreInfo.gemasReclamadas ?? cofreInfo.gemasMin} gemas).`
       : cofreInfo?.estadoCofre === 'disponible'
         ? `¡Listo para abrir! Contiene de ${cofreInfo.gemasMin} a ${cofreInfo.gemasMax} gemas.`
-        : cofrePendienteDeHacer && estado !== 'bloqueado'
-          ? descripcionNodoHabito
-          : 'Completa los días de constancia previos para desbloquear este cofre.'
+        : 'Completa los días de constancia previos para desbloquear este cofre.'
     : descripcionNodoHabito;
 
   const botonDeshabilitado = esCofre
-    ? cofreInfo?.estadoCofre === 'disponible'
-      ? false
-      : cofreInfo?.estadoCofre === 'reclamado'
-        ? true
-        : estado === 'bloqueado' || estado === 'esperando'
+    ? cofreInfo?.estadoCofre !== 'disponible'
     : estado === 'bloqueado' || estado === 'esperando';
 
   const textoBoton = esCofre
@@ -639,11 +624,7 @@ function TooltipNodoSeleccionado({ anchoEscena, color, estado, infoHabito, nodo,
       ? 'Reclamado'
       : cofreInfo?.estadoCofre === 'disponible'
         ? '¡Abrir Cofre!'
-        : estado === 'esperando'
-          ? t('senderos.map.waitingTomorrow')
-          : estado === 'bloqueado'
-            ? t('senderos.map.blocked')
-            : t('senderos.map.start')
+        : t('senderos.map.blocked')
     : estado === 'bloqueado'
       ? t('senderos.map.blocked')
       : estado === 'esperando'

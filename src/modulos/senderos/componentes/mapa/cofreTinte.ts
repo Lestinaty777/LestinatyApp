@@ -16,12 +16,13 @@ const SATURACION_ORIGEN_CERRADO = 0.856;
 const SATURACION_ORIGEN_ABIERTO = 0.922;
 
 export function calcularTinteCofre(colorPaquete: string, abierto: boolean) {
-  const { hue, saturacion } = hueYSaturacionDeHex(colorPaquete);
-  const saturacionOrigen = abierto ? SATURACION_ORIGEN_ABIERTO : SATURACION_ORIGEN_CERRADO;
-  const factorSaturacion = Math.min(1.6, Math.max(0.25, saturacion / saturacionOrigen));
+  const { hue } = hueYSaturacionDeHex(colorPaquete);
+  
+  // Siempre mantenemos la saturación original del asset en 1.
+  // Evita que los cofres se vean grises o muertos si el paquete tiene un color pastel.
   return {
     hueDestino: hue,
     hueOrigen: abierto ? HUE_ORIGEN_ABIERTO : HUE_ORIGEN_CERRADO,
-    saturacion: factorSaturacion,
+    saturacion: 1,
   };
 }
