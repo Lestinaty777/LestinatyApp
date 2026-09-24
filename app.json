@@ -57,7 +57,12 @@
           ]
         }
       ],
-      "expo-audio",
+      [
+        "expo-audio",
+        {
+          "microphonePermission": false
+        }
+      ],
       "expo-router",
       "expo-video",
       "expo-asset"
