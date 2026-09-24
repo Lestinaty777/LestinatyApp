@@ -14,12 +14,10 @@
     "expo-asset": "~57.0.18",
     "expo-audio": "~57.0.5",
     "expo-blur": "~57.0.3",
-    "expo-camera": "~57.0.5",
     "expo-clipboard": "~57.0.2",
     "expo-constants": "~57.0.19",
     "expo-font": "~57.0.1",
     "expo-haptics": "~57.0.3",
-    "expo-image-picker": "~57.0.19",
     "expo-linear-gradient": "~57.0.1",
     "expo-linking": "~57.0.10",
     "expo-mlkit-ocr": "^0.2.7",
@@ -71,7 +69,9 @@
   "expo": {
     "autolinking": {
       "ios": {
-        "exclude": ["@react-native-google-signin/google-signin"]
+        "exclude": [
+          "@react-native-google-signin/google-signin"
+        ]
       }
     }
   }
