@@ -316,8 +316,10 @@ export function CrearHabitoWizard({ visible, guardando, onCerrar, onCrear }: { v
   // enviaba ninguna notificación real.
   useEffect(() => {
     if (!recordatorio) return;
-    void solicitarPermisoYRegistrar().then((concedido) => {
-      if (!concedido) { setRecordatorio(false); return; }
+    void solicitarPermisoYRegistrar().then((resultado) => {
+      // No se vuelve a pedir permiso automáticamente tras 'denegado' — el
+      // toggle simplemente se apaga, igual que ante 'no_disponible'/'error'.
+      if (resultado.estado !== 'concedido') { setRecordatorio(false); return; }
       void actualizarPreferenciaNotificacion('habito_recordatorio', true).catch(() => undefined);
     }).catch(() => setRecordatorio(false));
   }, [recordatorio]);
