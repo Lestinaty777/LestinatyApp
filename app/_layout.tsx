@@ -4,6 +4,7 @@ import '../src/servicios/i18n/i18n';
 import { useEffect, useState } from 'react';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import { ProveedoresApp } from '../src/nucleo/proveedor/ProveedoresApp';
 import { AnimacionApertura } from '../src/nucleo/arranque/AnimacionApertura';
 import { inicializarOneSignal } from '../src/nucleo/notificaciones/oneSignal';
@@ -33,6 +34,7 @@ export default function LayoutRaiz() {
 
   return (
     <ProveedoresApp>
+      <StatusBar style="dark" />
       <Stack screenOptions={{ animation: 'fade_from_bottom', headerShown: false }}>
         <Stack.Screen name="index" />
         <Stack.Screen name="(publico)" />

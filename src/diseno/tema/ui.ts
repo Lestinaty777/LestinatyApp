@@ -1,4 +1,3 @@
-import { Appearance } from 'react-native';
 import { create } from 'zustand';
 
 import { colores } from '../fundamentos/colores';
@@ -58,14 +57,12 @@ function crearColoresUI(modo: ModoUI): ColoresUI {
   };
 }
 
-function obtenerModoInicial(): ModoUI {
-  return Appearance.getColorScheme() === 'dark' ? 'dark' : 'light';
-}
+const MODO_UI_FIJO: ModoUI = 'light';
 
 export const usarTemaUI = create<TemaUIState>((set) => ({
-  modo: obtenerModoInicial(),
-  colores: crearColoresUI(obtenerModoInicial()),
-  establecerModo: (modo) => set({ modo, colores: crearColoresUI(modo) }),
+  modo: MODO_UI_FIJO,
+  colores: crearColoresUI(MODO_UI_FIJO),
+  establecerModo: () => set({ modo: MODO_UI_FIJO, colores: crearColoresUI(MODO_UI_FIJO) }),
 }));
 
 export function obtenerColoresUI() {

@@ -4,27 +4,29 @@
   "main": "index.ts",
   "dependencies": {
     "@expo/vector-icons": "^15.1.1",
-    "@react-native-async-storage/async-storage": "^3.1.1",
+    "@react-native-async-storage/async-storage": "2.2.0",
     "@react-native-google-signin/google-signin": "^16.1.5",
-    "@shopify/react-native-skia": "^2.11.1",
+    "@shopify/react-native-skia": "2.6.2",
     "@supabase/supabase-js": "^2.112.3",
     "@tanstack/react-query": "^5.102.0",
     "date-fns": "^4.4.0",
-    "expo": "~57.0.15",
+    "expo": "~57.0.24",
+    "expo-asset": "~57.0.18",
     "expo-audio": "~57.0.5",
-    "expo-blur": "~57.0.2",
-    "expo-camera": "~57.0.4",
+    "expo-blur": "~57.0.3",
+    "expo-camera": "~57.0.5",
     "expo-clipboard": "~57.0.2",
+    "expo-constants": "~57.0.19",
     "expo-font": "~57.0.1",
-    "expo-haptics": "^57.0.1",
-    "expo-image-picker": "~57.0.16",
+    "expo-haptics": "~57.0.3",
+    "expo-image-picker": "~57.0.19",
     "expo-linear-gradient": "~57.0.1",
-    "expo-linking": "~57.0.7",
+    "expo-linking": "~57.0.10",
     "expo-mlkit-ocr": "^0.2.7",
-    "expo-modules-core": "~57.0.12",
-    "expo-router": "^57.0.15",
+    "expo-router": "~57.0.22",
     "expo-status-bar": "~57.0.1",
-    "expo-video": "~57.0.2",
+    "expo-system-ui": "~57.0.4",
+    "expo-video": "~57.0.4",
     "graph.js": "^1.21.1",
     "habito-widget": "file:./modules/habito-widget",
     "i18next": "^26.4.0",
@@ -36,7 +38,7 @@
     "react-dom": "19.2.3",
     "react-hook-form": "^7.86.0",
     "react-i18next": "^17.0.12",
-    "react-native": "0.86.2",
+    "react-native": "0.86.3",
     "react-native-android-widget": "^0.22.1",
     "react-native-gesture-handler": "~2.32.0",
     "react-native-onesignal": "5.2.14",
@@ -65,5 +67,12 @@
     "typecheck": "tsc --noEmit",
     "web": "expo start --web"
   },
-  "private": true
+  "private": true,
+  "expo": {
+    "autolinking": {
+      "ios": {
+        "exclude": ["@react-native-google-signin/google-signin"]
+      }
+    }
+  }
 }

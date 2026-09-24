@@ -52,6 +52,7 @@ export function CampoTexto({
       <View style={[styles.campo, styles[`campo_${variante}`], error && styles.campoError, campoStyle]}>
         {IconoIzquierda ? <IconoIzquierda color={colorIcono} size={iconoSize} strokeWidth={iconoStrokeWidth} /> : null}
         <TextInput
+          keyboardAppearance="light"
           placeholderTextColor={colores.tintaTenue}
           {...props}
           style={[styles.input, inputStyle]}

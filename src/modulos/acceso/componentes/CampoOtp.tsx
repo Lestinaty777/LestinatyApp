@@ -130,6 +130,7 @@ export function CampoOtp({ error, escala, onBlur, onChange, value }: CampoOtpPro
                 inputs.current[indice] = input as TextInput | null;
               }}
               autoCapitalize="none"
+              keyboardAppearance="light"
               keyboardType="number-pad"
               maxLength={6}
               onBlur={onBlur}

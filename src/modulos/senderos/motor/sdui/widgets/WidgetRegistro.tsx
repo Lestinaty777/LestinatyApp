@@ -42,6 +42,7 @@ export function WidgetRegistro({ color, config, estado, onEvento }: WidgetAccion
         <View style={styles.inputFila}>
           <TextInput
             style={[styles.input, { color: colores.texto }]}
+            keyboardAppearance="light"
             placeholder={config.placeholder}
             placeholderTextColor={colores.textoSecundario}
             keyboardType={config.tipoEntrada === 'numero' ? 'decimal-pad' : 'default'}

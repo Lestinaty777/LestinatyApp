@@ -6,10 +6,16 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
+    "backgroundColor": "#FFFFFF",
     "userInterfaceStyle": "light",
     "ios": {
-      "supportsTablet": true,
-      "bundleIdentifier": "com.lestinaty.app"
+      "backgroundColor": "#FFFFFF",
+      "supportsTablet": false,
+      "userInterfaceStyle": "light",
+      "bundleIdentifier": "com.lestinaty.app",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -23,7 +29,6 @@
     "web": {
       "favicon": "./assets/favicon.png"
     },
-    "newArchEnabled": true,
     "plugins": [
       [
         "onesignal-expo-plugin",
@@ -52,7 +57,10 @@
           ]
         }
       ],
-      "expo-audio"
+      "expo-audio",
+      "expo-router",
+      "expo-video",
+      "expo-asset"
     ],
     "extra": {
       "eas": {
