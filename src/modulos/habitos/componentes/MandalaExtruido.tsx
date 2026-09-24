@@ -3,6 +3,7 @@ import { StyleSheet, View } from 'react-native';
 import { type SharedValue, useDerivedValue } from 'react-native-reanimated';
 import { Canvas, Path, Shader, Skia, type SkPath } from '@shopify/react-native-skia';
 
+import { rotarHueHex } from '../../senderos/algoritmo/colorHsl';
 import { construirContornosMandala } from '../mandalaGeometria';
 import { prepararPoligonos, proyectarExtrusion, TONOS_PARED } from '../mandalaExtrusion';
 import type { TrazoMandala } from '../mandalaNodo.tipos';
@@ -22,8 +23,13 @@ export const INCLINACION_MANDALA = -30;
 export const BLANCO_PASTEL_MANDALA = 0.7;
 // Grosor de la extrusión, relativo al tamaño de la mandala.
 export const GROSOR_MANDALA = 0.08;
-// Cuánto del arcoíris del nácar se mezcla con el pastel (0 = pastel liso).
-export const INTENSIDAD_NACAR = 0.16;
+// Cuánto del nácar se mezcla con el pastel (0 = pastel liso).
+export const INTENSIDAD_NACAR = 0.5;
+// Tonos vecinos del paquete que recorre el nácar: ± estos grados de matiz
+// (Mathist va de azul a magenta; Esmeralda, de verde-amarillo a turquesa).
+export const APERTURA_NACAR = 40;
+// Blanco de los tonos del nácar: algo menos que la cara, para que se noten.
+const BLANCO_NACAR = 0.5;
 // Brillo de la franja de luz que cruza la cara al girar (0 = sin destello).
 export const INTENSIDAD_DESTELLO = 0.3;
 // Filo blanco de la cara, en unidades del lienzo.
@@ -37,8 +43,9 @@ const MARGEN_LIENZO = 0.3;
 // Tono de cada pared según cuánta luz recibe, del más oscuro al más claro.
 const BRILLO_PAREDES = [0.58, 0.72, 0.86, 1];
 
-// Nácar: el pastel con un arcoíris suave que se desplaza con la posición y
-// el giro (como el interior de una concha), un leve resplandor central y una
+// Nácar: el pastel con reflejos que van y vienen entre dos tonos vecinos del
+// paquete (como el interior de una concha, que siempre tira a un color),
+// desplazándose con la posición y el giro; un leve resplandor central y una
 // franja especular que cruza la cara mientras gira. `luz` apaga la cara
 // cuando se aleja de la luz; `cara` es el pastel del frente o del reverso.
 const NACAR = Skia.RuntimeEffect.Make(`
@@ -49,6 +56,8 @@ uniform float luz;
 uniform float nacar;
 uniform float destello;
 uniform float3 cara;
+uniform float3 tonoA;
+uniform float3 tonoB;
 
 half4 main(float2 p) {
   float2 q = (p - centro) / radio;
@@ -56,8 +65,9 @@ half4 main(float2 p) {
   // de reposo y reposo+360° deben dar el mismo tono, porque las animaciones
   // reinician el ángulo al terminar cada vuelta.
   float t = q.x * 1.4 + q.y * 0.9;
-  float3 iris = 0.5 + 0.5 * cos(6.2831 * (float3(0.0, 0.33, 0.67) + t * 0.5) + giro);
-  float3 c = mix(cara, iris, nacar);
+  float onda = 0.5 + 0.5 * cos(6.2831 * t * 0.5 + giro);
+  float3 reflejo = mix(tonoA, tonoB, onda);
+  float3 c = mix(cara, reflejo, nacar);
   c += 0.06 * (1.0 - clamp(length(q), 0.0, 1.0));
   float franja = abs(q.x * 0.8 - q.y * 0.6 - sin(giro) * 1.3);
   c += destello * (1.0 - smoothstep(0.0, 0.28, franja));
@@ -81,7 +91,8 @@ function aHex(valores: number[]) {
 // que la despega de un mapa que ya es una versión clara del mismo color.
 export function coloresMandala(color: string) {
   const rgb = canales(color) ?? [178, 95, 251];
-  const mezclar = (blanco: number) => rgb.map((v) => v + (255 - v) * blanco);
+  const mezclar = (blanco: number, base = rgb) => base.map((v) => v + (255 - v) * blanco);
+  const vecino = (grados: number) => mezclar(BLANCO_NACAR, canales(rotarHueHex(aHex(rgb), grados)) ?? rgb).map((v) => v / 255);
   return {
     canto: aHex(rgb.map((v) => v * 0.88)),
     cara: aHex(mezclar(BLANCO_PASTEL_MANDALA)),
@@ -91,6 +102,8 @@ export function coloresMandala(color: string) {
     caraRgb: mezclar(BLANCO_PASTEL_MANDALA).map((v) => v / 255),
     reversoRgb: mezclar(BLANCO_PASTEL_MANDALA - 0.18).map((v) => v / 255),
     paredes: BRILLO_PAREDES.map((k) => aHex(rgb.map((v) => v * 0.88 * k))),
+    tonoA: vecino(-APERTURA_NACAR),
+    tonoB: vecino(APERTURA_NACAR),
   };
 }
 
@@ -174,6 +187,8 @@ export function MandalaExtruido({ color, giro, inclinacion, relieve, tamano, tra
     luz: 0.62 + 0.38 * geometria.value.luzCara,
     nacar: INTENSIDAD_NACAR,
     radio: tamano / 2,
+    tonoA: paleta.tonoA,
+    tonoB: paleta.tonoB,
   }));
 
   return (
