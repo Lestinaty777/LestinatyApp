@@ -24,6 +24,7 @@ import { obtenerColorMasterPaquete } from '../temaPaqueteHabito';
 import { useTranslation } from 'react-i18next';
 import { useEscala } from '../../../diseno/tema/MasterColorContext';
 import type { EscalaMaster } from '../../../diseno/tema/escalaEsmeralda';
+import { calcularLayoutTecladoWizard, type PlataformaTeclado } from './layoutTecladoWizard';
 
 const OTRO_PLANTILLA_ID = 'otro';
 const TOTAL_PASOS = 7;
@@ -274,22 +275,24 @@ export function CrearHabitoWizard({ visible, guardando, onCerrar, onCrear }: { v
   const pulso = useRef(new Animated.Value(1)).current;
   const scrollRef = useRef<ScrollView>(null);
   const [tecladoVisible, setTecladoVisible] = useState(false);
-  const [altoTeclado, setAltoTeclado] = useState(0);
+  const [altoFooter, setAltoFooter] = useState(96);
+  const layoutTeclado = calcularLayoutTecladoWizard({
+    plataforma: Platform.OS as PlataformaTeclado,
+    tecladoVisible,
+    altoFooter,
+    // El pie ya envuelve su propio SafeAreaView (edges bottom): su altura
+    // medida por onLayout ya incluye el inset, sumarlo de nuevo lo duplicaría.
+    safeAreaBottom: 0,
+  });
 
   useEffect(() => {
     const showSub = Keyboard.addListener(
       Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
-      (e) => {
-        setAltoTeclado(e.endCoordinates.height);
-        setTecladoVisible(true);
-      }
+      () => setTecladoVisible(true)
     );
     const hideSub = Keyboard.addListener(
       Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
-      () => {
-        setAltoTeclado(0);
-        setTecladoVisible(false);
-      }
+      () => setTecladoVisible(false)
     );
     return () => {
       showSub.remove();
@@ -424,9 +427,9 @@ export function CrearHabitoWizard({ visible, guardando, onCerrar, onCrear }: { v
   const seleccionarDias = (seleccion: number[]) => { setDiasSemana(seleccion); setFrecuencia(seleccion.length === 7 ? 'diaria' : 'dias_semana'); };
   const detalleMeta = tipo === 'check' ? t('habitos.crearWizard.meta.oncePerDay') : `${meta || 1} ${unidad || (tipo === 'duracion' ? t('habitos.crearWizard.goal.durationUnitPlaceholder') : t('habitos.crearWizard.meta.times'))}`;
   const etiquetaMeta = tipo === 'check' ? t('habitos.crearWizard.meta.once') : tipo === 'duracion' ? `${meta || 1} ${t('habitos.crearWizard.meta.minutes')}` : `${meta || 1} ${unidad || t('habitos.crearWizard.meta.times')}`;
-  return <Modal animationType="slide" visible={visible} onRequestClose={onCerrar}><MasterColorProvider tono={tono}><KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}><ReanimatedView.View style={[s.raiz, estiloFondo]}><FondoSelvaWizard color={color}/>
+  return <Modal animationType="slide" visible={visible} onRequestClose={onCerrar}><MasterColorProvider tono={tono}><KeyboardAvoidingView behavior={layoutTeclado.behavior} style={{ flex: 1 }}><ReanimatedView.View style={[s.raiz, estiloFondo]}><FondoSelvaWizard color={color}/>
     <View style={s.cab}><Pressable onPress={() => { hapticSeguro('seleccion'); paso ? setPaso(paso - 1) : onCerrar(); }}><ChevronLeft color="#1A1335" size={26} /></Pressable><Texto style={s.indice}>{t('habitos.crearWizard.stepCounter', { current: paso + 1, total: TOTAL_PASOS })}</Texto><Pressable onPress={onCerrar}><Texto style={s.cancelar}>{t('habitos.crearWizard.cancel')}</Texto></Pressable></View><View style={s.linea}>{Array.from({ length: TOTAL_PASOS }, (_, i) => i).map((i) => <PuntoProgreso activo={i <= paso} color={color} key={i} />)}</View>
-    <ScrollView contentContainerStyle={[s.cuerpo, { paddingBottom: tecladoVisible ? Math.max(altoTeclado + 40, 320) : 40 }]} keyboardShouldPersistTaps="handled" ref={scrollRef} showsVerticalScrollIndicator={false} style={s.contenidoPrincipal}>
+    <ScrollView contentContainerStyle={[s.cuerpo, { paddingBottom: layoutTeclado.paddingBottomScroll }]} keyboardShouldPersistTaps={layoutTeclado.keyboardShouldPersistTaps} ref={scrollRef} showsVerticalScrollIndicator={false} style={s.contenidoPrincipal}>
       <ReanimatedView.View entering={FadeIn.duration(260).easing(EasingR.out(EasingR.cubic))} key={paso} style={s.pasoContenido}>
       {paso === 0 && <>
         <EncabezadoPaso colorMaster={colorMaster} icono="idea" titulo={t('habitos.crearWizard.templates.title')} subtitulo={t('habitos.crearWizard.templates.subtitle')}/>
@@ -538,7 +541,7 @@ export function CrearHabitoWizard({ visible, guardando, onCerrar, onCrear }: { v
       {paso === 5 && <><EncabezadoPaso colorMaster={colorMaster} icono="trofeo" titulo={t('habitos.crearWizard.review.title')} subtitulo={t('habitos.crearWizard.review.subtitle')}/><Animated.View style={{ borderRadius: 28, overflow: 'hidden'}}><TarjetaSenderoHabito assets={assetsPaquete} diasProgramados={diasSemana} icono={icono} meta={Number(meta) || 1} metaEtiqueta={etiquetaMeta} titulo={titulo.trim()}/></Animated.View></>}
       {paso === 6 && <><EncabezadoPaso colorMaster={colorMaster} icono="trofeo" titulo={t('habitos.crearWizard.growth.title')} subtitulo={tipo === 'check' ? t('habitos.crearWizard.growth.checkSubtitle') : t('habitos.crearWizard.growth.otherSubtitle')}/><RutaNiveles colorMaster={colorMaster} meta={meta} tipo={tipo} unidad={unidad}/>{errorCrear&&<Texto style={{color:'#B64747',fontFamily:'Montserrat-Bold',fontSize:12,textAlign:'center',marginTop:12}}>{errorCrear}</Texto>}</>}
       </ReanimatedView.View>
-    </ScrollView>{paso === 4 && !tecladoVisible && <View pointerEvents="none" style={s.paisajeRecordatorio}><Image source={assetsPaquete.arbolPrincipal} style={s.arbolRecordatorio}/><Image source={assetsPaquete.arbusto} style={s.arbustoRecordatorio} /></View>}<ReanimatedView.View style={[s.pie, estiloFondo]}><SafeAreaView edges={['bottom']}><Boton color={color} disabled={!puedeContinuar||guardando||preparando} iconoIzquierda={paso===6?Check:ChevronRight} onPress={() => paso===6?void guardar():setPaso(paso+1)} variante="sendero">{guardando ? t('habitos.crearWizard.actions.creating') : paso === 6 ? t('habitos.crearWizard.actions.createHabit') : t('habitos.crearWizard.continue')}</Boton></SafeAreaView></ReanimatedView.View>{preparando&&<PreparandoHabito color={color} paqueteId={paqueteVisual.id} progreso={progresoPreparacion} titulo={titulo.trim()} />}
+    </ScrollView>{paso === 4 && !tecladoVisible && <View pointerEvents="none" style={s.paisajeRecordatorio}><Image source={assetsPaquete.arbolPrincipal} style={s.arbolRecordatorio}/><Image source={assetsPaquete.arbusto} style={s.arbustoRecordatorio} /></View>}<ReanimatedView.View onLayout={(e) => setAltoFooter(e.nativeEvent.layout.height)} style={[s.pie, estiloFondo]}><SafeAreaView edges={['bottom']}><Boton color={color} disabled={!puedeContinuar||guardando||preparando} iconoIzquierda={paso===6?Check:ChevronRight} onPress={() => paso===6?void guardar():setPaso(paso+1)} variante="sendero">{guardando ? t('habitos.crearWizard.actions.creating') : paso === 6 ? t('habitos.crearWizard.actions.createHabit') : t('habitos.crearWizard.continue')}</Boton></SafeAreaView></ReanimatedView.View>{preparando&&<PreparandoHabito color={color} paqueteId={paqueteVisual.id} progreso={progresoPreparacion} titulo={titulo.trim()} />}
   </ReanimatedView.View></KeyboardAvoidingView></MasterColorProvider></Modal>;
 }
 
