@@ -13,3 +13,7 @@ export function cerrarSesionNotificaciones(): void {}
 export async function solicitarPermisoYRegistrar(): Promise<ResultadoPermisoNotificaciones> {
   return { estado: 'no_disponible', motivo: 'plataforma' };
 }
+
+export function etiquetarUsuarioNotificaciones(_etiquetas: Record<string, string>): void {}
+
+export function registrarResultadoNotificaciones(_nombre: string, _valor?: number): void {}

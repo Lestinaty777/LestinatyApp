@@ -129,3 +129,30 @@ async function sincronizarSuscripcionActual() {
   const id = await OneSignal.User.pushSubscription.getIdAsync();
   if (esSuscripcionReal(id)) await registrarDispositivo(id);
 }
+
+// ── Segmentación e impacto ────────────────────────────────────────────
+// Tags: datos del usuario (racha, hábitos activos, último registro) para
+// segmentar audiencias y disparar mensajes in-app y journeys desde el
+// panel de OneSignal. Outcomes: acciones reales (un día completado)
+// atribuidas a la notificación que las motivó. Ambas son silenciosas si
+// OneSignal no está inicializado (p. ej. tareas en segundo plano de
+// widgets o del cronómetro de Android): nunca rompen el flujo que las llama.
+
+export function etiquetarUsuarioNotificaciones(etiquetas: Record<string, string>): void {
+  if ((Platform.OS !== 'ios' && Platform.OS !== 'android') || !inicializado) return;
+  try {
+    OneSignal.User.addTags(etiquetas);
+  } catch {
+    // Etiquetar es mejor esfuerzo.
+  }
+}
+
+export function registrarResultadoNotificaciones(nombre: string, valor?: number): void {
+  if ((Platform.OS !== 'ios' && Platform.OS !== 'android') || !inicializado) return;
+  try {
+    if (valor === undefined) OneSignal.Session.addOutcome(nombre);
+    else OneSignal.Session.addOutcomeWithValue(nombre, valor);
+  } catch {
+    // Medir es mejor esfuerzo.
+  }
+}

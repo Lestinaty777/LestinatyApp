@@ -6,6 +6,7 @@ import { sincronizarRenovacionSesion } from '../../../servicios/base-datos/sesio
 import { cerrarSesionOneSignal, identificarUsuarioOneSignal } from '../../../nucleo/notificaciones/oneSignal';
 import { cerrarSesionCompras, iniciarSesionCompras } from '../../../nucleo/compras/revenueCat';
 import { sincronizarZonaHorariaDispositivo } from '../../configuracion/configuracion.servicio';
+import { sincronizarEtiquetasHabitos } from '../../habitos/etiquetasHabitos';
 import { usarEstadoAcceso } from '../acceso.estado';
 import { mapearUsuarioSesion } from '../acceso.servicio';
 
@@ -14,7 +15,12 @@ export function ProveedorAcceso({ children }: PropsWithChildren) {
   const definirUsuario = usarEstadoAcceso((estado) => estado.definirUsuario);
   const sincronizarUsuario = (usuario: { id: string; email?: string | null } | null | undefined) => {
     definirUsuario(usuario ? mapearUsuarioSesion(usuario) : null);
-    if (usuario) { identificarUsuarioOneSignal(usuario.id); iniciarSesionCompras(usuario.id); sincronizarZonaHorariaDispositivo(); }
+    if (usuario) {
+      identificarUsuarioOneSignal(usuario.id);
+      void sincronizarEtiquetasHabitos().catch(() => undefined);
+      iniciarSesionCompras(usuario.id);
+      sincronizarZonaHorariaDispositivo();
+    }
     else { cerrarSesionOneSignal(); cerrarSesionCompras(); }
   };
 
