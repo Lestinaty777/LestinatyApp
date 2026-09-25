@@ -80,30 +80,32 @@ export function MasterGlass({ blur = false, children, colorBase, compacto = fals
   // El boxShadow no sigue de forma confiable el borderRadius cuando se aplica
   // directo sobre este LinearGradient en iOS (se ve como una sombra cuadrada
   // detrás de la tarjeta redondeada) — se mueve a un envoltorio View plano,
-  // que sí la redondea bien. Las propiedades que definen cómo ESTE elemento
-  // se relaciona con su propio padre/hermanos (margin, flex, alignSelf,
-  // posición absoluta) se extraen al envoltorio para que no queden "atrapadas"
-  // un nivel más adentro; todo lo demás (padding, overflow, etc.) se queda
-  // igual que antes en el LinearGradient interior.
+  // que sí la redondea bien.
+  //
+  // Dos categorías de propiedades del `style` del caller, tratadas distinto:
+  // - MOVIDAS (solo en el envoltorio, quitadas del interior): margin,
+  //   alignSelf, posición absoluta — describen cómo ESTE elemento se
+  //   relaciona con su padre/hermanos. Duplicarlas en el interior sería
+  //   incorrecto (el margin se sumaría dos veces, por ejemplo).
+  // - COPIADAS (en ambos): flex/flexGrow/flexShrink/flexBasis y
+  //   ancho/alto/min/max. El interior las necesita para tener el tamaño
+  //   real (si no, se encoge a su contenido); el envoltorio las necesita
+  //   para relacionarse bien con SU padre. Duplicarlas es seguro porque no
+  //   se acumulan — a diferencia de forzar flex:1 sin condición (lo que se
+  //   intentó antes), esto no rompe a los callers que NO piden flex/ancho y
+  //   esperan encogerse a su contenido (p. ej. un botón-píldora chico).
   const {
     margin, marginTop, marginBottom, marginLeft, marginRight, marginHorizontal, marginVertical, marginStart, marginEnd,
-    flex, flexGrow, flexShrink, flexBasis, alignSelf,
+    alignSelf,
     position, top, right, bottom, left, zIndex,
     ...estiloInterior
   } = flatStyle;
-  // Ancho/alto NO se mueven (se necesitan en el LinearGradient para medir
-  // bien con onLayout) — se COPIAN también al envoltorio, porque si no,
-  // un caller que pide p. ej. width:'100%' queda resolviendo ese porcentaje
-  // contra un envoltorio sin tamaño propio (encogido a su contenido), en vez
-  // de contra el padre real — el botón/tarjeta terminaba angosto y corrido
-  // hacia un lado en vez de ocupar todo el ancho. A diferencia de margin,
-  // duplicar ancho/alto es seguro (no se acumula).
-  const { width, height, minWidth, maxWidth, minHeight, maxHeight } = estiloInterior;
+  const { flex, flexGrow, flexShrink, flexBasis, width, height, minWidth, maxWidth, minHeight, maxHeight } = estiloInterior;
   const estiloEnvoltorio = {
     margin, marginTop, marginBottom, marginLeft, marginRight, marginHorizontal, marginVertical, marginStart, marginEnd,
-    flex, flexGrow, flexShrink, flexBasis, alignSelf,
+    alignSelf,
     position, top, right, bottom, left, zIndex,
-    width, height, minWidth, maxWidth, minHeight, maxHeight,
+    flex, flexGrow, flexShrink, flexBasis, width, height, minWidth, maxWidth, minHeight, maxHeight,
   };
 
   if (forma === 'heptagono') {
@@ -127,13 +129,7 @@ export function MasterGlass({ blur = false, children, colorBase, compacto = fals
 
   return (
     <View style={[estiloEnvoltorio, { borderRadius: radioExterior, boxShadow: `1px 3px 7px ${g.sombra}26` }]}>
-      {/* El envoltorio se queda con flex/alignSelf/position (cómo ESTE
-          elemento se relaciona con su padre) — el LinearGradient interior
-          necesita `flex: 1` propio para llenar ese envoltorio completo, si
-          no, un caller que dependía de `flex: 1` para estirarse (p. ej.
-          MasterIconBg) queda con el interior encogido a su contenido
-          mientras el envoltorio sí toma el tamaño correcto. */}
-      <LinearGradient colors={coloresExteriores} end={finBorde} locations={ubicacionesBorde} onLayout={medirContenedor} start={{ x: 0, y: 0 }} style={[styles.raiz, { flex: 1 }, estiloInterior]}>
+      <LinearGradient colors={coloresExteriores} end={finBorde} locations={ubicacionesBorde} onLayout={medirContenedor} start={{ x: 0, y: 0 }} style={[styles.raiz, estiloInterior]}>
         {blur ? <BlurView intensity={intensity} pointerEvents="none" tint={tint} style={interior} /> : <View pointerEvents="none" style={interior} />}
         <LinearGradient colors={[colorTope, colorTope, colorCuerpo, colorCuerpo, colorPie]} end={{ x: 0, y: 1 }} locations={[0, ubicacion(franjaSuperior), ubicacion(finTransicionSuperior), ubicacion(inicioTransicionInferior), 1]} pointerEvents="none" start={{ x: 0, y: 0 }} style={interior} />
         {children}
