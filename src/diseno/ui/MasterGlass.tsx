@@ -69,7 +69,12 @@ export function MasterGlass({ blur = false, children, colorBase, compacto = fals
   const inicioTransicionInferior = Math.max(finTransicionSuperior, alto * 0.66);
   const grosorBorde = Math.min(2.4, Math.max(1.35, Math.min(tamano.ancho, tamano.alto) * 0.018));
   const ubicacion = (valor: number) => Math.min(1, Math.max(0, valor / alto));
-  const interior = [styles.interior, { borderRadius: Math.max(0, RADIO_MASTER_GLASS - grosorBorde), margin: grosorBorde }];
+  // Si `style` trae su propio borderRadius (ej. tarjetas grandes que piden un
+  // radio distinto al default), el contenido interior (blur/gradiente) tiene
+  // que seguirlo — si no, queda con esquinas más rectas que el borde exterior.
+  const radioEfectivo = StyleSheet.flatten(style)?.borderRadius;
+  const radioExterior = typeof radioEfectivo === 'number' ? radioEfectivo : RADIO_MASTER_GLASS;
+  const interior = [styles.interior, { borderRadius: Math.max(0, radioExterior - grosorBorde), margin: grosorBorde }];
 
   if (forma === 'heptagono') {
     const borde = mastery ? g.heptagono.bordeMastery : g.heptagono.borde;
@@ -91,7 +96,7 @@ export function MasterGlass({ blur = false, children, colorBase, compacto = fals
   }
 
   return (
-    <LinearGradient colors={coloresExteriores} end={finBorde} locations={ubicacionesBorde} onLayout={medirContenedor} start={{ x: 0, y: 0 }} style={[styles.raiz, { boxShadow: `1px 3px 7px ${g.sombra}26` }, style, styles.radioFijo]}>
+    <LinearGradient colors={coloresExteriores} end={finBorde} locations={ubicacionesBorde} onLayout={medirContenedor} start={{ x: 0, y: 0 }} style={[styles.raiz, { boxShadow: `1px 3px 7px ${g.sombra}26` }, style]}>
       {blur ? <BlurView intensity={intensity} pointerEvents="none" tint={tint} style={interior} /> : <View pointerEvents="none" style={interior} />}
       <LinearGradient colors={[colorTope, colorTope, colorCuerpo, colorCuerpo, colorPie]} end={{ x: 0, y: 1 }} locations={[0, ubicacion(franjaSuperior), ubicacion(finTransicionSuperior), ubicacion(inicioTransicionInferior), 1]} pointerEvents="none" start={{ x: 0, y: 0 }} style={interior} />
       {children}
@@ -108,7 +113,6 @@ const styles = StyleSheet.create({
     // relleno del swipe) no se recorta a la forma redonda y se ve cuadrado.
     overflow: 'hidden',
   },
-  radioFijo: { borderRadius: RADIO_MASTER_GLASS },
   contenidoHeptagono: { alignItems: 'center', flex: 1, justifyContent: 'center' },
   heptagonoRaiz: { borderRadius: 0, overflow: 'visible', position: 'relative' },
   interior: { bottom: 0, left: 0, overflow: 'hidden', position: 'absolute', right: 0, top: 0 },

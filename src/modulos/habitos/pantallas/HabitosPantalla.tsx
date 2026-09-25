@@ -178,7 +178,7 @@ export function HabitosPantalla() {
           </Animated.View>
         </View>
         <View style={s.headerDer}>
-          <Animated.View entering={entradaEncadenada(1)}><Rebote accessibilityLabel={t('habitos.pantalla.buyGems')} onPress={() => router.push('/tienda/gemas')} estilo={s.statPill}><View style={s.statPillFila}><Image source={require('../../../../assets/icons/hoy/gemas.png')} style={s.gemaIcono} /><Texto style={s.statTexto}>{saldoGemas ?? 0}</Texto></View></Rebote></Animated.View>
+          <Animated.View entering={entradaEncadenada(1)}><Rebote accessibilityLabel={t('habitos.pantalla.buyGems')} onPress={() => router.push('/(principal)/tienda')} estilo={s.statPill}><View style={s.statPillFila}><Image source={require('../../../../assets/icons/hoy/gemas.png')} style={s.gemaIcono} /><Texto style={s.statTexto}>{saldoGemas ?? 0}</Texto></View></Rebote></Animated.View>
           <Animated.View entering={entradaEncadenada(2)}>
             <Rebote accessibilityLabel={t('habitos.pantalla.notifications')} onPress={() => Linking.openSettings()}>
               <MasterGlass style={s.notificacion}>
