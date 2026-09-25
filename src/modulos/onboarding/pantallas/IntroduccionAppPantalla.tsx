@@ -50,6 +50,7 @@ import { ContenedorMapaSenderos } from '../../senderos/componentes/mapa/Contened
 import type { NodoMapaSendero } from '../../senderos/datos/mapaEjercicio.mock';
 import { marcarIntroduccionAppVista } from '../introduccionApp';
 import { FormularioAccesoOnboarding } from '../componentes/FormularioAccesoOnboarding';
+import { DIAS_POR_MAPA } from '../../habitos/senderoNiveles';
 import { useEscala } from '../../../diseno/tema/MasterColorContext';
 import type { EscalaMaster } from '../../../diseno/tema/escalaEsmeralda';
 import { ESCALA_ESMERALDA } from '../../../diseno/tema/escalaEsmeralda';
@@ -243,13 +244,19 @@ export function IntroduccionAppPantalla() {
   const [slideEnTransicion, setSlideEnTransicion] = useState<number | null>(null);
   const [indiceEspecie, setIndiceEspecie] = useState(0);
   const scrollRef = useRef<ScrollView>(null);
-  const nodosDemo = useMemo<NodoMapaSendero[]>(() => Array.from({ length: 10 }, (_, indice) => ({
-    estado: indice < 4 ? 'completado' : indice === 4 ? 'activo' : 'bloqueado',
+  // Nivel 1 real tiene 3 días (DIAS_POR_MAPA[1]) — antes esto simulaba 10
+  // días con nivel 2 hardcodeado, sin relación con ningún nivel real. Ahora
+  // que el slide muestra "nivel 1" de verdad, la demo calza con su
+  // estructura real: día 1 completado, día 2 activo (el de hoy), día 3
+  // bloqueado — mismo patrón "ya llevás una rachita" de antes, a escala.
+  const diasNivel1Demo = DIAS_POR_MAPA[1];
+  const nodosDemo = useMemo<NodoMapaSendero[]>(() => Array.from({ length: diasNivel1Demo }, (_, indice) => ({
+    estado: indice < 1 ? 'completado' : indice === 1 ? 'activo' : 'bloqueado',
     icono: Check,
     id: `intro-demo-${indice}`,
     subtitulo: t('onboarding.intro.slide2.dayDemo', { day: indice + 1 }),
     titulo: t('onboarding.intro.slide2.dayDemo', { day: indice + 1 }),
-  })), [t]);
+  })), [t, diasNivel1Demo]);
   const totalSlides = 5;
   const esUltima = slideActivo === totalSlides - 1;
   const biomaActual = BIOMAS_CARRUSEL[0];
