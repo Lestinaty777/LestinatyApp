@@ -614,7 +614,7 @@ export const recursosI18n = {
           },
           referrals: {
             title: 'Free Gems for Inviting',
-            subtitle: 'Share your guardian code and earn +200 gems for each friend who plants their first trail.',
+            subtitle: 'Share your guardian code and earn +100 gems for each friend who plants their first trail.',
             button: 'View Store Rewards',
           },
         },
@@ -1516,7 +1516,7 @@ export const recursosI18n = {
           },
           referrals: {
             title: 'Gemas Gratis por Invitar',
-            subtitle: 'Comparte tu código de guardián y gana +200 gemas por cada amigo que siembre su primer sendero.',
+            subtitle: 'Comparte tu código de guardián y gana +100 gemas por cada amigo que siembre su primer sendero.',
             button: 'Ver Recompensas en la Tienda',
           },
         },
