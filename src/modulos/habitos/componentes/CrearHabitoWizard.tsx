@@ -224,7 +224,10 @@ function useRevelacionProgresiva(total: number, clave: string, activo: boolean) 
 
 // Grid de iconos aparte del wizard: el revelado progresivo re-renderiza cada
 // 70 ms, y así solo se repinta este grid — no los 500 líneas del wizard entero.
-function GridIconosHabito({ color, etiquetaIcono, iconoSeleccionado, onElegir }: { color: string; etiquetaIcono: (id: string, etiquetaPredeterminada: string) => string; iconoSeleccionado: string; onElegir: (id: string) => void }) {
+// Exportado para reutilizarse tal cual en EditarHabitoFormulario — mismo
+// selector de ícono en creación y edición, sin duplicar el grid ni la
+// revelación progresiva.
+export function GridIconosHabito({ color, etiquetaIcono, iconoSeleccionado, onElegir }: { color: string; etiquetaIcono: (id: string, etiquetaPredeterminada: string) => string; iconoSeleccionado: string; onElegir: (id: string) => void }) {
   const s = useEstilosS();
   const { t } = useTranslation();
   const tono = useTonoMaster();

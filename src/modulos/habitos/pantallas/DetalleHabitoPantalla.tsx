@@ -1,12 +1,15 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { Archive, ArrowLeft, Pencil, Sparkles } from 'lucide-react-native';
+import { useState } from 'react';
 import { Alert, Image, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 
 import { HojaDeslizante, MasterButton, MasterGlass, MasterIcon, MasterProgressbar, Texto } from '../../../diseno';
 import { AuroraBoreal } from '../../hoy/componentes/AuroraBoreal';
+import { EditarHabitoFormulario } from '../componentes/EditarHabitoFormulario';
+import { normalizarEdicionHabito } from '../gestionDetalleHabito';
 import { archivarHabito, obtenerDetalleHabito } from '../habitos.servicio';
 import { obtenerAssetsPaqueteHabito } from '../paqueteVisual.assets';
 import { TonoDelHabito } from '../componentes/TonoDelHabito';
@@ -19,6 +22,7 @@ export function DetalleHabitoPantalla({ id, onCerrar }: { id: string; onCerrar: 
   const cliente = useQueryClient();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const [editando, setEditando] = useState(false);
 
   const invalidarHabitos = () => {
     ['panel', 'activos', 'detalles-hoy', 'mejor-racha'].forEach((clave) => {
@@ -80,76 +84,88 @@ export function DetalleHabitoPantalla({ id, onCerrar }: { id: string; onCerrar: 
             </Pressable>
           </View>
 
-          <MasterGlass style={s.hero}>
-            <View style={s.heroTexto}>
-              <MasterIcon alTema name={habito.iconoLucide} size={34} />
-              <Texto style={s.kicker}>{t('habitos.detalle.nivel', { nivel: datos.nivel })}</Texto>
-              <Texto style={s.title}>{habito.titulo}</Texto>
-              <Texto style={s.sub}>{habito.descripcion || t('habitos.detalle.descripcionPorDefecto')}</Texto>
-            </View>
-            <Image resizeMode="contain" source={assets.arbolPrincipal} style={s.tree} />
-          </MasterGlass>
+          {editando ? (
+            <EditarHabitoFormulario
+              colorHabito={habito.color}
+              edicionInicial={normalizarEdicionHabito(datos)}
+              habitoId={id}
+              onCancelar={() => setEditando(false)}
+              onGuardado={() => { setEditando(false); invalidarHabitos(); }}
+            />
+          ) : (
+            <>
+              <MasterGlass style={s.hero}>
+                <View style={s.heroTexto}>
+                  <MasterIcon alTema name={habito.iconoLucide} size={34} />
+                  <Texto style={s.kicker}>{t('habitos.detalle.nivel', { nivel: datos.nivel })}</Texto>
+                  <Texto style={s.title}>{habito.titulo}</Texto>
+                  <Texto style={s.sub}>{habito.descripcion || t('habitos.detalle.descripcionPorDefecto')}</Texto>
+                </View>
+                <Image resizeMode="contain" source={assets.arbolPrincipal} style={s.tree} />
+              </MasterGlass>
 
-          <MasterGlass style={s.card}>
-            <View style={s.row}>
-              <View>
-                <Texto style={s.kicker}>{t('habitos.detalle.progresoHoy')}</Texto>
-                <Texto style={s.value}>{habito.valorHoy} / {habito.meta} {habito.unidad ?? ''}</Texto>
+              <MasterGlass style={s.card}>
+                <View style={s.row}>
+                  <View>
+                    <Texto style={s.kicker}>{t('habitos.detalle.progresoHoy')}</Texto>
+                    <Texto style={s.value}>{habito.valorHoy} / {habito.meta} {habito.unidad ?? ''}</Texto>
+                  </View>
+                  <Texto style={[s.percent, { color: habito.color }]}>{porcentaje}%</Texto>
+                </View>
+                <MasterProgressbar colorBase={habito.color} porcentaje={porcentaje} />
+              </MasterGlass>
+
+              <MasterGlass style={s.card}>
+                <View style={s.programacionTitulo}>
+                  <MasterIcon alTema name="calendario" size={20} />
+                  <Texto style={s.value}>{t('habitos.detalle.programacion')}</Texto>
+                </View>
+                <Texto style={s.sub}>{textoProgramacion(datos.programacion, t)}</Texto>
+                {datos.programacion.frecuencia === 'dias_semana' && (
+                  <View style={s.days}>
+                    {dias.map((dia, indice) => {
+                      const activo = datos.programacion.diasSemana.includes(indice + 1);
+                      return (
+                        <View key={indice} style={[s.day, activo && { backgroundColor: habito.color }]}>
+                          <Texto style={{ color: activo ? '#fff' : '#777' }}>{dia}</Texto>
+                        </View>
+                      );
+                    })}
+                  </View>
+                )}
+              </MasterGlass>
+
+              <View style={s.stats}>
+                <Stat icono="racha" etiqueta={t('habitos.detalle.racha')} valor={t('habitos.detalle.rachaValor', { dias: datos.rachaActual })} />
+                <Stat icono="trofeo" etiqueta={t('habitos.detalle.semana')} valor={`${datos.semana.completados}/${datos.semana.programados}`} />
               </View>
-              <Texto style={[s.percent, { color: habito.color }]}>{porcentaje}%</Texto>
-            </View>
-            <MasterProgressbar colorBase={habito.color} porcentaje={porcentaje} />
-          </MasterGlass>
 
-          <MasterGlass style={s.card}>
-            <View style={s.programacionTitulo}>
-              <MasterIcon alTema name="calendario" size={20} />
-              <Texto style={s.value}>{t('habitos.detalle.programacion')}</Texto>
-            </View>
-            <Texto style={s.sub}>{textoProgramacion(datos.programacion, t)}</Texto>
-            {datos.programacion.frecuencia === 'dias_semana' && (
-              <View style={s.days}>
-                {dias.map((dia, indice) => {
-                  const activo = datos.programacion.diasSemana.includes(indice + 1);
-                  return (
-                    <View key={indice} style={[s.day, activo && { backgroundColor: habito.color }]}>
-                      <Texto style={{ color: activo ? '#fff' : '#777' }}>{dia}</Texto>
-                    </View>
-                  );
-                })}
-              </View>
-            )}
-          </MasterGlass>
+              <MasterButton
+                color={habito.color}
+                iconoIzquierda={Pencil}
+                onPress={() => setEditando(true)}
+                style={s.botonEditar}
+              >
+                {t('habitos.detalle.botonEditar')}
+              </MasterButton>
 
-          <View style={s.stats}>
-            <Stat icono="racha" etiqueta={t('habitos.detalle.racha')} valor={t('habitos.detalle.rachaValor', { dias: datos.rachaActual })} />
-            <Stat icono="trofeo" etiqueta={t('habitos.detalle.semana')} valor={`${datos.semana.completados}/${datos.semana.programados}`} />
-          </View>
-
-          <MasterButton
-            color={habito.color}
-            iconoIzquierda={Pencil}
-            onPress={() => Alert.alert(t('habitos.detalle.alertaEditarTitulo'), t('habitos.detalle.alertaEditarMensaje'))}
-            style={s.botonEditar}
-          >
-            {t('habitos.detalle.botonEditar')}
-          </MasterButton>
-
-          <Pressable
-            accessibilityLabel={t('habitos.detalle.botonArchivar')}
-            style={s.archive}
-            onPress={() => Alert.alert(
-              t('habitos.detalle.alertaArchivarTitulo'),
-              t('habitos.detalle.alertaArchivarMensaje'),
-              [
-                { text: t('habitos.detalle.cancelar'), style: 'cancel' },
-                { text: t('habitos.detalle.botonArchivar'), style: 'destructive', onPress: () => archivar.mutate(id) },
-              ],
-            )}
-          >
-            <Archive color="#A53A4C" size={18} />
-            <Texto style={s.archiveText}>{t('habitos.detalle.botonArchivar')}</Texto>
-          </Pressable>
+              <Pressable
+                accessibilityLabel={t('habitos.detalle.botonArchivar')}
+                style={s.archive}
+                onPress={() => Alert.alert(
+                  t('habitos.detalle.alertaArchivarTitulo'),
+                  t('habitos.detalle.alertaArchivarMensaje'),
+                  [
+                    { text: t('habitos.detalle.cancelar'), style: 'cancel' },
+                    { text: t('habitos.detalle.botonArchivar'), style: 'destructive', onPress: () => archivar.mutate(id) },
+                  ],
+                )}
+              >
+                <Archive color="#A53A4C" size={18} />
+                <Texto style={s.archiveText}>{t('habitos.detalle.botonArchivar')}</Texto>
+              </Pressable>
+            </>
+          )}
         </ScrollView>
       </HojaDeslizante>
     </TonoDelHabito>
