@@ -117,8 +117,19 @@ export function MasterGlass({ blur = false, children, colorBase, compacto = fals
   }
 
   return (
+<<<<<<< HEAD
     <View style={[estiloEnvoltorio, { borderRadius: radioExterior, boxShadow: `1px 3px 7px ${g.sombra}26` }]}>
       <LinearGradient colors={coloresExteriores} end={finBorde} locations={ubicacionesBorde} onLayout={medirContenedor} start={{ x: 0, y: 0 }} style={[styles.raiz, estiloInterior]}>
+=======
+    // La sombra vive en este wrapper transparente, separado del elemento que
+    // recorta el contenido (overflow:'hidden' + borderRadius, abajo). En iOS,
+    // poner boxShadow en el MISMO nodo que se auto-recorta rompe el
+    // redondeo de la sombra (queda cuadrada) — sobre todo tratándose de un
+    // LinearGradient, que no es una View plana. Separarlos no le cambia nada
+    // al look: mismo color, offset y blur de siempre.
+    <View onLayout={medirContenedor} style={[style, styles.sombra, { boxShadow: `1px 3px 7px ${g.sombra}26` }]}>
+      <LinearGradient colors={coloresExteriores} end={finBorde} locations={ubicacionesBorde} start={{ x: 0, y: 0 }} style={[StyleSheet.absoluteFill, styles.raiz]}>
+>>>>>>> fae6ccc5447f692a579c6d0ab415e78b71940cee
         {blur ? <BlurView intensity={intensity} pointerEvents="none" tint={tint} style={interior} /> : <View pointerEvents="none" style={interior} />}
         <LinearGradient colors={[colorTope, colorTope, colorCuerpo, colorCuerpo, colorPie]} end={{ x: 0, y: 1 }} locations={[0, ubicacion(franjaSuperior), ubicacion(finTransicionSuperior), ubicacion(inicioTransicionInferior), 1]} pointerEvents="none" start={{ x: 0, y: 0 }} style={interior} />
         {children}
@@ -128,6 +139,7 @@ export function MasterGlass({ blur = false, children, colorBase, compacto = fals
 }
 
 const styles = StyleSheet.create({
+<<<<<<< HEAD
   raiz: {
     borderRadius: RADIO_MASTER_GLASS,
     // boxShadow (a diferencia del shadow* clásico de RN) no necesita
@@ -136,6 +148,10 @@ const styles = StyleSheet.create({
     // relleno del swipe) no se recorta a la forma redonda y se ve cuadrado.
     overflow: 'hidden',
   },
+=======
+  sombra: { borderRadius: RADIO_MASTER_GLASS },
+  raiz: { borderRadius: RADIO_MASTER_GLASS, overflow: 'hidden' },
+>>>>>>> fae6ccc5447f692a579c6d0ab415e78b71940cee
   contenidoHeptagono: { alignItems: 'center', flex: 1, justifyContent: 'center' },
   heptagonoRaiz: { borderRadius: 0, overflow: 'visible', position: 'relative' },
   interior: { bottom: 0, left: 0, overflow: 'hidden', position: 'absolute', right: 0, top: 0 },

@@ -55,32 +55,42 @@ export function MasterIconBg({
   }
 
   return (
-    <View style={[mib.marco, { borderRadius: radioExterior, height: size, width: size }, style]}>
-      <Svg height={size} pointerEvents="none" style={mib.borde} width={size}>
-        <Defs>
-          <LinearGradient id="masterIconBgBorde" x1="0%" x2="100%" y1="0%" y2="100%">
-            <Stop offset="0" stopColor={bordeInicio} />
-            <Stop offset="1" stopColor={bordeFin} />
-          </LinearGradient>
-        </Defs>
-        <Rect fill="url(#masterIconBgBorde)" height={size} rx={radioExterior} ry={radioExterior} width={size} />
-      </Svg>
-      <MasterGlass blur compacto style={[mib.glass, { borderRadius: radioInterior }]}>
-        {/* MasterGlass es fijo verde menta y no tiene prop de color propio —
-            esta capa lo tiñe hacia `tinte` sin tocar ese componente
-            compartido (lo usan muchas otras pantallas que deben seguir
-            viéndose verdes). Sin `tinte`, se comporta igual que antes. */}
-        {tinte && <View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: tinte, borderRadius: radioInterior, opacity: 0.4 }]} />}
-        {fuente ? (rutaDeIcono({ deltaHue: tono.deltaHue, hue }) === 'imagen'
-          ? <Image resizeMode="contain" source={fuente} style={{ height: tamanoIcono, width: tamanoIcono }} />
-          : <MasterChanger alto={tamanoIcono} ancho={tamanoIcono} deltaTema={tono.deltaHue} fuente={fuente} hueOrigen={hue} saturacion={tono.icono.saturacion} valorTema={tono.icono.valor} />) : children}
-      </MasterGlass>
+    // Misma separación que en MasterGlass: la sombra vive en este wrapper
+    // transparente de afuera, cuyo único hijo es el marco real — un solo
+    // hijo del mismo tamaño y radio le da a iOS una forma inequívoca para
+    // redondear el shadowPath. Antes la sombra estaba en el propio `marco`,
+    // que al no tener backgroundColor (el SVG y el MasterGlass son hijos
+    // superpuestos, no un fondo sólido) hacía que iOS cayera al rectángulo
+    // completo del layer en vez de la esquina redondeada.
+    <View style={[mib.sombra, { alignSelf: 'flex-start', borderRadius: radioExterior, height: size, width: size }, style]}>
+      <View style={[mib.marco, { borderRadius: radioExterior, height: size, width: size }]}>
+        <Svg height={size} pointerEvents="none" style={mib.borde} width={size}>
+          <Defs>
+            <LinearGradient id="masterIconBgBorde" x1="0%" x2="100%" y1="0%" y2="100%">
+              <Stop offset="0" stopColor={bordeInicio} />
+              <Stop offset="1" stopColor={bordeFin} />
+            </LinearGradient>
+          </Defs>
+          <Rect fill="url(#masterIconBgBorde)" height={size} rx={radioExterior} ry={radioExterior} width={size} />
+        </Svg>
+        <MasterGlass blur compacto style={[mib.glass, { borderRadius: radioInterior }]}>
+          {/* MasterGlass es fijo verde menta y no tiene prop de color propio —
+              esta capa lo tiñe hacia `tinte` sin tocar ese componente
+              compartido (lo usan muchas otras pantallas que deben seguir
+              viéndose verdes). Sin `tinte`, se comporta igual que antes. */}
+          {tinte && <View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: tinte, borderRadius: radioInterior, opacity: 0.4 }]} />}
+          {fuente ? (rutaDeIcono({ deltaHue: tono.deltaHue, hue }) === 'imagen'
+            ? <Image resizeMode="contain" source={fuente} style={{ height: tamanoIcono, width: tamanoIcono }} />
+            : <MasterChanger alto={tamanoIcono} ancho={tamanoIcono} deltaTema={tono.deltaHue} fuente={fuente} hueOrigen={hue} saturacion={tono.icono.saturacion} valorTema={tono.icono.valor} />) : children}
+        </MasterGlass>
+      </View>
     </View>
   );
 }
 
 const crearEstilosMib = (esc: EscalaMaster) => StyleSheet.create({
-  marco: { alignSelf: 'flex-start', elevation: 3, padding: 2, position: 'relative', shadowColor: esc.jade.l38, shadowOffset: { height: 4, width: 3 }, shadowOpacity: 0.16, shadowRadius: 7 },
+  sombra: { shadowColor: esc.jade.l38, shadowOffset: { height: 4, width: 3 }, shadowOpacity: 0.16, shadowRadius: 7 },
+  marco: { elevation: 3, padding: 2, position: 'relative' },
   borde: { left: 0, position: 'absolute', top: 0 },
   glass: { alignItems: 'center', flex: 1, justifyContent: 'center' },
 });
