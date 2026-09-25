@@ -485,11 +485,14 @@ export function MapaSenderosPantalla() {
               {/* Ya completé hoy este hábito y sigo viendo su mapa: llueve
                   hasta el próximo día programado (no "hasta mañana" — un
                   hábito no diario sigue lloviendo en los días intermedios,
-                  ver spec). Se apaga sola al cambiar de hábito o salir,
-                  por el propio ciclo de montaje del componente. La lluvia
-                  espera a que termine la mandala del día: no empieza mientras
-                  hay un ritual pendiente de abrirse o en curso. */}
-              {sendero.seccionVisible && !sendero.seccionVisible.puedeAvanzarHoy && sendero.seccionVisible.diasCompletados > 0 && !ritualActivo && !encargoMandalaVigente && (
+                  ver spec). Se apaga sola al cambiar de hábito, por el propio
+                  ciclo de montaje del componente — pero las pestañas de
+                  expo-router NO desmontan la pantalla al perder el foco (solo
+                  dejan de ser visibles), así que sin `enFoco` acá el sonido en
+                  loop seguía sonando en otras pestañas. La lluvia espera a que
+                  termine la mandala del día: no empieza mientras hay un ritual
+                  pendiente de abrirse o en curso. */}
+              {enFoco && sendero.seccionVisible && !sendero.seccionVisible.puedeAvanzarHoy && sendero.seccionVisible.diasCompletados > 0 && !ritualActivo && !encargoMandalaVigente && (
                 <AmbienteLluviaMapa alto={alturaMapa} />
               )}
               </>
