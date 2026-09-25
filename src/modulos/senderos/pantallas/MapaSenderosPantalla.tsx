@@ -3,7 +3,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useIsFocused, useLocalSearchParams, useRouter } from 'expo-router';
-import { Alert, FlatList, StyleSheet, View, useWindowDimensions, Pressable, Image } from 'react-native';
+import { ActivityIndicator, Alert, FlatList, StyleSheet, View, useWindowDimensions, Pressable, Image } from 'react-native';
 import { ScrollView } from 'react-native-gesture-handler';
 import { BotonTab } from '../../../nucleo/navegacion/BarraTabs';
 import { PixelartIcon } from '../../../diseno/iconos/PixelartIcon';
@@ -424,7 +424,7 @@ export function MapaSenderosPantalla() {
         <View style={[styles.capaMapa, !asignatura && styles.capaMapaVacia]}>
           {asignatura ? (
             sendero.consulta.isLoading || sendero.consultaResumen.isLoading ? (
-              <View style={styles.centroMapa}><Texto style={styles.subMapa}>{t('senderos.map.loadingTrail')}</Texto></View>
+              <View style={styles.centroMapa}><ActivityIndicator color={colores.tintaTenue} style={styles.spinnerCarga} /><Texto style={styles.subMapa}>{t('senderos.map.loadingTrail')}</Texto></View>
             ) : sendero.consulta.isError || !sendero.consulta.data || sendero.consultaResumen.isError || !sendero.resumen ? (
               <View style={styles.centroMapa}><Texto style={styles.subMapa}>{t('senderos.map.trailError')}</Texto></View>
             ) : (
@@ -494,7 +494,7 @@ export function MapaSenderosPantalla() {
           ) : (
             <View style={[styles.centroMapa, { paddingBottom: insets.bottom + 96 }]}>
               {consultaHabitos.isLoading ? (
-                <Texto style={styles.subMapa}>{t('senderos.map.loadingHabits')}</Texto>
+                <><ActivityIndicator color={colores.tintaTenue} style={styles.spinnerCarga} /><Texto style={styles.subMapa}>{t('senderos.map.loadingHabits')}</Texto></>
               ) : (
                 <EstadoVacioSenderos
                   alCrearHabito={() => {
@@ -792,6 +792,9 @@ const crearEstilosStyles = (esc: EscalaMaster) => StyleSheet.create({
     fontFamily: 'Montserrat-Medium',
     fontSize: 13,
     textAlign: 'center',
+  },
+  spinnerCarga: {
+    marginBottom: 10,
   },
   tituloMapa: {
     color: '#111111',

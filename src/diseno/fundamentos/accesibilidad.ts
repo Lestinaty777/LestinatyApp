@@ -9,8 +9,13 @@
 // sería peor para accesibilidad — pero no pasa del punto en el que el layout
 // se rompe. Es el mismo compromiso que usan la mayoría de las apps de
 // producción frente a texto ilimitado en layouts de alto fijo.
-export const TOPE_ESCALA_TEXTO = 1.3;
+//
+// Bajado de 1.3 a 1.18 (2026-09-25): en pruebas reales en iPhone, 1.3 seguía
+// cortando texto en gran parte de la UI — la mayoría de los contenedores de
+// esta app tienen mucho menos margen del que asumíamos. Texto completo y
+// legible a un tope más chico es preferible a texto más grande pero cortado.
+export const TOPE_ESCALA_TEXTO = 1.18;
 
 // Para texto en espacios muy compactos (chips, casillas de un dígito,
 // contadores, grillas densas) donde incluso TOPE_ESCALA_TEXTO ya no entra.
-export const TOPE_ESCALA_TEXTO_COMPACTO = 1.15;
+export const TOPE_ESCALA_TEXTO_COMPACTO = 1.08;
