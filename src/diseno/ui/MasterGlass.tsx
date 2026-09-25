@@ -118,7 +118,13 @@ export function MasterGlass({ blur = false, children, colorBase, compacto = fals
 
   return (
     <View style={[estiloEnvoltorio, { borderRadius: radioExterior, boxShadow: `1px 3px 7px ${g.sombra}26` }]}>
-      <LinearGradient colors={coloresExteriores} end={finBorde} locations={ubicacionesBorde} onLayout={medirContenedor} start={{ x: 0, y: 0 }} style={[styles.raiz, estiloInterior]}>
+      {/* El envoltorio se queda con flex/alignSelf/position (cómo ESTE
+          elemento se relaciona con su padre) — el LinearGradient interior
+          necesita `flex: 1` propio para llenar ese envoltorio completo, si
+          no, un caller que dependía de `flex: 1` para estirarse (p. ej.
+          MasterIconBg) queda con el interior encogido a su contenido
+          mientras el envoltorio sí toma el tamaño correcto. */}
+      <LinearGradient colors={coloresExteriores} end={finBorde} locations={ubicacionesBorde} onLayout={medirContenedor} start={{ x: 0, y: 0 }} style={[styles.raiz, { flex: 1 }, estiloInterior]}>
         {blur ? <BlurView intensity={intensity} pointerEvents="none" tint={tint} style={interior} /> : <View pointerEvents="none" style={interior} />}
         <LinearGradient colors={[colorTope, colorTope, colorCuerpo, colorCuerpo, colorPie]} end={{ x: 0, y: 1 }} locations={[0, ubicacion(franjaSuperior), ubicacion(finTransicionSuperior), ubicacion(inicioTransicionInferior), 1]} pointerEvents="none" start={{ x: 0, y: 0 }} style={interior} />
         {children}
