@@ -48,6 +48,7 @@ import { hapticSeguro } from '../../../nucleo/dispositivo/haptics';
 import { AuroraBoreal } from '../../hoy/componentes/AuroraBoreal';
 import { ContenedorMapaSenderos } from '../../senderos/componentes/mapa/ContenedorMapaSenderos';
 import type { NodoMapaSendero } from '../../senderos/datos/mapaEjercicio.mock';
+import type { InfoMandalaNodo } from '../../habitos/mandalaNodo.tipos';
 import { marcarIntroduccionAppVista } from '../introduccionApp';
 import { FormularioAccesoOnboarding } from '../componentes/FormularioAccesoOnboarding';
 import { DIAS_POR_MAPA } from '../../habitos/senderoNiveles';
@@ -250,13 +251,34 @@ export function IntroduccionAppPantalla() {
   // estructura real: día 1 completado, día 2 activo (el de hoy), día 3
   // bloqueado — mismo patrón "ya llevás una rachita" de antes, a escala.
   const diasNivel1Demo = DIAS_POR_MAPA[1];
+  // El día 1 (ya completado) muestra su mandala — una estrella de 5 puntas
+  // trazada de un solo trazo continuo (el patrón clásico de "dibujar sin
+  // levantar el lápiz"), simétrica y sin depender de nada aleatorio.
+  const mandalaDemoDia1 = useMemo<InfoMandalaNodo>(() => {
+    const radio = 120;
+    const angulos = [-90, -18, 54, 126, 198].map((grados) => (grados * Math.PI) / 180);
+    const puntosPentagono = angulos.map((rad) => ({ x: Math.round(Math.cos(rad) * radio), y: Math.round(Math.sin(rad) * radio) }));
+    const orden = [0, 2, 4, 1, 3, 0];
+    return {
+      registroId: 'intro-demo-mandala-dia-1',
+      nivel: 1,
+      ciclo: 1,
+      nodoDia: 1,
+      estado: 'creada',
+      semilla: 'demo',
+      trazos: orden.map((indice) => puntosPentagono[indice]),
+      paqueteId: BIOMAS_CARRUSEL[0].paqueteId,
+      color: BIOMAS_CARRUSEL[0].color,
+    };
+  }, []);
   const nodosDemo = useMemo<NodoMapaSendero[]>(() => Array.from({ length: diasNivel1Demo }, (_, indice) => ({
     estado: indice < 1 ? 'completado' : indice === 1 ? 'activo' : 'bloqueado',
     icono: Check,
     id: `intro-demo-${indice}`,
     subtitulo: t('onboarding.intro.slide2.dayDemo', { day: indice + 1 }),
     titulo: t('onboarding.intro.slide2.dayDemo', { day: indice + 1 }),
-  })), [t, diasNivel1Demo]);
+    ...(indice === 0 ? { tipoNodo: 'orbe_mandala' as const, mandala: mandalaDemoDia1 } : null),
+  })), [t, diasNivel1Demo, mandalaDemoDia1]);
   const totalSlides = 5;
   const esUltima = slideActivo === totalSlides - 1;
   const biomaActual = BIOMAS_CARRUSEL[0];
