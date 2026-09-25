@@ -26,3 +26,10 @@ const VIDEOS_COFRE: Record<string, number> = {
 export function videoCofreParaPaquete(paqueteId?: string | null): number {
   return VIDEOS_COFRE[resolverPaqueteHabito(paqueteId)];
 }
+
+// En Android el WebM conserva su transparencia, así que no hace falta fondo.
+// La versión de iOS (cofreVideoPaquete.ios.ts) devuelve el color sobre el que
+// aplanó cada MP4, porque iOS no reproduce WebM ni MP4 con alfa.
+export function fondoVideoCofreParaPaquete(_paqueteId?: string | null): string | undefined {
+  return undefined;
+}

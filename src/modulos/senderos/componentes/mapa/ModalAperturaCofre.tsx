@@ -15,7 +15,7 @@ import { MasterButton, MasterGlass, Texto } from '../../../../diseno';
 import { MasterChanger } from '../../../../diseno/componentes/MasterChanger';
 import { hapticSeguro } from '../../../../nucleo/dispositivo/haptics';
 import { registrarError } from '../../../../servicios/errores/sentry';
-import { videoCofreParaPaquete } from '../../../habitos/cofreVideoPaquete';
+import { fondoVideoCofreParaPaquete, videoCofreParaPaquete } from '../../../habitos/cofreVideoPaquete';
 import type { InfoCofre } from '../../datos/mapaEjercicio.mock';
 import { calcularTinteCofre } from './cofreTinte';
 
@@ -74,6 +74,7 @@ export function ModalAperturaCofre({
 
   const movimientoReducido = movimientoReducidoProp ?? movimientoReducidoDetectado;
 
+  const fondoVideo = fondoVideoCofreParaPaquete(paqueteId);
   const player = useVideoPlayer(videoCofreParaPaquete(paqueteId), (instancia) => {
     instancia.loop = false;
     instancia.muted = true;
@@ -204,7 +205,7 @@ export function ModalAperturaCofre({
                   nativeControls={false}
                   player={player}
                   pointerEvents="none"
-                  style={styles.video}
+                  style={[styles.video, fondoVideo ? { backgroundColor: fondoVideo, borderRadius: 24, overflow: 'hidden' } : null]}
                   surfaceType="textureView"
                 />
               ) : (
