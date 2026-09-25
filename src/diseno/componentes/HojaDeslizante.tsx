@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { Dimensions, Modal, Pressable, StyleSheet, View } from 'react-native';
+import { Dimensions, KeyboardAvoidingView, Modal, Platform, Pressable, StyleSheet, View } from 'react-native';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import Animated, { runOnJS, useAnimatedStyle, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
@@ -79,7 +79,13 @@ export function HojaDeslizante({ alturaMaxima = 0.92, children, onCerrar }: Hoja
           <GestureDetector gesture={gesto}>
             <Animated.View style={[styles.hoja, { maxHeight: ALTO_PANTALLA * alturaMaxima }, estiloHoja]}>
               <View style={styles.asa} />
-              {children}
+              {/* Nada dentro de esta hoja llevaba TextInput hasta ahora, por
+                  eso nunca hizo falta esto — sin manejo de teclado, cualquier
+                  input cerca del fondo de la hoja queda tapado por el
+                  teclado nativo al enfocarlo. */}
+              <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.contenidoTeclado}>
+                {children}
+              </KeyboardAvoidingView>
             </Animated.View>
           </GestureDetector>
         </View>
@@ -101,6 +107,9 @@ const styles = StyleSheet.create({
   },
   fondo: {
     backgroundColor: 'rgba(15, 10, 30, 0.45)',
+  },
+  contenidoTeclado: {
+    flex: 1,
   },
   hoja: {
     backgroundColor: '#F3EEFA',

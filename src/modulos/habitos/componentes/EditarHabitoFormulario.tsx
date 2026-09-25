@@ -142,10 +142,30 @@ export function EditarHabitoFormulario({ colorHabito, edicionInicial, habitoId, 
           {metas.map((x) => {
             const activo = subtipoMeta === x.id;
             return (
-              <Rebote key={x.id} onPress={() => elegirSubtipo(x.id)} colorHabito={colorHabito} activo={activo}>
+              <Pressable
+                key={x.id}
+                onPress={() => { hapticSeguro('seleccion'); elegirSubtipo(x.id); }}
+                style={{
+                  alignItems: 'center',
+                  backgroundColor: activo ? `${colorHabito}1A` : '#F5F3F9',
+                  borderColor: activo ? colorHabito : 'transparent',
+                  borderRadius: 14,
+                  borderWidth: 1.5,
+                  flexDirection: 'row',
+                  gap: 6,
+                  paddingHorizontal: 14,
+                  paddingVertical: 10,
+                }}
+              >
                 <MasterIcon alTema name={x.icono} size={22} />
-                <Texto style={{ color: activo ? colorHabito : '#554E68', fontFamily: 'Montserrat-Bold', fontSize: 12 }}>{x.titulo}</Texto>
-              </Rebote>
+                {/* A diferencia de los otros selectores de esta pantalla
+                    (frecuencia, hora), acá el texto NO cambia de color al
+                    activarse — mismo patrón que ya usa el wizard de creación
+                    (tarjetaCompacta): solo tinte leve de fondo + borde de
+                    color. Poner el texto en `colorHabito` sobre un fondo
+                    también en `colorHabito` lo volvía invisible. */}
+                <Texto style={{ color: '#554E68', fontFamily: 'Montserrat-Bold', fontSize: 12 }}>{x.titulo}</Texto>
+              </Pressable>
             );
           })}
         </View>
