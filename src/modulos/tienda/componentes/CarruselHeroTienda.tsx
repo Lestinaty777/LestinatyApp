@@ -1,170 +1,61 @@
-import { useState } from 'react';
-import {
-  Image,
-  NativeScrollEvent,
-  NativeSyntheticEvent,
-  ScrollView,
-  StyleSheet,
-  useWindowDimensions,
-  View,
-} from 'react-native';
-import { useRouter } from 'expo-router';
+import { Image, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
 import { MasterButton, MasterGlass, MasterIcon, MasterKicker, Texto } from '../../../diseno';
 import { useEscala } from '../../../diseno/tema/MasterColorContext';
 import type { EscalaMaster } from '../../../diseno/tema/escalaEsmeralda';
-import { conAlfa } from '../../../diseno/tema/masterColor';
 import { useAssetsPaqueteTema } from '../../habitos/usePaqueteTema';
-import { capacidades } from '../../../plataforma/capacidades';
 
 type CarruselHeroTiendaProps = {
   onIrAReferidos: () => void;
-  onIrAPro?: () => void;
 };
 
-export function CarruselHeroTienda({
-  onIrAReferidos,
-  onIrAPro,
-}: CarruselHeroTiendaProps) {
+// Esmeralda y "Lestinaty Pro" (widgets) quedan ocultos por ahora — Horizon no
+// se vende en esta entrega (su único beneficio real, widgets, no existe en
+// iOS) y Esmeralda no tiene nada accionable acá todavía. Con un solo slide no
+// hace falta scroll/paging — vuelve cuando haya más de una tarjeta real.
+export function CarruselHeroTienda({ onIrAReferidos }: CarruselHeroTiendaProps) {
   const tema = useAssetsPaqueteTema();
   const esc = useEscala();
   const ch = useEstilosCh();
   const { t } = useTranslation();
-  const router = useRouter();
-  const { width } = useWindowDimensions();
-  const anchoTarjeta = width - 40; // paddingHorizontal: 20 en la pantalla
-  const [slideActivo, setSlideActivo] = useState(0);
-
-  function alScroll(e: NativeSyntheticEvent<NativeScrollEvent>) {
-    const offsetX = e.nativeEvent.contentOffset.x;
-    const indice = Math.round(offsetX / anchoTarjeta);
-    if (indice >= 0 && indice <= 2 && indice !== slideActivo) {
-      setSlideActivo(indice);
-    }
-  }
-
-  function irAPro() {
-    if (onIrAPro) {
-      onIrAPro();
-    } else {
-      router.push(capacidades.widgets ? '/habitos/widgets' : '/(principal)/hoy');
-    }
-  }
 
   return (
     <View style={ch.contenedor}>
-      <ScrollView
-        horizontal
-        pagingEnabled
-        showsHorizontalScrollIndicator={false}
-        onScroll={alScroll}
-        scrollEventThrottle={32}
-        decelerationRate="fast"
-        snapToInterval={anchoTarjeta + 12}
-        nestedScrollEnabled={true}
-        contentContainerStyle={[ch.scrollContenido, { paddingHorizontal: 20 }]}
-      >
-        {/* Slide 1: Árbol Destacado */}
-        <View style={{ width: anchoTarjeta, marginRight: 12 }}>
-          <MasterGlass style={ch.tarjeta}>
-            <View style={{ flexDirection: 'row' }}>
-              <View style={{ flex: 1, zIndex: 2 }}>
-                <MasterKicker icono={<MasterIcon name="hoja" color={1} size={14} />} texto={t('tienda.hero.freeKicker')} />
-                <Texto style={ch.titulo}>Esmeralda</Texto>
-                <Texto style={ch.subtitulo}>{t('tienda.hero.esmeraldaDescription')}</Texto>
-              </View>
+      <MasterGlass colorBase="#FEF08A" style={ch.tarjeta}>
+        <View style={ch.fila}>
+          <View style={ch.columnaTexto}>
+            <MasterKicker icono={<MasterIcon name="trofeo" color={3} size={14} />} texto={t('tienda.hero.referralKicker')} />
+            <Texto numberOfLines={1} style={ch.titulo}>{t('tienda.hero.referralTitle')}</Texto>
+            <Texto numberOfLines={3} style={[ch.subtitulo, { color: '#713F12' }]}>
+              {t('tienda.hero.referralDescription')}
+            </Texto>
 
-              <View style={ch.ilustracionContenedor}>
-                <Image
-                  source={tema.arbol}
-                  style={ch.ilustracionArbol}
-                />
-              </View>
+            <View style={ch.contenedorBoton}>
+              <MasterButton
+                color={esc.hoja.l61a}
+                onPress={onIrAReferidos}
+                iconoIzquierda={({ size }) => (
+                  <Image
+                    source={require('../../../../assets/icons/hoy/gemas.png')}
+                    style={{ width: size, height: size, resizeMode: 'contain' }}
+                  />
+                )}
+                iconoSize={16}
+              >
+                {t('tienda.hero.viewCode')}
+              </MasterButton>
             </View>
-          </MasterGlass>
+          </View>
+
+          {/* Sibling normal del flex row (no position:absolute) — así el
+              texto nunca puede quedar debajo de la imagen, se reparten el
+              ancho de verdad en vez de superponerse. */}
+          <View style={ch.ilustracionContenedor}>
+            <Image source={tema.arbol} style={ch.ilustracionArbol} />
+          </View>
         </View>
-
-        {/* Slide 2: Recompensa de Gemas por Referidos */}
-        <View style={{ width: anchoTarjeta, marginRight: 12 }}>
-          <MasterGlass colorBase="#FEF08A" style={ch.tarjeta}>
-            <View style={{ flexDirection: 'row' }}>
-              <View style={{ flex: 1, zIndex: 2 }}>
-                <MasterKicker icono={<MasterIcon name="trofeo" color={3} size={14} />} texto={t('tienda.hero.referralKicker')} />
-                <Texto style={ch.titulo}>{t('tienda.hero.referralTitle')}</Texto>
-                <Texto style={[ch.subtitulo, { color: '#713F12' }]}>
-                  {t('tienda.hero.referralDescription')}
-                </Texto>
-
-                <View style={{ width: 165, marginTop: 16 }}>
-                  <MasterButton
-                    color={esc.hoja.l61a}
-                    onPress={onIrAReferidos}
-                    iconoIzquierda={({ size }) => (
-                      <Image
-                        source={require('../../../../assets/icons/hoy/gemas.png')}
-                        style={{ width: size, height: size, resizeMode: 'contain' }}
-                      />
-                    )}
-                    iconoSize={16}
-                  >
-                    {t('tienda.hero.viewCode')}
-                  </MasterButton>
-                </View>
-              </View>
-
-              <View style={ch.ilustracionContenedor}>
-                <Image
-                  source={tema.arbol}
-                  style={ch.ilustracionArbol}
-                />
-              </View>
-            </View>
-          </MasterGlass>
-        </View>
-
-        {/* Slide 3: Lestinaty Pro - Widgets en tu pantalla */}
-        <View style={{ width: anchoTarjeta }}>
-          <MasterGlass colorBase="#C084FC" style={ch.tarjeta}>
-            <View style={{ flexDirection: 'row' }}>
-              <View style={{ flex: 1, zIndex: 2 }}>
-                <MasterKicker icono={<MasterIcon name="montana" color={7} size={14} />} texto={t('tienda.hero.proKicker')} />
-                <Texto style={ch.titulo}>{t('tienda.hero.proTitle')}</Texto>
-                <Texto style={[ch.subtitulo, { color: '#4C1D95' }]}>
-                  {t('tienda.hero.proDescription')}
-                </Texto>
-
-                <View style={{ width: 155, marginTop: 16 }}>
-                  <MasterButton
-                    color="#6A29C2"
-                    onPress={irAPro}
-                    iconoIzquierda={({ size }) => (
-                      <MasterIcon name="montana" color={7} size={size} />
-                    )}
-                    iconoSize={16}
-                  >
-                    {t('tienda.hero.viewWidgets')}
-                  </MasterButton>
-                </View>
-              </View>
-
-              <View style={ch.ilustracionContenedor}>
-                <Image
-                  source={require('../../../../assets/ilustraciones/mockup.png')}
-                  style={ch.ilustracionArbol}
-                />
-              </View>
-            </View>
-          </MasterGlass>
-        </View>
-      </ScrollView>
-
-      {/* Indicadores de diapositiva (dots) */}
-      <View style={ch.filaIndicadores}>
-        {[0, 1, 2].map((idx) => (
-          <View key={idx} style={[ch.dot, slideActivo === idx ? ch.dotActivo : ch.dotInactivo]} />
-        ))}
-      </View>
+      </MasterGlass>
     </View>
   );
 }
@@ -172,9 +63,7 @@ export function CarruselHeroTienda({
 const crearEstilosCh = (esc: EscalaMaster) => StyleSheet.create({
   contenedor: {
     marginBottom: 16,
-  },
-  scrollContenido: {
-    gap: 0,
+    paddingHorizontal: 20,
   },
   tarjeta: {
     borderRadius: 12,
@@ -182,12 +71,22 @@ const crearEstilosCh = (esc: EscalaMaster) => StyleSheet.create({
     overflow: 'hidden',
     minHeight: 200,
   },
+  fila: {
+    flexDirection: 'row',
+  },
+  columnaTexto: {
+    flex: 1,
+    paddingRight: 10,
+  },
+  contenedorBoton: {
+    width: 165,
+    marginTop: 16,
+  },
   titulo: {
     fontSize: 22,
     fontFamily: 'MontserratAlternates-Bold',
     color: esc.hoja.l19,
     marginTop: 10,
-    maxWidth: '70%',
   },
   subtitulo: {
     color: esc.musgo.l54,
@@ -195,39 +94,17 @@ const crearEstilosCh = (esc: EscalaMaster) => StyleSheet.create({
     fontSize: 11.5,
     marginTop: 4,
     lineHeight: 15.5,
-    maxWidth: '70%',
   },
   ilustracionContenedor: {
-    width: 175,
+    width: 120,
     height: 175,
-    position: 'absolute',
-    right: -15,
-    top: -5,
-    zIndex: 1,
+    alignItems: 'flex-end',
+    justifyContent: 'center',
   },
   ilustracionArbol: {
     width: '100%',
     height: '100%',
     resizeMode: 'contain',
-  },
-  filaIndicadores: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 6,
-    marginTop: 10,
-  },
-  dot: {
-    height: 6,
-    borderRadius: 3,
-  },
-  dotActivo: {
-    width: 20,
-    backgroundColor: esc.hoja.l61a,
-  },
-  dotInactivo: {
-    width: 6,
-    backgroundColor: conAlfa(esc.hoja.l61a, 0.28),
   },
 });
 
