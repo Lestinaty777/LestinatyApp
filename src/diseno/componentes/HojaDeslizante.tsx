@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { Dimensions, Modal, Pressable, StyleSheet, View } from 'react-native';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import Animated, { runOnJS, useAnimatedStyle, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
 
 const { height: ALTO_PANTALLA } = Dimensions.get('window');
@@ -65,6 +66,11 @@ export function HojaDeslizante({ alturaMaxima = 0.92, children, onCerrar }: Hoja
 
   return (
     <Modal animationType="none" onRequestClose={cerrar} statusBarTranslucent transparent visible>
+      {/* Modal renderiza en su propia ventana nativa — el SafeAreaProvider de
+          la raíz de la app no la alcanza. Sin uno propio acá, cualquier
+          useSafeAreaInsets()/SafeAreaView dentro de `children` devuelve
+          valores incorrectos (ej. un CTA tapado por la barra inferior de iOS). */}
+      <SafeAreaProvider>
       <GestureHandlerRootView style={StyleSheet.absoluteFill}>
         <View style={StyleSheet.absoluteFill}>
           <Animated.View style={[StyleSheet.absoluteFill, styles.fondo, estiloFondo]}>
@@ -78,6 +84,7 @@ export function HojaDeslizante({ alturaMaxima = 0.92, children, onCerrar }: Hoja
           </GestureDetector>
         </View>
       </GestureHandlerRootView>
+      </SafeAreaProvider>
     </Modal>
   );
 }

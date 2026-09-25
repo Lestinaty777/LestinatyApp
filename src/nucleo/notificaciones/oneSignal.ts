@@ -8,4 +8,6 @@ export {
   identificarUsuarioNotificaciones as identificarUsuarioOneSignal,
   cerrarSesionNotificaciones as cerrarSesionOneSignal,
   solicitarPermisoYRegistrar,
+  etiquetarUsuarioNotificaciones,
+  registrarResultadoNotificaciones,
 } from '../../plataforma/notificaciones/cliente.native';

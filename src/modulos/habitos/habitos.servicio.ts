@@ -7,6 +7,7 @@ import { PAQUETE_HABITO_PREDETERMINADO, resolverPaqueteHabito } from './paqueteH
 import { resumirHabitosActivos } from './resumenHabitosActivos';
 import { mapearTransicionSendero } from './senderoHabito.mapper';
 import { mapearMandalaPendiente } from './mandalaNodo.mapper';
+import { reportarRegistroANotificaciones } from './reporteNotificaciones';
 import { calcularDetalleHabitoHoy, type HabitoHoyDetalle } from './semanaProgramada';
 import type { EdicionHabito } from './gestionDetalleHabito';
 import { DetalleHabito, HabitoResumen, MejorRachaHabito, PanelHabitos, PlanHabitoResumen, ProximoNivelHabito, ResultadoRegistroHabito, TipoMetaHabito } from './tipos';
@@ -65,7 +66,7 @@ export async function registrarProgresoHabito(input: { habitoId: string; fechaLo
   });
   if (error) throw error;
   const remoto = data as ResultadoRegistroRemoto;
-  return {
+  const resultado: ResultadoRegistroHabito = {
     fechaLocal: remoto.fecha_local,
     gemasGanadas: Number(remoto.gemas_ganadas ?? 0),
     habitoId: remoto.habito_id,
@@ -77,6 +78,10 @@ export async function registrarProgresoHabito(input: { habitoId: string; fechaLo
     transicionSendero: mapearTransicionSendero(remoto.transicion_sendero),
     valor: Number(remoto.valor),
   };
+  // Todas las vías de registro pasan por aquí (misión, mapa, widgets,
+  // cronómetro): un solo punto para reportar outcomes y etiquetas.
+  reportarRegistroANotificaciones(resultado);
+  return resultado;
 }
 
 export type CrearHabitoInput = { titulo: string; descripcion?: string; meta: number; unidad: string; tipoMeta?: TipoMetaHabito; iconoLucide?: string; color?: string; frecuencia?: 'diaria' | 'dias_semana' | 'veces_semana'; diasSemana?: number[] | null; vecesPorSemana?: number | null; categoria?: string; dificultad?: 'minimo' | 'estandar' | 'reto'; disparador?: string; recompensa?: string; recordatorioActivo?: boolean; horaRecordatorio?: string | null; mostrarNombreNotificacion?: boolean; nivelInicial?: number; paqueteId?: string };

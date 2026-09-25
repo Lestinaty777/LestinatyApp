@@ -18,12 +18,25 @@ function responder(status: number, cuerpo: unknown) {
   return new Response(JSON.stringify(cuerpo), { headers: jsonHeaders, status });
 }
 
+type Textos = { es: string; en: string };
+
+// Cada texto va en español e inglés: OneSignal elige según el idioma del
+// dispositivo (antes ambos llevaban el español).
 function decidir(recordatorio: RecordatorioReclamado) {
   if (!recordatorio.preferencia_activa) return { accion: 'cancelar' as const, razon: 'preferencia_inactiva' };
   if (!recordatorio.dispositivos.length) return { accion: 'cancelar' as const, razon: 'sin_dispositivo' };
-  return recordatorio.mostrar_nombre
-    ? { accion: 'enviar' as const, cuerpo: `Tu hábito ${recordatorio.titulo_habito} te espera. Una pequeña acción cuenta hoy.`, titulo: recordatorio.titulo_habito }
-    : { accion: 'enviar' as const, cuerpo: 'Una pequeña acción cuenta hoy.', titulo: 'Es momento de tu hábito' };
+  if (recordatorio.mostrar_nombre) {
+    const cuerpo: Textos = {
+      en: `Your habit ${recordatorio.titulo_habito} is waiting. One small step counts today.`,
+      es: `Tu hábito ${recordatorio.titulo_habito} te espera. Una pequeña acción cuenta hoy.`,
+    };
+    return { accion: 'enviar' as const, cuerpo, titulo: { en: recordatorio.titulo_habito, es: recordatorio.titulo_habito } };
+  }
+  return {
+    accion: 'enviar' as const,
+    cuerpo: { en: 'One small step counts today.', es: 'Una pequeña acción cuenta hoy.' },
+    titulo: { en: "It's time for your habit", es: 'Es momento de tu hábito' },
+  };
 }
 
 async function finalizar(cliente: ReturnType<typeof createClient>, recordatorio: RecordatorioReclamado, estado: 'enviada' | 'cancelada' | 'fallida', opciones: { error?: string; proveedorId?: string } = {}) {
@@ -65,7 +78,9 @@ Deno.serve(async (request) => {
   for (const recordatorio of recordatorios) {
     const decision = decidir(recordatorio);
     if (decision.accion === 'cancelar') {
-      await finalizar(cliente, recordatorio, 'cancelada', { error: decision.razon });
+      // Un fallo al cerrar uno no debe cortar el lote: los que siguen
+      // quedarían 'reclamada' para siempre, sin reintento.
+      await finalizar(cliente, recordatorio, 'cancelada', { error: decision.razon }).catch(() => undefined);
       cancelados += 1;
       continue;
     }
@@ -74,9 +89,12 @@ Deno.serve(async (request) => {
       const respuesta = await fetch('https://api.onesignal.com/notifications?c=push', {
         body: JSON.stringify({
           app_id: oneSignalAppId,
-          contents: { en: decision.cuerpo, es: decision.cuerpo },
+          // collapse_id: si un reintento reenvía el mismo recordatorio, el
+          // dispositivo lo reemplaza en vez de mostrarlo dos veces.
+          collapse_id: recordatorio.notificacion_id,
+          contents: decision.cuerpo,
           data: { notificacion_id: recordatorio.notificacion_id, ruta: `/habitos/${recordatorio.habito_id}` },
-          headings: { en: decision.titulo, es: decision.titulo },
+          headings: decision.titulo,
           include_subscription_ids: recordatorio.dispositivos.map((dispositivo) => dispositivo.subscription_id),
           target_channel: 'push',
         }),
@@ -85,11 +103,11 @@ Deno.serve(async (request) => {
       });
       const payload = await respuesta.json().catch(() => ({}));
       if (!respuesta.ok || !payload?.id) throw new Error(`onesignal_${respuesta.status}`);
-      await finalizar(cliente, recordatorio, 'enviada', { proveedorId: payload.id });
+      await finalizar(cliente, recordatorio, 'enviada', { proveedorId: payload.id }).catch(() => undefined);
       enviados += 1;
     } catch (error) {
       const codigo = error instanceof Error ? error.message.slice(0, 120) : 'onesignal_error';
-      await finalizar(cliente, recordatorio, 'fallida', { error: codigo });
+      await finalizar(cliente, recordatorio, 'fallida', { error: codigo }).catch(() => undefined);
       fallidos += 1;
     }
   }
