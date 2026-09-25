@@ -20,7 +20,6 @@
     "expo-haptics": "~57.0.3",
     "expo-linear-gradient": "~57.0.1",
     "expo-linking": "~57.0.11",
-    "expo-mlkit-ocr": "^0.2.7",
     "expo-router": "~57.0.23",
     "expo-status-bar": "~57.0.1",
     "expo-system-ui": "~57.0.4",
