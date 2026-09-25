@@ -67,9 +67,9 @@ export function validarVariablesPublicasRelease(
   if (plataforma === 'android' && !env.EXPO_PUBLIC_REVENUECAT_GOOGLE_KEY) {
     variablesFaltantesOInvalidas.push('EXPO_PUBLIC_REVENUECAT_GOOGLE_KEY');
   }
-  if (env.EXPO_PUBLIC_ABY_REMOTO !== 'true') {
-    variablesFaltantesOInvalidas.push('EXPO_PUBLIC_ABY_REMOTO');
-  }
+  // EXPO_PUBLIC_ABY_REMOTO es opcional a propósito: Aby remoto (Gemini) está
+  // apagado por defecto y así debe seguir hasta que la política de
+  // privacidad publicada declare ese procesamiento — no se exige aquí.
 
   return { valido: variablesFaltantesOInvalidas.length === 0, variablesFaltantesOInvalidas };
 }

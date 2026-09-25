@@ -13,7 +13,7 @@ depende de RLS en Supabase, no de mantenerlas ocultas.
 - `EXPO_PUBLIC_SUPABASE_ANON_KEY` (migrar a publishable key cuando se programe)
 - `EXPO_PUBLIC_REVENUECAT_APPLE_KEY` — requerida solo en builds iOS
 - `EXPO_PUBLIC_REVENUECAT_GOOGLE_KEY` — requerida solo en builds Android
-- `EXPO_PUBLIC_ABY_REMOTO` — debe ser `"true"`
+- `EXPO_PUBLIC_ABY_REMOTO` — opcional, apagado por defecto. Prende una función real que llama a Gemini (`generar-sendero-aby`) para generar planes de estudio. **No activar** hasta que la política de privacidad publicada declare ese procesamiento (hoy no lo hace — decisión 2026-09-25).
 - `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` — Android únicamente, no se exige en iOS
 
 ## Supabase Edge Functions / backend únicamente

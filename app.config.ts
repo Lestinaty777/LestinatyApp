@@ -26,7 +26,8 @@ function validarEntornoReleaseOFallar(perfil: string, plataforma: string | undef
   if (!env.EXPO_PUBLIC_SUPABASE_ANON_KEY) faltantes.push('EXPO_PUBLIC_SUPABASE_ANON_KEY');
   if (plataforma === 'ios' && !env.EXPO_PUBLIC_REVENUECAT_APPLE_KEY) faltantes.push('EXPO_PUBLIC_REVENUECAT_APPLE_KEY');
   if (plataforma === 'android' && !env.EXPO_PUBLIC_REVENUECAT_GOOGLE_KEY) faltantes.push('EXPO_PUBLIC_REVENUECAT_GOOGLE_KEY');
-  if (env.EXPO_PUBLIC_ABY_REMOTO !== 'true') faltantes.push('EXPO_PUBLIC_ABY_REMOTO');
+  // EXPO_PUBLIC_ABY_REMOTO es opcional: Aby remoto (Gemini) sigue apagado
+  // hasta que la política de privacidad publicada declare ese procesamiento.
 
   if (faltantes.length > 0) {
     throw new Error(`Entorno ${perfil} incompleto, faltan: ${faltantes.join(', ')}`);

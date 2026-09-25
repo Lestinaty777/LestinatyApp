@@ -27,7 +27,8 @@ function validar(env, plataforma) {
   }
   if (plataforma === 'ios' && !env.EXPO_PUBLIC_REVENUECAT_APPLE_KEY) faltantes.push('EXPO_PUBLIC_REVENUECAT_APPLE_KEY');
   if (plataforma === 'android' && !env.EXPO_PUBLIC_REVENUECAT_GOOGLE_KEY) faltantes.push('EXPO_PUBLIC_REVENUECAT_GOOGLE_KEY');
-  if (env.EXPO_PUBLIC_ABY_REMOTO !== 'true') faltantes.push('EXPO_PUBLIC_ABY_REMOTO');
+  // EXPO_PUBLIC_ABY_REMOTO es opcional: Aby remoto (Gemini) sigue apagado
+  // hasta que la política de privacidad publicada declare ese procesamiento.
 
   const nombresSecretosProhibidos = [
     'GEMINI_API_KEY',
