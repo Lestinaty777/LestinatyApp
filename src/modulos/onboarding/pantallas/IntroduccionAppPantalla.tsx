@@ -212,9 +212,13 @@ type BiomaCarruselItem = {
   aurora: 'verde' | 'morado' | 'rojo' | 'amarillo';
   arbusto: ImageSourcePropType;
   degradadoTexto: readonly [string, string, string];
-  nivel: number;
 };
 
+// El slide 2 muestra un único sendero de demostración (Esmeralda, nivel 1) —
+// antes rotaba entre varios biomas con flechas/puntos, pero eso competía con
+// el mensaje del slide ("así se ve tu progreso día a día") en vez de
+// reforzarlo. Se deja como array de un solo elemento (en vez de una constante
+// suelta) para no tocar el resto del código que ya lee `BIOMAS_CARRUSEL[0]`.
 const BIOMAS_CARRUSEL: BiomaCarruselItem[] = [
   {
     id: 'esmeralda',
@@ -225,51 +229,6 @@ const BIOMAS_CARRUSEL: BiomaCarruselItem[] = [
     aurora: 'verde',
     arbusto: require('../../../../assets/ilustraciones/senderos/biomas/paquetes/Esmeralda/arbusto.png'),
     degradadoTexto: [ESCALA_ESMERALDA.jade.l29, ESCALA_ESMERALDA.jade.l38, ESCALA_ESMERALDA.jade.l50],
-    nivel: 4,
-  },
-  {
-    id: 'sakura',
-    paqueteId: 'sakura',
-    nombre: 'Sakura',
-    color: '#E0528B',
-    emoji: '🌸',
-    aurora: 'morado',
-    arbusto: require('../../../../assets/ilustraciones/senderos/biomas/paquetes/Sakura/arbusto.png'),
-    degradadoTexto: ['#881337', '#BE185D', '#E0528B'],
-    nivel: 5,
-  },
-  {
-    id: 'ignate',
-    paqueteId: 'ignate',
-    nombre: 'Ignate',
-    color: '#EA580C',
-    emoji: '🔥',
-    aurora: 'rojo',
-    arbusto: require('../../../../assets/ilustraciones/senderos/biomas/paquetes/Ignate/arbusto.png'),
-    degradadoTexto: ['#7C2D12', '#C2410C', '#EA580C'],
-    nivel: 4,
-  },
-  {
-    id: 'golden',
-    paqueteId: 'golden',
-    nombre: 'Dorado',
-    color: '#D97706',
-    emoji: '✨',
-    aurora: 'amarillo',
-    arbusto: require('../../../../assets/ilustraciones/senderos/biomas/paquetes/Golden/arbusto.png'),
-    degradadoTexto: ['#78350F', '#B45309', '#D97706'],
-    nivel: 5,
-  },
-  {
-    id: 'diamante',
-    paqueteId: 'diamante',
-    nombre: 'Diamante',
-    color: '#2563EB',
-    emoji: '💎',
-    aurora: 'morado',
-    arbusto: require('../../../../assets/ilustraciones/senderos/biomas/paquetes/diamante/arbusto.png'),
-    degradadoTexto: ['#1E3A8A', '#1D4ED8', '#2563EB'],
-    nivel: 4,
   },
 ];
 
@@ -282,7 +241,6 @@ export function IntroduccionAppPantalla() {
   const { width, height } = useWindowDimensions();
   const [slideActivo, setSlideActivo] = useState(0);
   const [slideEnTransicion, setSlideEnTransicion] = useState<number | null>(null);
-  const [indiceBioma, setIndiceBioma] = useState(0);
   const [indiceEspecie, setIndiceEspecie] = useState(0);
   const scrollRef = useRef<ScrollView>(null);
   const nodosDemo = useMemo<NodoMapaSendero[]>(() => Array.from({ length: 10 }, (_, indice) => ({
@@ -294,7 +252,7 @@ export function IntroduccionAppPantalla() {
   })), [t]);
   const totalSlides = 5;
   const esUltima = slideActivo === totalSlides - 1;
-  const biomaActual = BIOMAS_CARRUSEL[indiceBioma];
+  const biomaActual = BIOMAS_CARRUSEL[0];
   const nombreBioma = t(`onboarding.intro.slide2.biomes.${biomaActual.id}`, { defaultValue: biomaActual.nombre });
   const especieActual = ESPECIES_DEMO[indiceEspecie];
   const tamanoTituloHero = Math.min(48, Math.max(40, Math.round((width - 32) * 0.116)));
@@ -303,14 +261,6 @@ export function IntroduccionAppPantalla() {
   const altoSubtituloHero = tamanoSubtituloHero + 7;
   const alturaMapaSlide2 = Math.min(320, Math.max(230, Math.round(height * 0.39)));
 
-  useEffect(() => {
-    if (slideActivo === 1) {
-      const intervalo = setInterval(() => {
-        setIndiceBioma((prev) => (prev + 1) % BIOMAS_CARRUSEL.length);
-      }, 4200);
-      return () => clearInterval(intervalo);
-    }
-  }, [slideActivo]);
 
   // El login vive en el slide 5 (índice totalSlides - 1) — ya sea llegando
   // deslizando o saltando con "Omitir", apenas se asienta ahí se marca la
@@ -550,7 +500,7 @@ export function IntroduccionAppPantalla() {
                   color={biomaActual.color}
                   enfocado={false}
                   desplazamientoSuperior={60}
-                  nivel={2}
+                  nivel={1}
                   nodos={nodosDemo}
                   paqueteId={biomaActual.paqueteId}
                   subcategoriaId="intro-demo"
@@ -567,57 +517,15 @@ export function IntroduccionAppPantalla() {
             </View>
           </View>
 
-          {/* Controles del bioma fuera del mapa para no tapar el sendero. */}
+          {/* Un único sendero de demostración (Esmeralda, nivel 1) — sin
+              flechas ni puntos, ya no hay entre qué navegar. Se deja la
+              insignia como etiqueta fija, no como control. */}
           <View style={s.slide2Controles}>
-            <Rebote
-              accessibilityLabel={t('onboarding.intro.slide2.prevBiome')}
-              estilo={s.carruselFlechaBoton}
-              onPress={() => {
-                hapticSeguro('seleccion');
-                setIndiceBioma((prev) => (prev - 1 + BIOMAS_CARRUSEL.length) % BIOMAS_CARRUSEL.length);
-              }}
-            >
-              <MasterGlass style={s.carruselFlechaGlass}>
-                <ChevronLeft color={biomaActual.color} size={20} strokeWidth={2.6} />
-              </MasterGlass>
-            </Rebote>
-
-            <Rebote
-              accessibilityLabel={t('onboarding.intro.slide2.currentBiome', { nombre: nombreBioma })}
-              estilo={s.carruselInsignia}
-              onPress={() => {
-                hapticSeguro('seleccion');
-                setIndiceBioma((prev) => (prev + 1) % BIOMAS_CARRUSEL.length);
-              }}
-            >
+            <View style={s.carruselInsignia}>
               <MasterGlass colorBase={biomaActual.color} style={s.carruselInsigniaGlass}>
                 <Texto style={s.carruselInsigniaEmoji}>{biomaActual.emoji}</Texto>
                 <Texto style={[s.carruselInsigniaTexto, { color: biomaActual.color }]}>{t('onboarding.intro.slide2.badge', { nombre: nombreBioma })}</Texto>
               </MasterGlass>
-            </Rebote>
-
-            <Rebote
-              accessibilityLabel={t('onboarding.intro.slide2.nextBiome')}
-              estilo={s.carruselFlechaBoton}
-              onPress={() => {
-                hapticSeguro('seleccion');
-                setIndiceBioma((prev) => (prev + 1) % BIOMAS_CARRUSEL.length);
-              }}
-            >
-              <MasterGlass style={s.carruselFlechaGlass}>
-                <ChevronRight color={biomaActual.color} size={20} strokeWidth={2.6} />
-              </MasterGlass>
-            </Rebote>
-
-            <View style={s.carruselPuntos}>
-              {BIOMAS_CARRUSEL.map((bioma, idx) => {
-                const activo = idx === indiceBioma;
-                return (
-                  <Pressable hitSlop={8} key={bioma.id} onPress={() => { hapticSeguro('seleccion'); setIndiceBioma(idx); }}>
-                    <View style={[s.carruselPunto, activo && [s.carruselPuntoActivo, { backgroundColor: bioma.color }]]} />
-                  </Pressable>
-                );
-              })}
             </View>
           </View>
 

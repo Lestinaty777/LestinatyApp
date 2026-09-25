@@ -734,15 +734,8 @@ export const recursosI18n = {
           slide2: {
             biomes: {
               esmeralda: 'Esmeralda',
-              sakura: 'Sakura',
-              ignate: 'Ignate',
-              golden: 'Golden',
-              diamante: 'Diamond',
             },
-            prevBiome: 'Previous biome',
-            currentBiome: 'Current biome: {{nombre}}. Tap to view next biome',
             badge: '{{nombre}} Biome',
-            nextBiome: 'Next biome',
             title: 'Advance every day',
             accent: 'on your trail',
             subtitle: 'Cross new biomes and unlock living rewards as you complete your habits.',
@@ -1643,15 +1636,8 @@ export const recursosI18n = {
           slide2: {
             biomes: {
               esmeralda: 'Esmeralda',
-              sakura: 'Sakura',
-              ignate: 'Ignate',
-              golden: 'Dorado',
-              diamante: 'Diamante',
             },
-            prevBiome: 'Bioma anterior',
-            currentBiome: 'Bioma actual: {{nombre}}. Tocar para ver siguiente bioma',
             badge: 'Bioma {{nombre}}',
-            nextBiome: 'Siguiente bioma',
             title: 'Avanza cada día',
             accent: 'en tu sendero',
             subtitle: 'Cruza nuevos biomas y desbloquea recompensas vivas al completar tus hábitos.',
