@@ -43,9 +43,29 @@ function alCambiarSuscripcion(evento: PushSubscriptionChangedState) {
   if (esSuscripcionReal(id)) void registrarDispositivo(id).catch(() => undefined);
 }
 
+// Con la app cerrada, el toque llega antes de que el Root Layout monte y
+// router.push lanza ("navigate before mounting"): la ruta se reintenta unos
+// segundos hasta que la navegación esté lista, en vez de perderse.
+const REINTENTOS_RUTA = 20;
+const ESPERA_RUTA_MS = 250;
+
+function navegarCuandoSePueda(ruta: string, intento = 0) {
+  try {
+    router.push(ruta as never);
+  } catch {
+    if (intento < REINTENTOS_RUTA) setTimeout(() => navegarCuandoSePueda(ruta, intento + 1), ESPERA_RUTA_MS);
+  }
+}
+
 function alAbrirNotificacion(evento: any) {
   const ruta = obtenerRutaNotificacion(evento?.notification?.additionalData);
-  if (ruta) router.push(ruta as never);
+  if (ruta) navegarCuandoSePueda(ruta);
+}
+
+// Permiso concedido o revocado desde Ajustes del sistema: el servidor solo
+// despacha a dispositivos con permiso 'concedido', así que hay que avisarle.
+function alCambiarPermiso() {
+  void sincronizarSuscripcionActual().catch(() => undefined);
 }
 
 // Nunca solicita permiso al arrancar (Global Constraint): solo registra
@@ -64,6 +84,7 @@ export function inicializarNotificaciones(): EstadoIntegracion {
   if (usuarioPendiente) OneSignal.login(usuarioPendiente);
   OneSignal.User.pushSubscription.addEventListener('change', alCambiarSuscripcion);
   OneSignal.Notifications.addEventListener('click', alAbrirNotificacion);
+  OneSignal.Notifications.addEventListener('permissionChange', alCambiarPermiso);
   void OneSignal.User.pushSubscription.getIdAsync().then((id) => {
     if (esSuscripcionReal(id)) void registrarDispositivo(id).catch(() => undefined);
   });
