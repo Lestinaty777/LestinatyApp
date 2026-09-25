@@ -111,23 +111,18 @@ function etiquetarAviso(codigo: string, t: (clave: string) => string): string {
   return clave ? t(clave) : (ETIQUETAS_AVISO[codigo] ?? codigo.replaceAll('_', ' '));
 }
 
-// Solo permisos que ya tienen una función real detrás. Los de Aby IA
-// (contexto, procesamiento de fuentes) se agregan cuando exista esa IA.
+// Sin permisos activos por ahora: "Métricas de Producto" se ocultó porque no
+// hay ningún SDK de analítica integrado todavía (el toggle guardaba, pero no
+// gateaba nada real). Los de Aby IA (contexto, procesamiento de fuentes) se
+// agregan cuando exista esa IA. Se deja el tipo/servicio intacto para cuando
+// alguno de los dos tenga una función real detrás.
 const PERMISOS_CONFIG: Array<{
   llave: LlavePermiso;
   tituloKey: string;
   descripcionKey: string;
   tituloFallback: string;
   descripcionFallback: string;
-}> = [
-  {
-    llave: 'permiteAnaliticaProducto',
-    tituloKey: 'perfil.settings.permissions.productMetricsTitle',
-    descripcionKey: 'perfil.settings.permissions.productMetricsDesc',
-    tituloFallback: 'Métricas de Producto',
-    descripcionFallback: 'Telemetría agregada y anónima para optimizar Lestinaty. Nunca vendemos tus datos.',
-  },
-];
+}> = [];
 
 // ── Esqueletos de Carga para Perfil ──────────────────────────────────────────
 function EsqueletoHeroCard() {
@@ -1074,7 +1069,7 @@ export function PerfilPantalla() {
                           </View>
                         </View>
                       ))}
-                      <View style={s.divisorAjustes} />
+                      {PERMISOS_CONFIG.length > 0 && <View style={s.divisorAjustes} />}
                       {(() => {
                         const solicitudExportacion = configuracion?.solicitudes.find((s2) => s2.tipo === 'exportacion');
                         const estado = etiquetaSolicitudActiva(solicitudExportacion);
