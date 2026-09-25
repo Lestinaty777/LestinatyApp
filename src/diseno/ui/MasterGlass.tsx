@@ -83,18 +83,27 @@ export function MasterGlass({ blur = false, children, colorBase, compacto = fals
   // que sí la redondea bien. Las propiedades que definen cómo ESTE elemento
   // se relaciona con su propio padre/hermanos (margin, flex, alignSelf,
   // posición absoluta) se extraen al envoltorio para que no queden "atrapadas"
-  // un nivel más adentro; todo lo demás (padding, ancho, overflow, etc.) se
-  // queda igual que antes en el LinearGradient interior.
+  // un nivel más adentro; todo lo demás (padding, overflow, etc.) se queda
+  // igual que antes en el LinearGradient interior.
   const {
     margin, marginTop, marginBottom, marginLeft, marginRight, marginHorizontal, marginVertical, marginStart, marginEnd,
     flex, flexGrow, flexShrink, flexBasis, alignSelf,
     position, top, right, bottom, left, zIndex,
     ...estiloInterior
   } = flatStyle;
+  // Ancho/alto NO se mueven (se necesitan en el LinearGradient para medir
+  // bien con onLayout) — se COPIAN también al envoltorio, porque si no,
+  // un caller que pide p. ej. width:'100%' queda resolviendo ese porcentaje
+  // contra un envoltorio sin tamaño propio (encogido a su contenido), en vez
+  // de contra el padre real — el botón/tarjeta terminaba angosto y corrido
+  // hacia un lado en vez de ocupar todo el ancho. A diferencia de margin,
+  // duplicar ancho/alto es seguro (no se acumula).
+  const { width, height, minWidth, maxWidth, minHeight, maxHeight } = estiloInterior;
   const estiloEnvoltorio = {
     margin, marginTop, marginBottom, marginLeft, marginRight, marginHorizontal, marginVertical, marginStart, marginEnd,
     flex, flexGrow, flexShrink, flexBasis, alignSelf,
     position, top, right, bottom, left, zIndex,
+    width, height, minWidth, maxWidth, minHeight, maxHeight,
   };
 
   if (forma === 'heptagono') {
