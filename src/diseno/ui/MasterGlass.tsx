@@ -72,9 +72,30 @@ export function MasterGlass({ blur = false, children, colorBase, compacto = fals
   // Si `style` trae su propio borderRadius (ej. tarjetas grandes que piden un
   // radio distinto al default), el contenido interior (blur/gradiente) tiene
   // que seguirlo — si no, queda con esquinas más rectas que el borde exterior.
-  const radioEfectivo = StyleSheet.flatten(style)?.borderRadius;
+  const flatStyle = (StyleSheet.flatten(style) ?? {}) as ViewStyle;
+  const radioEfectivo = flatStyle.borderRadius;
   const radioExterior = typeof radioEfectivo === 'number' ? radioEfectivo : RADIO_MASTER_GLASS;
   const interior = [styles.interior, { borderRadius: Math.max(0, radioExterior - grosorBorde), margin: grosorBorde }];
+
+  // El boxShadow no sigue de forma confiable el borderRadius cuando se aplica
+  // directo sobre este LinearGradient en iOS (se ve como una sombra cuadrada
+  // detrás de la tarjeta redondeada) — se mueve a un envoltorio View plano,
+  // que sí la redondea bien. Las propiedades que definen cómo ESTE elemento
+  // se relaciona con su propio padre/hermanos (margin, flex, alignSelf,
+  // posición absoluta) se extraen al envoltorio para que no queden "atrapadas"
+  // un nivel más adentro; todo lo demás (padding, ancho, overflow, etc.) se
+  // queda igual que antes en el LinearGradient interior.
+  const {
+    margin, marginTop, marginBottom, marginLeft, marginRight, marginHorizontal, marginVertical, marginStart, marginEnd,
+    flex, flexGrow, flexShrink, flexBasis, alignSelf,
+    position, top, right, bottom, left, zIndex,
+    ...estiloInterior
+  } = flatStyle;
+  const estiloEnvoltorio = {
+    margin, marginTop, marginBottom, marginLeft, marginRight, marginHorizontal, marginVertical, marginStart, marginEnd,
+    flex, flexGrow, flexShrink, flexBasis, alignSelf,
+    position, top, right, bottom, left, zIndex,
+  };
 
   if (forma === 'heptagono') {
     const borde = mastery ? g.heptagono.bordeMastery : g.heptagono.borde;
@@ -96,11 +117,13 @@ export function MasterGlass({ blur = false, children, colorBase, compacto = fals
   }
 
   return (
-    <LinearGradient colors={coloresExteriores} end={finBorde} locations={ubicacionesBorde} onLayout={medirContenedor} start={{ x: 0, y: 0 }} style={[styles.raiz, { boxShadow: `1px 3px 7px ${g.sombra}26` }, style]}>
-      {blur ? <BlurView intensity={intensity} pointerEvents="none" tint={tint} style={interior} /> : <View pointerEvents="none" style={interior} />}
-      <LinearGradient colors={[colorTope, colorTope, colorCuerpo, colorCuerpo, colorPie]} end={{ x: 0, y: 1 }} locations={[0, ubicacion(franjaSuperior), ubicacion(finTransicionSuperior), ubicacion(inicioTransicionInferior), 1]} pointerEvents="none" start={{ x: 0, y: 0 }} style={interior} />
-      {children}
-    </LinearGradient>
+    <View style={[estiloEnvoltorio, { borderRadius: radioExterior, boxShadow: `1px 3px 7px ${g.sombra}26` }]}>
+      <LinearGradient colors={coloresExteriores} end={finBorde} locations={ubicacionesBorde} onLayout={medirContenedor} start={{ x: 0, y: 0 }} style={[styles.raiz, estiloInterior]}>
+        {blur ? <BlurView intensity={intensity} pointerEvents="none" tint={tint} style={interior} /> : <View pointerEvents="none" style={interior} />}
+        <LinearGradient colors={[colorTope, colorTope, colorCuerpo, colorCuerpo, colorPie]} end={{ x: 0, y: 1 }} locations={[0, ubicacion(franjaSuperior), ubicacion(finTransicionSuperior), ubicacion(inicioTransicionInferior), 1]} pointerEvents="none" start={{ x: 0, y: 0 }} style={interior} />
+        {children}
+      </LinearGradient>
+    </View>
   );
 }
 
