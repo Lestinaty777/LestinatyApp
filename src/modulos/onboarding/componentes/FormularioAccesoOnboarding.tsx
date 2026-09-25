@@ -2,7 +2,7 @@ import { router } from 'expo-router';
 import { Gift, Mail } from 'lucide-react-native';
 import { Controller, useForm } from 'react-hook-form';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Linking, Platform, StyleSheet, Text, View } from 'react-native';
+import { Linking, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
 import { CampoContrasena, CampoTexto, Checkbox, MasterButton, MasterIcon, Rebote, Texto } from '../../../diseno';
@@ -390,10 +390,6 @@ export function FormularioAccesoOnboarding() {
               {errorGoogle ? <Texto style={s.error}>{errorGoogle}</Texto> : null}
               <BotonGoogle cargando={cargandoGoogle} deshabilitado={esCrear && !terminosAceptados} onPress={entrarConGoogle} />
             </>
-          ) : null}
-
-          {Platform.OS === 'ios' ? (
-            <Texto style={[s.textoCrearCuenta, { textAlign: 'center' }]}>{t('auth.login.googleAccountRecoveryHint')}</Texto>
           ) : null}
 
           <View style={s.filaCrearCuenta}>

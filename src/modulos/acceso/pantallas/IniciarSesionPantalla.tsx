@@ -3,7 +3,7 @@ import { Mail } from 'lucide-react-native';
 import { Controller, useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
-import { Platform, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { StyleSheet, View, useWindowDimensions } from 'react-native';
 
 import { CampoContrasena, CampoTexto, Texto } from '../../../diseno';
 import { capacidades } from '../../../plataforma/capacidades';
@@ -126,10 +126,6 @@ export function IniciarSesionPantalla() {
               ) : null}
               <BotonGoogle cargando={cargandoGoogle} onPress={entrarConGoogle} />
             </>
-          ) : null}
-
-          {Platform.OS === 'ios' ? (
-            <Texto style={[s.divisorTexto, { textAlign: 'center' }]}>{t('auth.login.googleAccountRecoveryHint')}</Texto>
           ) : null}
 
           <Texto style={estiloEnlaces}>
