@@ -14,8 +14,10 @@ import type { TrazoMandala } from '../mandalaNodo.tipos';
 export const LADO_LIENZO_MANDALA = 320;
 export const RADIO_TRAZO_MANDALA = 150;
 export const ANCHO_CINTA_MANDALA = LADO_LIENZO_MANDALA * 0.06;
-// Pose de reposo: tres cuartos de giro, para que el grosor se lea aun quieta.
-export const ANGULO_REPOSO_MANDALA = -26;
+// Pose de reposo: casi de frente a la cámara (antes -26°, un tres cuartos que
+// se sentía "de costado"). Se deja un resto mínimo para que el canto todavía
+// insinúe el grosor, sin dar la impresión de estar girada.
+export const ANGULO_REPOSO_MANDALA = -6;
 // Cuánto se recuesta la mandala (rotateX), sólo ella, no el mapa: 0 = de
 // pie mirando a la cámara.
 export const INCLINACION_MANDALA = -30;
@@ -200,10 +202,16 @@ export function MandalaExtruido({ color, giro, inclinacion, paqueteId, relieve, 
         <Path color={paleta.paredes[1]} path={pared1} />
         <Path color={paleta.paredes[2]} path={pared2} />
         <Path color={paleta.paredes[3]} path={pared3} />
+        {/* El filo va DEBAJO de la cara, no encima: son 7 cintas superpuestas y
+            cada una tiene su propio contorno — trazado encima, las cintas se
+            cruzaban con líneas blancas por dentro de la mandala y, con muchas
+            intersecciones, la cara quedaba casi blanca y sin nácar. Debajo, la
+            cara (opaca) tapa todo contorno interior y solo asoma la mitad
+            exterior del trazo: un borde limpio alrededor de la silueta. */}
+        <Path color={paleta.filo} opacity={opacidadFilo} path={pathCara} strokeJoin="round" strokeWidth={FILO_MANDALA * 1.5 * escala} style="stroke" />
         <Path path={pathCara}>
           {NACAR ? <Shader source={NACAR} uniforms={uniformes} /> : null}
         </Path>
-        <Path color={paleta.filo} opacity={opacidadFilo} path={pathCara} strokeJoin="round" strokeWidth={FILO_MANDALA * escala} style="stroke" />
       </Canvas>
     </View>
   );
