@@ -91,24 +91,25 @@ export function MasterGlass({ blur = false, children, colorBase, compacto = fals
   }
 
   return (
-    <LinearGradient colors={coloresExteriores} end={finBorde} locations={ubicacionesBorde} onLayout={medirContenedor} start={{ x: 0, y: 0 }} style={[styles.raiz, { boxShadow: `1px 3px 7px ${g.sombra}26` }, style, styles.radioFijo]}>
-      {blur ? <BlurView intensity={intensity} pointerEvents="none" tint={tint} style={interior} /> : <View pointerEvents="none" style={interior} />}
-      <LinearGradient colors={[colorTope, colorTope, colorCuerpo, colorCuerpo, colorPie]} end={{ x: 0, y: 1 }} locations={[0, ubicacion(franjaSuperior), ubicacion(finTransicionSuperior), ubicacion(inicioTransicionInferior), 1]} pointerEvents="none" start={{ x: 0, y: 0 }} style={interior} />
-      {children}
-    </LinearGradient>
+    // La sombra vive en este wrapper transparente, separado del elemento que
+    // recorta el contenido (overflow:'hidden' + borderRadius, abajo). En iOS,
+    // poner boxShadow en el MISMO nodo que se auto-recorta rompe el
+    // redondeo de la sombra (queda cuadrada) — sobre todo tratándose de un
+    // LinearGradient, que no es una View plana. Separarlos no le cambia nada
+    // al look: mismo color, offset y blur de siempre.
+    <View onLayout={medirContenedor} style={[style, styles.sombra, { boxShadow: `1px 3px 7px ${g.sombra}26` }]}>
+      <LinearGradient colors={coloresExteriores} end={finBorde} locations={ubicacionesBorde} start={{ x: 0, y: 0 }} style={[StyleSheet.absoluteFill, styles.raiz]}>
+        {blur ? <BlurView intensity={intensity} pointerEvents="none" tint={tint} style={interior} /> : <View pointerEvents="none" style={interior} />}
+        <LinearGradient colors={[colorTope, colorTope, colorCuerpo, colorCuerpo, colorPie]} end={{ x: 0, y: 1 }} locations={[0, ubicacion(franjaSuperior), ubicacion(finTransicionSuperior), ubicacion(inicioTransicionInferior), 1]} pointerEvents="none" start={{ x: 0, y: 0 }} style={interior} />
+        {children}
+      </LinearGradient>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  raiz: {
-    borderRadius: RADIO_MASTER_GLASS,
-    // boxShadow (a diferencia del shadow* clásico de RN) no necesita
-    // overflow:'visible' para pintarse fuera de la caja — con 'visible' aquí,
-    // cualquier contenido absoluto que le pasemos como children (como el
-    // relleno del swipe) no se recorta a la forma redonda y se ve cuadrado.
-    overflow: 'hidden',
-  },
-  radioFijo: { borderRadius: RADIO_MASTER_GLASS },
+  sombra: { borderRadius: RADIO_MASTER_GLASS },
+  raiz: { borderRadius: RADIO_MASTER_GLASS, overflow: 'hidden' },
   contenidoHeptagono: { alignItems: 'center', flex: 1, justifyContent: 'center' },
   heptagonoRaiz: { borderRadius: 0, overflow: 'visible', position: 'relative' },
   interior: { bottom: 0, left: 0, overflow: 'hidden', position: 'absolute', right: 0, top: 0 },
