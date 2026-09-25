@@ -35,11 +35,13 @@ export function CarruselHeroTienda({
   const { width } = useWindowDimensions();
   const anchoTarjeta = width - 40; // paddingHorizontal: 20 en la pantalla
   const [slideActivo, setSlideActivo] = useState(0);
+  // Slide 3 (Lestinaty Pro / widgets) no se ofrece donde no hay widgets — hoy, iOS.
+  const totalSlides = capacidades.horizon ? 3 : 2;
 
   function alScroll(e: NativeSyntheticEvent<NativeScrollEvent>) {
     const offsetX = e.nativeEvent.contentOffset.x;
     const indice = Math.round(offsetX / anchoTarjeta);
-    if (indice >= 0 && indice <= 2 && indice !== slideActivo) {
+    if (indice >= 0 && indice <= totalSlides - 1 && indice !== slideActivo) {
       setSlideActivo(indice);
     }
   }
@@ -123,7 +125,8 @@ export function CarruselHeroTienda({
           </MasterGlass>
         </View>
 
-        {/* Slide 3: Lestinaty Pro - Widgets en tu pantalla */}
+        {/* Slide 3: Lestinaty Pro - Widgets en tu pantalla — oculto donde no hay widgets. */}
+        {capacidades.horizon && (
         <View style={{ width: anchoTarjeta }}>
           <MasterGlass colorBase="#C084FC" style={ch.tarjeta}>
             <View style={{ flexDirection: 'row' }}>
@@ -157,11 +160,12 @@ export function CarruselHeroTienda({
             </View>
           </MasterGlass>
         </View>
+        )}
       </ScrollView>
 
       {/* Indicadores de diapositiva (dots) */}
       <View style={ch.filaIndicadores}>
-        {[0, 1, 2].map((idx) => (
+        {Array.from({ length: totalSlides }, (_, idx) => (
           <View key={idx} style={[ch.dot, slideActivo === idx ? ch.dotActivo : ch.dotInactivo]} />
         ))}
       </View>

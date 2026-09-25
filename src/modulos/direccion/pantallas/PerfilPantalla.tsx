@@ -649,7 +649,11 @@ export function PerfilPantalla() {
               </Rebote>
             </Animated.View>
 
-            {(capacidades.horizon || esPro) && (
+            {/* Horizon oculto en iOS por el momento — su único beneficio real
+                (widgets) tampoco existe ahí; no se muestra ningún estado
+                de "Pro", esté o no activo, hasta que haya algo real que
+                ofrecer en esa plataforma. */}
+            {capacidades.horizon && (
             <Animated.View entering={entradaEncadenada(2)}>
               <Rebote
                 accessibilityLabel={t('perfil.header.proMembershipAccessibility')}
@@ -880,12 +884,10 @@ export function PerfilPantalla() {
                   </Animated.View>
                   )}
 
-                  {/* Banner de Suscripción Lestinaty Pro — Horizon hoy solo
-                      desbloquea widgets, así que no se ofrece donde no los
-                      hay; si alguien ya la tiene activa (ej. la compró en
-                      Android y usa este mismo dispositivo), sí se muestra su
-                      estado. */}
-                  {(capacidades.horizon || esPro) && (
+                  {/* Banner de Suscripción Lestinaty Pro — oculto en iOS por
+                      el momento (ver nota del pill de arriba): Horizon hoy
+                      solo desbloquea widgets, que no existen ahí. */}
+                  {capacidades.horizon && (
                   <Animated.View entering={entradaEncadenada(1)}>
                     <MasterGlass style={[s.tarjetaModulo, esPro ? s.tarjetaProActiva : s.tarjetaProOferta]}>
                       <View style={s.moduloHeader}>
@@ -1132,7 +1134,9 @@ export function PerfilPantalla() {
                     </MasterGlass>
                   </Animated.View>
 
-                  {/* 3. Membresía y Suscripciones Google Play (Requisito Google Play Billing) */}
+                  {/* 3. Membresía y Suscripciones Google Play (Requisito Google Play Billing) —
+                      oculto en iOS por el momento junto con el resto de Horizon. */}
+                  {capacidades.horizon && (
                   <Animated.View entering={entradaEncadenada(3)} style={s.grupoAjustes}>
                     <Texto style={s.grupoAjustesTitulo}>{t('perfil.settings.subscriptionGroup')}</Texto>
                     <MasterGlass style={s.tarjetaAjustes}>
@@ -1211,6 +1215,7 @@ export function PerfilPantalla() {
                       </Pressable>
                     </MasterGlass>
                   </Animated.View>
+                  )}
 
                   {/* 4. Soporte y Ayuda (Requisito Google Play) */}
                   <Animated.View entering={entradaEncadenada(4)} style={s.grupoAjustes}>

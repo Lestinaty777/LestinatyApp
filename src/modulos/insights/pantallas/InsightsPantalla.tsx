@@ -12,6 +12,7 @@ import { buscarIconoHabito } from '../../habitos/iconosHabitos';
 import { obtenerHabitoMejorRacha, obtenerPanelHabitos, obtenerResumenPlanesHabitos } from '../../habitos/habitos.servicio';
 import type { ConexionHabito, EstadoPanelHabitos, PatronHabito, ProgresoSeccionPanel, RiesgoHabito } from '../../habitos/tipos';
 import { useSaldoGemas } from '../../tienda/useSaldoGemas';
+import { capacidades } from '../../../plataforma/capacidades';
 import { GaleriaWidgetsModal } from '../componentes/GaleriaWidgetsModal';
 import { SeccionProgresoDatos } from '../componentes/SeccionProgresoDatos';
 import { elegirReflexionAby } from '../reflexionAby';
@@ -492,6 +493,8 @@ export function InsightsPantalla() {
                 ))}
           </View>
 
+          {/* Banner de widgets de inicio — oculto donde no hay widgets (hoy, iOS). */}
+          {capacidades.widgets && (
           <Animated.View entering={entradaEncadenada(7)}>
             <Rebote onPress={() => setModalWidgetsVisible(true)}>
               <MasterGlass style={s.bannerWidgetsAcceso}>
@@ -511,6 +514,7 @@ export function InsightsPantalla() {
               </MasterGlass>
             </Rebote>
           </Animated.View>
+          )}
 
           {panel ? (
             <View style={s.columnas}>

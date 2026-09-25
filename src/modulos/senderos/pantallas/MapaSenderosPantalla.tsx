@@ -1,16 +1,16 @@
 import Svg, { Rect, Defs, Pattern, Circle } from 'react-native-svg';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { useIsFocused, useLocalSearchParams, useRouter } from 'expo-router';
-import { Alert, FlatList, StyleSheet, View, useWindowDimensions, Pressable, Image } from 'react-native';
+import { FlatList, Modal, StyleSheet, View, useWindowDimensions, Pressable, Image } from 'react-native';
 import { ScrollView } from 'react-native-gesture-handler';
 import { BotonTab } from '../../../nucleo/navegacion/BarraTabs';
 import { PixelartIcon } from '../../../diseno/iconos/PixelartIcon';
 import Animated, { useSharedValue, useAnimatedStyle, useAnimatedProps, withTiming, Easing, withSpring, withRepeat } from 'react-native-reanimated';
 import { BookOpen } from 'lucide-react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Trophy, Leaf, Sun, Moon, ChevronDown } from 'lucide-react-native';
+import { Trophy, Leaf, Sun, Moon, ChevronDown, X, Eye } from 'lucide-react-native';
 import { ContenedorMapaSenderos } from '../../senderos/componentes/mapa/ContenedorMapaSenderos';
 import { AmbienteLluviaMapa } from '../componentes/mapa/AmbienteLluviaMapa';
 import { MasterChip, MasterGlass, MasterIcon, MasterIconBg, MasterProgressbar, Texto, colores, RecuadroGlass, buscarIcono } from '../../../diseno';
@@ -27,12 +27,15 @@ import { buscarIconoHabito } from '../../habitos/iconosHabitos';
 import { obtenerDetallesHabitosHoy, obtenerHabitosActivos } from '../../habitos/habitos.servicio';
 import { EstadoVacioSenderos } from '../componentes/EstadoVacioSenderos';
 import type { HabitoResumen } from '../../habitos/tipos';
-import { CLAVE_SALDO_GEMAS, useSaldoGemas } from '../../tienda/useSaldoGemas';
-import { comprarSemillasArbol, obtenerCatalogoArboles } from '../../tienda/gemas.servicio';
-import { CLAVE_SEMILLAS_DISPONIBLES } from '../../tienda/pantallas/TiendaArbolesPantalla';
+import { useSaldoGemas } from '../../tienda/useSaldoGemas';
+import { obtenerCatalogoArboles } from '../../tienda/gemas.servicio';
+import type { ArbolPaquete } from '../../tienda/gemas.tipos';
 import { coloresSelectorCategoria, type ModuloCategoriaMapa } from '../datos/modulosCategorias';
 import { MAPAS_NIVELES } from '../Mapas';
 import { obtenerAssetsPaquete } from '../algoritmo/registroPaquetesArbol';
+import { colorSeguroUi } from '../algoritmo/colorHsl';
+import { construirNodosDias } from '../../habitos/construirNodosDias';
+import { DIAS_POR_MAPA } from '../../habitos/senderoNiveles';
 import { useEscala } from '../../../diseno/tema/MasterColorContext';
 import type { EscalaMaster } from '../../../diseno/tema/escalaEsmeralda';
 import { conAlfa } from '../../../diseno/tema/masterColor';
@@ -815,24 +818,14 @@ function useEstilosStyles() {
 
 function PanelTienda({ saldoGemas }: { saldoGemas: number }) {
   const { t } = useTranslation();
-  const queryClient = useQueryClient();
   // Misma queryKey que TiendaArbolesPantalla.tsx — comparten caché, el
   // catálogo de árboles es idéntico sin importar desde dónde se pida.
   const consultaCatalogo = useQuery({ queryKey: ['tienda', 'catalogoArboles'], queryFn: obtenerCatalogoArboles });
-  const mutacionComprar = useMutation({
-    mutationFn: comprarSemillasArbol,
-    onError: (error: Error) => {
-      Alert.alert(t('senderos.map.nursery.purchaseErrorTitle'), error.message || t('senderos.map.nursery.purchaseError'));
-    },
-    onSuccess: (resultado) => {
-      hapticSeguro('confirmacion');
-      queryClient.invalidateQueries({ queryKey: CLAVE_SALDO_GEMAS });
-      queryClient.invalidateQueries({ queryKey: CLAVE_SEMILLAS_DISPONIBLES });
-      Alert.alert(t('senderos.map.nursery.purchaseSuccessTitle'), t('senderos.map.nursery.purchaseSuccess', { count: resultado.semillasCompradas, suffix: resultado.semillasCompradas === 1 ? '' : t('senderos.map.nursery.pluralSuffix') }));
-    },
-  });
-  const comprandoId = mutacionComprar.isPending ? mutacionComprar.variables ?? null : null;
   const articulos = consultaCatalogo.data ?? [];
+  // Tocar un árbol ya no lo compra acá — abre una vista previa de cómo se ve
+  // su sendero (mapa mock en nivel 3). Comprar semillas de verdad sigue
+  // disponible en la Tienda dedicada (TiendaArbolesPantalla).
+  const [paquetePreview, setPaquetePreview] = React.useState<ArbolPaquete | null>(null);
 
   return (
     <View style={{ flex: 1, paddingHorizontal: 20, paddingTop: 5, paddingBottom: 15 }}>
@@ -877,13 +870,11 @@ function PanelTienda({ saldoGemas }: { saldoGemas: number }) {
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 15, paddingBottom: 15 }} style={{ flex: 1, overflow: 'visible' }}>
           {articulos.map(art => {
             const imagen = obtenerAssetsPaquete(art.id)?.etapas[6] ?? null;
-            const comprandoEste = comprandoId === art.id;
             return (
               <Pressable
-                disabled={comprandoEste}
                 key={art.id}
-                onPress={() => mutacionComprar.mutate(art.id)}
-                style={({ pressed }) => [{ width: 140, height: 130, opacity: comprandoEste ? 0.6 : 1 }, pressed && { transform: [{ translateY: 3 }] }]}
+                onPress={() => { hapticSeguro('seleccion'); setPaquetePreview(art); }}
+                style={({ pressed }) => [{ width: 140, height: 130 }, pressed && { transform: [{ translateY: 3 }] }]}
               >
                 {/* Sombra 3D del producto */}
                 <View style={{ position: 'absolute', top: 4, left: 0, right: 0, bottom: -4, backgroundColor: oscurecer(art.masterPackColor, 0.5), borderRadius: 12 }} />
@@ -900,21 +891,74 @@ function PanelTienda({ saldoGemas }: { saldoGemas: number }) {
                   <View style={{ marginTop: 'auto' }}>
                     <Texto style={{ fontSize: 12, fontFamily: 'Montserrat-Bold', color: '#FFFFFF', marginBottom: 2 }} numberOfLines={1}>{art.nombre}</Texto>
                     <Texto style={{ fontSize: 9, fontFamily: 'Montserrat-Medium', color: 'rgba(255,255,255,0.7)' }} numberOfLines={2}>
-                      {comprandoEste ? t('senderos.map.nursery.buying') : t('senderos.map.nursery.seedCount', { count: art.cantidadPorCompra, suffix: art.cantidadPorCompra === 1 ? '' : t('senderos.map.nursery.pluralSuffix') })}
+                      {t('senderos.map.nursery.previewCard')}
                     </Texto>
                   </View>
                 </View>
 
-                {/* Etiqueta de Precio Brutalista */}
-                <View style={{ position: 'absolute', top: -8, right: -8, backgroundColor: '#111111', paddingHorizontal: 6, paddingVertical: 4, borderRadius: 6, borderBottomWidth: 3, borderBottomColor: '#000000', flexDirection: 'row', alignItems: 'center', gap: 4, transform: [{ rotate: '5deg' }] }}>
-                  <Image resizeMode="contain" source={require('../../../../assets/icons/hoy/gemas.png')} style={{ height: 12, width: 12 }} />
-                  <Texto style={{ fontSize: 11, fontFamily: 'Montserrat-Bold', color: '#FFD700' }}>{art.precioGemas}</Texto>
+                {/* Insignia de vista previa (ya no es un precio: acá no se compra) */}
+                <View style={{ position: 'absolute', top: -8, right: -8, backgroundColor: '#111111', padding: 6, borderRadius: 6, borderBottomWidth: 3, borderBottomColor: '#000000', transform: [{ rotate: '5deg' }] }}>
+                  <Eye color="#FFD700" size={14} />
                 </View>
               </Pressable>
             );
           })}
         </ScrollView>
       )}
+
+      <ModalPreviewArbol onCerrar={() => setPaquetePreview(null)} paquete={paquetePreview} />
     </View>
+  );
+}
+
+// Vista previa de un paquete de árbol: carga un mapa mock (nivel 3, algunos
+// días completados) teñido con sus colores, para que se vea "cómo es" antes
+// de plantarlo — sin comprar nada desde acá.
+const NIVEL_PREVIEW_ARBOL = 3;
+
+function ModalPreviewArbol({ onCerrar, paquete }: { onCerrar: () => void; paquete: ArbolPaquete | null }) {
+  const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
+  const { height } = useWindowDimensions();
+  const diasRequeridos = DIAS_POR_MAPA[NIVEL_PREVIEW_ARBOL];
+  const nodosPreview = React.useMemo(
+    () => construirNodosDias(Math.min(4, diasRequeridos - 1), diasRequeridos, NIVEL_PREVIEW_ARBOL, new Map(), { puedeAvanzarHoy: true }),
+    [diasRequeridos],
+  );
+
+  return (
+    <Modal animationType="slide" onRequestClose={onCerrar} presentationStyle="overFullScreen" transparent visible={paquete !== null}>
+      {paquete && (
+        <TonoDelHabito colorPaquete={paquete.masterPackColor} paqueteId={paquete.id}>
+          <View style={{ flex: 1, backgroundColor: '#FFFFFF', paddingTop: insets.top }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 14 }}>
+              <View style={{ flex: 1, marginRight: 12 }}>
+                <Texto style={{ fontSize: 10, color: 'rgba(0,0,0,0.45)', fontFamily: 'Montserrat-Bold', letterSpacing: 1.4, textTransform: 'uppercase' }}>
+                  {t('senderos.map.nursery.previewKicker')}
+                </Texto>
+                <Texto numberOfLines={1} style={{ fontSize: 20, fontFamily: 'Montserrat-Bold', color: '#111111' }}>{paquete.nombre}</Texto>
+              </View>
+              <Pressable accessibilityLabel={t('senderos.levels.close')} onPress={onCerrar} style={{ padding: 8 }}>
+                <X color="#333333" size={22} strokeWidth={2.5} />
+              </Pressable>
+            </View>
+            <ContenedorMapaSenderos
+              key={paquete.id}
+              altura={Math.max(320, height - insets.top - insets.bottom - 92)}
+              categoriaId="habitos"
+              color={colorSeguroUi(paquete.masterPackColor)}
+              colorPaquete={paquete.masterPackColor}
+              enfocado
+              infoHabito={{ meta: 1, tipoMeta: 'check', unidad: null }}
+              nivel={NIVEL_PREVIEW_ARBOL}
+              nodos={nodosPreview}
+              paqueteId={paquete.id}
+              progresoPastoTemprano={1}
+              subcategoriaId={paquete.id}
+            />
+          </View>
+        </TonoDelHabito>
+      )}
+    </Modal>
   );
 }
