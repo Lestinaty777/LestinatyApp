@@ -95,15 +95,18 @@ export function construirNodosDias(
     }
   }
 
-  // Cofre final al terminar todos los días del nivel
+  // Cofre final al terminar todos los días del nivel. A diferencia del
+  // intermedio, este NUNCA se "abre" con un toque: registrar_progreso_habito
+  // ya lo acredita solo, en la misma transacción que cierra el último día
+  // (ver migración 46 — el RPC reclamar_cofre_sendero rechaza a propósito
+  // cualquier tipo != 'intermedio'). Marcarlo 'disponible' mientras la
+  // consulta de cofres reclamados no había refrescado dejaba un botón que,
+  // al tocarlo, disparaba esa llamada rechazada ("Could not open the
+  // chest") — por eso acá solo hay bloqueado o ya acreditado, nunca un
+  // estado intermedio que invite a tocarlo.
   const cofreFinalCompletado = diasCompletados >= diasRequeridos;
-  const yaReclamadoFinal = cofresReclamados.has(diasRequeridos);
-  const estadoCofreFinal = yaReclamadoFinal ? 'reclamado' : cofreFinalCompletado ? 'disponible' : 'bloqueado';
-  const estadoNodoFinal: EstadoNodoMapa = !cofreFinalCompletado
-    ? 'bloqueado'
-    : yaReclamadoFinal || soloLectura
-      ? 'completado'
-      : 'activo';
+  const estadoCofreFinal = cofreFinalCompletado ? 'reclamado' : 'bloqueado';
+  const estadoNodoFinal: EstadoNodoMapa = cofreFinalCompletado ? 'completado' : 'bloqueado';
 
   nodos.push({
     cofre: {
@@ -111,12 +114,12 @@ export function construirNodosDias(
       estadoCofre: estadoCofreFinal,
       gemasMax: gemasFinal,
       gemasMin: gemasFinal,
-      gemasReclamadas: cofresReclamados.get(diasRequeridos),
+      gemasReclamadas: cofresReclamados.get(diasRequeridos) ?? (cofreFinalCompletado ? gemasFinal : undefined),
       nodoDia: diasRequeridos,
       tipo: 'final',
     },
     estado: estadoNodoFinal,
-    icono: yaReclamadoFinal ? Check : cofreFinalCompletado ? Play : Lock,
+    icono: cofreFinalCompletado ? Check : Lock,
     id: `cofre-final-nivel-${nivel}-ciclo-${ciclo}`,
     subtitulo: `Cofre Nivel ${nivel}`,
     tipoNodo: 'cofre_final',

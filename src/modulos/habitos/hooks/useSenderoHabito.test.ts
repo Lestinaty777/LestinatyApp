@@ -100,9 +100,9 @@ describe('construirNodosDias con cofres de sendero', () => {
     expect(nodos[3].cofre?.gemasReclamadas).toBe(12);
   });
 
-  it('el cofre final pasa a disponible al completar todos los días del nivel', () => {
+  it('el cofre final pasa a reclamado (no disponible) al completar todos los días del nivel — registrar_progreso_habito ya lo acreditó solo', () => {
     const nodos = construirNodosDias(7, 7, 2, new Map());
 
-    expect(nodos[9].cofre?.estadoCofre).toBe('disponible');
+    expect(nodos[9].cofre?.estadoCofre).toBe('reclamado');
   });
 });

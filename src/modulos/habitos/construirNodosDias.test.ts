@@ -60,4 +60,15 @@ describe('construirNodosDias', () => {
     const nodos = construirNodosDias(1, 3, 1, new Map(), { ciclo: 1, puedeAvanzarHoy: true });
     expect(nodos[0].tipoNodo).toBe('dia');
   });
+
+  it('el cofre final nunca queda "disponible" (registrar_progreso_habito lo acredita solo, reclamar_cofre_sendero rechaza tipo "final")', () => {
+    // Último día recién completado, pero la consulta de cofres reclamados
+    // todavía no refrescó (mapa vacío) — exactamente la ventana donde antes
+    // el cofre final quedaba tocable y disparaba el RPC rechazado.
+    const nodos = construirNodosDias(3, 3, 1, new Map(), { ciclo: 1, puedeAvanzarHoy: true });
+    const cofreFinal = nodos[nodos.length - 1];
+    expect(cofreFinal.cofre?.estadoCofre).toBe('reclamado');
+    expect(cofreFinal.cofre?.estadoCofre).not.toBe('disponible');
+    expect(cofreFinal.estado).toBe('completado');
+  });
 });
