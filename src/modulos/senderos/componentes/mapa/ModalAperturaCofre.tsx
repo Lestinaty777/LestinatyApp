@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { AccessibilityInfo, Image, Modal, Pressable, StyleSheet, View } from 'react-native';
+import { AccessibilityInfo, Alert, Image, Modal, Pressable, StyleSheet, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import Animated, {
   FadeInDown,
   FadeOut,
@@ -13,6 +14,7 @@ import { BlurMask, Canvas, Group, Path as PathSkia } from '@shopify/react-native
 import { MasterButton, MasterGlass, Texto } from '../../../../diseno';
 import { MasterChanger } from '../../../../diseno/componentes/MasterChanger';
 import { hapticSeguro } from '../../../../nucleo/dispositivo/haptics';
+import { registrarError } from '../../../../servicios/errores/sentry';
 import { videoCofreParaPaquete } from '../../../habitos/cofreVideoPaquete';
 import type { InfoCofre } from '../../datos/mapaEjercicio.mock';
 import { calcularTinteCofre } from './cofreTinte';
@@ -63,6 +65,7 @@ export function ModalAperturaCofre({
   onReclamar,
   onFinalizarAutomatico,
 }: Props) {
+  const { t } = useTranslation();
   const [fase, setFase] = useState<Fase>(modo === 'automatico' ? 'reproduciendo' : 'inicial');
   const [gemasGanadas, setGemasGanadas] = useState<number | null>(modo === 'automatico' ? gemasAcreditadas ?? null : null);
   const [movimientoReducidoDetectado, setMovimientoReducidoDetectado] = useState(false);
@@ -154,9 +157,14 @@ export function ModalAperturaCofre({
       const resultado = await onReclamar(cofre);
       setGemasGanadas(resultado.gemas);
       setFase(movimientoReducido ? 'abierto' : 'reproduciendo');
-    } catch {
+    } catch (error) {
+      registrarError(error);
       hapticSeguro('accion');
       setFase('inicial');
+      Alert.alert(
+        t('senderos.map.chestErrorTitle'),
+        (error as { message?: string } | undefined)?.message || t('senderos.map.chestError'),
+      );
     }
   };
 
