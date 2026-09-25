@@ -49,7 +49,14 @@ export default function LayoutPrincipal() {
       screenOptions={{
         headerShown: false,
         headerTitleAlign: 'center',
-        animation: 'fade',
+        // 'fade' entre pestañas: en iOS, si la pestaña nueva es pesada de
+        // montar (Senderos con su canvas de Skia, Perfil con muchas
+        // MasterGlass), el fundido se queda mostrando la pestaña anterior
+        // hasta que la nueva termina de renderizar — pantalla en blanco que
+        // luego "parpadea" a la vista correcta. Las barras de tabs no suelen
+        // llevar animación de transición (es más un concepto de Stack); sin
+        // esta opción, el cambio de pestaña es instantáneo, evitando esa
+        // ventana en blanco sin importar qué tan pesada sea la pantalla.
         tabBarStyle: {
           backgroundColor: 'transparent',
           borderTopWidth: 0,
