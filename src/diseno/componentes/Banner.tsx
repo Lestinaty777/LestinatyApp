@@ -2,6 +2,7 @@ import { CircleAlert } from 'lucide-react-native';
 import { PropsWithChildren } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
+import { TOPE_ESCALA_TEXTO } from '../fundamentos/accesibilidad';
 import { bordes } from '../fundamentos/bordes';
 import { colores } from '../fundamentos/colores';
 import { espaciado } from '../fundamentos/espaciado';
@@ -16,7 +17,7 @@ export function Banner({ children, variante = 'error' }: BannerProps) {
   return (
     <View style={[styles.raiz, esError ? styles.error : styles.exito]}>
       <CircleAlert color={esError ? colores.error : colores.exito} size={17} strokeWidth={2.3} />
-      <Text style={[styles.texto, esError ? styles.textoError : styles.textoExito]}>{children}</Text>
+      <Text maxFontSizeMultiplier={TOPE_ESCALA_TEXTO} style={[styles.texto, esError ? styles.textoError : styles.textoExito]}>{children}</Text>
     </View>
   );
 }

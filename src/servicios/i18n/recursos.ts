@@ -68,7 +68,7 @@ export const recursosI18n = {
         nearLevel: 'About to level up', nearLevelAccessibility: '{{title}}, about to level up', levelProgress: '{{title}} · Level {{level}} → {{nextLevel}}',
         viewToday: 'Today', viewProgress: 'My Habits', viewReminders: 'Reminders', todayViewTimeline: 'Trail view', todayViewTasks: 'Task view', loadError: 'We could not load the data. Tap to retry.',
         exploreWidgets: 'Explore home screen widgets', widgetsTitle: 'Home Widgets', checkingSubscription: 'Checking subscription…', widgetsDescription: 'Bring your habits to your home screen',
-        noStreak: 'No active streak', bestStreak: 'Best streak', viewHabit: 'View {{title}}', completedViewTrail: 'Completed — view trail', start: 'Start',
+        noStreak: 'No active streak', bestStreak: 'Best streak', viewHabit: 'View {{title}}', completedViewTrail: 'Completed — view trail', start: 'Start', viewDetails: 'View details',
         noHabitsTitle: 'There are no habits yet', noHabitsDescription: 'You have not created habits yet. Start with a small action.', noTodayHabitsTitle: 'You have no habits today', noTodayHabitsDescription: 'Your next scheduled habits will appear here.', todayCompleted: '{{completed}}/{{total}} completed', goToTrail: 'Go to trail',
         swipeTipTitle: 'Quick tip', swipeTipDescription: 'Drag a habit icon toward the chevron to go directly to its trail.', understood: 'Got it', durationUnit: 'min', defaultUnit: 'times',
       }, tareasDiarias: {
@@ -977,7 +977,7 @@ export const recursosI18n = {
         nearLevel: 'A punto de subir de nivel', nearLevelAccessibility: '{{title}}, a punto de subir de nivel', levelProgress: '{{title}} · Nivel {{level}} → {{nextLevel}}',
         viewToday: 'Hoy', viewProgress: 'Mis Hábitos', viewReminders: 'Recordatorios', todayViewTimeline: 'Vista de sendero', todayViewTasks: 'Vista de tareas', loadError: 'No pudimos cargar los datos. Toca para reintentar.',
         exploreWidgets: 'Explorar widgets de pantalla de inicio', widgetsTitle: 'Widgets de Inicio', checkingSubscription: 'Comprobando suscripción…', widgetsDescription: 'Lleva tus hábitos a tu pantalla de inicio',
-        noStreak: 'Sin racha activa', bestStreak: 'Mejor racha', viewHabit: 'Ver {{title}}', completedViewTrail: 'Completado — ver sendero', start: 'Comenzar',
+        noStreak: 'Sin racha activa', bestStreak: 'Mejor racha', viewHabit: 'Ver {{title}}', completedViewTrail: 'Completado — ver sendero', start: 'Comenzar', viewDetails: 'Ver detalles',
         noHabitsTitle: 'Aún no hay hábitos', noHabitsDescription: 'Aún no has creado hábitos. Comienza con una pequeña acción.', noTodayHabitsTitle: 'Hoy no tienes hábitos', noTodayHabitsDescription: 'Tus próximos hábitos programados aparecerán aquí.', todayCompleted: '{{completed}}/{{total}} completadas', goToTrail: 'Ir al sendero',
         swipeTipTitle: 'Truco rápido', swipeTipDescription: 'Arrastra el ícono de un hábito hacia el chevron para ir directo a su sendero.', understood: 'Entendido', durationUnit: 'min', defaultUnit: 'veces',
       }, tareasDiarias: {

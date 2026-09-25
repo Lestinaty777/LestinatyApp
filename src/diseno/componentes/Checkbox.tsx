@@ -2,6 +2,7 @@ import { Check } from 'lucide-react-native';
 import { PropsWithChildren } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { TOPE_ESCALA_TEXTO } from '../fundamentos/accesibilidad';
 import { bordes } from '../fundamentos/bordes';
 import { colores } from '../fundamentos/colores';
 import { espaciado } from '../fundamentos/espaciado';
@@ -29,7 +30,7 @@ export function Checkbox({ checked, children, colorActivo = colores.texto, color
       <View style={[styles.caja, { borderColor: colorBorde }, checked && { backgroundColor: colorActivo, borderColor: colorActivo }]}>
         {checked ? <Check color={colores.superficie} size={13} strokeWidth={3} /> : null}
       </View>
-      <Text style={styles.texto}>{children}</Text>
+      <Text maxFontSizeMultiplier={TOPE_ESCALA_TEXTO} style={styles.texto}>{children}</Text>
     </Pressable>
   );
 }

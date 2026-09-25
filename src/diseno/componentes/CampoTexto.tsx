@@ -1,6 +1,7 @@
 import { ComponentType, ReactNode } from 'react';
 import { StyleProp, StyleSheet, Text, TextInput, TextInputProps, TextStyle, View, ViewStyle } from 'react-native';
 
+import { TOPE_ESCALA_TEXTO } from '../fundamentos/accesibilidad';
 import { bordes } from '../fundamentos/bordes';
 import { colores } from '../fundamentos/colores';
 import { espaciado } from '../fundamentos/espaciado';
@@ -48,11 +49,12 @@ export function CampoTexto({
 
   return (
     <View style={[styles.raiz, contenedorStyle]}>
-      {label ? <Text style={styles.label}>{label}</Text> : null}
+      {label ? <Text maxFontSizeMultiplier={TOPE_ESCALA_TEXTO} style={styles.label}>{label}</Text> : null}
       <View style={[styles.campo, styles[`campo_${variante}`], error && styles.campoError, campoStyle]}>
         {IconoIzquierda ? <IconoIzquierda color={colorIcono} size={iconoSize} strokeWidth={iconoStrokeWidth} /> : null}
         <TextInput
           keyboardAppearance="light"
+          maxFontSizeMultiplier={TOPE_ESCALA_TEXTO}
           placeholderTextColor={colores.tintaTenue}
           {...props}
           style={[styles.input, inputStyle]}
@@ -60,8 +62,8 @@ export function CampoTexto({
         {rightSlot ??
           (IconoDerecha ? <IconoDerecha color={colorIcono} size={iconoSize} strokeWidth={iconoStrokeWidth} /> : null)}
       </View>
-      {error ? <Text style={[styles.helper, styles.helperError]}>{error}</Text> : null}
-      {!error && helper ? <Text style={styles.helper}>{helper}</Text> : null}
+      {error ? <Text maxFontSizeMultiplier={TOPE_ESCALA_TEXTO} style={[styles.helper, styles.helperError]}>{error}</Text> : null}
+      {!error && helper ? <Text maxFontSizeMultiplier={TOPE_ESCALA_TEXTO} style={styles.helper}>{helper}</Text> : null}
     </View>
   );
 }

@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
-import { Dimensions, Pressable, StyleSheet, View } from 'react-native';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import { Dimensions, Modal, Pressable, StyleSheet, View } from 'react-native';
+import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import Animated, { runOnJS, useAnimatedStyle, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
 
 const { height: ALTO_PANTALLA } = Dimensions.get('window');
@@ -17,6 +17,21 @@ type HojaDeslizanteProps = {
 // Hoja que se desliza desde abajo sobre la pantalla actual (sin reemplazarla
 // del todo): fondo con backdrop, tarjeta con esquinas redondeadas y gesto de
 // arrastre para cerrar. La pantalla que la invoca sigue montada detrás.
+//
+// Va dentro de un Modal nativo (no un simple View absoluto) para quedar
+// SIEMPRE por encima de todo, barra de navegación inferior incluida: cuando
+// se invoca desde una pantalla anidada dentro de un Tabs (p. ej. Mis Hábitos,
+// que vive dentro de la pestaña "Hoy"), un View absoluto solo cubre el árbol
+// de esa pantalla — la barra de pestañas es una hermana renderizada aparte
+// por el navegador, por encima. Modal renderiza en su propia capa nativa, así
+// que no compite por z-index con nada de eso. animationType="none" porque la
+// entrada/salida ya la anima Reanimated acá mismo (traslado/opacidadFondo);
+// dejar que el Modal animara también duplicaría el efecto.
+//
+// GestureHandlerRootView anidado: react-native-gesture-handler lo exige en
+// Android para que los gestos (el arrastre para cerrar) funcionen dentro de
+// un Modal — el GestureHandlerRootView del root de la app no llega hasta acá,
+// porque Modal monta su contenido en una ventana nativa aparte.
 export function HojaDeslizante({ alturaMaxima = 0.92, children, onCerrar }: HojaDeslizanteProps) {
   const traslado = useSharedValue(ALTO_PANTALLA);
   const opacidadFondo = useSharedValue(0);
@@ -49,17 +64,21 @@ export function HojaDeslizante({ alturaMaxima = 0.92, children, onCerrar }: Hoja
   const estiloFondo = useAnimatedStyle(() => ({ opacity: opacidadFondo.value }));
 
   return (
-    <View style={StyleSheet.absoluteFill}>
-      <Animated.View style={[StyleSheet.absoluteFill, styles.fondo, estiloFondo]}>
-        <Pressable accessibilityLabel="Cerrar" onPress={cerrar} style={StyleSheet.absoluteFill} />
-      </Animated.View>
-      <GestureDetector gesture={gesto}>
-        <Animated.View style={[styles.hoja, { maxHeight: ALTO_PANTALLA * alturaMaxima }, estiloHoja]}>
-          <View style={styles.asa} />
-          {children}
-        </Animated.View>
-      </GestureDetector>
-    </View>
+    <Modal animationType="none" onRequestClose={cerrar} statusBarTranslucent transparent visible>
+      <GestureHandlerRootView style={StyleSheet.absoluteFill}>
+        <View style={StyleSheet.absoluteFill}>
+          <Animated.View style={[StyleSheet.absoluteFill, styles.fondo, estiloFondo]}>
+            <Pressable accessibilityLabel="Cerrar" onPress={cerrar} style={StyleSheet.absoluteFill} />
+          </Animated.View>
+          <GestureDetector gesture={gesto}>
+            <Animated.View style={[styles.hoja, { maxHeight: ALTO_PANTALLA * alturaMaxima }, estiloHoja]}>
+              <View style={styles.asa} />
+              {children}
+            </Animated.View>
+          </GestureDetector>
+        </View>
+      </GestureHandlerRootView>
+    </Modal>
   );
 }
 

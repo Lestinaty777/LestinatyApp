@@ -6,6 +6,7 @@ import ReanimatedView, { Easing as EasingR, FadeIn, FadeInDown, FadeOut, interpo
 import { Check, ChevronLeft, ChevronRight, Clock3, Search, Sparkles } from 'lucide-react-native';
 import Svg, { Circle, Path } from 'react-native-svg';
 import { Boton, MasterAnimation, MasterColorProvider, MasterGlass, MasterIcon, RecuadroGlass, TONO_ESMERALDA, Texto, crearTonoMaster, useTonoMaster } from '../../../diseno';
+import { TOPE_ESCALA_TEXTO_COMPACTO } from '../../../diseno/fundamentos/accesibilidad';
 import { CrearHabitoInput } from '../habitos.servicio';
 import type { TipoMetaHabito } from '../tipos';
 import { DIAS_REQUERIDOS_POR_NIVEL, iconosHabitos } from '../iconosHabitos';
@@ -247,6 +248,7 @@ export function CrearHabitoWizard({ visible, guardando, onCerrar, onCrear }: { v
   const [diasSemana, setDiasSemana] = useState<number[]>([1, 2, 3, 4, 5, 6, 7]), [vecesSemana, setVecesSemana] = useState('3');
   const [recordatorio, setRecordatorio] = useState(false), [hora, setHora] = useState('08:00'), [horaPersonalizada, setHoraPersonalizada] = useState(false), [mostrar, setMostrar] = useState(false);
   const [iconoLucide, setIconoLucide] = useState(iconosHabitos[0].id);
+  const [subtipoMeta, setSubtipoMeta] = useState<SubtipoMeta>('cantidad');
   // Semilla premium elegida (id de usuario_semillas) en vez de un tono verde
   // gratuito — null significa "usar el tono verde de siempre". Se limpia al
   // cerrar el wizard igual que el resto del estado transitorio.
@@ -323,7 +325,36 @@ export function CrearHabitoWizard({ visible, guardando, onCerrar, onCrear }: { v
       void actualizarPreferenciaNotificacion('habito_recordatorio', true).catch(() => undefined);
     }).catch(() => setRecordatorio(false));
   }, [recordatorio]);
-  useEffect(() => { if (visible) return; setPreparando(false); setProgresoPreparacion(0); setHabitoCreado(false); setErrorCrear(null); setPlantillaId(null); setBuscarPlantilla(''); setSemillaSeleccionada(null); }, [visible]);
+  // El Modal no desmonta sus hijos al ocultarse (solo dispara la animación de
+  // salida) — sin este reinicio, todo el estado del hábito anterior (título,
+  // ícono, horario, recordatorio... e incluso `paso`) seguía vivo la próxima
+  // vez que se abría, y el wizard reaparecía en el último paso en vez del
+  // primero. Se resetea TODO el estado transitorio a sus valores iniciales,
+  // no solo una parte — de ahí el bug: antes solo se limpiaban 7 de 15 campos.
+  useEffect(() => {
+    if (visible) return;
+    setPaso(0);
+    setTitulo('');
+    setMeta('1');
+    setUnidad(t('habitos.crearWizard.meta.times'));
+    setTipo('cantidad');
+    setFrecuencia('diaria');
+    setDiasSemana([1, 2, 3, 4, 5, 6, 7]);
+    setVecesSemana('3');
+    setRecordatorio(false);
+    setHora('08:00');
+    setHoraPersonalizada(false);
+    setMostrar(false);
+    setIconoLucide(iconosHabitos[0].id);
+    setSubtipoMeta('cantidad');
+    setPreparando(false);
+    setProgresoPreparacion(0);
+    setHabitoCreado(false);
+    setErrorCrear(null);
+    setPlantillaId(null);
+    setBuscarPlantilla('');
+    setSemillaSeleccionada(null);
+  }, [visible]);
   // Cuenta 1 en 1, nunca a saltos: sube despacio hasta 96% mientras esperamos
   // el guardado real, y solo sigue de 97 a 100 cuando ya se confirmó creado —
   // así el número nunca "brinca" de golpe a 100 cuando la red responde rápido.
@@ -370,7 +401,6 @@ export function CrearHabitoWizard({ visible, guardando, onCerrar, onCrear }: { v
   const horaValida = /^([01]\d|2[0-3]):[0-5]\d$/.test(hora);
   const puedeContinuar = plantillaId !== null && titulo.trim().length > 0 && (frecuencia !== 'dias_semana' || diasSemana.length > 0) && (frecuencia !== 'veces_semana' || Number(vecesSemana) > 0) && (!recordatorio || horaValida);
   const plantillasFiltradas = useMemo(() => buscarPlantillasHabitos(buscarPlantilla), [buscarPlantilla, i18n.language]);
-  const [subtipoMeta, setSubtipoMeta] = useState<SubtipoMeta>('cantidad');
   const metas: { id: SubtipoMeta; titulo: string; ejemplo: string; icono: string }[] = [
     { id: 'check', titulo: t('habitos.crearWizard.goal.checkTitle'), ejemplo: t('habitos.crearWizard.goal.checkExample'), icono: 'tareas' },
     { id: 'cantidad', titulo: t('habitos.crearWizard.goal.quantityTitle'), ejemplo: t('habitos.crearWizard.goal.quantityExample'), icono: 'estadistica' },
@@ -435,7 +465,7 @@ export function CrearHabitoWizard({ visible, guardando, onCerrar, onCrear }: { v
       <ReanimatedView.View entering={FadeIn.duration(260).easing(EasingR.out(EasingR.cubic))} key={paso} style={s.pasoContenido}>
       {paso === 0 && <>
         <EncabezadoPaso colorMaster={colorMaster} icono="idea" titulo={t('habitos.crearWizard.templates.title')} subtitulo={t('habitos.crearWizard.templates.subtitle')}/>
-        <RecuadroGlass blur style={s.buscadorGlass}><Search color="#7B7494" size={18}/><TextInput keyboardAppearance="light" onChangeText={setBuscarPlantilla} placeholder={t('habitos.crearWizard.templates.searchPlaceholder')} placeholderTextColor="#9A93A8" style={s.buscadorInput} value={buscarPlantilla}/></RecuadroGlass>
+        <RecuadroGlass blur style={s.buscadorGlass}><Search color="#7B7494" size={18}/><TextInput keyboardAppearance="light" maxFontSizeMultiplier={TOPE_ESCALA_TEXTO_COMPACTO} onChangeText={setBuscarPlantilla} placeholder={t('habitos.crearWizard.templates.searchPlaceholder')} placeholderTextColor="#9A93A8" style={s.buscadorInput} value={buscarPlantilla}/></RecuadroGlass>
         <View style={s.plantillasGrid}>
           {plantillasFiltradas.map((plantilla) => {
             const iconoPlantilla = iconosHabitos.find((x) => x.id === plantilla.iconoId);
@@ -472,7 +502,7 @@ export function CrearHabitoWizard({ visible, guardando, onCerrar, onCrear }: { v
       {paso === 1 && (
         <MasterAnimation duracion={220}>
           <EncabezadoPaso colorMaster={colorMaster} icono="idea" titulo={t('habitos.crearWizard.identity.title')} subtitulo={t('habitos.crearWizard.identity.subtitle')}/>
-          <TextInput autoFocus keyboardAppearance="light" value={titulo} onChangeText={setTitulo} placeholder={t('habitos.crearWizard.identity.namePlaceholder')} style={s.input}/>
+          <TextInput autoFocus keyboardAppearance="light" maxFontSizeMultiplier={TOPE_ESCALA_TEXTO_COMPACTO} value={titulo} onChangeText={setTitulo} placeholder={t('habitos.crearWizard.identity.namePlaceholder')} style={s.input}/>
           {semillasPorPaquete.length > 0 && (
             <View>
               <Texto style={s.etiqueta}>{t('habitos.crearWizard.identity.seedsTitle')}</Texto>
@@ -517,7 +547,7 @@ export function CrearHabitoWizard({ visible, guardando, onCerrar, onCrear }: { v
             </MasterGlass>
           </Rebote>)}
         </View>
-        {tipo !== 'check' && <ReanimatedView.View entering={FadeInDown.duration(240).easing(EasingR.out(EasingR.cubic))} exiting={FadeOut.duration(160)} style={s.campos}><MasterGlass style={{borderRadius:16}}><TextInput keyboardAppearance="light" keyboardType="decimal-pad" onFocus={desplazarAlFoco} placeholder={PLACEHOLDER_META[subtipoMeta]} value={meta} onChangeText={setMeta} style={s.input}/></MasterGlass><MasterGlass style={{borderRadius:16}}><TextInput keyboardAppearance="light" onFocus={desplazarAlFoco} placeholder={placeholderUnidad[subtipoMeta]} value={unidad} onChangeText={setUnidad} style={s.input}/></MasterGlass></ReanimatedView.View>}
+        {tipo !== 'check' && <ReanimatedView.View entering={FadeInDown.duration(240).easing(EasingR.out(EasingR.cubic))} exiting={FadeOut.duration(160)} style={s.campos}><MasterGlass style={{borderRadius:16}}><TextInput keyboardAppearance="light" keyboardType="decimal-pad" maxFontSizeMultiplier={TOPE_ESCALA_TEXTO_COMPACTO} onFocus={desplazarAlFoco} placeholder={PLACEHOLDER_META[subtipoMeta]} value={meta} onChangeText={setMeta} style={s.input}/></MasterGlass><MasterGlass style={{borderRadius:16}}><TextInput keyboardAppearance="light" maxFontSizeMultiplier={TOPE_ESCALA_TEXTO_COMPACTO} onFocus={desplazarAlFoco} placeholder={placeholderUnidad[subtipoMeta]} value={unidad} onChangeText={setUnidad} style={s.input}/></MasterGlass></ReanimatedView.View>}
       </>}
       {paso === 3 && <><EncabezadoPaso colorMaster={colorMaster} icono="calendario" titulo={t('habitos.crearWizard.schedule.title')} subtitulo={t('habitos.crearWizard.schedule.subtitle')}/><Animated.View style={{ borderRadius: 28, overflow: 'hidden', transform:[{scale:pulso}]}}><TarjetaSenderoHabito assets={assetsPaquete} diasProgramados={diasSemana} icono={icono} meta={Number(meta) || 1} metaEtiqueta={etiquetaMeta} titulo={titulo.trim()}/></Animated.View><RecuadroGlass blur style={{borderRadius:22,borderWidth:0,padding:14}}><View style={{alignItems:'center',flexDirection:'row',justifyContent:'space-between'}}><View><Texto style={{color:'#1A1335',fontFamily:'Montserrat-Bold',fontSize:16}}>{t('habitos.crearWizard.schedule.thisWeek')}</Texto><Texto style={s.sub}>{diasSemana.length===7 ? t('habitos.crearWizard.schedule.everyDay') : t('habitos.crearWizard.schedule.selectedDays', { count: diasSemana.length })}</Texto></View><Clock3 color={color} size={24}/></View><View style={{flexDirection:'row',justifyContent:'space-between',marginTop:16}}>{dias.map((x) => <Rebote key={x.id} estilo={[{alignItems:'center',backgroundColor:'#FFFFFF',borderRadius:15,height:58,justifyContent:'center',width:38},diasSemana.includes(x.id)&&{backgroundColor:color}]} onPress={() => toggleDia(x.id)}><Texto style={[{color:'#6F687F',fontFamily:'Montserrat-Bold',fontSize:12},diasSemana.includes(x.id)&&{color:'#fff'}]}>{t(`habitos.crearWizard.schedule.dayLabels.${x.id - 1}`)}</Texto><View style={[{backgroundColor:'rgba(111,104,127,.18)',borderRadius:3,height:5,marginTop:5,width:5},diasSemana.includes(x.id)&&{backgroundColor:'#fff'}]}/></Rebote>)}</View><View style={{flexDirection:'row',gap:8,marginTop:16}}><Rebote estilo={{backgroundColor:'#FFFFFF',borderRadius:12,flex:1,paddingVertical:10}} onPress={() => seleccionarDias([1,2,3,4,5,6,7])}><Texto style={{color:'#1A1335',fontFamily:'Montserrat-Bold',fontSize:12,textAlign:'center'}}>{t('habitos.crearWizard.schedule.everyDay')}</Texto></Rebote><Rebote estilo={{backgroundColor:'#FFFFFF',borderRadius:12,flex:1,paddingVertical:10}} onPress={() => seleccionarDias([1,2,3,4,5])}><Texto style={{color:'#1A1335',fontFamily:'Montserrat-Bold',fontSize:12,textAlign:'center'}}>{t('habitos.crearWizard.schedule.weekdays')}</Texto></Rebote></View></RecuadroGlass></>}
       {paso === 3 && <Image source={assetsPaquete.base} style={{ alignSelf:'center', height:225, marginTop:-22, opacity:0.9, resizeMode:'contain', width:'100%' }} />}
@@ -533,7 +563,7 @@ export function CrearHabitoWizard({ visible, guardando, onCerrar, onCrear }: { v
             <Texto style={{ color: '#554E68', fontFamily: 'Montserrat-Bold', fontSize: 13 }}>{t('habitos.crearWizard.reminder.chooseTime')}</Texto>
             <View style={{ flexDirection: 'row', gap: 8 }}>{['08:00', '13:00', '20:00'].map((valor) => <Rebote key={valor} estilo={{ backgroundColor: !horaPersonalizada && hora === valor ? color : '#FFFFFF', borderRadius: 13, flex: 1, paddingVertical: 10 }} onPress={() => { setHora(valor); setHoraPersonalizada(false); }}><Texto style={{ color: !horaPersonalizada && hora === valor ? '#FFFFFF' : '#1A1335', fontFamily: 'Montserrat-Bold', fontSize: 12, textAlign: 'center' }}>{valor}</Texto></Rebote>)}</View>
             <Rebote estilo={{ alignItems: 'center', backgroundColor: horaPersonalizada ? `${color}16` : '#FFFFFF', borderRadius: 14, flexDirection: 'row', gap: 9, justifyContent: 'center', paddingVertical: 12 }} onPress={() => { setHoraPersonalizada(true); setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 140); }}><Clock3 color={color} size={17} /><Texto style={{ color: '#1A1335', fontFamily: 'Montserrat-Bold', fontSize: 13 }}>{t('habitos.crearWizard.reminder.otherTime')}</Texto></Rebote>
-            {horaPersonalizada && <ReanimatedView.View entering={FadeIn.duration(220)}><RecuadroGlass blur style={{ borderRadius: 16, borderWidth: 0, padding: 13 }}><Texto style={{ color: '#554E68', fontFamily: 'Montserrat-Bold', fontSize: 12 }}>{t('habitos.crearWizard.reminder.customTime')}</Texto><TextInput keyboardAppearance="light" keyboardType="numbers-and-punctuation" maxLength={5} onChangeText={(valor) => setHora(valor)} onFocus={desplazarAlFoco} placeholder={t('habitos.crearWizard.reminder.timePlaceholder')} placeholderTextColor="#9A93A8" value={hora} style={[s.horaInput, !horaValida && { color: '#B64747' }]} /><Texto style={s.sub}>{horaValida ? t('habitos.crearWizard.reminder.validTime') : t('habitos.crearWizard.reminder.invalidTime')}</Texto></RecuadroGlass></ReanimatedView.View>}
+            {horaPersonalizada && <ReanimatedView.View entering={FadeIn.duration(220)}><RecuadroGlass blur style={{ borderRadius: 16, borderWidth: 0, padding: 13 }}><Texto style={{ color: '#554E68', fontFamily: 'Montserrat-Bold', fontSize: 12 }}>{t('habitos.crearWizard.reminder.customTime')}</Texto><TextInput keyboardAppearance="light" keyboardType="numbers-and-punctuation" maxFontSizeMultiplier={TOPE_ESCALA_TEXTO_COMPACTO} maxLength={5} onChangeText={(valor) => setHora(valor)} onFocus={desplazarAlFoco} placeholder={t('habitos.crearWizard.reminder.timePlaceholder')} placeholderTextColor="#9A93A8" value={hora} style={[s.horaInput, !horaValida && { color: '#B64747' }]} /><Texto style={s.sub}>{horaValida ? t('habitos.crearWizard.reminder.validTime') : t('habitos.crearWizard.reminder.invalidTime')}</Texto></RecuadroGlass></ReanimatedView.View>}
             <RecuadroGlass blur style={{ borderRadius: 15, borderWidth: 0, padding: 12 }}>
               <View style={{ alignItems: 'center', flexDirection: 'row' }}><View style={{ flex: 1 }}><Texto style={{ color: '#1A1335', fontFamily: 'Montserrat-Bold', fontSize: 13 }}>{t('habitos.crearWizard.reminder.includeName')}</Texto><Texto style={s.sub}>{mostrar ? t('habitos.crearWizard.reminder.notificationWithName', { title: titulo.trim() || t('habitos.crearWizard.reminder.defaultHabitName') }) : t('habitos.crearWizard.reminder.notificationWithoutName')}</Texto></View><Switch value={mostrar} onValueChange={(valor) => { hapticSeguro('seleccion'); setMostrar(valor); }} /></View>
             </RecuadroGlass>

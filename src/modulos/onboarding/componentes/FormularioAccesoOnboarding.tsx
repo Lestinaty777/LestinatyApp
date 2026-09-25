@@ -6,6 +6,7 @@ import { Linking, Platform, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
 import { CampoContrasena, CampoTexto, Checkbox, MasterButton, MasterIcon, Rebote, Texto } from '../../../diseno';
+import { TOPE_ESCALA_TEXTO } from '../../../diseno/fundamentos/accesibilidad';
 import { capacidades } from '../../../plataforma/capacidades';
 import { usarEstadoAcceso } from '../../acceso/acceso.estado';
 import { crearCuentaConEmail, iniciarSesionConEmail, iniciarSesionConGoogle, reenviarOtpRegistro, verificarCodigoReferido, verificarRegistroConOtp } from '../../acceso/acceso.servicio';
@@ -361,9 +362,9 @@ export function FormularioAccesoOnboarding() {
           ) : (
             <Checkbox checked={terminosAceptados} colorActivo={C.verde} colorBorde={conAlfa(esc.jade.l50, 0.45)} onChange={setTerminosAceptados}>
               {t('onboarding.formularioAcceso.termsAcceptPrefix')}
-              <Text onPress={() => Linking.openURL(URL_TERMINOS)} style={s.enlaceLegalInline}>{t('onboarding.formularioAcceso.termsOfUse')}</Text>
+              <Text maxFontSizeMultiplier={TOPE_ESCALA_TEXTO} onPress={() => Linking.openURL(URL_TERMINOS)} style={s.enlaceLegalInline}>{t('onboarding.formularioAcceso.termsOfUse')}</Text>
               {t('onboarding.formularioAcceso.termsAnd')}
-              <Text onPress={() => Linking.openURL(URL_PRIVACIDAD)} style={s.enlaceLegalInline}>{t('onboarding.formularioAcceso.privacyNotice')}</Text>
+              <Text maxFontSizeMultiplier={TOPE_ESCALA_TEXTO} onPress={() => Linking.openURL(URL_PRIVACIDAD)} style={s.enlaceLegalInline}>{t('onboarding.formularioAcceso.privacyNotice')}</Text>
               {t('onboarding.formularioAcceso.termsDot')}
             </Checkbox>
           )}

@@ -1,6 +1,7 @@
 import { ComponentType, PropsWithChildren, ReactNode } from 'react';
 import { Pressable, StyleProp, StyleSheet, Text, TextStyle, View, ViewStyle } from 'react-native';
 
+import { TOPE_ESCALA_TEXTO_COMPACTO } from '../fundamentos/accesibilidad';
 import { bordes } from '../fundamentos/bordes';
 import { colores } from '../fundamentos/colores';
 import { useColores } from '../tema/useColores';
@@ -73,6 +74,7 @@ export function Boton({
     >
       {IconoIzquierda ? <IconoIzquierda color={colorIcono} size={iconoSize} strokeWidth={iconoStrokeWidth} /> : null}
       <Text
+        maxFontSizeMultiplier={TOPE_ESCALA_TEXTO_COMPACTO}
         style={[
           styles.texto,
           IconoIzquierda || IconoDerecha || rightSlot ? styles.textoConIcono : null,
@@ -98,7 +100,7 @@ function BotonSendero({ children, color, disabled, iconoIzquierda: IconoIzquierd
           <View style={[styles.senderoCara, { backgroundColor: colorBase, transform: [{ translateY: pressed || disabled ? 4 : 0 }] }]}>
             <View style={[styles.senderoBisel, disabled && { borderColor: 'rgba(255,255,255,0.1)' }]} />
             {IconoIzquierda ? <IconoIzquierda color={disabled ? 'rgba(255,255,255,0.4)' : '#FFFFFF'} size={iconoSize} strokeWidth={iconoStrokeWidth} /> : null}
-            <Text style={[styles.textoSendero, { color: disabled ? 'rgba(255,255,255,0.4)' : '#FFFFFF' }]}>{children}</Text>
+            <Text maxFontSizeMultiplier={TOPE_ESCALA_TEXTO_COMPACTO} style={[styles.textoSendero, { color: disabled ? 'rgba(255,255,255,0.4)' : '#FFFFFF' }]}>{children}</Text>
           </View>
         </View>
       )}

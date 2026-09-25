@@ -17,6 +17,7 @@ import Svg, {
   Stop,
 } from 'react-native-svg';
 
+import { TOPE_ESCALA_TEXTO } from '../fundamentos/accesibilidad';
 import { tipografia } from '../fundamentos/tipografia';
 import { useTonoMaster } from '../tema/MasterColorContext';
 import { obtenerColoresUI } from '../tema/ui';
@@ -92,6 +93,7 @@ function FragmentoTextoGradiente({
   start = { x: 0, y: 0 },
   end = { x: 1, y: 0 },
   style,
+  maxFontSizeMultiplier = TOPE_ESCALA_TEXTO,
 }: {
   children: string;
   colores?: readonly [string, string, ...string[]];
@@ -99,6 +101,7 @@ function FragmentoTextoGradiente({
   start?: { x: number; y: number };
   end?: { x: number; y: number };
   style?: StyleProp<TextStyle>;
+  maxFontSizeMultiplier?: number | null;
 }) {
   const [tamano, setTamano] = useState<{ ancho: number; alto: number }>({
     ancho: 0,
@@ -131,7 +134,7 @@ function FragmentoTextoGradiente({
     return (
       <MV
         maskElement={
-          <RNText style={[style, { backgroundColor: 'transparent' }]}>
+          <RNText maxFontSizeMultiplier={maxFontSizeMultiplier} style={[style, { backgroundColor: 'transparent' }]}>
             {children}
           </RNText>
         }
@@ -142,7 +145,7 @@ function FragmentoTextoGradiente({
           start={start}
         >
           {/* Texto invisible con la misma tipografía y tamaño para darle las dimensiones exactas al gradiente */}
-          <RNText style={[style, { opacity: 0 }]}>
+          <RNText maxFontSizeMultiplier={maxFontSizeMultiplier} style={[style, { opacity: 0 }]}>
             {children}
           </RNText>
         </LinearGradient>
@@ -157,6 +160,7 @@ function FragmentoTextoGradiente({
     <View style={s.contenedorFragmento}>
       {/* Texto base visible como fallback si no está medido */}
       <RNText
+        maxFontSizeMultiplier={maxFontSizeMultiplier}
         onLayout={alMedir}
         style={[
           style,
@@ -195,7 +199,7 @@ function FragmentoTextoGradiente({
                 x="0"
                 y="0"
               >
-                <RNText style={[style, s.textoBlancoMascara]}>
+                <RNText maxFontSizeMultiplier={maxFontSizeMultiplier} style={[style, s.textoBlancoMascara]}>
                   {children}
                 </RNText>
               </Mask>
@@ -278,6 +282,7 @@ export function MasterText({
   start = { x: 0, y: 0 },
   end = { x: 1, y: 0 },
   style,
+  maxFontSizeMultiplier = TOPE_ESCALA_TEXTO,
   ...resto
 }: MasterTextProps) {
   const coloresUI = obtenerColoresUI();
@@ -295,7 +300,7 @@ export function MasterText({
 
   if (typeof children !== 'string' || !gradiente) {
     return (
-      <RNText {...resto} style={estiloBase}>
+      <RNText {...resto} maxFontSizeMultiplier={maxFontSizeMultiplier} style={estiloBase}>
         {children}
       </RNText>
     );
@@ -308,6 +313,7 @@ export function MasterText({
         colores={coloresGradiente}
         colorSolido={colorFallback}
         end={end}
+        maxFontSizeMultiplier={maxFontSizeMultiplier}
         start={start}
         style={estiloBase}
       >
@@ -326,7 +332,7 @@ export function MasterText({
 
   if (objetivos.length === 0) {
     return (
-      <RNText {...resto} style={estiloBase}>
+      <RNText {...resto} maxFontSizeMultiplier={maxFontSizeMultiplier} style={estiloBase}>
         {children}
       </RNText>
     );
@@ -338,7 +344,7 @@ export function MasterText({
 
   if (patrones.length === 0) {
     return (
-      <RNText {...resto} style={estiloBase}>
+      <RNText {...resto} maxFontSizeMultiplier={maxFontSizeMultiplier} style={estiloBase}>
         {children}
       </RNText>
     );
@@ -354,7 +360,7 @@ export function MasterText({
   const partes = children.split(regex);
 
   return (
-    <RNText {...resto} style={estiloBase}>
+    <RNText {...resto} maxFontSizeMultiplier={maxFontSizeMultiplier} style={estiloBase}>
       {partes.map((parte, index) => {
         const configCoincidente = patrones.find(
           (p) => p.palabra.toLowerCase() === parte.toLowerCase()
@@ -367,6 +373,7 @@ export function MasterText({
               colorSolido={configCoincidente.colorSolido}
               end={configCoincidente.end}
               key={`grad_${index}_${parte}`}
+              maxFontSizeMultiplier={maxFontSizeMultiplier}
               start={configCoincidente.start}
               style={estiloBase}
             >

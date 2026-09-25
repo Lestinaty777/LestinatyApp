@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 
 import { Texto, colores } from '../../../diseno';
+import { TOPE_ESCALA_TEXTO_COMPACTO } from '../../../diseno/fundamentos/accesibilidad';
 import { hapticSeguro } from '../../../nucleo/dispositivo/haptics';
 import { useEscala } from '../../../diseno/tema/MasterColorContext';
 import type { EscalaMaster } from '../../../diseno/tema/escalaEsmeralda';
@@ -132,6 +133,7 @@ export function CampoOtp({ error, escala, onBlur, onChange, value }: CampoOtpPro
               autoCapitalize="none"
               keyboardAppearance="light"
               keyboardType="number-pad"
+              maxFontSizeMultiplier={TOPE_ESCALA_TEXTO_COMPACTO}
               maxLength={6}
               onBlur={onBlur}
               onChangeText={(texto) => actualizarDesde(indice, texto)}

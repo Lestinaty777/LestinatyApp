@@ -11,7 +11,7 @@ import Animated, { Easing, FadeIn, FadeOut, runOnJS, useAnimatedStyle, useShared
 import { Boton, entradaEncadenada, MasterAnimation, MasterGlass, MasterIcon, MasterIconBg, MasterProgressbar, Rebote, Skeleton, Texto } from '../../../diseno';
 import { hapticSeguro } from '../../../nucleo/dispositivo/haptics';
 import { AuroraBoreal } from '../../hoy/componentes/AuroraBoreal';
-import { crearHabito, obtenerDetallesHabitosHoy, obtenerHabitoMasCercaDeNivel, obtenerHabitoMejorRacha, obtenerHabitosActivos, obtenerPanelHabitos, obtenerResumenPlanesHabitos, registrarProgresoHabito, type HabitoHoyDetalle } from '../habitos.servicio';
+import { crearHabito, obtenerDetallesHabitosHoy, obtenerHabitoMasCercaDeNivel, obtenerHabitoMejorRacha, obtenerHabitosActivos, obtenerPanelHabitos, obtenerResumenPlanesHabitos, type HabitoHoyDetalle } from '../habitos.servicio';
 import { CLAVE_ABRIR_CREACION_HABITO } from '../../onboarding/onboarding.servicio';
 import { haVistoPistaSwipeSendero, marcarPistaSwipeSenderoVista } from '../pistaSwipeSendero';
 import { CrearHabitoWizard } from '../componentes/CrearHabitoWizard';
@@ -19,7 +19,6 @@ import { DetalleHabitoPantalla } from './DetalleHabitoPantalla';
 import { ListaRecordatoriosHabitos } from '../componentes/ListaRecordatoriosHabitos';
 import { TarjetaSenderoHabito } from '../componentes/TarjetaSenderoHabito';
 import { TareasDiariasHoy } from '../componentes/TareasDiariasHoy';
-import { CLAVE_TAREAS_DIARIAS } from '../hooks/useTareasDiarias';
 import { TonoDelHabito } from '../componentes/TonoDelHabito';
 import { buscarIconoHabito } from '../iconosHabitos';
 import { obtenerAssetsPaqueteHabito } from '../paqueteVisual.assets';
@@ -31,7 +30,6 @@ import { HabitoResumen, MejorRachaHabito } from '../tipos';
 import { sincronizarWidgetFoco, suscribirIncrementoWidget } from '../widgets/widgetFoco.servicio';
 import { sincronizarWidgetCalendario } from '../widgets/widgetCalendario.servicio';
 import { sincronizarSesionesCronometroPendientes } from '../cronometro.servicio';
-import { fechaLocalHoy } from '../../../nucleo/dispositivo/fechaLocal';
 import { useTranslation } from 'react-i18next';
 import { useEscala } from '../../../diseno/tema/MasterColorContext';
 import type { EscalaMaster } from '../../../diseno/tema/escalaEsmeralda';
@@ -104,7 +102,6 @@ export function HabitosPantalla() {
   const [detalleHabitoId, setDetalleHabitoId] = useState<string | null>(null);
   const [vistaPanel, setVistaPanel] = useState<VistaPanel>('hoy');
   const [vistaHoy, setVistaHoy] = useState<VistaHoy>('sendero');
-  const [registrandoId, setRegistrandoId] = useState<string | null>(null);
   const [mostrarPistaSwipe, setMostrarPistaSwipe] = useState(false);
   const consulta = useQuery({ queryKey: ['habitos', 'panel'], queryFn: () => obtenerPanelHabitos() });
   const consultaCercania = useQuery({ queryKey: ['habitos', 'cercania-nivel'], queryFn: () => obtenerHabitoMasCercaDeNivel() });
@@ -116,7 +113,6 @@ export function HabitosPantalla() {
   const consultaHabitosActivos = useQuery({ queryKey: ['habitos', 'activos'], queryFn: () => obtenerHabitosActivos(), enabled: vistaPanel === 'progresion' });
   const consultaDetallesHoy = useQuery({ queryKey: ['habitos', 'detalles-hoy'], queryFn: () => obtenerDetallesHabitosHoy(), enabled: vistaPanel !== 'recordatorios' });
   const crear = useMutation({ mutationFn: crearHabito });
-  const registrar = useMutation({ mutationFn: registrarProgresoHabito });
   const habitos = consulta.data?.hoy.datos ?? [];
   const completados = habitos.filter((habito) => habito.completado).length;
   const porcentaje = habitos.length ? Math.round(completados * 100 / habitos.length) : 0;
@@ -152,26 +148,6 @@ export function HabitosPantalla() {
 
   function alternarVista(vista: VistaPanel) {
     setVistaPanel((actual) => (actual === vista ? 'hoy' : vista));
-  }
-
-  async function registrarHabito(habito: HabitoResumen) {
-    const detalle = detallesPorHabito.get(habito.id);
-    if (!detalle?.programadoHoy) return;
-    setRegistrandoId(habito.id);
-    hapticSeguro('confirmacion');
-    try {
-      await registrar.mutateAsync({ fechaLocal: fechaLocalHoy(), habitoId: habito.id, valor: habito.meta });
-      await Promise.all([
-        cliente.invalidateQueries({ queryKey: ['habitos', 'panel'] }),
-        cliente.invalidateQueries({ queryKey: ['habitos', 'detalles-hoy'] }),
-        cliente.invalidateQueries({ queryKey: ['habitos', 'activos'] }),
-        cliente.invalidateQueries({ queryKey: ['habitos', 'cercania-nivel'] }),
-        cliente.invalidateQueries({ queryKey: ['habitos', 'mejor-racha'] }),
-        cliente.invalidateQueries({ queryKey: CLAVE_TAREAS_DIARIAS }),
-      ]);
-    } finally {
-      setRegistrandoId(null);
-    }
   }
 
   function abrirAcceso(id: (typeof ACCESOS)[number]['id']) {
@@ -287,8 +263,6 @@ export function HabitosPantalla() {
               detallesPorHabito={detallesPorHabito}
               habitos={consultaHabitosActivos.data ?? []}
               onDetalle={(id) => setDetalleHabitoId(id)}
-              onRegistrar={(habito) => registrarHabito(habito)}
-              registrandoId={registrandoId}
             />
           )
         )}
@@ -361,21 +335,21 @@ function HistorialRacha({ historial }: { historial: boolean[] }) {
   const TONOS_RACHA = useTemaTONOS_RACHA();
   const s = useEstilosS(); return <View style={[s.historialGrid, { gap: 4 }]}>{Array.from({ length: 4 }).map((_, fila) => <View key={fila} style={[s.historialFila, { gap: 4 }]}>{historial.slice(fila * 7, fila * 7 + 7).map((cumplido, columna) => <View key={columna} style={[s.historialCuadro, { borderRadius: 4, borderWidth: 1, height: 10 }, cumplido ? [s.historialCuadroLleno, { backgroundColor: TONOS_RACHA[columna], borderColor: 'rgba(255,255,255,0.72)' }] : [s.historialCuadroVacio, { backgroundColor: esc.hoja.l95, borderColor: 'rgba(255,255,255,0.82)' }]]} />)}</View>)}</View>; }
 function IconoHabitoVisual({ id, color, size }: { id?: string | null; color: string; size: number }) { const icono = buscarIconoHabito(id); return icono ? <MasterIcon name={icono.id} size={size} /> : <Sparkles color={color} size={size} />; }
-function TarjetaHabito({ detalle, habito, onDetalle, onRegistrar, registrando }: { detalle: HabitoHoyDetalle | undefined; habito: HabitoResumen; onDetalle: () => void; onRegistrar: () => void; registrando: boolean }) {
+// El CTA ya no registra progreso directo desde esta tarjeta (eso sigue
+// disponible en la vista "Hoy", con su propio gesto de swipe) — acá abre los
+// detalles del hábito, igual que tocar cualquier otra parte de la tarjeta.
+// Por eso siempre queda habilitado, sin importar si hoy toca o no registrar.
+function TarjetaHabito({ detalle, habito, onDetalle }: { detalle: HabitoHoyDetalle | undefined; habito: HabitoResumen; onDetalle: () => void }) {
   const s = useEstilosS();
   const { t } = useTranslation();
   const icono = buscarIconoHabito(habito.iconoLucide);
   const assets = obtenerAssetsPaqueteHabito(habito.paqueteId, detalle?.nivel ?? 1);
   const metaEtiqueta = `${habito.meta} ${habito.tipoMeta === 'duracion' ? t('habitos.pantalla.durationUnit') : habito.unidad || t('habitos.pantalla.defaultUnit')}`;
-  const puedeRegistrarHoy = Boolean(detalle?.programadoHoy);
-  const ctaTexto = habito.completado ? t('habitos.pantalla.completedViewTrail') : t('habitos.pantalla.start');
   return <TonoDelHabito colorPaquete={habito.colorPaquete} paqueteId={habito.paqueteId}><Pressable onPress={onDetalle} style={s.tarjetaHabito}>
     <View style={s.tarjetaHabitoContenido}>
       <TarjetaSenderoHabito
         assets={assets}
-        cargando={registrando}
-        ctaTexto={ctaTexto}
-        deshabilitado={!puedeRegistrarHoy}
+        ctaTexto={t('habitos.pantalla.viewDetails')}
         diasCompletados={detalle?.diasCompletadosSemana ?? []}
         diasProgramados={detalle?.diasProgramados ?? DIAS_SEMANA_COMPLETA}
         escalaArbol={0.7}
@@ -383,8 +357,7 @@ function TarjetaHabito({ detalle, habito, onDetalle, onRegistrar, registrando }:
         meta={habito.meta}
         metaEtiqueta={metaEtiqueta}
         nivel={detalle?.nivel ?? 1}
-        onPressCta={puedeRegistrarHoy ? onRegistrar : undefined}
-        puedeRegistrarHoy={puedeRegistrarHoy}
+        onPressCta={onDetalle}
         racha={detalle?.racha ?? 0}
         titulo={habito.titulo}
         valorHoy={habito.valorHoy}
@@ -395,7 +368,7 @@ function TarjetaHabito({ detalle, habito, onDetalle, onRegistrar, registrando }:
 // Carrusel horizontal de "Mis Hábitos": la misma tarjeta rica (árbol, racha,
 // nivel) que antes vivía en Hoy — cada una espera a que la anterior termine
 // de entrar por completo (MasterAnimation encadena, no traslapa).
-function CuadriculaHabitos({ detallesPorHabito, habitos, onDetalle, onRegistrar, registrandoId }: { detallesPorHabito: Map<string, HabitoHoyDetalle>; habitos: HabitoResumen[]; onDetalle: (id: string) => void; onRegistrar: (habito: HabitoResumen) => void; registrandoId: string | null }) {
+function CuadriculaHabitos({ detallesPorHabito, habitos, onDetalle }: { detallesPorHabito: Map<string, HabitoHoyDetalle>; habitos: HabitoResumen[]; onDetalle: (id: string) => void }) {
   const s = useEstilosS();
   const { t } = useTranslation();
   if (habitos.length === 0) return <EstadoVacio texto={t('habitos.pantalla.noHabitsDescription')} />;
@@ -403,7 +376,7 @@ function CuadriculaHabitos({ detallesPorHabito, habitos, onDetalle, onRegistrar,
     <ScrollView contentContainerStyle={s.carruselHabitosContenido} horizontal showsHorizontalScrollIndicator={false} style={s.carruselHabitos}>
       <MasterAnimation duracion={340}>
         {habitos.map((habito) => (
-          <TarjetaHabito detalle={detallesPorHabito.get(habito.id)} habito={habito} key={habito.id} onDetalle={() => onDetalle(habito.id)} onRegistrar={() => onRegistrar(habito)} registrando={registrandoId === habito.id} />
+          <TarjetaHabito detalle={detallesPorHabito.get(habito.id)} habito={habito} key={habito.id} onDetalle={() => onDetalle(habito.id)} />
         ))}
       </MasterAnimation>
     </ScrollView>

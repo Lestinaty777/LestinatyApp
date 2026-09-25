@@ -1,6 +1,7 @@
 import { PropsWithChildren } from 'react';
 import { StyleSheet, Text as TextoRN, TextProps as TextoRNProps } from 'react-native';
 
+import { TOPE_ESCALA_TEXTO } from '../fundamentos/accesibilidad';
 import { tipografia } from '../fundamentos/tipografia';
 import { obtenerColoresUI } from '../tema/ui';
 
@@ -12,11 +13,15 @@ type TextoProps = PropsWithChildren<
   }
 >;
 
-export function Texto({ children, variante = 'cuerpo', style, ...props }: TextoProps) {
+// maxFontSizeMultiplier tiene un tope por defecto (ver accesibilidad.ts) para
+// que el texto más grande de iOS/Android no rompa los contenedores de alto
+// fijo de la app — se puede pasar uno distinto (o `undefined` para quitarlo)
+// donde el layout tenga espacio de sobra.
+export function Texto({ children, maxFontSizeMultiplier = TOPE_ESCALA_TEXTO, variante = 'cuerpo', style, ...props }: TextoProps) {
   const colores = obtenerColoresUI();
 
   return (
-    <TextoRN {...props} style={[styles.base, styles[variante], { color: variante === 'ayuda' ? colores.textoSecundario : colores.texto }, style]}>
+    <TextoRN {...props} maxFontSizeMultiplier={maxFontSizeMultiplier} style={[styles.base, styles[variante], { color: variante === 'ayuda' ? colores.textoSecundario : colores.texto }, style]}>
       {children}
     </TextoRN>
   );

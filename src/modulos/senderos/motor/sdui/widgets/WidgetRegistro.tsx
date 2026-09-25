@@ -3,6 +3,7 @@ import { View, TextInput, Pressable, StyleSheet } from 'react-native';
 import Svg, { Circle, Path } from 'react-native-svg';
 import { Check, Edit2 } from 'lucide-react-native';
 import { Texto, RecuadroGlass, colores } from '../../../../../diseno';
+import { TOPE_ESCALA_TEXTO_COMPACTO } from '../../../../../diseno/fundamentos/accesibilidad';
 import { WidgetAccionProps } from '../tipos';
 import { hapticSeguro } from '../../../../../nucleo/dispositivo/haptics';
 
@@ -43,6 +44,7 @@ export function WidgetRegistro({ color, config, estado, onEvento }: WidgetAccion
           <TextInput
             style={[styles.input, { color: colores.texto }]}
             keyboardAppearance="light"
+            maxFontSizeMultiplier={TOPE_ESCALA_TEXTO_COMPACTO}
             placeholder={config.placeholder}
             placeholderTextColor={colores.textoSecundario}
             keyboardType={config.tipoEntrada === 'numero' ? 'decimal-pad' : 'default'}

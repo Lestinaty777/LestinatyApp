@@ -1,6 +1,7 @@
 import { ComponentType, PropsWithChildren, ReactNode } from 'react';
 import { Pressable, StyleProp, StyleSheet, Text, TextStyle, View, ViewStyle } from 'react-native';
 
+import { TOPE_ESCALA_TEXTO_COMPACTO } from '../fundamentos/accesibilidad';
 import { hapticSeguro } from '../../nucleo/dispositivo/haptics';
 
 type IconoMasterButton = ComponentType<{
@@ -72,7 +73,7 @@ export function MasterButton({
           <View style={[styles.cara, { backgroundColor: cara, transform: [{ translateY: pressed || disabled ? 4 : 0 }] }]}>
             <View pointerEvents="none" style={[styles.bisel, { borderColor: disabled ? 'rgba(255,255,255,0.1)' : colorBisel }]} />
             {IconoIzquierda ? <IconoIzquierda color={colorContenido} size={iconoSize} strokeWidth={iconoStrokeWidth} /> : null}
-            <Text style={[styles.texto, textStyle, { color: colorContenido }]}>{children}</Text>
+            <Text maxFontSizeMultiplier={TOPE_ESCALA_TEXTO_COMPACTO} style={[styles.texto, textStyle, { color: colorContenido }]}>{children}</Text>
             {rightSlot ?? (IconoDerecha ? <IconoDerecha color={colorContenido} size={iconoSize} strokeWidth={iconoStrokeWidth} /> : null)}
           </View>
         </View>

@@ -18,6 +18,7 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ChevronRight } from 'lucide-react-native';
 import { Link } from 'expo-router';
+import { TOPE_ESCALA_TEXTO_COMPACTO } from '../../../diseno/fundamentos/accesibilidad';
 
 import { colores, espaciado } from '../../../diseno';
 import { hapticSeguro } from '../../../nucleo/dispositivo/haptics';
@@ -92,11 +93,12 @@ function TituloAcceso({ children, escala }: PropsWithChildren<{ escala: number }
 
   return (
     <View style={[styles.tituloMarco, { minHeight: 38 * escala }]}>
-      <Text style={[styles.titulo, estiloTitulo, styles.tituloMedida]}>{children}</Text>
+      <Text maxFontSizeMultiplier={TOPE_ESCALA_TEXTO_COMPACTO} style={[styles.titulo, estiloTitulo, styles.tituloMedida]}>{children}</Text>
       {temasAcceso.map((tema, indice) => (
         <Animated.Text
           key={`titulo-${tema.texto}`}
           accessible={false}
+          maxFontSizeMultiplier={TOPE_ESCALA_TEXTO_COMPACTO}
           style={[
             styles.titulo,
             styles.tituloCapa,
@@ -430,7 +432,7 @@ export function BotonAcceso({
                 ]}
               />
             ))}
-            <Text style={[estilosAcceso.textoBoton, textStyle]}>{props.children}</Text>
+            <Text maxFontSizeMultiplier={TOPE_ESCALA_TEXTO_COMPACTO} style={[estilosAcceso.textoBoton, textStyle]}>{props.children}</Text>
             <ChevronRight color={colores.superficie} size={props.iconoSize ?? 21} strokeWidth={2.8} />
           </Animated.View>
         </>
@@ -464,7 +466,7 @@ export function AccionAcceso({
   return (
     <Pressable disabled={disabled} onPress={manejarPress}>
       {({ pressed }) => (
-        <Text style={[estilosAcceso.enlace, { color: tema.texto, opacity: pressed || disabled ? 0.55 : 1 }, style]}>
+        <Text maxFontSizeMultiplier={TOPE_ESCALA_TEXTO_COMPACTO} style={[estilosAcceso.enlace, { color: tema.texto, opacity: pressed || disabled ? 0.55 : 1 }, style]}>
           {children}
         </Text>
       )}

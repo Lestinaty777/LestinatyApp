@@ -69,7 +69,13 @@ export function DetalleHabitoPantalla({ id, onCerrar }: { id: string; onCerrar: 
               <ArrowLeft color="#1A1335" size={23} />
             </Pressable>
             <Texto style={s.navText}>{t('habitos.detalle.navTitulo')}</Texto>
-            <Pressable accessibilityLabel={t('habitos.detalle.verSendero')} onPress={() => router.push({ pathname: '/senderos', params: { habitoId: id } })}>
+            {/* navigate, no push: esta pantalla puede abrirse desde fuera del Tabs (la ruta raíz
+                /habitos/[id], o inline desde /habitos) — con push(), '/senderos' se apilaba en el
+                Stack raíz en vez de enfocar la pestaña Senderos ya montada, así que la barra de
+                navegación se quedaba marcando la pestaña de origen (p. ej. "Inicio") aunque la
+                pantalla visible ya fuera Senderos. navigate() sí reutiliza y enfoca la pestaña
+                existente, dejando la barra sincronizada con lo que se ve en pantalla. */}
+            <Pressable accessibilityLabel={t('habitos.detalle.verSendero')} onPress={() => router.navigate({ pathname: '/senderos', params: { habitoId: id } })}>
               <Sparkles color={habito.color} size={22} />
             </Pressable>
           </View>

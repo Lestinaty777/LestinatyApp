@@ -1,5 +1,6 @@
 import { Image, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { TOPE_ESCALA_TEXTO_COMPACTO } from '../../../../diseno/fundamentos/accesibilidad';
 import { MasterGlass, MasterIcon, MasterProgressbar } from '../../../../diseno';
 import { obtenerAssetsPaqueteHabito } from '../../../habitos/paqueteVisual.assets';
 import type { SeccionSenderoHabito } from '../../../habitos/senderoHabito.tipos';
@@ -63,11 +64,11 @@ export function TarjetaNivelSendero({ seccion, paqueteId, colorPaquete, seleccio
         <Image source={assets.base} style={[s.etapa, !seleccionable && s.etapaBloqueada]} />
         <View style={s.contenido}>
           <View style={s.encabezado}>
-            <Text style={s.titulo} numberOfLines={1}>{titulo}</Text>
+            <Text maxFontSizeMultiplier={TOPE_ESCALA_TEXTO_COMPACTO} numberOfLines={1} style={s.titulo}>{titulo}</Text>
             {seccion.estado === 'bloqueado' && <MasterIcon name="candado" size={16} />}
             {seccion.estado !== 'bloqueado' && <MasterIcon alTema name={`nivel${seccion.nivel}`} size={18} />}
           </View>
-          <Text style={s.subtitulo}>{subtitulo}</Text>
+          <Text maxFontSizeMultiplier={TOPE_ESCALA_TEXTO_COMPACTO} numberOfLines={2} style={s.subtitulo}>{subtitulo}</Text>
           <MasterProgressbar altura={8} colorBase={colorPaquete} porcentaje={porcentaje} />
         </View>
       </MasterGlass>
