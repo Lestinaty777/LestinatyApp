@@ -649,6 +649,7 @@ export function PerfilPantalla() {
               </Rebote>
             </Animated.View>
 
+            {(capacidades.horizon || esPro) && (
             <Animated.View entering={entradaEncadenada(2)}>
               <Rebote
                 accessibilityLabel={t('perfil.header.proMembershipAccessibility')}
@@ -664,6 +665,7 @@ export function PerfilPantalla() {
                 </View>
               </Rebote>
             </Animated.View>
+            )}
           </View>
         </View>
 
@@ -878,7 +880,12 @@ export function PerfilPantalla() {
                   </Animated.View>
                   )}
 
-                  {/* Banner de Suscripción Lestinaty Pro */}
+                  {/* Banner de Suscripción Lestinaty Pro — Horizon hoy solo
+                      desbloquea widgets, así que no se ofrece donde no los
+                      hay; si alguien ya la tiene activa (ej. la compró en
+                      Android y usa este mismo dispositivo), sí se muestra su
+                      estado. */}
+                  {(capacidades.horizon || esPro) && (
                   <Animated.View entering={entradaEncadenada(1)}>
                     <MasterGlass style={[s.tarjetaModulo, esPro ? s.tarjetaProActiva : s.tarjetaProOferta]}>
                       <View style={s.moduloHeader}>
@@ -911,6 +918,7 @@ export function PerfilPantalla() {
                       )}
                     </MasterGlass>
                   </Animated.View>
+                  )}
 
                   {/* Cofre de Gemas y Referidos */}
                   <Animated.View entering={entradaEncadenada(2)}>

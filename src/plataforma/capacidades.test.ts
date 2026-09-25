@@ -5,21 +5,23 @@ vi.mock('react-native', () => ({ Platform: { OS: 'android' } }));
 import { resolverCapacidades } from './capacidades';
 
 describe('capacidades por plataforma', () => {
-  it('desactiva widgets y Google en iOS', () => {
+  it('desactiva widgets, Horizon y Google en iOS', () => {
     expect(resolverCapacidades('ios')).toEqual({
       comprasNativas: true,
       googleSignIn: false,
       notificacionesPush: true,
       widgets: false,
+      horizon: false,
     });
   });
 
-  it('conserva widgets en Android', () => {
+  it('conserva widgets y Horizon en Android', () => {
     expect(resolverCapacidades('android')).toEqual({
       comprasNativas: true,
       googleSignIn: true,
       notificacionesPush: true,
       widgets: true,
+      horizon: true,
     });
   });
 });

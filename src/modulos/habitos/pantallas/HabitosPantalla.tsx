@@ -26,6 +26,7 @@ import { obtenerAssetsPaqueteHabito } from '../paqueteVisual.assets';
 import { useSaldoGemas } from '../../tienda/useSaldoGemas';
 import { rutaParaHorizon } from '../../../nucleo/compras/horizonAcceso';
 import { useHorizon } from '../../../nucleo/compras/useHorizon';
+import { capacidades } from '../../../plataforma/capacidades';
 import { HabitoResumen, MejorRachaHabito } from '../tipos';
 import { sincronizarWidgetFoco, suscribirIncrementoWidget } from '../widgets/widgetFoco.servicio';
 import { sincronizarWidgetCalendario } from '../widgets/widgetCalendario.servicio';
@@ -303,6 +304,7 @@ export function HabitosPantalla() {
         </Animated.View>
       </MasterGlass>
     </Animated.View>
+    {capacidades.horizon && (
     <Animated.View entering={entradaEncadenada(11)} style={s.horizonAcceso}>
       <Pressable accessibilityLabel={t('habitos.pantalla.exploreWidgets')} disabled={horizon.isLoading} onPress={abrirHorizon} style={({ pressed }) => [pressed && s.horizonAccesoPresionado, horizon.isLoading && s.horizonAccesoDeshabilitado]}>
         <MasterGlass style={s.horizonGlass}>
@@ -312,6 +314,7 @@ export function HabitosPantalla() {
         </MasterGlass>
       </Pressable>
     </Animated.View>
+    )}
     <CrearHabitoWizard guardando={crear.isPending} onCerrar={() => setCrearAbierto(false)} onCrear={async (input) => {
       const resultado = await crear.mutateAsync(input);
       await Promise.all([

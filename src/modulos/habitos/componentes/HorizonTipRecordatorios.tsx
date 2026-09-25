@@ -7,13 +7,21 @@ import { rutaParaHorizon } from '../../../nucleo/compras/horizonAcceso';
 import { useHorizon } from '../../../nucleo/compras/useHorizon';
 import { useEscala } from '../../../diseno/tema/MasterColorContext';
 import type { EscalaMaster } from '../../../diseno/tema/escalaEsmeralda';
+import { capacidades } from '../../../plataforma/capacidades';
 
+// Todo lo que promociona esta tarjeta (widgets Horizon) no existe donde
+// !capacidades.horizon — no tiene sentido mostrarla ahí.
 export function HorizonTipRecordatorios() {
   const esc = useEscala();
   const s = useEstilosS();
   const router = useRouter();
   const horizon = useHorizon();
   const cargando = horizon.isLoading;
+
+  if (!capacidades.horizon) {
+    return null;
+  }
+
   return <Pressable accessibilityLabel="Explorar widgets Horizon" disabled={cargando} onPress={() => router.push(rutaParaHorizon(horizon.data ?? 'noDisponible'))} style={s.presionable}>
     <MasterGlass style={s.tarjeta}>
       <MasterIconBg size={46}><Smartphone color={esc.jade.l42a} size={21} /></MasterIconBg>
