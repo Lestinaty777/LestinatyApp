@@ -480,7 +480,7 @@ export function PerfilPantalla() {
           onPress: async () => {
             try {
               await cerrarSesion();
-              router.replace('/(publico)/iniciar-sesion');
+              router.replace('/(publico)/introduccion-acceso');
             } catch {
               Alert.alert(t('perfil.alerts.errorTitle'), t('perfil.alerts.signOutError'));
             }
@@ -519,7 +519,7 @@ export function PerfilPantalla() {
                       // los datos del usuario. Ver migración 20260924_49.
                       await eliminarCuentaPropia();
                       await cerrarSesion();
-                      router.replace('/(publico)/iniciar-sesion');
+                      router.replace('/(publico)/introduccion-acceso');
                     } catch {
                       Alert.alert(t('perfil.alerts.errorTitle'), t('perfil.alerts.deleteAccountError'));
                     }

@@ -28,7 +28,11 @@ export default function LayoutPrincipal() {
   }
 
   if (!usuario) {
-    return <Redirect href="/(publico)/iniciar-sesion" />;
+    // A la pantalla de acceso "nueva" (con la misma decoración del
+    // onboarding, FormularioAccesoOnboarding) — no a la vieja iniciar-sesion
+    // suelta. Esto cubre tanto el cierre de sesión manual como cualquier otra
+    // caída de sesión mientras se usa la app.
+    return <Redirect href="/(publico)/introduccion-acceso" />;
   }
 
   // Cuenta nueva que todavía no eligió su árbol de bienvenida: bloquea las
