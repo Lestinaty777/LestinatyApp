@@ -7,7 +7,7 @@ import { PAQUETE_HABITO_PREDETERMINADO, resolverPaqueteHabito } from './paqueteH
 import { resumirHabitosActivos } from './resumenHabitosActivos';
 import { mapearTransicionSendero } from './senderoHabito.mapper';
 import { mapearMandalaPendiente } from './mandalaNodo.mapper';
-import { reportarRegistroANotificaciones } from './reporteNotificaciones';
+import { programarSincronizacionEtiquetas, reportarRegistroANotificaciones } from './reporteNotificaciones';
 import { calcularDetalleHabitoHoy, type HabitoHoyDetalle } from './semanaProgramada';
 import type { EdicionHabito } from './gestionDetalleHabito';
 import { DetalleHabito, HabitoResumen, MejorRachaHabito, PanelHabitos, PlanHabitoResumen, ProximoNivelHabito, ResultadoRegistroHabito, TipoMetaHabito } from './tipos';
@@ -56,6 +56,7 @@ export async function actualizarHabitoDesdeDetalle(habitoId: string, edicion: Ed
 export async function archivarHabito(habitoId: string): Promise<void> {
   const { error } = await obtenerClienteSupabase().rpc('archivar_habito', { p_habito_id: habitoId });
   if (error) throw error;
+  programarSincronizacionEtiquetas();
 }
 
 type ResultadoRegistroRemoto = { id: string; habito_id: string; fecha_local: string; valor: number; nota: string | null; subio_nivel: boolean; nivel: number; gemas_ganadas: number; transicion_sendero: unknown; mandala_pendiente: unknown };
@@ -92,6 +93,8 @@ export async function crearHabito(input: CrearHabitoInput): Promise<{ id: string
     p_frecuencia: input.frecuencia ?? 'diaria', p_dias_semana: input.diasSemana ?? null, p_veces_por_semana: input.vecesPorSemana ?? null, p_objetivo_valor: input.meta, p_recordatorio_activo: input.recordatorioActivo ?? false, p_hora_recordatorio: input.horaRecordatorio ?? null, p_mostrar_nombre_notificacion: input.mostrarNombreNotificacion ?? false, p_desde_fecha: fechaLocalHoy(), p_nivel_inicial: input.nivelInicial ?? 1, p_paquete_id: resolverPaqueteHabito(input.paqueteId ?? PAQUETE_HABITO_PREDETERMINADO),
   });
   if (error) throw error;
+  // habitos_activos deja de ser 0: sale del journey de bienvenida al momento.
+  programarSincronizacionEtiquetas();
   return data as { id: string; plan_id: string };
 }
 

@@ -9,5 +9,6 @@ export {
   cerrarSesionNotificaciones as cerrarSesionOneSignal,
   solicitarPermisoYRegistrar,
   etiquetarUsuarioNotificaciones,
+  notificacionesListas,
   registrarResultadoNotificaciones,
 } from '../../plataforma/notificaciones/cliente.native';

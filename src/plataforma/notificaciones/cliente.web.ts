@@ -14,6 +14,10 @@ export async function solicitarPermisoYRegistrar(): Promise<ResultadoPermisoNoti
   return { estado: 'no_disponible', motivo: 'plataforma' };
 }
 
+export function notificacionesListas(): boolean {
+  return false;
+}
+
 export function etiquetarUsuarioNotificaciones(_etiquetas: Record<string, string>): void {}
 
 export function registrarResultadoNotificaciones(_nombre: string, _valor?: number): void {}

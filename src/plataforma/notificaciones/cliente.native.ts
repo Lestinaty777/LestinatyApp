@@ -138,6 +138,11 @@ async function sincronizarSuscripcionActual() {
 // OneSignal no está inicializado (p. ej. tareas en segundo plano de
 // widgets o del cronómetro de Android): nunca rompen el flujo que las llama.
 
+/** OneSignal está listo en este proceso (no lo está en tareas en segundo plano ni en web). */
+export function notificacionesListas(): boolean {
+  return (Platform.OS === 'ios' || Platform.OS === 'android') && inicializado;
+}
+
 export function etiquetarUsuarioNotificaciones(etiquetas: Record<string, string>): void {
   if ((Platform.OS !== 'ios' && Platform.OS !== 'android') || !inicializado) return;
   try {
