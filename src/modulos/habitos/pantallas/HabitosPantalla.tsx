@@ -477,8 +477,16 @@ function FilaHabitoHoy({ esActivo, esUltimo, habito, mostrarPista, onDetalle, on
     })
     .onEnd(() => {
       if (translateX.value > distanciaMeta * UMBRAL_SWIPE_FRACCION) {
-        // Pasado el umbral, el ícono se queda a la derecha — no regresa nunca.
-        translateX.value = withTiming(distanciaMeta, { duration: 140 });
+        // Pasado el umbral: primero completa el deslizamiento (el gesto de
+        // "confirmación" antes de navegar), y después vuelve solo a su
+        // posición inicial. Esta pantalla no se desmonta al cambiar de
+        // pestaña (sigue viva detrás de "Hoy"), así que si se queda a la
+        // derecha para siempre, al volver de Senderos el ícono aparece
+        // atascado ahí en vez de en su lugar de siempre.
+        translateX.value = withSequence(
+          withTiming(distanciaMeta, { duration: 140 }),
+          withDelay(200, withSpring(0, { damping: 15, stiffness: 220 })),
+        );
         runOnJS(hapticSeguro)('confirmacion');
         runOnJS(onSwipeDescubierto)();
         runOnJS(onSendero)();
