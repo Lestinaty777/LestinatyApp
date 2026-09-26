@@ -24,7 +24,7 @@ export function MasterKicker({ icono, texto }: MasterKickerProps) {
     >
       <View style={s.contenido}>
         {icono}
-        <Texto style={s.texto}>{texto}</Texto>
+        <Texto numberOfLines={1} style={s.texto}>{texto}</Texto>
       </View>
     </LinearGradient>
   );

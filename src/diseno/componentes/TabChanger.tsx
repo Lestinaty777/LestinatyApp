@@ -59,7 +59,7 @@ export function TabChanger({
               style={styles.tab}
               onPress={() => handlePress(i)}
             >
-              <Texto style={[styles.tabText, isActive && styles.tabTextActive]}>
+              <Texto numberOfLines={1} style={[styles.tabText, isActive && styles.tabTextActive]}>
                 {tab}
               </Texto>
             </Pressable>

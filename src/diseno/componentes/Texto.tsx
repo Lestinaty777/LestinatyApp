@@ -18,10 +18,13 @@ type TextoProps = PropsWithChildren<
 // fijo de la app — se puede pasar uno distinto (o `undefined` para quitarlo)
 // donde el layout tenga espacio de sobra.
 export function Texto({ children, maxFontSizeMultiplier = TOPE_ESCALA_TEXTO, variante = 'cuerpo', style, ...props }: TextoProps) {
+  // Red de seguridad contra recortes: un texto de una sola línea que no cabe se
+  // encoge (hasta 80 %) en vez de terminar en "…"; si cabe, no cambia nada.
+  const unaLinea = props.numberOfLines === 1;
   const colores = obtenerColoresUI();
 
   return (
-    <TextoRN {...props} maxFontSizeMultiplier={maxFontSizeMultiplier} style={[styles.base, styles[variante], { color: variante === 'ayuda' ? colores.textoSecundario : colores.texto }, style]}>
+    <TextoRN adjustsFontSizeToFit={unaLinea} minimumFontScale={unaLinea ? 0.8 : undefined} {...props} maxFontSizeMultiplier={maxFontSizeMultiplier} style={[styles.base, styles[variante], { color: variante === 'ayuda' ? colores.textoSecundario : colores.texto }, style]}>
       {children}
     </TextoRN>
   );
