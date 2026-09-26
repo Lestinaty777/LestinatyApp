@@ -141,14 +141,14 @@ function RutaNiveles({ colorMaster, meta, tipo, unidad }: { colorMaster: ReturnT
 // liso, con el porcentaje al centro. El número sube 1 en 1 sin saltos (ver el
 // intervalo de progresoPreparacion) y el anillo se rellena a la par; al llegar
 // a 100 el número da paso a una palomita. Sin árboles ni fondos decorativos.
-function PreparandoHabito({ color, progreso, titulo }: { color: string; progreso: number; titulo: string }) {
+function PreparandoHabito({ color, fondo, progreso, titulo }: { color: string; fondo: string; progreso: number; titulo: string }) {
   const { t } = useTranslation();
   const estado = estadoPreparacionHabito(progreso);
-  return <View style={p.raiz}>
+  return <View style={[p.raiz, { backgroundColor: fondo }]}>
     <ReanimatedView.View entering={FadeIn.duration(360)} style={p.contenido}>
-      <MasterSand color={color} forma="anillo" grosor={22} porcentaje={progreso} tamano={230}>
+      <MasterSand color={color} forma="anillo" grosor={16} porcentaje={progreso} tamano={170}>
         {progreso >= 100
-          ? <Check color={color} size={64} strokeWidth={3} />
+          ? <Check color={color} size={48} strokeWidth={3} />
           : <Texto style={[p.porcentaje, { color }]}>{progreso}%</Texto>}
       </MasterSand>
       <Texto style={[p.titulo, { color }]}>{t(estado.mensajeClave)}</Texto>
@@ -547,7 +547,7 @@ export function CrearHabitoWizard({ visible, guardando, onCerrar, onCrear }: { v
       {paso === 5 && <><EncabezadoPaso colorMaster={colorMaster} icono="trofeo" titulo={t('habitos.crearWizard.review.title')} subtitulo={t('habitos.crearWizard.review.subtitle')}/><Animated.View style={{ borderRadius: 28, overflow: 'hidden'}}><TarjetaSenderoHabito assets={assetsPaquete} diasProgramados={diasSemana} icono={icono} meta={Number(meta) || 1} metaEtiqueta={etiquetaMeta} titulo={titulo.trim()}/></Animated.View></>}
       {paso === 6 && <><EncabezadoPaso colorMaster={colorMaster} icono="trofeo" titulo={t('habitos.crearWizard.growth.title')} subtitulo={tipo === 'check' ? t('habitos.crearWizard.growth.checkSubtitle') : t('habitos.crearWizard.growth.otherSubtitle')}/><RutaNiveles colorMaster={colorMaster} meta={meta} tipo={tipo} unidad={unidad}/>{errorCrear&&<Texto style={{color:'#B64747',fontFamily:'Montserrat-Bold',fontSize:12,textAlign:'center',marginTop:12}}>{errorCrear}</Texto>}</>}
       </ReanimatedView.View>
-    </ScrollView>{paso === 4 && !tecladoVisible && <View pointerEvents="none" style={s.paisajeRecordatorio}><Image source={assetsPaquete.arbolPrincipal} style={s.arbolRecordatorio}/><Image source={assetsPaquete.arbusto} style={s.arbustoRecordatorio} /></View>}<ReanimatedView.View onLayout={(e) => setAltoFooter(e.nativeEvent.layout.height)} style={[s.pie, estiloFondo]}><SafeAreaView edges={['bottom']}><Boton color={color} disabled={!puedeContinuar||guardando||preparando} iconoIzquierda={paso===6?Check:ChevronRight} onPress={() => paso===6?void guardar():setPaso(paso+1)} variante="sendero">{guardando ? t('habitos.crearWizard.actions.creating') : paso === 6 ? t('habitos.crearWizard.actions.createHabit') : t('habitos.crearWizard.continue')}</Boton></SafeAreaView></ReanimatedView.View>{preparando&&<PreparandoHabito color={color} progreso={progresoPreparacion} titulo={titulo.trim()} />}
+    </ScrollView>{paso === 4 && !tecladoVisible && <View pointerEvents="none" style={s.paisajeRecordatorio}><Image source={assetsPaquete.arbolPrincipal} style={s.arbolRecordatorio}/><Image source={assetsPaquete.arbusto} style={s.arbustoRecordatorio} /></View>}<ReanimatedView.View onLayout={(e) => setAltoFooter(e.nativeEvent.layout.height)} style={[s.pie, estiloFondo]}><SafeAreaView edges={['bottom']}><Boton color={color} disabled={!puedeContinuar||guardando||preparando} iconoIzquierda={paso===6?Check:ChevronRight} onPress={() => paso===6?void guardar():setPaso(paso+1)} variante="sendero">{guardando ? t('habitos.crearWizard.actions.creating') : paso === 6 ? t('habitos.crearWizard.actions.createHabit') : t('habitos.crearWizard.continue')}</Boton></SafeAreaView></ReanimatedView.View>{preparando&&<PreparandoHabito color={color} fondo={tono.fondo} progreso={progresoPreparacion} titulo={titulo.trim()} />}
   </ReanimatedView.View></KeyboardAvoidingView></MasterColorProvider></SafeAreaProvider></Modal>;
 }
 
