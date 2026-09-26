@@ -1,16 +1,16 @@
-import Svg, { Rect, Defs, Pattern, Circle } from 'react-native-svg';
+import Svg, { Circle } from 'react-native-svg';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { useIsFocused, useLocalSearchParams, useRouter } from 'expo-router';
-import { ActivityIndicator, FlatList, Modal, StyleSheet, View, useWindowDimensions, Pressable, Image } from 'react-native';
+import { ActivityIndicator, FlatList, StyleSheet, View, useWindowDimensions, Pressable, Image } from 'react-native';
 import { ScrollView } from 'react-native-gesture-handler';
 import { BotonTab } from '../../../nucleo/navegacion/BarraTabs';
 import { PixelartIcon } from '../../../diseno/iconos/PixelartIcon';
 import Animated, { useSharedValue, useAnimatedStyle, useAnimatedProps, withTiming, Easing, withSpring, withRepeat } from 'react-native-reanimated';
 import { BookOpen } from 'lucide-react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Trophy, Leaf, Sun, Moon, ChevronDown, X, Eye } from 'lucide-react-native';
+import { Trophy, Leaf, Sun, Moon, ChevronDown } from 'lucide-react-native';
 import { ContenedorMapaSenderos } from '../../senderos/componentes/mapa/ContenedorMapaSenderos';
 import { AmbienteLluviaMapa } from '../componentes/mapa/AmbienteLluviaMapa';
 import { MasterChip, MasterGlass, MasterIcon, MasterIconBg, MasterProgressbar, Texto, colores, RecuadroGlass, buscarIcono } from '../../../diseno';
@@ -28,14 +28,8 @@ import { obtenerDetallesHabitosHoy, obtenerHabitosActivos } from '../../habitos/
 import { EstadoVacioSenderos } from '../componentes/EstadoVacioSenderos';
 import type { HabitoResumen } from '../../habitos/tipos';
 import { useSaldoGemas } from '../../tienda/useSaldoGemas';
-import { obtenerCatalogoArboles } from '../../tienda/gemas.servicio';
-import type { ArbolPaquete } from '../../tienda/gemas.tipos';
 import { coloresSelectorCategoria, type ModuloCategoriaMapa } from '../datos/modulosCategorias';
 import { MAPAS_NIVELES } from '../Mapas';
-import { obtenerAssetsPaquete } from '../algoritmo/registroPaquetesArbol';
-import { colorSeguroUi } from '../algoritmo/colorHsl';
-import { construirNodosDias } from '../../habitos/construirNodosDias';
-import { DIAS_POR_MAPA } from '../../habitos/senderoNiveles';
 import { useEscala } from '../../../diseno/tema/MasterColorContext';
 import type { EscalaMaster } from '../../../diseno/tema/escalaEsmeralda';
 import { conAlfa } from '../../../diseno/tema/masterColor';
@@ -85,10 +79,10 @@ export function MapaSenderosPantalla() {
   const parametros = useLocalSearchParams<{ habitoId?: string | string[] }>();
   const habitoIdParametro = Array.isArray(parametros.habitoId) ? parametros.habitoId[0] : parametros.habitoId;
 
-  const [activeMenu, setActiveMenu] = React.useState<'none' | 'courses' | 'store'>('none');
+  const [activeMenu, setActiveMenu] = React.useState<'none' | 'courses'>('none');
   const animMenuState = useSharedValue(0);
 
-  const handleToggleMenu = (menu: 'courses' | 'store') => {
+  const handleToggleMenu = (menu: 'courses') => {
     hapticSeguro('seleccion');
     if (activeMenu === menu) {
       setActiveMenu('none');
@@ -218,14 +212,14 @@ export function MapaSenderosPantalla() {
                   </View>
                 </MasterGlass>
               </Pressable>
-              <Pressable accessibilityLabel={t('senderos.map.accessibility.viewGems')} onPress={() => handleToggleMenu('store')}>
+              <View accessibilityLabel={t('senderos.map.accessibility.viewGems')}>
                 <MasterGlass blur compacto style={styles.botonCristal}>
-                  <View style={[styles.botonPildora, activeMenu === 'store' && { backgroundColor: aclarar('#A100FF', 0.86) }]}>
+                  <View style={styles.botonPildora}>
                     <Image resizeMode="contain" source={require('../../../../assets/icons/hoy/gemas.png')} style={{ height: 23, width: 23 }} />
-                    <Texto style={{ fontSize: 14, fontFamily: 'Montserrat-Bold', color: activeMenu === 'store' ? '#A100FF' : '#53505B', marginTop: -2 }}>{saldoGemas ?? 0}</Texto>
+                    <Texto style={{ fontSize: 14, fontFamily: 'Montserrat-Bold', color: '#53505B', marginTop: -2 }}>{saldoGemas ?? 0}</Texto>
                   </View>
                 </MasterGlass>
-              </Pressable>
+              </View>
             </View>
 
             </MasterGlass>
@@ -292,7 +286,6 @@ export function MapaSenderosPantalla() {
                   </View>
                 );
               })()}
-              {activeMenu === 'store' && <PanelTienda saldoGemas={saldoGemas ?? 0} />}
             </Animated.View>
             </MasterGlass>
             )}
@@ -522,20 +515,6 @@ export function MapaSenderosPantalla() {
 
 
 
-
-const TexturaPixelArt = () => (
-  <View style={StyleSheet.absoluteFill} pointerEvents="none">
-    <Svg style={StyleSheet.absoluteFill}>
-      <Defs>
-        <Pattern id="dither" patternUnits="userSpaceOnUse" width="4" height="4">
-          <Rect x="0" y="0" width="2" height="2" fill="#000000" opacity="0.1" />
-          <Rect x="2" y="2" width="2" height="2" fill="#000000" opacity="0.1" />
-        </Pattern>
-      </Defs>
-      <Rect width="2000" height="2000" fill="url(#dither)" />
-    </Svg>
-  </View>
-);
 
 function oscurecer(color: string, factor = 0.7) {
   const hex = color.replace('#', '');
@@ -822,149 +801,3 @@ function useEstilosStyles() {
 }
 
 
-function PanelTienda({ saldoGemas }: { saldoGemas: number }) {
-  const { t } = useTranslation();
-  // Misma queryKey que TiendaArbolesPantalla.tsx — comparten caché, el
-  // catálogo de árboles es idéntico sin importar desde dónde se pida.
-  const consultaCatalogo = useQuery({ queryKey: ['tienda', 'catalogoArboles'], queryFn: obtenerCatalogoArboles });
-  const articulos = consultaCatalogo.data ?? [];
-  // Tocar un árbol ya no lo compra acá — abre una vista previa de cómo se ve
-  // su sendero (mapa mock en nivel 3). Comprar semillas de verdad sigue
-  // disponible en la Tienda dedicada (TiendaArbolesPantalla).
-  const [paquetePreview, setPaquetePreview] = React.useState<ArbolPaquete | null>(null);
-
-  return (
-    <View style={{ flex: 1, paddingHorizontal: 20, paddingTop: 5, paddingBottom: 15 }}>
-      {/* Background Texture */}
-      <View style={[StyleSheet.absoluteFill, { opacity: 0.1 }]} pointerEvents="none">
-        <TexturaPixelArt />
-      </View>
-      
-      {/* CABECERA */}
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 20 }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-          <View style={{ width: 42, height: 42 }}>
-            <View style={{ position: 'absolute', top: 4, left: 0, right: 0, bottom: -4, backgroundColor: '#000000', borderRadius: 8 }} />
-            <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: '#111111', borderRadius: 8, justifyContent: 'center', alignItems: 'center' }}>
-              <Image resizeMode="contain" source={require('../../../../assets/icons/hoy/gemas.png')} style={{ height: 24, width: 24 }} />
-            </View>
-          </View>
-          <View>
-            <Texto style={{ fontSize: 9, color: 'rgba(0,0,0,0.5)', fontFamily: 'Montserrat-Bold', letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 0 }}>{t('senderos.map.nursery.seeds')}</Texto>
-            <Texto style={{ fontSize: 22, fontFamily: 'Montserrat-Bold', color: '#111111' }}>{t('senderos.map.nursery.title')}</Texto>
-          </View>
-        </View>
-        <View style={{ alignItems: 'flex-end' }}>
-          <Texto style={{ fontSize: 8, color: 'rgba(0,0,0,0.5)', fontFamily: 'Montserrat-Bold', letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 2 }}>{t('senderos.map.nursery.balance')}</Texto>
-          <View style={{ backgroundColor: '#111111', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, borderBottomWidth: 2, borderBottomColor: '#000000', flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-            <Image resizeMode="contain" source={require('../../../../assets/icons/hoy/gemas.png')} style={{ height: 14, width: 14 }} />
-            <Texto style={{ fontSize: 13, fontFamily: 'Montserrat-Bold', color: '#FFD700' }}>{saldoGemas}</Texto>
-          </View>
-        </View>
-      </View>
-
-      {/* CARRUSEL DE ÁRBOLES */}
-      {consultaCatalogo.isLoading ? (
-        <View style={{ flexDirection: 'row', gap: 15 }}>
-          {[0, 1, 2].map((i) => (
-            <View key={i} style={{ width: 140, height: 130, borderRadius: 12, backgroundColor: 'rgba(0,0,0,0.06)' }} />
-          ))}
-        </View>
-      ) : articulos.length === 0 ? (
-        <Texto style={{ fontSize: 12, fontFamily: 'Montserrat-Medium', color: 'rgba(0,0,0,0.5)' }}>{t('senderos.map.nursery.empty')}</Texto>
-      ) : (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 15, paddingBottom: 15 }} style={{ flex: 1, overflow: 'visible' }}>
-          {articulos.map(art => {
-            const imagen = obtenerAssetsPaquete(art.id)?.etapas[6] ?? null;
-            return (
-              <Pressable
-                key={art.id}
-                onPress={() => { hapticSeguro('seleccion'); setPaquetePreview(art); }}
-                style={({ pressed }) => [{ width: 140, height: 130 }, pressed && { transform: [{ translateY: 3 }] }]}
-              >
-                {/* Sombra 3D del producto */}
-                <View style={{ position: 'absolute', top: 4, left: 0, right: 0, bottom: -4, backgroundColor: oscurecer(art.masterPackColor, 0.5), borderRadius: 12 }} />
-
-                {/* Carta Frontal */}
-                <View style={[{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: art.masterPackColor, borderRadius: 12, padding: 12, overflow: 'hidden' }]}>
-                  {/* Máquina de Vending Brillo / Textura */}
-                  <View style={{ position: 'absolute', top: -20, right: -20, width: 60, height: 60, backgroundColor: 'rgba(255,255,255,0.1)', transform: [{ rotate: '45deg' }] }} />
-
-                  <View style={{ marginBottom: 'auto', alignItems: 'center' }}>
-                    {imagen ? <Image resizeMode="contain" source={imagen} style={{ width: 56, height: 56 }} /> : <Trophy color="#FFF" size={24} />}
-                  </View>
-
-                  <View style={{ marginTop: 'auto' }}>
-                    <Texto style={{ fontSize: 12, fontFamily: 'Montserrat-Bold', color: '#FFFFFF', marginBottom: 2 }} numberOfLines={1}>{art.nombre}</Texto>
-                    <Texto style={{ fontSize: 9, fontFamily: 'Montserrat-Medium', color: 'rgba(255,255,255,0.7)' }} numberOfLines={2}>
-                      {t('senderos.map.nursery.previewCard')}
-                    </Texto>
-                  </View>
-                </View>
-
-                {/* Insignia de vista previa (ya no es un precio: acá no se compra) */}
-                <View style={{ position: 'absolute', top: -8, right: -8, backgroundColor: '#111111', padding: 6, borderRadius: 6, borderBottomWidth: 3, borderBottomColor: '#000000', transform: [{ rotate: '5deg' }] }}>
-                  <Eye color="#FFD700" size={14} />
-                </View>
-              </Pressable>
-            );
-          })}
-        </ScrollView>
-      )}
-
-      <ModalPreviewArbol onCerrar={() => setPaquetePreview(null)} paquete={paquetePreview} />
-    </View>
-  );
-}
-
-// Vista previa de un paquete de árbol: carga un mapa mock (nivel 3, algunos
-// días completados) teñido con sus colores, para que se vea "cómo es" antes
-// de plantarlo — sin comprar nada desde acá.
-const NIVEL_PREVIEW_ARBOL = 3;
-
-function ModalPreviewArbol({ onCerrar, paquete }: { onCerrar: () => void; paquete: ArbolPaquete | null }) {
-  const { t } = useTranslation();
-  const insets = useSafeAreaInsets();
-  const { height } = useWindowDimensions();
-  const diasRequeridos = DIAS_POR_MAPA[NIVEL_PREVIEW_ARBOL];
-  const nodosPreview = React.useMemo(
-    () => construirNodosDias(Math.min(4, diasRequeridos - 1), diasRequeridos, NIVEL_PREVIEW_ARBOL, new Map(), { puedeAvanzarHoy: true }),
-    [diasRequeridos],
-  );
-
-  return (
-    <Modal animationType="slide" onRequestClose={onCerrar} presentationStyle="overFullScreen" transparent visible={paquete !== null}>
-      {paquete && (
-        <TonoDelHabito colorPaquete={paquete.masterPackColor} paqueteId={paquete.id}>
-          <View style={{ flex: 1, backgroundColor: '#FFFFFF', paddingTop: insets.top }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 14 }}>
-              <View style={{ flex: 1, marginRight: 12 }}>
-                <Texto style={{ fontSize: 10, color: 'rgba(0,0,0,0.45)', fontFamily: 'Montserrat-Bold', letterSpacing: 1.4, textTransform: 'uppercase' }}>
-                  {t('senderos.map.nursery.previewKicker')}
-                </Texto>
-                <Texto numberOfLines={1} style={{ fontSize: 20, fontFamily: 'Montserrat-Bold', color: '#111111' }}>{paquete.nombre}</Texto>
-              </View>
-              <Pressable accessibilityLabel={t('senderos.levels.close')} onPress={onCerrar} style={{ padding: 8 }}>
-                <X color="#333333" size={22} strokeWidth={2.5} />
-              </Pressable>
-            </View>
-            <ContenedorMapaSenderos
-              key={paquete.id}
-              altura={Math.max(320, height - insets.top - insets.bottom - 92)}
-              categoriaId="habitos"
-              color={colorSeguroUi(paquete.masterPackColor)}
-              colorPaquete={paquete.masterPackColor}
-              enfocado
-              infoHabito={{ meta: 1, tipoMeta: 'check', unidad: null }}
-              nivel={NIVEL_PREVIEW_ARBOL}
-              nodos={nodosPreview}
-              paqueteId={paquete.id}
-              progresoPastoTemprano={1}
-              subcategoriaId={paquete.id}
-            />
-          </View>
-        </TonoDelHabito>
-      )}
-    </Modal>
-  );
-}
