@@ -5,7 +5,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import ReanimatedView, { Easing as EasingR, FadeIn, FadeInDown, FadeOut, interpolate, interpolateColor, useAnimatedStyle, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
 import { Check, ChevronLeft, ChevronRight, Clock3, Search, Sparkles } from 'lucide-react-native';
 import Svg, { Circle, Path } from 'react-native-svg';
-import { Boton, MasterAnimation, MasterColorProvider, MasterGlass, MasterIcon, RecuadroGlass, TONO_ESMERALDA, Texto, crearTonoMaster, useTonoMaster } from '../../../diseno';
+import { Boton, MasterAnimation, MasterColorProvider, MasterGlass, MasterIcon, MasterSand, RecuadroGlass, TONO_ESMERALDA, Texto, crearTonoMaster, useTonoMaster } from '../../../diseno';
 import { colorMasterMasCercano } from '../../../diseno/componentes/MasterChanger';
 import { TOPE_ESCALA_TEXTO_COMPACTO } from '../../../diseno/fundamentos/accesibilidad';
 import { CrearHabitoInput } from '../habitos.servicio';
@@ -137,62 +137,23 @@ function RutaNiveles({ colorMaster, meta, tipo, unidad }: { colorMaster: ReturnT
   })}</View>;
 }
 
-// Anillo de progreso 100% SVG (sin imágenes) — el número sube 1 en 1 sin
-// saltos (ver el intervalo en guardar()/useEffect de progresoPreparacion), y
-// el trazo se rellena exactamente a la par. Sin loops infinitos: solo se
-// redibuja cuando progreso cambia, así que en reposo no consume nada.
-function AnilloProgresoCarga({ color, progreso, tamano = 136 }: { color: string; progreso: number; tamano?: number }) {
-  const radio = (tamano - 18) / 2, centro = tamano / 2, circunferencia = 2 * Math.PI * radio;
-  const offset = circunferencia * (1 - Math.min(100, Math.max(0, progreso)) / 100);
-  return (
-    <View style={{ alignItems: 'center', height: tamano, justifyContent: 'center', width: tamano }}>
-      <Svg height={tamano} style={{ position: 'absolute' }} width={tamano}>
-        <Circle cx={centro} cy={centro} fill="none" r={radio} stroke={`${color}22`} strokeWidth={10} />
-        <Circle cx={centro} cy={centro} fill="none" origin={`${centro},${centro}`} r={radio} rotation="-90" stroke={color} strokeDasharray={`${circunferencia} ${circunferencia}`} strokeDashoffset={offset} strokeLinecap="round" strokeWidth={10} />
-      </Svg>
-      <Texto style={{ color: '#1A1335', fontFamily: 'MontserratAlternates-Bold', fontSize: 30 }}>{progreso}%</Texto>
-    </View>
-  );
-}
-
-type EtapaCrecimiento = 1 | 2 | 3;
-function etapaCrecimientoPorProgreso(progreso: number): EtapaCrecimiento {
-  if (progreso >= 70) return 3;
-  if (progreso >= 35) return 2;
-  return 1;
-}
-const ESCALA_ARBOL_POR_ETAPA: Record<EtapaCrecimiento, number> = { 1: 0.5, 2: 0.78, 3: 1 };
-
-// Reemplaza la escena anterior (3 imágenes animándose siempre + 14 partículas
-// en loop infinito, la fuente real del "se traba" que reportaron) por 3 fotos
-// fijas del mismo árbol real del tono elegido — solo una montada a la vez, con
-// un fundido simple al cambiar de etapa. Nada corre en reposo.
-function EscenaEtapa({ assets, etapa }: { assets: ReturnType<typeof obtenerAssetsPaqueteHabito>; etapa: EtapaCrecimiento }) {
-  return (
-    <ReanimatedView.View entering={FadeIn.duration(420)} exiting={FadeOut.duration(260)} key={etapa} pointerEvents="none" style={p.escena}>
-      <Image source={assets.base} style={p.base} />
-      <Image source={assets.arbolPrincipal} style={[p.arbolPrincipal, { transform: [{ scale: ESCALA_ARBOL_POR_ETAPA[etapa] }] }]} />
-      {etapa >= 2 && <Image source={assets.arbolSecundario} style={p.arbolSecundario} />}
-      {etapa >= 3 && <Image source={assets.flor} style={p.flor} />}
-    </ReanimatedView.View>
-  );
-}
-
-function PreparandoHabito({ color, paqueteId, progreso, titulo }: { color: string; paqueteId: string; progreso: number; titulo: string }) {
+// Pantalla de espera al crear el hábito: un solo anillo MasterSand sobre fondo
+// liso, con el porcentaje al centro. El número sube 1 en 1 sin saltos (ver el
+// intervalo de progresoPreparacion) y el anillo se rellena a la par; al llegar
+// a 100 el número da paso a una palomita. Sin árboles ni fondos decorativos.
+function PreparandoHabito({ color, progreso, titulo }: { color: string; progreso: number; titulo: string }) {
   const { t } = useTranslation();
   const estado = estadoPreparacionHabito(progreso);
-  const assetsPaquete = useMemo(() => obtenerAssetsPaqueteHabito(paqueteId, 1), [paqueteId]);
-  const etapa = etapaCrecimientoPorProgreso(progreso);
-
   return <View style={p.raiz}>
-    <FondoSelvaWizard color={color} />
-    <View style={p.contenido}>
-      <View style={[p.orbeGlow, { backgroundColor: `${color}18` }]} />
-      <AnilloProgresoCarga color={color} progreso={progreso} />
+    <ReanimatedView.View entering={FadeIn.duration(360)} style={p.contenido}>
+      <MasterSand color={color} forma="anillo" grosor={22} porcentaje={progreso} tamano={230}>
+        {progreso >= 100
+          ? <Check color={color} size={64} strokeWidth={3} />
+          : <Texto style={[p.porcentaje, { color }]}>{progreso}%</Texto>}
+      </MasterSand>
       <Texto style={[p.titulo, { color }]}>{t(estado.mensajeClave)}</Texto>
       <Texto style={p.sub}>{t('habitos.crearWizard.preparation.description', { title: titulo || t('habitos.crearWizard.preparation.defaultHabit') })}</Texto>
-    </View>
-    <EscenaEtapa assets={assetsPaquete} etapa={etapa} />
+    </ReanimatedView.View>
   </View>;
 }
 
@@ -586,7 +547,7 @@ export function CrearHabitoWizard({ visible, guardando, onCerrar, onCrear }: { v
       {paso === 5 && <><EncabezadoPaso colorMaster={colorMaster} icono="trofeo" titulo={t('habitos.crearWizard.review.title')} subtitulo={t('habitos.crearWizard.review.subtitle')}/><Animated.View style={{ borderRadius: 28, overflow: 'hidden'}}><TarjetaSenderoHabito assets={assetsPaquete} diasProgramados={diasSemana} icono={icono} meta={Number(meta) || 1} metaEtiqueta={etiquetaMeta} titulo={titulo.trim()}/></Animated.View></>}
       {paso === 6 && <><EncabezadoPaso colorMaster={colorMaster} icono="trofeo" titulo={t('habitos.crearWizard.growth.title')} subtitulo={tipo === 'check' ? t('habitos.crearWizard.growth.checkSubtitle') : t('habitos.crearWizard.growth.otherSubtitle')}/><RutaNiveles colorMaster={colorMaster} meta={meta} tipo={tipo} unidad={unidad}/>{errorCrear&&<Texto style={{color:'#B64747',fontFamily:'Montserrat-Bold',fontSize:12,textAlign:'center',marginTop:12}}>{errorCrear}</Texto>}</>}
       </ReanimatedView.View>
-    </ScrollView>{paso === 4 && !tecladoVisible && <View pointerEvents="none" style={s.paisajeRecordatorio}><Image source={assetsPaquete.arbolPrincipal} style={s.arbolRecordatorio}/><Image source={assetsPaquete.arbusto} style={s.arbustoRecordatorio} /></View>}<ReanimatedView.View onLayout={(e) => setAltoFooter(e.nativeEvent.layout.height)} style={[s.pie, estiloFondo]}><SafeAreaView edges={['bottom']}><Boton color={color} disabled={!puedeContinuar||guardando||preparando} iconoIzquierda={paso===6?Check:ChevronRight} onPress={() => paso===6?void guardar():setPaso(paso+1)} variante="sendero">{guardando ? t('habitos.crearWizard.actions.creating') : paso === 6 ? t('habitos.crearWizard.actions.createHabit') : t('habitos.crearWizard.continue')}</Boton></SafeAreaView></ReanimatedView.View>{preparando&&<PreparandoHabito color={color} paqueteId={paqueteVisual.id} progreso={progresoPreparacion} titulo={titulo.trim()} />}
+    </ScrollView>{paso === 4 && !tecladoVisible && <View pointerEvents="none" style={s.paisajeRecordatorio}><Image source={assetsPaquete.arbolPrincipal} style={s.arbolRecordatorio}/><Image source={assetsPaquete.arbusto} style={s.arbustoRecordatorio} /></View>}<ReanimatedView.View onLayout={(e) => setAltoFooter(e.nativeEvent.layout.height)} style={[s.pie, estiloFondo]}><SafeAreaView edges={['bottom']}><Boton color={color} disabled={!puedeContinuar||guardando||preparando} iconoIzquierda={paso===6?Check:ChevronRight} onPress={() => paso===6?void guardar():setPaso(paso+1)} variante="sendero">{guardando ? t('habitos.crearWizard.actions.creating') : paso === 6 ? t('habitos.crearWizard.actions.createHabit') : t('habitos.crearWizard.continue')}</Boton></SafeAreaView></ReanimatedView.View>{preparando&&<PreparandoHabito color={color} progreso={progresoPreparacion} titulo={titulo.trim()} />}
   </ReanimatedView.View></KeyboardAvoidingView></MasterColorProvider></SafeAreaProvider></Modal>;
 }
 
