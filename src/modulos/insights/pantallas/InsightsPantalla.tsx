@@ -349,9 +349,9 @@ function WidgetReflexion({ mensaje }: { mensaje: string }) {
     <View style={s.widgetReflexionWrap}>
       <MasterGlass style={s.widgetReflexionGlass}>
         <View style={{ opacity: 0.9 }}><MasterIcon name="cerebro" size={32} /></View>
-        <Texto style={{ fontFamily: 'Montserrat-Medium', fontSize: 9, color: C.tenue, textAlign: 'center', lineHeight: 13, paddingHorizontal: 2 }}>
+        <Texto style={{ fontFamily: 'Montserrat-Medium', fontSize: 11, color: C.tenue, textAlign: 'center', lineHeight: 14, paddingHorizontal: 2 }}>
           "{mensaje}"
-          <Texto style={{ fontFamily: 'Montserrat-Bold', fontSize: 8 }}>{'\n\n'}{t('insights.reflection.author')}</Texto>
+          <Texto style={{ fontFamily: 'Montserrat-Bold', fontSize: 11 }}>{'\n\n'}{t('insights.reflection.author')}</Texto>
         </Texto>
       </MasterGlass>
     </View>
@@ -585,19 +585,19 @@ const crearEstilosS = (esc: EscalaMaster): Record<string, any> => StyleSheet.cre
   // Banner
   bannerTextoContenedor: { flex: 1 },
   bannerTitulo: { color: C.texto, fontFamily: 'MontserratAlternates-Bold', fontSize: 15 },
-  bannerSubtitulo: { color: C.tenue, fontFamily: 'Montserrat-Medium', fontSize: 10, marginTop: 2 },
+  bannerSubtitulo: { color: C.tenue, fontFamily: 'Montserrat-Medium', fontSize: 12, marginTop: 2 },
   bannerChevron: { alignItems: 'center', borderRadius: 14, height: 28, justifyContent: 'center', width: 28 },
   bannerWidgetsAcceso: { alignItems: 'center', borderRadius: 20, flexDirection: 'row', gap: 12, padding: 12 },
   bannerWidgetsIconoContenedor: { alignItems: 'center', backgroundColor: conAlfa(esc.jade.l50, 0.12), borderRadius: 14, height: 36, justifyContent: 'center', width: 36 },
   badgePro: { backgroundColor: C.verde, borderRadius: 8, paddingHorizontal: 6, paddingVertical: 2 },
-  badgeProTexto: { color: '#FFF', fontFamily: 'Montserrat-Bold', fontSize: 9 },
+  badgeProTexto: { color: '#FFF', fontFamily: 'Montserrat-Bold', fontSize: 11 },
   
   // 4 mini cards
   statsFila: { flexDirection: 'row', gap: 6, justifyContent: 'space-between' },
   statCardWrapper: { width: '23.5%' },
   statCardMini: { alignItems: 'center', borderRadius: 16, paddingHorizontal: 2, paddingVertical: 10, gap: 2 },
   statCardValor: { color: C.texto, fontFamily: 'MontserratAlternates-Bold', fontSize: 17, marginTop: 4 },
-  statCardTitulo: { color: C.tenue, fontFamily: 'Montserrat-Medium', fontSize: 9, textAlign: 'center', lineHeight: 11, minHeight: 22 },
+  statCardTitulo: { color: C.tenue, fontFamily: 'Montserrat-Medium', fontSize: 11, textAlign: 'center', lineHeight: 14, minHeight: 28 },
 
   // Columns
   columnas: { flexDirection: 'row', gap: 12 },
@@ -607,26 +607,26 @@ const crearEstilosS = (esc: EscalaMaster): Record<string, any> => StyleSheet.cre
   seccionColumna: { borderRadius: 20, padding: 14 },
   seccionHeaderCompacto: { alignItems: 'center', flexDirection: 'row', gap: 8, marginBottom: 4 },
   seccionTituloCompacto: { color: C.texto, fontFamily: 'MontserratAlternates-Bold', fontSize: 12, flex: 1 },
-  seccionSubtituloCompacto: { color: C.tenue, fontFamily: 'Montserrat-Medium', fontSize: 9, lineHeight: 12 },
+  seccionSubtituloCompacto: { color: C.tenue, fontFamily: 'Montserrat-Medium', fontSize: 11, lineHeight: 14 },
   
   // Mini Bars (Tu Semana / Día Fuerte)
   barras: { flexDirection: 'row', gap: 4, height: 90, justifyContent: 'space-between', marginTop: 12 },
   barraColumna: { alignItems: 'center', flex: 1, gap: 4, justifyContent: 'flex-end' },
   barraFondo: { backgroundColor: conAlfa(esc.jade.l50, .1), borderRadius: 6, flex: 1, justifyContent: 'flex-end', overflow: 'hidden', width: '85%' },
   barraLlena: { backgroundColor: C.verde, borderRadius: 6, width: '100%' },
-  barraTexto: { color: C.tenue, fontFamily: 'Montserrat-Medium', fontSize: 8 },
+  barraTexto: { color: C.tenue, fontFamily: 'Montserrat-Medium', fontSize: 11 },
   
   // Compact Lists
   listaCompacta: { gap: 10, marginTop: 12 },
   filaImpacto: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  filaProgresoTitulo: { color: C.texto, fontFamily: 'Montserrat-Bold', fontSize: 10 },
-  filaProgresoFactor: { color: C.verde, fontFamily: 'MontserratAlternates-Bold', fontSize: 10, width: 24, textAlign: 'right' },
+  filaProgresoTitulo: { color: C.texto, fontFamily: 'Montserrat-Bold', fontSize: 12 },
+  filaProgresoFactor: { color: C.verde, fontFamily: 'MontserratAlternates-Bold', fontSize: 12, width: 32, textAlign: 'right' },
   filaSimple: { alignItems: 'center', flexDirection: 'row', gap: 8 },
-  filaSimpleTitulo: { color: C.texto, fontFamily: 'Montserrat-Bold', fontSize: 10, flex: 1 },
+  filaSimpleTitulo: { color: C.texto, fontFamily: 'Montserrat-Bold', fontSize: 12, flex: 1 },
   
   // States
   estadoContenedor: { paddingVertical: 12 },
-  estadoTexto: { color: C.tenue, fontFamily: 'Montserrat-Medium', fontSize: 10, textAlign: 'center' },
+  estadoTexto: { color: C.tenue, fontFamily: 'Montserrat-Medium', fontSize: 12, textAlign: 'center' },
 });
 
 const estilosPorEscalaS = new WeakMap<EscalaMaster, ReturnType<typeof crearEstilosS>>();

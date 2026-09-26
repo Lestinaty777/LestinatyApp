@@ -26,6 +26,6 @@ export function SeccionProgresoDatos({ mensaje, progreso }: { mensaje: string; p
 
 const s = StyleSheet.create({
   contenedor: { gap: 8, marginTop: 12, paddingVertical: 4 },
-  mensaje: { color: C.tenue, fontFamily: 'Montserrat-Medium', fontSize: 10, lineHeight: 14 },
-  contador: { color: C.tenue, fontFamily: 'Montserrat-Bold', fontSize: 9, textAlign: 'right' },
+  mensaje: { color: C.tenue, fontFamily: 'Montserrat-Medium', fontSize: 12, lineHeight: 16 },
+  contador: { color: C.tenue, fontFamily: 'Montserrat-Bold', fontSize: 11, textAlign: 'right' },
 });
