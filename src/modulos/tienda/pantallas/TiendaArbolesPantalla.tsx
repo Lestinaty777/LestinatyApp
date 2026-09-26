@@ -218,6 +218,7 @@ const SeccionesContenido = memo(function SeccionesContenido({
   onPlantar,
   catalogoGemas,
   paquetesRevenueCat,
+  motivoCatalogo,
   comprandoGemasId,
   cargandoCatalogoGemas,
   onComprarGemas,
@@ -232,6 +233,7 @@ const SeccionesContenido = memo(function SeccionesContenido({
   onPlantar: () => void;
   catalogoGemas: PaqueteGemasIap[];
   paquetesRevenueCat: PaqueteCompra[];
+  motivoCatalogo: string | null;
   comprandoGemasId: string | null;
   cargandoCatalogoGemas?: boolean;
   onComprarGemas: (paquete: PaqueteGemasIap) => void;
@@ -328,6 +330,9 @@ const SeccionesContenido = memo(function SeccionesContenido({
                   </View>
                 </MasterGlass>
               </Animated.View>
+              {motivoCatalogo ? (
+                <Texto style={{ color: esc.musgo.l54, fontFamily: 'Montserrat-Medium', fontSize: 10 }}>{`Diagnóstico: ${motivoCatalogo}`}</Texto>
+              ) : null}
               {cargandoCatalogoGemas ? (
                 <EsqueletoComprarGemas soloLista />
               ) : catalogoGemas.length === 0 ? (
@@ -507,7 +512,7 @@ export function TiendaArbolesPantalla() {
   // Misma queryKey que TiendaPantalla.tsx (/tienda/gemas) — comparten caché,
   // el catálogo de paquetes IAP es idéntico sin importar desde dónde se pida.
   const consultaCatalogoGemas = useQuery({ queryKey: ['tienda', 'catalogoGemasIap', Platform.OS], queryFn: () => obtenerCatalogoGemasIap(Platform.OS === 'ios' ? 'ios' : 'android') });
-  const { paquetes: paquetesRevenueCat } = useCatalogoCompras();
+  const { paquetes: paquetesRevenueCat, motivoError: motivoCatalogo } = useCatalogoCompras();
   const [comprandoGemasId, setComprandoGemasId] = useState<string | null>(null);
 
   const mutacionComprar = useMutation({
@@ -542,11 +547,12 @@ export function TiendaArbolesPantalla() {
       } else if (resultado.estado === 'pendiente') {
         Alert.alert(t('tienda.screen.gems.receivedTitle'), t('tienda.gemas.avisoPendiente'));
       } else if (resultado.estado === 'error') {
-        Alert.alert(t('tienda.screen.gems.purchaseErrorTitle'), t('tienda.screen.gems.purchaseErrorDescription'));
+        Alert.alert(t('tienda.screen.gems.purchaseErrorTitle'), resultado.mensajeSeguro || t('tienda.screen.gems.purchaseErrorDescription'));
       }
       // 'cancelada' no muestra alerta — el usuario decidió no continuar.
-    } catch {
-      Alert.alert(t('tienda.screen.gems.purchaseErrorTitle'), t('tienda.screen.gems.purchaseErrorDescription'));
+    } catch (err) {
+      const msj = err instanceof Error ? err.message : t('tienda.screen.gems.purchaseErrorDescription');
+      Alert.alert(t('tienda.screen.gems.purchaseErrorTitle'), msj);
     } finally {
       setComprandoGemasId(null);
     }
@@ -643,6 +649,7 @@ export function TiendaArbolesPantalla() {
               onPlantar={alPlantar}
               catalogoGemas={consultaCatalogoGemas.data ?? []}
               paquetesRevenueCat={paquetesRevenueCat}
+              motivoCatalogo={motivoCatalogo}
               comprandoGemasId={comprandoGemasId}
               cargandoCatalogoGemas={consultaCatalogoGemas.isLoading}
               onComprarGemas={comprarGemas}

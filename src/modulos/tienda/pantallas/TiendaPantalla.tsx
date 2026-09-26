@@ -36,11 +36,11 @@ export function TiendaPantalla() {
       } else if (resultado.estado === 'pendiente') {
         setAviso(t('tienda.gemas.avisoPendiente'));
       } else if (resultado.estado === 'error') {
-        setAviso(t('tienda.gemas.avisoError'));
+        setAviso(resultado.mensajeSeguro || t('tienda.gemas.avisoError'));
       }
       // 'cancelada' no muestra aviso — el usuario decidió no continuar.
-    } catch {
-      setAviso(t('tienda.gemas.avisoError'));
+    } catch (err) {
+      setAviso(err instanceof Error ? err.message : t('tienda.gemas.avisoError'));
     } finally {
       setComprando(null);
     }
