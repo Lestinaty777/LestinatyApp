@@ -40,7 +40,7 @@ const styles = StyleSheet.create({
   instruccion: { fontSize: 16, color: '#666', marginTop: 20, marginBottom: 20 },
   tarjeta: { width: '100%', height: 300, backgroundColor: '#FFFFFF', borderRadius: 24, justifyContent: 'center', alignItems: 'center', padding: 20, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 10, elevation: 5, borderWidth: 2, borderColor: '#5B2E91' },
   tarjetaDorso: { backgroundColor: '#5B2E91' },
-  textoTarjeta: { fontSize: 24, fontWeight: 'bold', color: '#5B2E91', textAlign: 'center' },
+  textoTarjeta: { fontSize: 24, lineHeight: 29, fontWeight: 'bold', color: '#5B2E91', textAlign: 'center' },
   textoDorso: { color: '#FFFFFF' },
   acciones: { width: '100%', marginTop: 40, alignItems: 'center' },
   pregunta: { fontSize: 18, fontWeight: 'bold', marginBottom: 20, color: '#333' },

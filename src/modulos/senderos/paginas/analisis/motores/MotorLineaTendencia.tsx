@@ -57,7 +57,7 @@ export function MotorLineaTendencia({ pack, data, acento }: Props) {
             </View>
             <View style={{ alignItems: 'center' }}>
               <Texto style={styles.textoEtiqueta}>Actual</Texto>
-              <Texto style={[styles.textoValor, { color: acento, fontSize: 24 }]}>{actual.toFixed(1)} {pack.unit}</Texto>
+              <Texto style={[styles.textoValor, { color: acento, fontSize: 24, lineHeight: 29 }]}>{actual.toFixed(1)} {pack.unit}</Texto>
             </View>
             <View style={{ alignItems: 'flex-end' }}>
               <Texto style={styles.textoEtiqueta}>Meta</Texto>

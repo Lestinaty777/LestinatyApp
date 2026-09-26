@@ -92,7 +92,7 @@ const styles = StyleSheet.create({
   },
   feedbackCorrecto: {},
   feedbackIncorrecto: { backgroundColor: '#ffdfe0' },
-  feedbackTitulo: { fontSize: 24, fontWeight: 'bold', marginBottom: 20 },
+  feedbackTitulo: { fontSize: 24, lineHeight: 29, fontWeight: 'bold', marginBottom: 20 },
   textoCorrecto: { color: '#FFFFFF' },
   textoIncorrecto: { color: '#ea2b2b' },
   botonContinuarFeedback: { padding: 16, borderRadius: 12, alignItems: 'center' },

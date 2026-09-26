@@ -114,7 +114,7 @@ const styles = StyleSheet.create({
   contenedorFila: { flexDirection: 'row', alignItems: 'center', gap: 16 },
   relojContenedor: { width: 64, height: 64, alignItems: 'center', justifyContent: 'center' },
   centro: { flex: 1, justifyContent: 'center' },
-  numero: { fontFamily: 'MontserratAlternates-Bold', fontSize: 32, fontVariant: ['tabular-nums'] },
+  numero: { fontFamily: 'MontserratAlternates-Bold', fontSize: 32, lineHeight: 38, fontVariant: ['tabular-nums'] },
   textoRestante: { fontFamily: 'MontserratAlternates-SemiBold', fontSize: 12, color: colores.textoSecundario },
   boton: { width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center' }
 });

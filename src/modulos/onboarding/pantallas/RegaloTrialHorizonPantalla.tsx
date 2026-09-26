@@ -82,7 +82,7 @@ const s = StyleSheet.create({
   header: { gap: 6, overflow: 'hidden', paddingHorizontal: 20, position: 'relative' },
   cerrar: { alignSelf: 'flex-end', padding: 4 },
   kickerFila: { alignItems: 'center', marginBottom: 4, marginTop: -8 },
-  titulo: { color: C.texto, fontFamily: 'MontserratAlternates-Bold', fontSize: 24, textAlign: 'center' },
+  titulo: { color: C.texto, fontFamily: 'MontserratAlternates-Bold', fontSize: 24, lineHeight: 29, textAlign: 'center' },
   subtitulo: {
     color: C.tenue,
     fontFamily: 'Montserrat-Medium',

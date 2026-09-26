@@ -69,6 +69,6 @@ const s = StyleSheet.create({
   heroImagenContenedor: { alignItems: 'center', height: 90, justifyContent: 'center', width: 120 },
   heroImagen: { height: 75, width: 75 },
   separador: { alignSelf: 'center', borderRadius: 1, height: 1.5, marginTop: 8, width: 64 },
-  titulo: { color: C.texto, fontFamily: 'MontserratAlternates-Bold', fontSize: 24, marginTop: -6, textAlign: 'center', width: '100%' },
+  titulo: { color: C.texto, fontFamily: 'MontserratAlternates-Bold', fontSize: 24, lineHeight: 29, marginTop: -6, textAlign: 'center', width: '100%' },
   subtitulo: { color: C.tenue, fontFamily: 'Montserrat-Medium', fontSize: 13, lineHeight: 18, textAlign: 'center', width: '100%' },
 });

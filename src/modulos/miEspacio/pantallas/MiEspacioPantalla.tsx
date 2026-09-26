@@ -39,7 +39,7 @@ const s = StyleSheet.create({
   raiz: { backgroundColor: '#F3EEFA', flex: 1 },
   contenido: { alignItems: 'center', flex: 1, justifyContent: 'center', paddingHorizontal: 32 },
   iconoContenedor: { alignItems: 'center', backgroundColor: 'rgba(124,58,237,0.12)', borderRadius: 24, height: 76, justifyContent: 'center', marginBottom: 18, width: 76 },
-  titulo: { color: '#1A1335', fontFamily: 'Montserrat-Bold', fontSize: 24, marginBottom: 10 },
+  titulo: { color: '#1A1335', fontFamily: 'Montserrat-Bold', fontSize: 24, lineHeight: 29, marginBottom: 10 },
   texto: { color: '#7B7494', fontSize: 13, lineHeight: 19, marginBottom: 22, textAlign: 'center' },
   dominiosFila: { flexDirection: 'row', gap: 8, marginBottom: 24 },
   dominioPill: { alignItems: 'center', borderRadius: 99, borderWidth: 1, flexDirection: 'row', gap: 6, paddingHorizontal: 12, paddingVertical: 8 },

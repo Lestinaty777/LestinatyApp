@@ -904,7 +904,7 @@ const crearEstilosS = (esc: EscalaMaster) => StyleSheet.create({
   slide5Hero: { alignItems: 'center', height: 85, justifyContent: 'center', marginBottom: -6, width: 110 },
   slide5Separador: { alignSelf: 'center', borderRadius: 1, height: 1.5, marginTop: 8, width: 64 },
   slide5Arbol: { height: 70, width: 70 },
-  slide5Titulo: { color: C.texto, fontFamily: 'MontserratAlternates-Bold', fontSize: 24, textAlign: 'center', width: '100%' },
+  slide5Titulo: { color: C.texto, fontFamily: 'MontserratAlternates-Bold', fontSize: 24, lineHeight: 29, textAlign: 'center', width: '100%' },
   slide5Subtitulo: { color: C.tenue, fontFamily: 'Montserrat-Medium', fontSize: 13, lineHeight: 18, marginTop: 4, textAlign: 'center', width: '100%' },
   slide5FormularioContenedor: { marginTop: 20, width: '100%' },
   slide5FormularioScroll: { paddingHorizontal: 24, paddingBottom: 24 },

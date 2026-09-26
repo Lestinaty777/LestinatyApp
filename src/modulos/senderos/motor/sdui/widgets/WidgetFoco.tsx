@@ -128,7 +128,7 @@ const styles = StyleSheet.create({
   orbeContenedor: { position: 'relative', width: 140, height: 140, alignItems: 'center', justifyContent: 'center' },
   orbeBrillo: { position: 'absolute', width: 140, height: 140, borderRadius: 70 },
   orbeSolido: { width: 110, height: 110, borderRadius: 55, borderWidth: 2, alignItems: 'center', justifyContent: 'center', elevation: 10, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 10, shadowOffset: { width: 0, height: 5 } },
-  textoReloj: { fontFamily: 'MontserratAlternates-Bold', fontSize: 26, letterSpacing: 1 },
+  textoReloj: { fontFamily: 'MontserratAlternates-Bold', fontSize: 26, lineHeight: 31, letterSpacing: 1 },
   
   controlesFila: { flexDirection: 'row', alignItems: 'center', gap: 16, height: 60 },
   botonPrimario: { width: 64, height: 64, borderRadius: 32, alignItems: 'center', justifyContent: 'center', elevation: 5, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 5 },

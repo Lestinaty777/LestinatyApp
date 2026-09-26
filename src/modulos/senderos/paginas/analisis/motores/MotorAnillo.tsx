@@ -67,10 +67,10 @@ const styles = StyleSheet.create({
   subtitulo: { fontFamily: 'MontserratAlternates-Medium', fontSize: 11, color: colores.textoSecundario, marginTop: 2 },
   contenedorCentral: { flexDirection: 'row', alignItems: 'center', marginTop: 16, gap: 24 },
   datosCentro: { position: 'absolute', alignItems: 'center', justifyContent: 'center' },
-  textoPorcentaje: { fontFamily: 'MontserratAlternates-Bold', fontSize: 24, color: colores.texto },
+  textoPorcentaje: { fontFamily: 'MontserratAlternates-Bold', fontSize: 24, lineHeight: 29, color: colores.texto },
   infoLado: { flex: 1, justifyContent: 'center' },
   textoEtiqueta: { fontFamily: 'MontserratAlternates-Medium', fontSize: 11, color: colores.textoSecundario },
-  textoValorGigante: { fontFamily: 'MontserratAlternates-Bold', fontSize: 32, color: colores.texto, marginVertical: 2 },
+  textoValorGigante: { fontFamily: 'MontserratAlternates-Bold', fontSize: 32, lineHeight: 38, color: colores.texto, marginVertical: 2 },
   textoMeta: { fontFamily: 'MontserratAlternates-SemiBold', fontSize: 12, color: colores.textoSecundario },
   microcopy: { fontFamily: 'MontserratAlternates-Medium', fontSize: 10, marginTop: 12 }
 });

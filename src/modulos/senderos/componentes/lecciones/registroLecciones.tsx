@@ -33,7 +33,7 @@ const DummyWidget = ({ paso, onCompletado }: any) => (
 
 const styles = StyleSheet.create({
   contenedor: { flex: 1, padding: 20, justifyContent: 'center' },
-  titulo: { fontSize: 24, fontWeight: 'bold', marginBottom: 20, color: '#5B2E91' },
+  titulo: { fontSize: 24, lineHeight: 29, fontWeight: 'bold', marginBottom: 20, color: '#5B2E91' },
   boton: { backgroundColor: '#5B2E91', padding: 16, borderRadius: 12, alignItems: 'center' },
   textoBoton: { color: 'white', fontSize: 16, fontWeight: 'bold' }
 });

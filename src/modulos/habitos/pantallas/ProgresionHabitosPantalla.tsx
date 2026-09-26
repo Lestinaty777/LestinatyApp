@@ -41,6 +41,6 @@ const s = StyleSheet.create({
   back: { padding: 8 },
   headerTexto: { flex: 1, paddingLeft: 5 },
   tituloFila: { alignItems: 'center', flexDirection: 'row', gap: 9 },
-  titulo: { color: C.texto, fontFamily: 'Montserrat-Bold', fontSize: 25 },
+  titulo: { color: C.texto, fontFamily: 'Montserrat-Bold', fontSize: 25, lineHeight: 30 },
   subtitulo: { color: C.tenue, fontSize: 13, marginTop: 3 },
 });

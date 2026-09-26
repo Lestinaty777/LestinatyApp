@@ -77,7 +77,7 @@ const styles = StyleSheet.create({
   cabeceraPanel: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   titulo: { fontFamily: 'MontserratAlternates-Bold', fontSize: 16, color: colores.texto },
   subtitulo: { fontFamily: 'MontserratAlternates-Medium', fontSize: 11, color: colores.textoSecundario, marginTop: 2 },
-  textoValorGigante: { fontFamily: 'MontserratAlternates-Bold', fontSize: 32, color: colores.texto },
+  textoValorGigante: { fontFamily: 'MontserratAlternates-Bold', fontSize: 32, lineHeight: 38, color: colores.texto },
   textoEtiqueta: { fontFamily: 'MontserratAlternates-SemiBold', fontSize: 12, color: colores.textoSecundario },
   microcopy: { fontFamily: 'MontserratAlternates-Medium', fontSize: 11 }
 });

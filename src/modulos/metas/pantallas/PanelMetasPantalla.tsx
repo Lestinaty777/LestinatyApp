@@ -308,7 +308,7 @@ const s = StyleSheet.create({
   },
   panelTitulo: {
     fontFamily: 'MontserratAlternates-Bold',
-    fontSize: 24,
+    fontSize: 24, lineHeight: 29,
     color: D.texto,
     marginBottom: 4,
   },

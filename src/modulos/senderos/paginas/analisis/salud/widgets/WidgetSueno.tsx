@@ -77,7 +77,7 @@ const styles = StyleSheet.create({
   titulo: { fontFamily: 'MontserratAlternates-Bold', fontSize: 16, color: colores.texto },
   subtitulo: { fontFamily: 'MontserratAlternates-Medium', fontSize: 11, color: colores.textoSecundario, marginTop: 2 },
   
-  numeroGigante: { fontFamily: 'MontserratAlternates-Bold', fontSize: 42, color: colores.texto },
+  numeroGigante: { fontFamily: 'MontserratAlternates-Bold', fontSize: 42, lineHeight: 50, color: colores.texto },
   etiquetaHoras: { fontFamily: 'MontserratAlternates-Medium', fontSize: 18, color: colores.textoSecundario },
   textoEtiqueta: { fontFamily: 'MontserratAlternates-SemiBold', fontSize: 12 },
   

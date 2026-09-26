@@ -1311,7 +1311,7 @@ const s = StyleSheet.create({
   },
   cronoNumeroGrande: {
     fontFamily: 'MontserratAlternates-Bold',
-    fontSize: 42,
+    fontSize: 42, lineHeight: 50,
     letterSpacing: 1.5,
   },
   cronoMetaSub: {

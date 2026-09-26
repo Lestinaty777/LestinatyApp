@@ -116,5 +116,5 @@ const styles = StyleSheet.create({
   etiquetasContainer: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 8, paddingHorizontal: 4 },
   etiqueta: { fontFamily: 'MontserratAlternates-Medium', fontSize: 10, color: colores.textoSecundario },
   boton: { width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center' },
-  valorFinal: { fontFamily: 'MontserratAlternates-Bold', fontSize: 24, color: '#FFFFFF' } // Blanco para que resalte
+  valorFinal: { fontFamily: 'MontserratAlternates-Bold', fontSize: 24, lineHeight: 29, color: '#FFFFFF' } // Blanco para que resalte
 });

@@ -33,7 +33,7 @@ export function WidgetOpcionMultiple({ paso, onCompletado, color }: WidgetLeccio
 
 const styles = StyleSheet.create({
   contenedor: { flex: 1, padding: 24, justifyContent: 'space-between', backgroundColor: '#FFFFFF' },
-  pregunta: { fontSize: 24, fontFamily: 'Montserrat-Bold', marginTop: 20, marginBottom: 20 },
+  pregunta: { fontSize: 24, lineHeight: 29, fontFamily: 'Montserrat-Bold', marginTop: 20, marginBottom: 20 },
   opciones: { gap: 12, flex: 1, justifyContent: 'center' },
   textoOpcion: { fontSize: 18, fontFamily: 'Montserrat-Bold', color: '#FFFFFF', textAlign: 'center' }
 });

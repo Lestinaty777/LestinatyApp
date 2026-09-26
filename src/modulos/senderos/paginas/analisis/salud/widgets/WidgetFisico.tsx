@@ -49,7 +49,7 @@ export function WidgetFisico({ acento }: { acento: string }) {
             </View>
             <View style={{ alignItems: 'center' }}>
               <Texto style={styles.textoEtiqueta}>Actual</Texto>
-              <Texto style={[styles.textoValor, { color: acento, fontSize: 24 }]}>78.2 kg</Texto>
+              <Texto style={[styles.textoValor, { color: acento, fontSize: 24, lineHeight: 29 }]}>78.2 kg</Texto>
             </View>
             <View style={{ alignItems: 'flex-end' }}>
               <Texto style={styles.textoEtiqueta}>Meta</Texto>

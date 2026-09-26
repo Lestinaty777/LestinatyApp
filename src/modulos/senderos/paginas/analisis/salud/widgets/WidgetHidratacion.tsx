@@ -84,7 +84,7 @@ const styles = StyleSheet.create({
   cilindroRelleno: { width: '100%', borderRadius: 30 },
   olaReflejo: { position: 'absolute', width: '100%', height: 4, backgroundColor: 'rgba(255,255,255,0.4)' },
   datosCilindro: { marginLeft: 24 },
-  textoAguaGigante: { fontFamily: 'MontserratAlternates-Bold', fontSize: 36, color: colores.texto },
+  textoAguaGigante: { fontFamily: 'MontserratAlternates-Bold', fontSize: 36, lineHeight: 43, color: colores.texto },
   textoEtiqueta: { fontFamily: 'MontserratAlternates-Medium', fontSize: 14, color: colores.textoSecundario },
   
   graficaSemana: { flexDirection: 'row', justifyContent: 'space-between', height: 120, marginTop: 24, paddingHorizontal: 4 },

@@ -100,10 +100,10 @@ export function MetasListaPantalla() {
 const s = StyleSheet.create({
   raiz:         { flex: 1, backgroundColor: D.fondo },
   scroll:       { paddingHorizontal: 20, paddingTop: 16 },
-  titulo:       { fontFamily: 'MontserratAlternates-Bold', fontSize: 24, color: D.texto, textAlign: 'center', marginBottom: 6 },
+  titulo:       { fontFamily: 'MontserratAlternates-Bold', fontSize: 24, lineHeight: 29, color: D.texto, textAlign: 'center', marginBottom: 6 },
   subtitulo:    { fontFamily: 'Montserrat-Medium', fontSize: 13, color: D.textoSuave, textAlign: 'center', marginBottom: 24 },
   hero:         { height: 220, borderRadius: 16, alignItems: 'center', justifyContent: 'center', marginBottom: 24, gap: 8 },
-  heroEmoji:    { fontSize: 72 },
+  heroEmoji:    { fontSize: 72, lineHeight: 86 },
   heroLabel:    { fontFamily: 'Montserrat-Medium', fontSize: 13, color: D.textoSuave },
   tabsRow:      { flexDirection: 'row', gap: 8, marginBottom: 24 },
   tabPill:      { paddingVertical: 8, borderRadius: 50, alignItems: 'center' },

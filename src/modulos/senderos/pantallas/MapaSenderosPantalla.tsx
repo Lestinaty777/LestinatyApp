@@ -58,7 +58,7 @@ const crearEstilosCp = (esc: EscalaMaster) => StyleSheet.create({
   // habitos.png ya incluye su propio fondo verde — solo se dimensiona, sin View/color detrás.
   iconoLibro: { height: 64, width: 64 },
   etiqueta: { color: esc.musgo.l49, fontFamily: 'Montserrat-Bold', fontSize: 10, letterSpacing: 1.4 },
-  contador: { color: esc.hoja.l19, fontFamily: 'MontserratAlternates-Bold', fontSize: 24, marginTop: 1 },
+  contador: { color: esc.hoja.l19, fontFamily: 'MontserratAlternates-Bold', fontSize: 24, lineHeight: 29, marginTop: 1 },
   pendientes: { color: esc.musgo.l49, fontFamily: 'Montserrat-Medium', fontSize: 12, marginTop: 1 },
   etiquetaHoy: { color: esc.musgo.l49, fontFamily: 'Montserrat-Bold', fontSize: 10, letterSpacing: 1.2, marginBottom: 4 },
   textoHoy: { color: esc.hoja.l19, fontFamily: 'MontserratAlternates-Bold', fontSize: 14 },
