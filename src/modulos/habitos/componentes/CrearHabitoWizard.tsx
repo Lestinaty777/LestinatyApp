@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { Animated, Image, Keyboard, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleProp, StyleSheet, Switch, TextInput, View, ViewStyle } from 'react-native';
+import { Animated, Image, Keyboard, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleProp, StyleSheet, Switch, TextInput, View, ViewStyle, useWindowDimensions } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import ReanimatedView, { Easing as EasingR, FadeIn, FadeInDown, FadeOut, interpolate, interpolateColor, useAnimatedStyle, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
@@ -144,12 +144,15 @@ function RutaNiveles({ colorMaster, meta, tipo, unidad }: { colorMaster: ReturnT
 function PreparandoHabito({ color, fondo, progreso, titulo }: { color: string; fondo: string; progreso: number; titulo: string }) {
   const { t } = useTranslation();
   const estado = estadoPreparacionHabito(progreso);
+  // El anillo ocupa todo el ancho disponible (menos un margen a cada lado).
+  const { width } = useWindowDimensions();
+  const tamano = Math.min(width - 64, 460);
   return <View style={[p.raiz, { backgroundColor: fondo }]}>
     <ReanimatedView.View entering={FadeIn.duration(360)} style={p.contenido}>
-      <MasterSand color={color} forma="anillo" grosor={16} porcentaje={progreso} tamano={170}>
+      <MasterSand color={color} forma="anillo" grosor={Math.round(tamano * 0.085)} porcentaje={progreso} tamano={tamano}>
         {progreso >= 100
-          ? <Check color={color} size={48} strokeWidth={3} />
-          : <Texto style={[p.porcentaje, { color }]}>{progreso}%</Texto>}
+          ? <Check color={color} size={Math.round(tamano * 0.28)} strokeWidth={3} />
+          : <Texto style={[p.porcentaje, { color, fontSize: Math.round(tamano * 0.2) }]}>{progreso}%</Texto>}
       </MasterSand>
       <Texto style={[p.titulo, { color }]}>{t(estado.mensajeClave)}</Texto>
       <Texto style={p.sub}>{t('habitos.crearWizard.preparation.description', { title: titulo || t('habitos.crearWizard.preparation.defaultHabit') })}</Texto>
