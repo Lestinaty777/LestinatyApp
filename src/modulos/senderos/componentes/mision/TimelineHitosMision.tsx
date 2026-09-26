@@ -50,5 +50,5 @@ const styles = StyleSheet.create({
   hito: { alignItems: 'center', gap: 8 },
   moneda: { alignItems: 'center', borderRadius: 15, height: 30, justifyContent: 'center', width: 30 },
   iconoApagado: { opacity: 0.5 },
-  etiqueta: { fontFamily: 'Montserrat-SemiBold', fontSize: 11 },
+  etiqueta: { fontFamily: 'Montserrat-SemiBold', fontSize: 12 },
 });

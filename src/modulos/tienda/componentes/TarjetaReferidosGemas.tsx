@@ -165,7 +165,7 @@ const crearEstilosTr = (esc: EscalaMaster) => StyleSheet.create({
   },
   etiquetaCodigo: {
     fontFamily: 'Montserrat-Bold',
-    fontSize: 9,
+    fontSize: 11,
     color: '#854D0E',
     letterSpacing: 0.8,
   },
@@ -202,7 +202,7 @@ const crearEstilosTr = (esc: EscalaMaster) => StyleSheet.create({
   },
   labelMetrica: {
     fontFamily: 'Montserrat-Medium',
-    fontSize: 10,
+    fontSize: 12,
     color: esc.musgo.l54,
     marginTop: 2,
   },

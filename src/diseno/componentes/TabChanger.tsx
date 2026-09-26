@@ -104,7 +104,7 @@ const crearEstilosStyles = (esc: EscalaMaster) => StyleSheet.create({
   },
   tabText: {
     fontFamily: 'Montserrat-Bold',
-    fontSize: 10,
+    fontSize: 12,
     color: '#7B7494', // Gris
   },
   tabTextActive: {

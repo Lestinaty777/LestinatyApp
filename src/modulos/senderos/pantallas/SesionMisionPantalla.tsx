@@ -1127,7 +1127,7 @@ const s = StyleSheet.create({
   progresionKicker: {
     color: C.tenue,
     fontFamily: 'Montserrat-Bold',
-    fontSize: 9,
+    fontSize: 11,
     letterSpacing: 1.1,
   },
   progresionTitulo: {
@@ -1142,7 +1142,7 @@ const s = StyleSheet.create({
   },
   progresionBadgeTexto: {
     fontFamily: 'Montserrat-Bold',
-    fontSize: 11,
+    fontSize: 12,
   },
   seccionAccionContainer: {
     marginTop: 16,
@@ -1183,8 +1183,8 @@ const s = StyleSheet.create({
   bannerCheckSub: {
     color: C.tenue,
     fontFamily: 'Montserrat-Medium',
-    fontSize: 11,
-    lineHeight: 15,
+    fontSize: 12,
+    lineHeight: 16,
     marginTop: 2,
   },
   ctaContainer: {
@@ -1249,7 +1249,7 @@ const s = StyleSheet.create({
   },
   dialPorcentajeTexto: {
     fontFamily: 'Montserrat-Bold',
-    fontSize: 11,
+    fontSize: 12,
   },
   stepperFila: {
     alignItems: 'center',
@@ -1287,7 +1287,7 @@ const s = StyleSheet.create({
     color: C.tenue,
     flex: 1,
     fontFamily: 'Montserrat-Medium',
-    fontSize: 11,
+    fontSize: 12,
     paddingHorizontal: 12,
     textAlign: 'center',
   },
@@ -1306,7 +1306,7 @@ const s = StyleSheet.create({
   cronoEstadoTexto: {
     color: C.tenue,
     fontFamily: 'Montserrat-SemiBold',
-    fontSize: 11,
+    fontSize: 12,
     letterSpacing: 0.8,
   },
   cronoNumeroGrande: {
@@ -1317,7 +1317,7 @@ const s = StyleSheet.create({
   cronoMetaSub: {
     color: C.tenue,
     fontFamily: 'Montserrat-Medium',
-    fontSize: 11,
+    fontSize: 12,
     marginTop: 4,
   },
   cronoBotonera: {
@@ -1383,7 +1383,7 @@ const s = StyleSheet.create({
   },
   victoriaKicker: {
     fontFamily: 'MontserratAlternates-Bold',
-    fontSize: 11,
+    fontSize: 12,
     letterSpacing: 1.4,
     marginBottom: 4,
   },

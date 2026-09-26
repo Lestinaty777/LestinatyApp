@@ -45,6 +45,6 @@ const s = StyleSheet.create({
   texto: {
     color: '#FFF',
     fontFamily: 'MontserratAlternates-Bold',
-    fontSize: 10,
+    fontSize: 12,
   },
 });

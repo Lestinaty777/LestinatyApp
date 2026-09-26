@@ -112,7 +112,7 @@ export function EditarHabitoFormulario({ colorHabito, edicionInicial, habitoId, 
       <Texto style={{ color: '#1A1335', fontFamily: 'Montserrat-Bold', fontSize: 18 }}>{t('habitos.detalle.editorTitulo')}</Texto>
 
       <MasterGlass style={{ borderRadius: 20, gap: 10, padding: 16 }}>
-        <Texto style={{ color: '#77718A', fontFamily: 'Montserrat-Bold', fontSize: 11 }}>{t('habitos.crearWizard.identity.title')}</Texto>
+        <Texto style={{ color: '#77718A', fontFamily: 'Montserrat-Bold', fontSize: 12 }}>{t('habitos.crearWizard.identity.title')}</Texto>
         <TextInput
           keyboardAppearance="light"
           maxFontSizeMultiplier={TOPE_ESCALA_TEXTO_COMPACTO}
@@ -131,13 +131,13 @@ export function EditarHabitoFormulario({ colorHabito, edicionInicial, habitoId, 
           value={descripcion}
         />
         <View>
-          <Texto style={{ color: '#77718A', fontFamily: 'Montserrat-Bold', fontSize: 11, marginBottom: 8 }}>{t('habitos.crearWizard.identity.chooseIcon')}</Texto>
+          <Texto style={{ color: '#77718A', fontFamily: 'Montserrat-Bold', fontSize: 12, marginBottom: 8 }}>{t('habitos.crearWizard.identity.chooseIcon')}</Texto>
           <GridIconosHabito color={colorHabito} etiquetaIcono={etiquetaIcono} iconoSeleccionado={iconoLucide} onElegir={setIconoLucide} />
         </View>
       </MasterGlass>
 
       <MasterGlass style={{ borderRadius: 20, gap: 10, padding: 16 }}>
-        <Texto style={{ color: '#77718A', fontFamily: 'Montserrat-Bold', fontSize: 11 }}>{t('habitos.crearWizard.goal.title')}</Texto>
+        <Texto style={{ color: '#77718A', fontFamily: 'Montserrat-Bold', fontSize: 12 }}>{t('habitos.crearWizard.goal.title')}</Texto>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
           {metas.map((x) => {
             const activo = subtipoMeta === x.id;
@@ -191,14 +191,14 @@ export function EditarHabitoFormulario({ colorHabito, edicionInicial, habitoId, 
       </MasterGlass>
 
       <MasterGlass style={{ borderRadius: 20, gap: 12, padding: 16 }}>
-        <Texto style={{ color: '#77718A', fontFamily: 'Montserrat-Bold', fontSize: 11 }}>{t('habitos.detalle.programacion')}</Texto>
+        <Texto style={{ color: '#77718A', fontFamily: 'Montserrat-Bold', fontSize: 12 }}>{t('habitos.detalle.programacion')}</Texto>
         <View style={{ flexDirection: 'row', gap: 8 }}>
           {(['diaria', 'dias_semana', 'veces_semana'] as const).map((valor) => {
             const activo = frecuencia === valor;
             const etiqueta = valor === 'diaria' ? t('habitos.detalle.frecuenciaDiaria') : valor === 'dias_semana' ? t('habitos.detalle.frecuenciaDiasSeleccionados') : t('habitos.detalle.frecuenciaVecesSemana', { veces: '' });
             return (
               <Rebote key={valor} onPress={() => { setFrecuencia(valor); if (valor === 'diaria') setDiasSemana([1, 2, 3, 4, 5, 6, 7]); }} colorHabito={colorHabito} activo={activo} compacto>
-                <Texto style={{ color: activo ? '#FFFFFF' : '#554E68', fontFamily: 'Montserrat-Bold', fontSize: 11, textAlign: 'center' }}>{etiqueta}</Texto>
+                <Texto style={{ color: activo ? '#FFFFFF' : '#554E68', fontFamily: 'Montserrat-Bold', fontSize: 12, textAlign: 'center' }}>{etiqueta}</Texto>
               </Rebote>
             );
           })}

@@ -254,7 +254,7 @@ const s = StyleSheet.create({
   headerSubtitulo: {
     color: '#6E6B7B',
     fontFamily: 'Montserrat-Bold',
-    fontSize: 10,
+    fontSize: 12,
     letterSpacing: 0.8,
     textTransform: 'uppercase',
   },
@@ -306,7 +306,7 @@ const s = StyleSheet.create({
   pildoraTexto: {
     color: '#333333',
     fontFamily: 'Montserrat-Bold',
-    fontSize: 11,
+    fontSize: 12,
   },
   pildoraTextoActivo: {
     fontFamily: 'Montserrat-Black',
@@ -322,7 +322,7 @@ const s = StyleSheet.create({
   instruccionTexto: {
     color: '#767285',
     fontFamily: 'Montserrat-Medium',
-    fontSize: 11,
+    fontSize: 12,
   },
   carruselWrapper: {
     paddingTop: 6,

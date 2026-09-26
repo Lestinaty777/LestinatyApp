@@ -1551,7 +1551,7 @@ const crearEstilos = (esc: EscalaMaster) => StyleSheet.create({
   },
   textoNivelAvatar: {
     fontFamily: 'Montserrat-Bold',
-    fontSize: 9.5,
+    fontSize: 11,
     color: '#FFFFFF',
   },
   heroInfo: {
@@ -1604,7 +1604,7 @@ const crearEstilos = (esc: EscalaMaster) => StyleSheet.create({
   },
   rangoTexto: {
     fontFamily: 'Montserrat-Medium',
-    fontSize: 11,
+    fontSize: 12,
     color: esc.jade.l34a,
   },
   metricasFila: {
@@ -1635,7 +1635,7 @@ const crearEstilos = (esc: EscalaMaster) => StyleSheet.create({
   },
   metricaEtiqueta: {
     fontFamily: 'Montserrat-Medium',
-    fontSize: 10,
+    fontSize: 12,
     color: esc.musgo.l54,
   },
   metricaDivisor: {
@@ -1675,7 +1675,7 @@ const crearEstilos = (esc: EscalaMaster) => StyleSheet.create({
   },
   moduloSubtitulo: {
     fontFamily: 'Montserrat-Medium',
-    fontSize: 11.5,
+    fontSize: 12,
     color: esc.musgo.l54,
     lineHeight: 16,
     marginTop: 2,
@@ -1694,7 +1694,7 @@ const crearEstilos = (esc: EscalaMaster) => StyleSheet.create({
   },
   widgetMiniBadgeTexto: {
     fontFamily: 'MontserratAlternates-Bold',
-    fontSize: 10.5,
+    fontSize: 12,
     color: esc.jade.l49,
   },
   tarjetaProActiva: {
@@ -1726,7 +1726,7 @@ const crearEstilos = (esc: EscalaMaster) => StyleSheet.create({
   },
   grupoAjustesTitulo: {
     fontFamily: 'MontserratAlternates-Bold',
-    fontSize: 11,
+    fontSize: 12,
     letterSpacing: 1.2,
     color: esc.musgo.l54,
     marginLeft: 4,
@@ -1770,7 +1770,7 @@ const crearEstilos = (esc: EscalaMaster) => StyleSheet.create({
   opcionIdiomaTexto: {
     color: esc.musgo.l54,
     fontFamily: 'Montserrat-Bold',
-    fontSize: 10,
+    fontSize: 12,
   },
   opcionIdiomaTextoActivo: {
     color: esc.jade.l34a,
@@ -1783,7 +1783,7 @@ const crearEstilos = (esc: EscalaMaster) => StyleSheet.create({
   },
   toggleDesc: {
     fontFamily: 'Montserrat-Medium',
-    fontSize: 11,
+    fontSize: 12,
     color: esc.musgo.l54,
     marginTop: 2,
   },
@@ -1818,7 +1818,7 @@ const crearEstilos = (esc: EscalaMaster) => StyleSheet.create({
   },
   filaEnlaceSubtexto: {
     fontFamily: 'Montserrat-Medium',
-    fontSize: 11,
+    fontSize: 12,
     color: esc.musgo.l54,
     marginTop: 2,
   },
@@ -1839,7 +1839,7 @@ const crearEstilos = (esc: EscalaMaster) => StyleSheet.create({
   },
   badgeSuscripcionTexto: {
     fontFamily: 'Montserrat-Bold',
-    fontSize: 10,
+    fontSize: 12,
   },
   pieVersion: {
     alignItems: 'center',
@@ -1853,12 +1853,12 @@ const crearEstilos = (esc: EscalaMaster) => StyleSheet.create({
   },
   pieVersionSubtexto: {
     fontFamily: 'Montserrat-Medium',
-    fontSize: 10.5,
+    fontSize: 12,
     color: esc.musgo.l58,
   },
   pieVersionLema: {
     fontFamily: 'Montserrat-Regular',
-    fontSize: 10,
+    fontSize: 12,
     color: esc.musgo.l70,
     marginTop: 2,
   },
