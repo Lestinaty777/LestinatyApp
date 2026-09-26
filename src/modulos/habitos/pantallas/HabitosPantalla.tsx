@@ -213,7 +213,7 @@ export function HabitosPantalla() {
                 <MasterGlass style={s.accesoGlass}>
                   <MasterIcon alTema name={acceso.nombreIcono} size={32} />
                   <View style={s.accesoTexto}>
-                    <Texto numberOfLines={1} style={s.accesoEtiqueta}>{etiquetaAcceso(acceso.id)}</Texto>
+                    <Texto adjustsFontSizeToFit minimumFontScale={0.8} numberOfLines={1} style={s.accesoEtiqueta}>{etiquetaAcceso(acceso.id)}</Texto>
                     <Texto numberOfLines={2} style={s.accesoDescripcion}>{descripcionAcceso(acceso.id)}</Texto>
                   </View>
                 </MasterGlass>
@@ -603,7 +603,7 @@ const crearEstilosS = (esc: EscalaMaster) => StyleSheet.create({ raiz: { flex: 1
   accesoTarjeta: { flex: 1 },
   accesoGlass: { alignItems: 'center', borderRadius: 14, justifyContent: 'flex-start', minHeight: 100, padding: 8 },
   accesoTexto: { alignItems: 'center', marginTop: 5, minHeight: 31, width: '100%' },
-  accesoEtiqueta: { color: C.texto, fontFamily: 'MontserratAlternates-Bold', fontSize: 11, lineHeight: 14, textAlign: 'center' },
+  accesoEtiqueta: { color: C.texto, fontFamily: 'MontserratAlternates-Bold', fontSize: 12, lineHeight: 15, textAlign: 'center' },
   accesoDescripcion: { color: C.tenue, fontFamily: 'Montserrat-Medium', fontSize: 11, lineHeight: 14, marginTop: 1, textAlign: 'center' },
   horizonAcceso: { marginBottom: 16, marginHorizontal: 20 }, horizonAccesoPresionado: { opacity: 0.82, transform: [{ scale: 0.985 }] }, horizonAccesoDeshabilitado: { opacity: 0.62 }, horizonGlass: { alignItems: 'center', borderRadius: 18, flexDirection: 'row', gap: 11, padding: 12 }, horizonIcono: { alignItems: 'center', backgroundColor: conAlfa(esc.hoja.l56, .13), borderRadius: 13, height: 42, justifyContent: 'center', width: 42 }, horizonTexto: { flex: 1 }, horizonTitulo: { color: esc.jade.l34a, fontFamily: 'MontserratAlternates-Bold', fontSize: 14 }, horizonDescripcion: { color: esc.musgo.l51, fontFamily: 'Montserrat-Medium', fontSize: 12, marginTop: 2 },
   cercaniaTarjeta: { marginBottom: 16, marginHorizontal: 20 }, cercaniaGlass: { alignItems: 'center', borderRadius: 18, flexDirection: 'row', gap: 11, padding: 12 }, cercaniaIcono: { alignItems: 'center', backgroundColor: conAlfa(esc.jade.l70, 0.14), borderRadius: 13, height: 42, justifyContent: 'center', width: 42 }, cercaniaLabel: { color: C.tenue, fontFamily: 'Montserrat-Medium', fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5 }, cercaniaTitulo: { color: C.texto, fontFamily: 'MontserratAlternates-Bold', fontSize: 13, marginTop: 2 }, cercaniaPorcentaje: { color: C.verde, fontFamily: 'MontserratAlternates-Bold', fontSize: 16 },
@@ -628,11 +628,11 @@ const crearEstilosS = (esc: EscalaMaster) => StyleSheet.create({ raiz: { flex: 1
   pistaSwipeBanner: { alignItems: 'center', borderRadius: 16, flexDirection: 'row', gap: 10, marginBottom: 12, padding: 10 },
   pistaSwipeIcono: { alignItems: 'center', backgroundColor: conAlfa(esc.jade.l34, .12), borderRadius: 15, height: 30, justifyContent: 'center', width: 30 },
   pistaSwipeTitulo: { color: esc.jade.l34, fontFamily: 'Montserrat-Bold', fontSize: 12 },
-  pistaSwipeTexto: { color: esc.musgo.l49, fontFamily: 'Montserrat-Medium', fontSize: 12, lineHeight: 16, marginTop: 1 },
+  pistaSwipeTexto: { color: esc.musgo.l49, fontFamily: 'Montserrat-Medium', fontSize: 13, lineHeight: 17, marginTop: 1 },
   pistaSwipeBoton: { backgroundColor: esc.jade.l50, borderRadius: 12, paddingHorizontal: 10, paddingVertical: 8 },
-  pistaSwipeBotonTexto: { color: '#FFFFFF', fontFamily: 'Montserrat-Bold', fontSize: 12 },
+  pistaSwipeBotonTexto: { color: '#FFFFFF', fontFamily: 'Montserrat-Bold', fontSize: 13 },
   filaHoyTitulo: { color: esc.hoja.l19, fontFamily: 'Montserrat-Bold', fontSize: 13, lineHeight: 15 },
-  filaHoySubtitulo: { color: esc.musgo.l49, fontFamily: 'Montserrat-Medium', fontSize: 12, lineHeight: 16, marginTop: 0 },
+  filaHoySubtitulo: { color: esc.musgo.l49, fontFamily: 'Montserrat-Medium', fontSize: 13, lineHeight: 17, marginTop: 0 },
   filaHoyChevron: { alignItems: 'center', borderRadius: 14, height: 28, justifyContent: 'center', width: 28 },
   encabezadoHoy: { marginBottom: 14 },
   encabezadoHoyFila: { alignItems: 'center', flexDirection: 'row', gap: 12 },

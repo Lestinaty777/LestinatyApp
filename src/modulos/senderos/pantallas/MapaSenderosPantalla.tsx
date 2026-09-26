@@ -758,16 +758,16 @@ const crearEstilosStyles = (esc: EscalaMaster) => StyleSheet.create({
   },
   tituloAsignatura: {
     fontFamily: 'MontserratAlternates-Bold',
-    fontSize: 16,
+    fontSize: 17,
     color: esc.jade.l34,
-    lineHeight: 19,
+    lineHeight: 20,
     marginBottom: 0,
   },
   descAsignatura: {
     fontFamily: 'MontserratAlternates-Medium',
-    fontSize: 12,
+    fontSize: 13,
     color: esc.musgo.l49,
-    lineHeight: 15,
+    lineHeight: 16,
   },
   espacioFlexible: {
     flex: 1, // Toma todo el espacio restante hasta empujar la capaMapa
