@@ -218,7 +218,6 @@ const SeccionesContenido = memo(function SeccionesContenido({
   onPlantar,
   catalogoGemas,
   paquetesRevenueCat,
-  motivoCatalogo,
   comprandoGemasId,
   cargandoCatalogoGemas,
   onComprarGemas,
@@ -233,7 +232,6 @@ const SeccionesContenido = memo(function SeccionesContenido({
   onPlantar: () => void;
   catalogoGemas: PaqueteGemasIap[];
   paquetesRevenueCat: PaqueteCompra[];
-  motivoCatalogo: string | null;
   comprandoGemasId: string | null;
   cargandoCatalogoGemas?: boolean;
   onComprarGemas: (paquete: PaqueteGemasIap) => void;
@@ -330,9 +328,6 @@ const SeccionesContenido = memo(function SeccionesContenido({
                   </View>
                 </MasterGlass>
               </Animated.View>
-              {motivoCatalogo ? (
-                <Texto style={{ color: esc.musgo.l54, fontFamily: 'Montserrat-Medium', fontSize: 10 }}>{`Diagnóstico: ${motivoCatalogo}`}</Texto>
-              ) : null}
               {cargandoCatalogoGemas ? (
                 <EsqueletoComprarGemas soloLista />
               ) : catalogoGemas.length === 0 ? (
@@ -512,7 +507,7 @@ export function TiendaArbolesPantalla() {
   // Misma queryKey que TiendaPantalla.tsx (/tienda/gemas) — comparten caché,
   // el catálogo de paquetes IAP es idéntico sin importar desde dónde se pida.
   const consultaCatalogoGemas = useQuery({ queryKey: ['tienda', 'catalogoGemasIap', Platform.OS], queryFn: () => obtenerCatalogoGemasIap(Platform.OS === 'ios' ? 'ios' : 'android') });
-  const { paquetes: paquetesRevenueCat, motivoError: motivoCatalogo } = useCatalogoCompras();
+  const { paquetes: paquetesRevenueCat } = useCatalogoCompras();
   const [comprandoGemasId, setComprandoGemasId] = useState<string | null>(null);
 
   const mutacionComprar = useMutation({
@@ -649,7 +644,6 @@ export function TiendaArbolesPantalla() {
               onPlantar={alPlantar}
               catalogoGemas={consultaCatalogoGemas.data ?? []}
               paquetesRevenueCat={paquetesRevenueCat}
-              motivoCatalogo={motivoCatalogo}
               comprandoGemasId={comprandoGemasId}
               cargandoCatalogoGemas={consultaCatalogoGemas.isLoading}
               onComprarGemas={comprarGemas}
