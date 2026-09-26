@@ -152,7 +152,7 @@ function PreparandoHabito({ color, fondo, progreso, titulo }: { color: string; f
       <MasterSand color={color} forma="anillo" grosor={Math.round(tamano * 0.085)} porcentaje={progreso} tamano={tamano}>
         {progreso >= 100
           ? <Check color={color} size={Math.round(tamano * 0.28)} strokeWidth={3} />
-          : <Texto style={[p.porcentaje, { color, fontSize: Math.round(tamano * 0.2) }]}>{progreso}%</Texto>}
+          : <Texto adjustsFontSizeToFit minimumFontScale={0.6} numberOfLines={1} style={[p.porcentaje, { color, fontSize: Math.round(tamano * 0.2), lineHeight: Math.round(tamano * 0.26) }]}>{progreso}%</Texto>}
       </MasterSand>
       <Texto style={[p.titulo, { color }]}>{t(estado.mensajeClave)}</Texto>
       <Texto style={p.sub}>{t('habitos.crearWizard.preparation.description', { title: titulo || t('habitos.crearWizard.preparation.defaultHabit') })}</Texto>
