@@ -1,13 +1,13 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { ActivityIndicator, Image, Platform, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
 import { Boton, Pantalla, Tarjeta, Texto } from '../../../diseno';
-import { comprarPaquete, obtenerCatalogoGemas } from '../../../nucleo/compras/revenueCat';
-import type { PaqueteCompra } from '../../../plataforma/compras/contrato';
+import { comprarPaquete } from '../../../nucleo/compras/revenueCat';
 import { obtenerCatalogoGemasIap } from '../gemas.servicio';
 import type { PaqueteGemasIap } from '../gemas.tipos';
+import { useCatalogoCompras } from '../useCatalogoCompras';
 import { CLAVE_SALDO_GEMAS, useSaldoGemas } from '../useSaldoGemas';
 
 export function TiendaPantalla() {
@@ -15,15 +15,9 @@ export function TiendaPantalla() {
   const cliente = useQueryClient();
   const { data: saldoGemas } = useSaldoGemas();
   const consultaCatalogo = useQuery({ queryKey: ['tienda', 'catalogoGemasIap', Platform.OS], queryFn: () => obtenerCatalogoGemasIap(Platform.OS === 'ios' ? 'ios' : 'android') });
-  const [paquetesCompra, setPaquetesCompra] = useState<PaqueteCompra[]>([]);
+  const { paquetes: paquetesCompra } = useCatalogoCompras();
   const [comprando, setComprando] = useState<string | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
-
-  useEffect(() => {
-    let vigente = true;
-    void obtenerCatalogoGemas().then((estado) => { if (vigente && estado.estado === 'lista') setPaquetesCompra(estado.paquetes); });
-    return () => { vigente = false; };
-  }, []);
 
   async function comprar(paquete: PaqueteGemasIap) {
     const paqueteCompra = paquetesCompra.find((p) => p.productId === paquete.productIdRevenueCat);

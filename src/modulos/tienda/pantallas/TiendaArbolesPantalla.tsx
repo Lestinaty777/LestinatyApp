@@ -12,9 +12,10 @@ import { hapticSeguro } from '../../../nucleo/dispositivo/haptics';
 import { colorMasterMasCercano } from '../../../diseno/componentes/MasterChanger';
 import { obtenerAssetsPaquete } from '../../senderos/algoritmo/registroPaquetesArbol';
 import { AuroraBoreal } from '../../hoy/componentes/AuroraBoreal';
-import { comprarPaquete, obtenerCatalogoGemas } from '../../../nucleo/compras/revenueCat';
+import { comprarPaquete } from '../../../nucleo/compras/revenueCat';
 import type { PaqueteCompra } from '../../../plataforma/compras/contrato';
 import { CLAVE_PAQUETES_DESBLOQUEADOS } from '../usePaquetesDesbloqueados';
+import { useCatalogoCompras } from '../useCatalogoCompras';
 import { comprarSemillasArbol, obtenerCatalogoArboles, obtenerCatalogoGemasIap, obtenerSemillasDisponibles } from '../gemas.servicio';
 import type { ArbolPaquete, PaqueteGemasIap, SemillaArbol } from '../gemas.tipos';
 import { CLAVE_SALDO_GEMAS, useSaldoGemas } from '../useSaldoGemas';
@@ -506,14 +507,8 @@ export function TiendaArbolesPantalla() {
   // Misma queryKey que TiendaPantalla.tsx (/tienda/gemas) — comparten caché,
   // el catálogo de paquetes IAP es idéntico sin importar desde dónde se pida.
   const consultaCatalogoGemas = useQuery({ queryKey: ['tienda', 'catalogoGemasIap', Platform.OS], queryFn: () => obtenerCatalogoGemasIap(Platform.OS === 'ios' ? 'ios' : 'android') });
-  const [paquetesRevenueCat, setPaquetesRevenueCat] = useState<PaqueteCompra[]>([]);
+  const { paquetes: paquetesRevenueCat } = useCatalogoCompras();
   const [comprandoGemasId, setComprandoGemasId] = useState<string | null>(null);
-
-  useEffect(() => {
-    let vigente = true;
-    void obtenerCatalogoGemas().then((estado) => { if (vigente && estado.estado === 'lista') setPaquetesRevenueCat(estado.paquetes); });
-    return () => { vigente = false; };
-  }, []);
 
   const mutacionComprar = useMutation({
     mutationFn: comprarSemillasArbol,
