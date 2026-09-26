@@ -57,7 +57,7 @@ export function DetalleHabitoPantalla({ id, onCerrar }: { id: string; onCerrar: 
 
   return (
     <TonoDelHabito colorPaquete={habito.color} paqueteId={habito.paqueteId}>
-      <HojaDeslizante alturaMaxima={0.96} onCerrar={onCerrar}>
+      <HojaDeslizante alturaFija={editando} alturaMaxima={0.96} onCerrar={onCerrar}>
         <ScrollView
           contentContainerStyle={[s.root, { paddingBottom: insets.bottom + 28 }]}
           nestedScrollEnabled

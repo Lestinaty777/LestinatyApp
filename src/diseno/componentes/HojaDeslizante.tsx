@@ -11,6 +11,8 @@ const UMBRAL_CIERRE_VELOCIDAD = 800;
 
 type HojaDeslizanteProps = {
   alturaMaxima?: number;
+  /** Usa alturaMaxima como altura fija (no como tope): necesaria si dentro hay un ScrollView largo, que si no crece hasta su contenido y el recorte de la hoja deja el final inalcanzable. */
+  alturaFija?: boolean;
   children: React.ReactNode;
   onCerrar: () => void;
 };
@@ -33,7 +35,7 @@ type HojaDeslizanteProps = {
 // Android para que los gestos (el arrastre para cerrar) funcionen dentro de
 // un Modal — el GestureHandlerRootView del root de la app no llega hasta acá,
 // porque Modal monta su contenido en una ventana nativa aparte.
-export function HojaDeslizante({ alturaMaxima = 0.92, children, onCerrar }: HojaDeslizanteProps) {
+export function HojaDeslizante({ alturaFija = false, alturaMaxima = 0.92, children, onCerrar }: HojaDeslizanteProps) {
   const traslado = useSharedValue(ALTO_PANTALLA);
   const opacidadFondo = useSharedValue(0);
 
@@ -77,7 +79,7 @@ export function HojaDeslizante({ alturaMaxima = 0.92, children, onCerrar }: Hoja
             <Pressable accessibilityLabel="Cerrar" onPress={cerrar} style={StyleSheet.absoluteFill} />
           </Animated.View>
           <GestureDetector gesture={gesto}>
-            <Animated.View style={[styles.hoja, { maxHeight: ALTO_PANTALLA * alturaMaxima }, estiloHoja]}>
+            <Animated.View style={[styles.hoja, alturaFija ? { height: ALTO_PANTALLA * alturaMaxima } : { maxHeight: ALTO_PANTALLA * alturaMaxima }, estiloHoja]}>
               <View style={styles.asa} />
               {/* Nada dentro de esta hoja llevaba TextInput hasta ahora, por
                   eso nunca hizo falta esto — sin manejo de teclado, cualquier
