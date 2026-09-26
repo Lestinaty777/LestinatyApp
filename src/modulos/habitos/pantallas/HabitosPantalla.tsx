@@ -222,25 +222,6 @@ export function HabitosPantalla() {
           );
         })}
       </View>
-      {consultaCercania.data && (() => {
-        const habito = consultaCercania.data;
-        const proximidad = habito.porcentaje;
-        return (
-          <Animated.View entering={entradaEncadenada(9)}>
-            <Rebote accessibilityLabel={t('habitos.pantalla.nearLevelAccessibility', { title: habito.titulo })} estilo={s.cercaniaTarjeta} onPress={() => setDetalleHabitoId(habito.id)}>
-              <MasterGlass style={s.cercaniaGlass}>
-                <View style={s.cercaniaIcono}><IconoHabitoVisual color={C.verde} id={habito.iconoLucide} size={22} /></View>
-                <View style={{ flex: 1 }}>
-                  <Texto style={s.cercaniaLabel}>{t('habitos.pantalla.nearLevel')}</Texto>
-                  <Texto style={s.cercaniaTitulo}>{t('habitos.pantalla.levelProgress', { title: habito.titulo, level: habito.nivel, nextLevel: habito.nivel + 1 })}</Texto>
-                  <Progreso porcentaje={proximidad} />
-                </View>
-                <Texto style={s.cercaniaPorcentaje}>{proximidad}%</Texto>
-              </MasterGlass>
-            </Rebote>
-          </Animated.View>
-        );
-      })()}
     </View>
     <Animated.View entering={entradaEncadenada(10)}>
       <MasterGlass style={s.panel}>
@@ -278,6 +259,26 @@ export function HabitosPantalla() {
         </Animated.View>
       </MasterGlass>
     </Animated.View>
+      {consultaCercania.data && (() => {
+        const habito = consultaCercania.data;
+        const proximidad = habito.porcentaje;
+        const iconoCercania = buscarIconoHabito(habito.iconoLucide);
+        return (
+          <Animated.View entering={entradaEncadenada(11)}>
+            <Rebote accessibilityLabel={t('habitos.pantalla.nearLevelAccessibility', { title: habito.titulo })} estilo={s.cercaniaTarjeta} onPress={() => setDetalleHabitoId(habito.id)}>
+              <MasterGlass style={s.cercaniaGlass}>
+                <MasterIconBg fuente={iconoCercania?.fuente} hue={iconoCercania?.hue} size={48}>{!iconoCercania && <Sparkles color={C.verde} size={20} />}</MasterIconBg>
+                <View style={{ flex: 1 }}>
+                  <Texto style={s.cercaniaLabel}>{t('habitos.pantalla.nearLevel')}</Texto>
+                  <Texto style={s.cercaniaTitulo}>{t('habitos.pantalla.levelProgress', { title: habito.titulo, level: habito.nivel, nextLevel: habito.nivel + 1 })}</Texto>
+                  <Progreso porcentaje={proximidad} />
+                </View>
+                <Texto style={s.cercaniaPorcentaje}>{proximidad}%</Texto>
+              </MasterGlass>
+            </Rebote>
+          </Animated.View>
+        );
+      })()}
     {capacidades.horizon && (
     <Animated.View entering={entradaEncadenada(11)} style={s.horizonAcceso}>
       <Pressable accessibilityLabel={t('habitos.pantalla.exploreWidgets')} disabled={horizon.isLoading} onPress={abrirHorizon} style={({ pressed }) => [pressed && s.horizonAccesoPresionado, horizon.isLoading && s.horizonAccesoDeshabilitado]}>
@@ -606,7 +607,7 @@ const crearEstilosS = (esc: EscalaMaster) => StyleSheet.create({ raiz: { flex: 1
   accesoEtiqueta: { color: C.texto, fontFamily: 'MontserratAlternates-Bold', fontSize: 12, lineHeight: 15, textAlign: 'center' },
   accesoDescripcion: { color: C.tenue, fontFamily: 'Montserrat-Medium', fontSize: 11, lineHeight: 14, marginTop: 1, textAlign: 'center' },
   horizonAcceso: { marginBottom: 16, marginHorizontal: 20 }, horizonAccesoPresionado: { opacity: 0.82, transform: [{ scale: 0.985 }] }, horizonAccesoDeshabilitado: { opacity: 0.62 }, horizonGlass: { alignItems: 'center', borderRadius: 18, flexDirection: 'row', gap: 11, padding: 12 }, horizonIcono: { alignItems: 'center', backgroundColor: conAlfa(esc.hoja.l56, .13), borderRadius: 13, height: 42, justifyContent: 'center', width: 42 }, horizonTexto: { flex: 1 }, horizonTitulo: { color: esc.jade.l34a, fontFamily: 'MontserratAlternates-Bold', fontSize: 14 }, horizonDescripcion: { color: esc.musgo.l51, fontFamily: 'Montserrat-Medium', fontSize: 12, marginTop: 2 },
-  cercaniaTarjeta: { marginBottom: 16, marginHorizontal: 20 }, cercaniaGlass: { alignItems: 'center', borderRadius: 18, flexDirection: 'row', gap: 11, padding: 12 }, cercaniaIcono: { alignItems: 'center', backgroundColor: conAlfa(esc.jade.l70, 0.14), borderRadius: 13, height: 42, justifyContent: 'center', width: 42 }, cercaniaLabel: { color: C.tenue, fontFamily: 'Montserrat-Medium', fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5 }, cercaniaTitulo: { color: C.texto, fontFamily: 'MontserratAlternates-Bold', fontSize: 13, marginTop: 2 }, cercaniaPorcentaje: { color: C.verde, fontFamily: 'MontserratAlternates-Bold', fontSize: 16 },
+  cercaniaTarjeta: { marginBottom: 16, marginHorizontal: 20, marginTop: 16 }, cercaniaGlass: { alignItems: 'center', borderRadius: 18, flexDirection: 'row', gap: 11, padding: 12 }, cercaniaIcono: { alignItems: 'center', backgroundColor: conAlfa(esc.jade.l70, 0.14), borderRadius: 13, height: 42, justifyContent: 'center', width: 42 }, cercaniaLabel: { color: C.tenue, fontFamily: 'Montserrat-Medium', fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5 }, cercaniaTitulo: { color: C.texto, fontFamily: 'MontserratAlternates-Bold', fontSize: 13, marginTop: 2 }, cercaniaPorcentaje: { color: C.verde, fontFamily: 'MontserratAlternates-Bold', fontSize: 16 },
   panel: { borderRadius: 22, marginHorizontal: 20, padding: 15 }, tituloFila: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }, tituloConIcono: { alignItems: 'center', flexDirection: 'row', gap: 7 }, titulo: { color: C.texto, fontFamily: 'MontserratAlternates-Bold', fontSize: 22 }, contador: { color: C.tenue, fontFamily: 'MontserratAlternates-Bold', fontSize: 12 }, error: { color: '#DC2626', fontFamily: 'Montserrat-Medium', paddingVertical: 18, textAlign: 'center' }, errorDetalle: { color: '#DC2626', fontFamily: 'Montserrat-Medium', fontSize: 12, opacity: 0.7, paddingBottom: 10, textAlign: 'center' }, vacio: { alignItems: 'center', paddingHorizontal: 22, paddingVertical: 28 }, iconoVacio: { marginBottom: 6 }, vacioTitulo: { color: C.texto, fontFamily: 'MontserratAlternates-Bold', fontSize: 16, textAlign: 'center' }, vacioTexto: { color: C.tenue, fontFamily: 'Montserrat-Medium', fontSize: 13, lineHeight: 18, marginTop: 6, textAlign: 'center' },
   carruselHabitos: { marginHorizontal: -15 },
   carruselHabitosContenido: { gap: 12, paddingHorizontal: 15 },
