@@ -1,47 +1,27 @@
-import React, { useState } from 'react';
-import {
-  Image,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  View,
-} from 'react-native';
+import { useState } from 'react';
+import { Alert, FlatList, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
-import {
-  Check,
-  ChevronLeft,
-  XCircle,
-  List,
-  Columns,
-  CalendarDays,
-  LayoutGrid,
-  Map,
-  Clock,
-} from 'lucide-react-native';
+import { useTranslation } from 'react-i18next';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Check, Columns, CalendarDays, LayoutGrid, List, Map, Plus, Clock, Trash2 } from 'lucide-react-native';
 
-import { RecuadroGlass, Texto } from '../../../diseno';
+import { Rebote, Texto } from '../../../diseno';
 import { hapticSeguro } from '../../../nucleo/dispositivo/haptics';
 import { AuroraBoreal } from '../../hoy/componentes/AuroraBoreal';
 import { ESCALA_ESMERALDA } from '../../../diseno/tema/escalaEsmeralda';
+import { CrearTareaHoja } from '../componentes/CrearTareaHoja';
+import { CLAVE_SEMILLAS_DISPONIBLES } from '../../tienda/pantallas/TiendaArbolesPantalla';
+import { asignarSemillaTarea, crearTarea, completarTarea, eliminarTarea, obtenerTareas } from '../tareas.servicio';
+import type { Tarea } from '../tareas.tipos';
 
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// Paleta de colores (Tema Amarillo / Naranja para Tareas)
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+const CLAVE_TAREAS = ['tareas', 'lista'];
+
 const C = {
-  // Fondos
-  fondo: '#FFFBEB',           // Amarillo/naranja muy pálido
-  superficie: '#FFFFFF',
-  glass: 'rgba(255,255,255,0.72)',
-  glassBorde: 'rgba(255,255,255,0.85)',
-
-  // Textos
+  fondo: '#FFFBEB',
   texto: '#1A1335',
   textoSecundario: '#7B7494',
   textoTenue: '#A8A1BD',
-
-  // Acentos (Tema principal)
-  morado: '#F59E0B',          // Reutilizamos la key 'morado' pero con color amarillo/naranja
+  morado: '#F59E0B',
   moradoSuave: '#FEF3C7',
   verde: ESCALA_ESMERALDA.jade.l70,
   verdeSuave: ESCALA_ESMERALDA.jade.l95,
@@ -51,375 +31,153 @@ const C = {
   rojoSuave: '#FEE2E2',
   azul: '#3B82F6',
   azulSuave: '#DBEAFE',
-  gris: '#D1D5DB',
-
-  // Utilidad
-  barraFondo: '#FEF3C7',
-  sombra: '#D97706',
 };
 
 const TABS = [
-  { id: 'lista', label: 'Lista', color: C.morado, colorSuave: C.moradoSuave, IconoLucide: List },
-  { id: 'kanban', label: 'Kanban', color: C.azul, colorSuave: C.azulSuave, IconoLucide: Columns },
-  { id: 'agenda', label: 'Agenda', color: C.rojo, colorSuave: C.rojoSuave, IconoLucide: CalendarDays },
-  { id: 'eisenhower', label: 'Eisenhower', color: C.verde, colorSuave: C.verdeSuave, IconoLucide: LayoutGrid },
-  { id: 'senderos', label: 'Senderos', color: C.naranja, colorSuave: C.naranjaSuave, IconoLucide: Map },
-  { id: 'time', label: 'Time block', color: '#7B7494', colorSuave: '#EDE5FB', IconoLucide: Clock },
-];
+  { id: 'lista', label: 'Lista', color: C.morado, colorSuave: C.moradoSuave, Icono: List },
+  { id: 'kanban', label: 'Kanban', color: C.azul, colorSuave: C.azulSuave, Icono: Columns },
+  { id: 'agenda', label: 'Agenda', color: C.rojo, colorSuave: C.rojoSuave, Icono: CalendarDays },
+  { id: 'eisenhower', label: 'Eisenhower', color: C.verde, colorSuave: C.verdeSuave, Icono: LayoutGrid },
+  { id: 'senderos', label: 'Senderos', color: C.naranja, colorSuave: C.naranjaSuave, Icono: Map },
+  { id: 'time', label: 'Time block', color: '#7B7494', colorSuave: '#EDE5FB', Icono: Clock },
+] as const;
 
-export function TareasPantalla() {
-  const insets = useSafeAreaInsets();
-  const router = useRouter();
-  const [tabActiva, setTabActiva] = useState(TABS[0].id);
+const PRIORIDAD_COLOR: Record<NonNullable<Tarea['prioridad']>, string> = {
+  urgente_importante: C.rojo,
+  urgente_no_importante: C.naranja,
+  no_urgente_importante: C.azul,
+  no_urgente_no_importante: C.textoTenue,
+};
 
+function FilaTarea({ onCompletar, onEliminar, tarea }: { onCompletar: (tarea: Tarea) => void; onEliminar: (tarea: Tarea) => void; tarea: Tarea }) {
+  const hecha = tarea.estado === 'hecha';
   return (
-    <View style={s.raiz}>
-      <ScrollView
-        contentContainerStyle={{ paddingBottom: insets.bottom + 100 }}
-        showsVerticalScrollIndicator={false}
-      >
-        <View style={{ paddingTop: insets.top + 32, flex: 1 }}>
-          <AuroraBoreal tema="amarillo" />
-
-          {/* Header Tareas */}
-          <View style={s.header}>
-            <View style={s.headerIzq}>
-              <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12 }}>
-                <Pressable onPress={() => { hapticSeguro('seleccion'); router.back(); }} style={s.backBtnGlass}>
-                  <ChevronLeft color={C.textoSecundario} size={22} />
-                </Pressable>
-                <View style={{ justifyContent: 'center' }}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                    <Image source={require('../../../../assets/icons/hoy/tareas.png')} style={{ width: 26, height: 26, resizeMode: 'contain' }} />
-                    <Texto style={s.headerNombre}>Tareas</Texto>
-                  </View>
-                  <Texto style={s.headerFrase}>Un paso a la vez.</Texto>
-                </View>
-              </View>
-            </View>
-            <View style={s.headerDer}>
-              <View style={[s.statPill, { paddingHorizontal: 10, paddingVertical: 10, borderRadius: 22 }]}>
-                <Image
-                  source={require('../../../../assets/icons/hoy/notificaciones.png')}
-                  style={{ width: 30, height: 30, resizeMode: 'contain' }}
-                />
-              </View>
-            </View>
-          </View>
-
-          {/* Hero Section */}
-          <View style={s.heroRow}>
-            {/* Columna Izquierda: Progreso Tareas y Frase Aby */}
-            <View style={s.heroColIzq}>
-              <RecuadroGlass style={s.rachaCard}>
-                <View style={s.rachaTop}>
-                  <View style={s.rachaIcono}>
-                    {/* Gráfica circular de tareas */}
-                    <View style={s.circuloProgreso}>
-                      <Texto style={s.circuloTexto}>3/5</Texto>
-                    </View>
-                  </View>
-                  <View style={{ flex: 1, paddingLeft: 8, gap: 4 }}>
-                    {/* Checks */}
-                    <View style={s.checkRow}>
-                      <View style={[s.checkBola, { backgroundColor: C.verde }]}>
-                        <Check color="#FFFFFF" size={10} strokeWidth={3} />
-                      </View>
-                      <Texto style={s.checkTexto}>3 completadas</Texto>
-                    </View>
-                    <View style={s.checkRow}>
-                      <View style={[s.checkBola, { backgroundColor: '#c8c8c8' }]}>
-                        {/* Pendientes - check vacio gris */}
-                      </View>
-                      <Texto style={s.checkTexto}>2 pendientes</Texto>
-                    </View>
-                    <View style={s.checkRow}>
-                      <View style={[s.checkBola, { backgroundColor: C.rojo }]}>
-                        <Texto style={{ color: '#fff', fontSize: 8, fontWeight: 'bold', top: -1 }}>!</Texto>
-                      </View>
-                      <Texto style={s.checkTexto}>0 vencidas</Texto>
-                    </View>
-                  </View>
-                </View>
-              </RecuadroGlass>
-
-              <RecuadroGlass style={s.nivelCard}>
-                <View style={s.nivelIcono}>
-                  <Image
-                    source={require('../../../../assets/ilustraciones/Aby/aby.png')}
-                    style={{ width: 44, height: 44, resizeMode: 'contain' }}
-                  />
-                </View>
-                <View style={s.nivelInfo}>
-                  <Texto style={s.fraseFilosofica}>
-                    "La acción es la clave fundamental de todo éxito."
-                  </Texto>
-                </View>
-              </RecuadroGlass>
-            </View>
-
-            {/* Columna Derecha: Ilustración cuadrada */}
-            <View style={s.heroColDer}>
-              <View style={s.ilustracionContenedor}>
-                {/* <Image
-                  source={require('../../../../assets/ilustraciones/senderos/biomas/arboles/bosque-dorado-01.png')}
-                  style={{ width: '100%', height: '100%', transform: [{ scaleX: -1 }] }}
-                  resizeMode="cover"
-                /> */}
-              </View>
-            </View>
-          </View>
-
-          {/* Tabs Tareas (Mismo diseño que GridCategorias) */}
-          <View style={s.categoriasRow}>
-            {TABS.map((cat) => {
-              const isActivo = tabActiva === cat.id;
-              return (
-                <Pressable
-                  key={cat.id}
-                  onPress={() => {
-                    hapticSeguro('seleccion');
-                    setTabActiva(cat.id);
-                  }}
-                  style={({ pressed }) => [
-                    s.categoriaCard,
-                    pressed && { opacity: 0.8, transform: [{ scale: 0.95 }] },
-                  ]}
-                >
-                  <RecuadroGlass style={[s.categoriaGlass, isActivo && { borderColor: C.morado, borderWidth: 1.5 }]}>
-                    <View style={s.categoriaIcono}>
-                      {cat.IconoLucide && (
-                        <cat.IconoLucide size={22} color={C.textoSecundario} />
-                      )}
-                    </View>
-                    <Texto style={[s.categoriaLabel, isActivo && { color: C.morado }]} numberOfLines={1}>
-                      {cat.label}
-                    </Texto>
-                  </RecuadroGlass>
-                </Pressable>
-              );
-            })}
-          </View>
-
-          {/* Contenido de la tab (placeholder) */}
-          <View style={{ paddingHorizontal: 20, marginTop: 20 }}>
-            <Texto style={{ fontFamily: 'Montserrat-Bold', color: C.texto }}>Contenido de la pestaña (Próximamente)</Texto>
-          </View>
+    <View style={[s.fila, tarea.color ? { borderLeftColor: tarea.color, borderLeftWidth: 4 } : null]}>
+      <Pressable accessibilityLabel="check" onPress={() => onCompletar(tarea)} style={[s.checkbox, hecha && { backgroundColor: C.texto, borderColor: C.texto }]}>
+        {hecha ? <Check color="#FFFFFF" size={14} strokeWidth={3} /> : null}
+      </Pressable>
+      <View style={{ flex: 1 }}>
+        <Texto numberOfLines={2} style={[s.filaTitulo, hecha && { color: C.textoTenue, textDecorationLine: 'line-through' }]}>{tarea.titulo}</Texto>
+        <View style={{ flexDirection: 'row', gap: 8, marginTop: 3 }}>
+          {tarea.fechaVencimiento ? <Texto style={s.filaMeta}>{tarea.fechaVencimiento}</Texto> : null}
+          {tarea.prioridad ? <View style={[s.puntoPrioridad, { backgroundColor: PRIORIDAD_COLOR[tarea.prioridad] }]} /> : null}
         </View>
-      </ScrollView>
+      </View>
+      <Pressable accessibilityLabel="eliminar" hitSlop={10} onPress={() => onEliminar(tarea)}>
+        <Trash2 color={C.textoTenue} size={18} />
+      </Pressable>
     </View>
   );
 }
 
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// Estilos
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-const RADIO = 20;
-const PH = 20;
+export function TareasPantalla() {
+  const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
+  const cliente = useQueryClient();
+  const [tabActiva, setTabActiva] = useState<(typeof TABS)[number]['id']>('lista');
+  const [creando, setCreando] = useState(false);
+
+  const consulta = useQuery({ queryKey: CLAVE_TAREAS, queryFn: obtenerTareas });
+
+  const mutacionCrear = useMutation({
+    mutationFn: async (input: { titulo: string; fechaVencimiento: string | null; prioridad: Tarea['prioridad']; semillaId: string | null; paqueteId: string | null }) => {
+      const tarea = await crearTarea({ titulo: input.titulo, fechaVencimiento: input.fechaVencimiento, prioridad: input.prioridad, paqueteId: input.paqueteId });
+      if (input.semillaId) await asignarSemillaTarea(input.semillaId, tarea.id);
+      return tarea;
+    },
+    onError: () => Alert.alert(t('tareas.pantalla.errorCrear')),
+    onSuccess: () => {
+      hapticSeguro('confirmacion');
+      cliente.invalidateQueries({ queryKey: CLAVE_TAREAS });
+      cliente.invalidateQueries({ queryKey: CLAVE_SEMILLAS_DISPONIBLES });
+      setCreando(false);
+    },
+  });
+
+  const mutacionCompletar = useMutation({
+    mutationFn: (tarea: Tarea) => completarTarea(tarea.id, tarea.estado !== 'hecha'),
+    onSuccess: () => cliente.invalidateQueries({ queryKey: CLAVE_TAREAS }),
+  });
+
+  const mutacionEliminar = useMutation({
+    mutationFn: (tarea: Tarea) => eliminarTarea(tarea.id),
+    onSuccess: () => cliente.invalidateQueries({ queryKey: CLAVE_TAREAS }),
+  });
+
+  function confirmarEliminar(tarea: Tarea) {
+    Alert.alert(t('tareas.pantalla.eliminarTitulo'), t('tareas.pantalla.eliminarDescripcion'), [
+      { style: 'cancel', text: t('tareas.pantalla.cancelar') },
+      { onPress: () => mutacionEliminar.mutate(tarea), style: 'destructive', text: t('tareas.pantalla.eliminar') },
+    ]);
+  }
+
+  const tabInfo = TABS.find((tab) => tab.id === tabActiva)!;
+
+  return (
+    <View style={s.raiz}>
+      <View pointerEvents="none" style={StyleSheet.absoluteFill}><AuroraBoreal tema="verde" /></View>
+      <View style={{ paddingTop: insets.top + 12, paddingHorizontal: 20 }}>
+        <Texto variante="titulo">{t('tareas.pantalla.titulo')}</Texto>
+        <Texto style={{ color: C.textoSecundario, marginTop: 2 }}>{t('tareas.pantalla.subtitulo')}</Texto>
+      </View>
+
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 16, paddingHorizontal: 20 }}>
+        {TABS.map((tab) => {
+          const activa = tab.id === tabActiva;
+          return (
+            <Rebote key={tab.id} onPress={() => setTabActiva(tab.id)} estilo={[s.tab, { backgroundColor: activa ? tab.color : tab.colorSuave }]}>
+              <tab.Icono color={activa ? '#FFFFFF' : tab.color} size={14} />
+              <Texto style={[s.tabTexto, { color: activa ? '#FFFFFF' : tab.color }]}>{tab.label}</Texto>
+            </Rebote>
+          );
+        })}
+      </View>
+
+      {tabActiva === 'lista' ? (
+        <FlatList
+          contentContainerStyle={{ gap: 10, paddingBottom: insets.bottom + 100, paddingHorizontal: 20, paddingTop: 16 }}
+          data={consulta.data ?? []}
+          keyExtractor={(tarea) => tarea.id}
+          ListEmptyComponent={!consulta.isLoading ? (
+            <View style={{ alignItems: 'center', paddingTop: 60 }}>
+              <Texto style={{ color: C.texto, fontFamily: 'MontserratAlternates-Bold', fontSize: 16 }}>{t('tareas.pantalla.vacioTitulo')}</Texto>
+              <Texto style={{ color: C.textoSecundario, marginTop: 4, textAlign: 'center' }}>{t('tareas.pantalla.vacioDescripcion')}</Texto>
+            </View>
+          ) : null}
+          renderItem={({ item }) => <FilaTarea onCompletar={(tarea) => mutacionCompletar.mutate(tarea)} onEliminar={confirmarEliminar} tarea={item} />}
+        />
+      ) : (
+        <View style={{ alignItems: 'center', flex: 1, justifyContent: 'center', paddingHorizontal: 40 }}>
+          <View style={[s.proximamenteIcono, { backgroundColor: tabInfo.colorSuave }]}><tabInfo.Icono color={tabInfo.color} size={26} /></View>
+          <Texto style={{ color: C.texto, fontFamily: 'MontserratAlternates-Bold', fontSize: 17, marginTop: 12, textAlign: 'center' }}>{t('tareas.pantalla.proximamente.titulo')}</Texto>
+          <Texto style={{ color: C.textoSecundario, marginTop: 4, textAlign: 'center' }}>{t('tareas.pantalla.proximamente.descripcion')}</Texto>
+        </View>
+      )}
+
+      <Pressable accessibilityLabel={t('tareas.pantalla.nuevaTarea')} onPress={() => { hapticSeguro('seleccion'); setCreando(true); }} style={[s.fab, { bottom: insets.bottom + 24 }]}>
+        <Plus color="#FFFFFF" size={26} strokeWidth={2.5} />
+      </Pressable>
+
+      {creando && (
+        <CrearTareaHoja
+          guardando={mutacionCrear.isPending}
+          onCerrar={() => setCreando(false)}
+          onCrear={(input) => mutacionCrear.mutate(input)}
+        />
+      )}
+    </View>
+  );
+}
 
 const s = StyleSheet.create({
-  raiz: {
-    flex: 1,
-    backgroundColor: C.fondo,
-  },
-
-  // ─── Header ─────────────────────────────────────────
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    paddingHorizontal: PH,
-    marginBottom: 16,
-  },
-  headerIzq: {
-    width: '60%', // Ampliado un poco para que quepa el botón back
-  },
-  backBtnGlass: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: C.glass,
-    borderWidth: 1,
-    borderColor: C.glassBorde,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 2,
-  },
-  headerSaludo: {
-    fontFamily: 'MontserratAlternates-Medium',
-    fontSize: 14,
-    color: '#4B4B4B',
-  },
-  headerNombre: {
-    fontFamily: 'Montserrat-Bold',
-    fontSize: 22,
-    color: C.texto,
-    lineHeight: 26,
-  },
-  headerFrase: {
-    fontFamily: 'MontserratAlternates-Medium',
-    fontSize: 8,
-    color: '#5A5A5A',
-    marginTop: 4,
-    lineHeight: 12,
-  },
-  headerDer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  statPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: C.glass,
-    borderRadius: 20,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderWidth: 1,
-    borderColor: C.glassBorde,
-  },
-
-  // ─── Hero Section ────────────────────────────
-  heroRow: {
-    flexDirection: 'row',
-    paddingHorizontal: PH,
-    gap: 12,
-    marginBottom: 16,
-  },
-  heroColIzq: {
-    width: '52%',
-    gap: 12,
-  },
-  heroColDer: {
-    position: 'absolute',
-    right: PH,
-    top: 0,
-    width: '50%',
-    zIndex: -1,
-  },
-  rachaCard: {
-    width: '100%',
-    backgroundColor: C.glass,
-    borderRadius: RADIO,
-    padding: 10,
-    borderWidth: 1,
-    borderColor: C.glassBorde,
-    justifyContent: 'center',
-    minHeight: 100,
-  },
-  rachaTop: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  rachaIcono: {
-    width: 64,
-    height: 64,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  circuloProgreso: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    borderWidth: 6,
-    borderColor: C.morado,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  circuloTexto: {
-    fontFamily: 'Montserrat-Bold',
-    fontSize: 14,
-    color: C.texto,
-  },
-  checkRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  checkBola: {
-    width: 14,
-    height: 14,
-    borderRadius: 7,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  checkTexto: {
-    fontFamily: 'Montserrat-Medium',
-    fontSize: 8,
-    color: C.textoSecundario,
-  },
-
-  ilustracionContenedor: {
-    width: '135%',
-    aspectRatio: 1,
-    borderRadius: RADIO,
-    overflow: 'hidden',
-    transform: [{ translateX: 15 }],
-  },
-
-  nivelCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: C.glass,
-    padding: 10,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: C.glassBorde,
-    width: '100%',
-  },
-  nivelIcono: {
-    width: 28,
-    height: 28,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 10,
-  },
-  nivelInfo: {
-    flex: 1,
-  },
-  fraseFilosofica: {
-    fontFamily: 'MontserratAlternates-Medium',
-    fontSize: 8,
-    color: C.textoSecundario,
-    lineHeight: 12,
-  },
-
-  // ─── Tabs Tareas (Estilo GridCategorias) ────────────
-  categoriasRow: {
-    flexDirection: 'row',
-    paddingHorizontal: PH,
-    paddingBottom: 4,
-    marginBottom: 16,
-    justifyContent: 'space-between',
-    alignItems: 'flex-end',
-  },
-  categoriaCard: {
-    width: '15.8%',
-  },
-  categoriaGlass: {
-    alignItems: 'center',
-    paddingHorizontal: 2,
-    paddingVertical: 6,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: C.glassBorde,
-    backgroundColor: C.glass,
-  },
-  categoriaIcono: {
-    width: 40,
-    height: 40,
-    borderRadius: 7,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 2,
-    marginTop: 2,
-  },
-  categoriaLabel: {
-    fontFamily: 'Montserrat-Bold',
-    fontSize: 7.5, // Ligeramente más pequeño para que quepa "Time block" o "Eisenhower"
-    color: C.texto,
-    textAlign: 'center',
-    lineHeight: 10,
-  },
+  raiz: { backgroundColor: C.fondo, flex: 1 },
+  tab: { alignItems: 'center', borderRadius: 999, flexDirection: 'row', gap: 6, paddingHorizontal: 13, paddingVertical: 9 },
+  tabTexto: { fontFamily: 'Montserrat-Bold', fontSize: 12 },
+  fila: { alignItems: 'center', backgroundColor: '#FFFFFF', borderRadius: 16, flexDirection: 'row', gap: 12, padding: 14 },
+  checkbox: { alignItems: 'center', borderColor: '#D1D5DB', borderRadius: 12, borderWidth: 2, height: 24, justifyContent: 'center', width: 24 },
+  filaTitulo: { color: C.texto, fontFamily: 'Montserrat-Bold', fontSize: 14 },
+  filaMeta: { color: C.textoSecundario, fontFamily: 'Montserrat-Medium', fontSize: 11 },
+  puntoPrioridad: { borderRadius: 4, height: 8, width: 8 },
+  fab: { alignItems: 'center', backgroundColor: C.texto, borderRadius: 30, elevation: 4, height: 58, justifyContent: 'center', position: 'absolute', right: 20, shadowColor: '#000', shadowOffset: { height: 3, width: 0 }, shadowOpacity: 0.25, shadowRadius: 8, width: 58 },
+  proximamenteIcono: { alignItems: 'center', borderRadius: 32, height: 64, justifyContent: 'center', width: 64 },
 });

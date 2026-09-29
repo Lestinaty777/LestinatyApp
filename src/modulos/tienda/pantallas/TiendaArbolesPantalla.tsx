@@ -555,12 +555,11 @@ export function TiendaArbolesPantalla() {
 
   function alPlantar() {
     hapticSeguro('seleccion');
-    // '/habitos' es una ruta aparte de '(principal)', sin tab bar — por eso
-    // desaparecía por completo al navegar ahí. '/(principal)/hoy' es la
-    // misma pantalla (HabitosPantalla) pero dentro del grupo con tabs.
-    // `abrirCreacion` hace que además abra el asistente de crear hábito al
-    // llegar, en vez de solo mostrar la lista sin hacer nada visible.
-    router.push({ pathname: '/(principal)/hoy', params: { abrirCreacion: '1' } });
+    // '/(principal)/hoy' dejó de ser HabitosPantalla (ahora es el hub con las
+    // categorías Hábitos/Tareas/...) — HabitosPantalla vive en '/habitos',
+    // fuera del grupo con tabs. `abrirCreacion` hace que además abra el
+    // asistente de crear hábito al llegar, en vez de solo mostrar la lista.
+    router.push({ pathname: '/habitos', params: { abrirCreacion: '1' } });
   }
 
   const [filtroActivo, setFiltroActivo] = useState<Filtro>('Todos');

@@ -16,7 +16,10 @@ const rutasRetiradas = [
   'app/senderos/analisis.tsx',
   'app/senderos/leccion.tsx',
   'app/senderos/mision.tsx',
-  'app/tareas/index.tsx',
+  // 'app/tareas/index.tsx' salió de esta lista a propósito: Tareas dejó de
+  // ser el mock "Próximamente" que este test bloqueaba y se está
+  // reconstruyendo como una pantalla real (rama mejoras, ver
+  // src/modulos/tareas/).
 ] as const;
 
 function leer(ruta: string) {

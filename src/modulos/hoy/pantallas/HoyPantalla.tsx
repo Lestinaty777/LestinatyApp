@@ -226,6 +226,11 @@ function HeroSection() {
 }
 
 // ─── Grid de Categorías ──────────────────────────────────────────────────────
+// Solo estas dos categorías tienen pantalla real hoy — el resto (Estudio,
+// Rutinas, Mi espacio, Más) siguen siendo placeholder: navegar ahí rompería
+// contra una ruta que no existe (expo-router la marcaría "Unmatched Route").
+const CATEGORIAS_CON_PANTALLA = new Set(['tareas', 'habitos']);
+
 function GridCategorias() {
   const router = useRouter();
 
@@ -243,7 +248,7 @@ function GridCategorias() {
           key={cat.id}
           onPress={() => {
             hapticSeguro('seleccion');
-            if (cat.id !== 'mas') router.push(`/${cat.id}` as any);
+            if (CATEGORIAS_CON_PANTALLA.has(cat.id)) router.push(`/${cat.id}` as any);
           }}
           style={({ pressed }) => [
             s.categoriaCard,

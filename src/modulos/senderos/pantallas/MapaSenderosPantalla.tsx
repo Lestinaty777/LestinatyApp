@@ -498,7 +498,7 @@ export function MapaSenderosPantalla() {
                 <EstadoVacioSenderos
                   alCrearHabito={() => {
                     router.push({
-                      pathname: '/(principal)/hoy',
+                      pathname: '/habitos',
                       params: { abrirCreacion: '1' },
                     });
                   }}

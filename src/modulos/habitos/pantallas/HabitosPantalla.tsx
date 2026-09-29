@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { ChevronRight, Check, Gift, PanelsTopLeft, Play, Sparkles } from 'lucide-react-native';
+import { ChevronLeft, ChevronRight, Check, Gift, PanelsTopLeft, Play, Sparkles } from 'lucide-react-native';
 import { Image, Linking, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useEffect, useState } from 'react';
@@ -306,6 +306,13 @@ export function HabitosPantalla() {
       contra su padre — dentro del ScrollView quedaría atado al alto del
       contenido desplazable en vez de cubrir la pantalla real. */}
   {detalleHabitoId && <DetalleHabitoPantalla id={detalleHabitoId} onCerrar={() => setDetalleHabitoId(null)} />}
+  {/* Esta pantalla vive en /habitos, fuera del grupo con tabs (se llega acá
+      desde el hub de /(principal)/hoy) — sin este botón no había forma de
+      volver. Flotante y fuera del ScrollView, igual que arriba: no le mueve
+      ni un píxel a nada del contenido existente. */}
+  <Pressable accessibilityLabel={t('habitos.pantalla.volverAlInicio')} onPress={() => router.push('/(principal)/hoy')} style={[s.botonVolverHub, { top: insets.top + 10 }]}>
+    <MasterGlass compacto style={s.botonVolverHubGlass}><ChevronLeft color={esc.jade.l29} size={22} /></MasterGlass>
+  </Pressable>
   </LinearGradient>;
 }
 
@@ -599,6 +606,8 @@ function CarruselEsqueleto() {
 }
 
 const crearEstilosS = (esc: EscalaMaster) => StyleSheet.create({ raiz: { flex: 1 }, contenido: { gap: 16, paddingBottom: 0 }, superiorInicio: { gap: 0 }, volverGlass: { borderRadius: 18, marginRight: 5 }, chevronInicio: { alignItems: 'center', height: 34, justifyContent: 'center', width: 34 }, headerInicio: { alignItems: 'flex-start', flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16, paddingHorizontal: 20 }, headerTitulo: { alignItems: 'center', flexDirection: 'row', width: '50%' }, headerIzq: { flex: 1 }, nombreFila: { alignItems: 'center', flexDirection: 'row', gap: 6 }, headerNombre: { color: C.texto, fontFamily: 'MontserratAlternates-Bold', fontSize: 22, lineHeight: 26 }, saludoIcono: { height: 28, resizeMode: 'contain', width: 28 }, headerSaludo: { color: '#4B4B4B', fontFamily: 'MontserratAlternates-Medium', fontSize: 14, lineHeight: 17 }, headerFrase: { color: '#5A5A5A', fontFamily: 'Montserrat-Medium', fontSize: 11, lineHeight: 14, marginTop: 4 }, headerDer: { alignItems: 'center', flexDirection: 'row', gap: 8, marginTop: -16 }, statPill: { backgroundColor: C.glass, borderColor: C.glassBorde, borderRadius: 20, borderWidth: 1, paddingHorizontal: 10, paddingVertical: 6 }, statPillFila: { alignItems: 'center', flexDirection: 'row', gap: 4 }, gemaIcono: { height: 22, resizeMode: 'contain', width: 22 }, statTexto: { color: '#6D28D9', fontFamily: 'MontserratAlternates-Bold', fontSize: 14 }, notificacion: { borderRadius: 22, paddingHorizontal: 10, paddingVertical: 10 }, notificacionIcono: { height: 30, resizeMode: 'contain', width: 30 }, heroInicio: { flexDirection: 'row', gap: 12, marginBottom: 16, paddingHorizontal: 20 }, heroColIzq: { gap: 10, width: '45%' }, heroColDer: { position: 'absolute', right: 20, top: 0, width: '50%', zIndex: -1 }, ilustracionContenedor: { aspectRatio: 1, borderRadius: 20, overflow: 'hidden', transform: [{ translateX: 15 }], width: '135%' }, ilustracionHabitos: { height: '100%', width: '100%' }, rachaCard: { borderRadius: 18, gap: 8, padding: 10 }, rachaTop: { alignItems: 'flex-start', flexDirection: 'row', gap: 7 }, rachaIconoFondo: { alignItems: 'center', backgroundColor: conAlfa(esc.jade.l70, 0.14), borderRadius: 10, height: 30, justifyContent: 'center', width: 30 }, rachaLabel: { color: C.tenue, fontFamily: 'Montserrat-Medium', fontSize: 11, lineHeight: 14 }, rachaTitulo: { color: '#1A1A1A', fontFamily: 'MontserratAlternates-Bold', fontSize: 12, lineHeight: 16 }, rachaDias: { color: C.verde, fontFamily: 'MontserratAlternates-Bold', fontSize: 14 }, historialGrid: { gap: 3 }, historialFila: { flexDirection: 'row', gap: 3 }, historialCuadro: { borderRadius: 2, flex: 1, height: 9 }, historialCuadroLleno: { backgroundColor: C.verde }, historialCuadroVacio: { backgroundColor: '#E7E1F1' }, nivelCard: { alignItems: 'center', borderRadius: 16, flexDirection: 'row', gap: 10, padding: 10 }, nivelInfo: { flex: 1 }, nivelTexto: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' }, nivelLabel: { color: C.texto, fontFamily: 'MontserratAlternates-Bold', fontSize: 12 }, nivelXP: { color: C.tenue, fontFamily: 'Montserrat-Medium', fontSize: 11 }, barraFondo: { backgroundColor: C.barra, borderRadius: 9, height: 6, marginTop: 7, overflow: 'hidden' }, barra: { borderRadius: 9, height: '100%' },
+  botonVolverHub: { left: 12, position: 'absolute', zIndex: 5 },
+  botonVolverHubGlass: { alignItems: 'center', borderRadius: 20, height: 40, justifyContent: 'center', width: 40 },
   accesosFila: { flexDirection: 'row', gap: 6, marginBottom: 16, paddingHorizontal: 20 },
   barraMaster: { marginTop: 2 },
   accesoTarjeta: { flex: 1 },

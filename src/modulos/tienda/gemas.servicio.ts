@@ -78,8 +78,11 @@ export async function obtenerCatalogoArboles(): Promise<ArbolPaquete[]> {
 
 type FilaSemilla = { id: string; paquete_id: string; adquirida_en: string };
 
+// Libre = todavía no la plantó un hábito NI la usó una tarea — el inventario
+// se comparte entre los dos (ver migración 56/57), así que ambos filtros son
+// necesarios para no ofrecer dos veces la misma semilla.
 export async function obtenerSemillasDisponibles(): Promise<SemillaArbol[]> {
-  const { data, error } = await obtenerClienteSupabase().from('usuario_semillas').select('id, paquete_id, adquirida_en').is('habito_id', null);
+  const { data, error } = await obtenerClienteSupabase().from('usuario_semillas').select('id, paquete_id, adquirida_en').is('habito_id', null).is('tarea_id', null);
   if (error) throw error;
   return (data as FilaSemilla[]).map((fila) => ({ id: fila.id, paqueteId: fila.paquete_id, adquiridaEn: fila.adquirida_en }));
 }
@@ -98,6 +101,15 @@ export async function asignarSemillaHabito(semillaId: string, habitoId: string):
   if (error) throw error;
   const remoto = data as { habito_id: string; paquete_id: string };
   return { habitoId: remoto.habito_id, paqueteId: remoto.paquete_id };
+}
+
+// Espejo de asignarSemillaHabito, del lado de Tareas — misma semilla libre,
+// consumida por una tarea en vez de un hábito (ver migración 57).
+export async function asignarSemillaTarea(semillaId: string, tareaId: string): Promise<{ tareaId: string; paqueteId: string }> {
+  const { data, error } = await obtenerClienteSupabase().rpc('asignar_semilla_tarea', { p_semilla_id: semillaId, p_tarea_id: tareaId });
+  if (error) throw error;
+  const remoto = data as { tarea_id: string; paquete_id: string };
+  return { tareaId: remoto.tarea_id, paqueteId: remoto.paquete_id };
 }
 
 // Regalo de bienvenida: exactamente 1 semilla gratis del paquete elegido,
