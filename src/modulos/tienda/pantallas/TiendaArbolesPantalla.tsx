@@ -559,7 +559,7 @@ export function TiendaArbolesPantalla() {
     // categorías Hábitos/Tareas/...) — HabitosPantalla vive en '/habitos',
     // fuera del grupo con tabs. `abrirCreacion` hace que además abra el
     // asistente de crear hábito al llegar, en vez de solo mostrar la lista.
-    router.push({ pathname: '/habitos', params: { abrirCreacion: '1' } });
+    router.navigate({ pathname: '/habitos', params: { abrirCreacion: '1' } });
   }
 
   const [filtroActivo, setFiltroActivo] = useState<Filtro>('Todos');

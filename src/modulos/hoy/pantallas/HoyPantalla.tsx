@@ -248,7 +248,7 @@ function GridCategorias() {
           key={cat.id}
           onPress={() => {
             hapticSeguro('seleccion');
-            if (CATEGORIAS_CON_PANTALLA.has(cat.id)) router.push(`/${cat.id}` as any);
+            if (CATEGORIAS_CON_PANTALLA.has(cat.id)) router.navigate(`/${cat.id}` as any);
           }}
           style={({ pressed }) => [
             s.categoriaCard,

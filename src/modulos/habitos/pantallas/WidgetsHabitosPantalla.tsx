@@ -227,7 +227,7 @@ export function WidgetsHabitosPantalla() {
                   color={esc.hoja.l61a}
                   onPress={() => {
                     hapticSeguro('seleccion');
-                    router.push({ pathname: '/habitos', params: { abrirCreacion: '1' } });
+                    router.navigate({ pathname: '/habitos', params: { abrirCreacion: '1' } });
                   }}
                   style={s.botonEstadoVacio}
                 >

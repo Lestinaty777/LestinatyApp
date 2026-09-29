@@ -75,6 +75,14 @@ export default function LayoutPrincipal() {
         name="hoy"
         options={{ title: 'Hoy' }}
       />
+      {/* Dentro del grupo con tabs (no en la barra visible, igual que "tienda"
+          más abajo) sólo para que la barra de navegación persista mientras se
+          navega Hábitos — se llega acá desde una tarjeta del hub de Hoy, no
+          es un destino propio de la barra. */}
+      <Tabs.Screen
+        name="habitos"
+        options={{ href: null }}
+      />
       <Tabs.Screen
         name="senderos"
         options={{ title: 'Senderos' }}

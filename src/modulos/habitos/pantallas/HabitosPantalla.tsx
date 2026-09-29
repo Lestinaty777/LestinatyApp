@@ -172,7 +172,7 @@ export function HabitosPantalla() {
           {/* Esta pantalla vive en /habitos, fuera del grupo con tabs (se
               llega acá desde el hub de /(principal)/hoy) — sin este botón no
               había forma de volver. */}
-          <Pressable accessibilityLabel={t('habitos.pantalla.volverAlInicio')} onPress={() => router.push('/(principal)/hoy')} style={s.botonVolverHub}>
+          <Pressable accessibilityLabel={t('habitos.pantalla.volverAlInicio')} onPress={() => router.navigate('/(principal)/hoy')} style={s.botonVolverHub}>
             <ChevronLeft color={esc.jade.l29} size={24} />
           </Pressable>
           <Animated.View entering={entradaEncadenada(0)} style={s.headerIzq}>
