@@ -33,6 +33,16 @@ const PAQUETE_TAREAS = 'golden';
 // elegido por estética. No toca la fila real de arboles_paquetes ni el
 // árbol/arbusto (son PNG fijos, no se tiñen con el tono).
 const COLOR_PAQUETE_TAREAS = '#FFAE00';
+// La rotación de la paleta CONSERVA la claridad original de cada tono — un
+// verde oscuro rota a un naranja igual de oscuro, y el naranja oscuro se ve
+// café a simple vista (café es, literalmente, naranja oscuro poco saturado).
+// Para los pocos lugares donde antes se usaba un tono oscuro de la escala
+// como color de texto/ícono importante (títulos, chevrons, el check de
+// completado), se usa este dorado fijo en su lugar: más claro y más
+// saturado que lo que salía de rotar el verde oscuro, así se ve dorado
+// vivo en vez de café. El resto de la pantalla (fondos claros, el acento
+// #FFAE00, los tintes suaves de íconos) ya se veía bien sin tocar nada.
+const DORADO_OSCURO = '#B27A00';
 
 type VistaPanel = 'hoy' | 'progresion' | 'recordatorios';
 const ICONOS_VISTA_PANEL: Record<VistaPanel, string> = { hoy: 'sol', progresion: 'progreso', recordatorios: 'reloj' };
@@ -268,9 +278,7 @@ function Animated_({ children, style }: { children: ReactNode; style?: object })
 }
 
 function FilaTareaMuestra({ esUltimo, onPress, tarea }: { esUltimo: boolean; onPress: () => void; tarea: TareaMock }) {
-  const esc = useEscala();
   const s = useEstilosS();
-  const { t } = useTranslation();
   const icono = iconosHabitos.find((x) => x.id === tarea.icono);
   return (
     <View style={s.filaHoyContenedor}>
@@ -286,9 +294,9 @@ function FilaTareaMuestra({ esUltimo, onPress, tarea }: { esUltimo: boolean; onP
             <Texto numberOfLines={1} style={s.filaHoyTitulo}>{tarea.titulo}</Texto>
             <Texto numberOfLines={1} style={s.filaHoySubtitulo}>{tarea.meta}</Texto>
           </View>
-          <MasterGlass style={s.filaHoyChevron}><ChevronRight color={esc.jade.l34} size={16} /></MasterGlass>
+          <MasterGlass style={s.filaHoyChevron}><ChevronRight color={DORADO_OSCURO} size={16} /></MasterGlass>
         </MasterGlass>
-        <View style={s.filaHoyIconoFlotante}><MasterIconBg fuente={icono?.fuente} size={48}>{!icono && <Sparkles color={esc.jade.l34} size={20} />}</MasterIconBg></View>
+        <View style={s.filaHoyIconoFlotante}><MasterIconBg fuente={icono?.fuente} size={48}>{!icono && <Sparkles color={DORADO_OSCURO} size={20} />}</MasterIconBg></View>
       </Pressable>
     </View>
   );
@@ -315,10 +323,10 @@ const crearEstilosS = (esc: EscalaMaster) => StyleSheet.create({
   carruselHabitos: { marginHorizontal: -15 }, carruselHabitosContenido: { gap: 12, paddingHorizontal: 15 },
   tarjetaHabito: { height: (ALTO_TARJETA_HABITO + MARGEN_SUPERIOR_TARJETA_HABITO) * ESCALA_TARJETA_HOY, width: ANCHO_TARJETA_HABITO * ESCALA_TARJETA_HOY },
   tarjetaHabitoContenido: { height: ALTO_TARJETA_HABITO + MARGEN_SUPERIOR_TARJETA_HABITO, left: 0, position: 'absolute', top: 0, transform: [{ scale: ESCALA_TARJETA_HOY }], transformOrigin: 'top left', width: ANCHO_TARJETA_HABITO },
-  filaHoyContenedor: { flexDirection: 'row' }, nodoColumna: { alignItems: 'center', marginRight: 10, width: 28 }, nodo: { alignItems: 'center', borderRadius: 14, height: 28, justifyContent: 'center', width: 28, zIndex: 1 }, nodoCompletado: { backgroundColor: esc.jade.l50 }, nodoPendiente: { backgroundColor: '#FFFFFF', borderColor: conAlfa(esc.jade.l34, .25), borderWidth: 2 }, nodoLinea: { backgroundColor: conAlfa(esc.jade.l34, .2), bottom: -8, position: 'absolute', top: 28, width: 2 },
+  filaHoyContenedor: { flexDirection: 'row' }, nodoColumna: { alignItems: 'center', marginRight: 10, width: 28 }, nodo: { alignItems: 'center', borderRadius: 14, height: 28, justifyContent: 'center', width: 28, zIndex: 1 }, nodoCompletado: { backgroundColor: COLOR_PAQUETE_TAREAS }, nodoPendiente: { backgroundColor: '#FFFFFF', borderColor: conAlfa(esc.jade.l34, .25), borderWidth: 2 }, nodoLinea: { backgroundColor: conAlfa(esc.jade.l34, .2), bottom: -8, position: 'absolute', top: 28, width: 2 },
   filaHoyTarjetaContenedor: { flex: 1, marginBottom: 9, position: 'relative' }, filaHoyTarjeta: { alignItems: 'center', borderRadius: 14, flexDirection: 'row', gap: 8, paddingLeft: 66, paddingRight: 6, paddingVertical: 6 }, filaHoyIconoFlotante: { left: 6, marginTop: -24, position: 'absolute', top: '50%', zIndex: 2 },
-  filaHoyTitulo: { color: esc.hoja.l19, fontFamily: 'Montserrat-Bold', fontSize: 13, lineHeight: 15 }, filaHoySubtitulo: { color: esc.musgo.l49, fontFamily: 'Montserrat-Medium', fontSize: 10, lineHeight: 12, marginTop: 0 }, filaHoyChevron: { alignItems: 'center', borderRadius: 14, height: 28, justifyContent: 'center', width: 28 },
-  encabezadoHoy: { marginBottom: 14 }, encabezadoHoyFila: { alignItems: 'center', flexDirection: 'row', gap: 12 }, encabezadoHoyTitulo: { color: esc.jade.l34, fontFamily: 'MontserratAlternates-Bold', fontSize: 26, lineHeight: 34 }, encabezadoHoyCompletadas: { color: esc.musgo.l49, fontFamily: 'Montserrat-Bold', fontSize: 13, marginTop: 2 }, encabezadoHoyProgresoFila: { alignItems: 'center', flexDirection: 'row', gap: 10, marginTop: 0 }, encabezadoHoyBarra: { flex: 1 }, encabezadoHoyPorcentaje: { fontFamily: 'MontserratAlternates-Bold', fontSize: 13, minWidth: 36, textAlign: 'right' },
+  filaHoyTitulo: { color: DORADO_OSCURO, fontFamily: 'Montserrat-Bold', fontSize: 13, lineHeight: 15 }, filaHoySubtitulo: { color: esc.musgo.l49, fontFamily: 'Montserrat-Medium', fontSize: 10, lineHeight: 12, marginTop: 0 }, filaHoyChevron: { alignItems: 'center', borderRadius: 14, height: 28, justifyContent: 'center', width: 28 },
+  encabezadoHoy: { marginBottom: 14 }, encabezadoHoyFila: { alignItems: 'center', flexDirection: 'row', gap: 12 }, encabezadoHoyTitulo: { color: DORADO_OSCURO, fontFamily: 'MontserratAlternates-Bold', fontSize: 26, lineHeight: 34 }, encabezadoHoyCompletadas: { color: esc.musgo.l49, fontFamily: 'Montserrat-Bold', fontSize: 13, marginTop: 2 }, encabezadoHoyProgresoFila: { alignItems: 'center', flexDirection: 'row', gap: 10, marginTop: 0 }, encabezadoHoyBarra: { flex: 1 }, encabezadoHoyPorcentaje: { fontFamily: 'MontserratAlternates-Bold', fontSize: 13, minWidth: 36, textAlign: 'right' },
 });
 
 const estilosPorEscalaS = new WeakMap<EscalaMaster, ReturnType<typeof crearEstilosS>>();
