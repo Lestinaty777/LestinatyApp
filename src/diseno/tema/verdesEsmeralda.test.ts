@@ -143,7 +143,6 @@ const ESTATICOS: Record<string, string> = {
   'src/modulos/senderos/pantallas/BibliotecaSenderosPantalla.tsx': 'colores de identidad o datos de cálculo (categorías, paquetes, especies, paleta que se rota)',
   'src/modulos/senderos/pantallas/SenderosPantalla.tsx': 'colores de identidad o datos de cálculo (categorías, paquetes, especies, paleta que se rota)',
   'src/modulos/senderos/pantallas/SesionMisionPantalla.tsx': 'PENDIENTE: constante de módulo o helper compartido, hacerlo reactivo',
-  'src/modulos/tareas/pantallas/TareasPantalla.tsx': 'PENDIENTE: constante de módulo o helper compartido, hacerlo reactivo',
   'src/modulos/tienda/pantallas/TiendaArbolesPantalla.tsx': 'colores de identidad o datos de cálculo (categorías, paquetes, especies, paleta que se rota)',
   'src/nucleo/arranque/AnimacionApertura.tsx': 'widget de Android o splash: sin hooks, o color de marca',
 };

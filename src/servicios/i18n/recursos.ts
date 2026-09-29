@@ -63,6 +63,7 @@ export const recursosI18n = {
       },
       tareas: {
         pantalla: {
+          volverAlInicio: 'Back to Home',
           titulo: 'Tasks', subtitulo: 'Simple things, done today.', nuevaTarea: 'New task',
           tituloPlaceholder: 'What do you need to do?',
           vacioTitulo: 'No tasks yet', vacioDescripcion: 'Add your first task to get started.',
@@ -73,6 +74,24 @@ export const recursosI18n = {
           eliminarTitulo: 'Delete task?', eliminarDescripcion: 'This cannot be undone.', eliminar: 'Delete',
           errorCrear: 'Could not create the task.', errorCargar: 'Could not load your tasks.',
           proximamente: { titulo: 'Coming soon', descripcion: 'This view is on its way.' },
+        },
+        // Duplicado visual de habitos.pantalla, sólo para TareasPantalla.tsx —
+        // ver el comentario de cabecera de ese archivo: nada de esto llama a
+        // ningún backend todavía.
+        pantallaCompleta: {
+          streakTitle: 'No streak yet', streakLabel: 'Best streak',
+          todayTasks: 'Tasks today', viewToday: 'Today',
+          todayCompleted: '{{completed}} of {{total}} completed',
+          access: {
+            progresion: { label: 'My Tasks', description: 'Your progress and advancement' },
+            creacion: { label: 'Create', description: 'Add a new task' },
+            recordatorios: { label: 'Reminders', description: 'Do not forget' },
+            insights: { label: 'Insights', description: 'Patterns and risk' },
+          },
+          viewProgress: 'Progress', viewReminders: 'Reminders',
+          noRemindersTitle: 'No reminders yet', noRemindersDescription: 'Reminders for tasks are on their way.',
+          sampleTaskOne: 'Sample task one', sampleTaskTwo: 'Sample task two',
+          viewDetails: 'View', oneTime: '1 time', nearDone: 'Almost done',
         },
       },
       habitos: { pantalla: {
@@ -980,6 +999,7 @@ export const recursosI18n = {
       },
       tareas: {
         pantalla: {
+          volverAlInicio: 'Volver a Inicio',
           titulo: 'Tareas', subtitulo: 'Cosas simples, hechas hoy.', nuevaTarea: 'Nueva tarea',
           tituloPlaceholder: '¿Qué necesitás hacer?',
           vacioTitulo: 'Todavía no hay tareas', vacioDescripcion: 'Agregá tu primera tarea para empezar.',
@@ -990,6 +1010,21 @@ export const recursosI18n = {
           eliminarTitulo: '¿Eliminar tarea?', eliminarDescripcion: 'No se puede deshacer.', eliminar: 'Eliminar',
           errorCrear: 'No se pudo crear la tarea.', errorCargar: 'No se pudieron cargar tus tareas.',
           proximamente: { titulo: 'Próximamente', descripcion: 'Esta vista está en camino.' },
+        },
+        pantallaCompleta: {
+          streakTitle: 'Sin racha aún', streakLabel: 'Mejor racha',
+          todayTasks: 'Tareas hoy', viewToday: 'Hoy',
+          todayCompleted: '{{completed}} de {{total}} completadas',
+          access: {
+            progresion: { label: 'Mis Tareas', description: 'Tu avance y progreso' },
+            creacion: { label: 'Crear', description: 'Agregá una nueva tarea' },
+            recordatorios: { label: 'Recordatorios', description: 'Que no se te olvide' },
+            insights: { label: 'Insights', description: 'Patrones y riesgo' },
+          },
+          viewProgress: 'Progresión', viewReminders: 'Recordatorios',
+          noRemindersTitle: 'Todavía no hay recordatorios', noRemindersDescription: 'Los recordatorios de tareas están en camino.',
+          sampleTaskOne: 'Tarea de muestra uno', sampleTaskTwo: 'Tarea de muestra dos',
+          viewDetails: 'Ver', oneTime: '1 vez', nearDone: 'Casi terminas',
         },
       },
       habitos: { pantalla: {
