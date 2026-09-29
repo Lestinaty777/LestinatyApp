@@ -19,11 +19,15 @@ describe('crearTonoMaster', () => {
     expect(crearTonoMaster('mathist', 'morado')).toBe(TONO_ESMERALDA);
   });
 
+  // Rangos en matiz Oklch (no HSL): motor de la paleta migrado a Oklch — ver
+  // el comentario de "Oklch" en masterColor.ts. El mismo color tiene un
+  // matiz distinto medido en cada espacio, por eso los rangos ya no son los
+  // mismos números que antes.
   it('Mathist queda en la familia morada y Sakura en la rosa', () => {
-    expect(crearTonoMaster('mathist', REALES.mathist).hue).toBeGreaterThan(265);
-    expect(crearTonoMaster('mathist', REALES.mathist).hue).toBeLessThan(285);
-    expect(crearTonoMaster('sakura', REALES.sakura).hue).toBeGreaterThan(325);
-    expect(crearTonoMaster('sakura', REALES.sakura).hue).toBeLessThan(345);
+    expect(crearTonoMaster('mathist', REALES.mathist).hue).toBeGreaterThan(295);
+    expect(crearTonoMaster('mathist', REALES.mathist).hue).toBeLessThan(315);
+    expect(crearTonoMaster('sakura', REALES.sakura).hue).toBeGreaterThan(344);
+    expect(crearTonoMaster('sakura', REALES.sakura).hue).toBeLessThan(360);
   });
 
   it('Abyss (casi gris y muy oscuro) baja la saturación de la paleta y apaga y oscurece los iconos', () => {
@@ -49,7 +53,10 @@ describe('crearTonoMaster', () => {
   it('Celesthia y Valvery comparten familia de hue pero no acento idéntico', () => {
     const celesthia = crearTonoMaster('celesthia', REALES.celesthia);
     const valvery = crearTonoMaster('valvery', REALES.valvery);
-    expect(Math.abs((celesthia.hue ?? 0) - (valvery.hue ?? 0))).toBeLessThan(6);
+    // Bajo Oklch la diferencia entre estos dos es un poco mayor que los <6°
+    // que daba HSL para el mismo par de colores — siguen siendo la misma
+    // familia (azul/verdeazulado), no es un caso de deriva sin límite.
+    expect(Math.abs((celesthia.hue ?? 0) - (valvery.hue ?? 0))).toBeLessThan(11);
     expect(celesthia.acento).not.toBe(valvery.acento);
   });
 });
@@ -106,15 +113,31 @@ describe('degradados', () => {
     expect(g.texto).toEqual(['#4AE67D', '#1B9A4B', '#116C33']);
   });
 
-  it.each(TODOS.map((tono) => [tono.id, tono] as const))('%s: cada degradado conserva su forma (mismas paradas, mismo orden de luminosidad)', (_id, tono) => {
+  // Orden de las paradas, no su valor exacto: con Oklch (y el piso de
+  // claridad/croma que evita el café en la franja amarilla — ver
+  // masterColor.ts) la claridad numérica de una parada SÍ puede moverse un
+  // poco al rotar. Lo que de verdad importa para que el degradado se vea
+  // "igual de degradado" es que la parada claramente más clara siga siendo
+  // la más clara. Un umbral (no comparar como estricta desigualdad) porque
+  // algunas paradas de Esmeralda ya casi empatan en luminosidad HSL (p. ej.
+  // progresoFondo: 0.955 vs 0.959) — ahí HSL y Oklch pueden no concordar en
+  // cuál es "un poquito" más clara, una diferencia invisible al ojo que no
+  // debería contar como "cambió de forma".
+  const UMBRAL_DIFERENCIA_PERCEPTIBLE = 0.05;
+
+  it.each(TODOS.map((tono) => [tono.id, tono] as const))('%s: cada degradado conserva el orden de las paradas que sí se distinguen entre sí', (_id, tono) => {
     const originales = paradas(TONO_ESMERALDA);
     paradas(tono).forEach((derivado, i) => {
       expect(derivado).toHaveLength(originales[i].length);
-      originales[i].forEach((base, j) => {
-        expect(derivado[j]).toMatch(/^#[0-9A-F]{6}$/);
-        // rotar el hue no cambia la luminosidad HSL: la paradas siguen igual de claras/oscuras entre sí
-        expect(Math.abs(lum(derivado[j]) - lum(base))).toBeLessThan(0.02);
-      });
+      derivado.forEach((hex) => expect(hex).toMatch(/^#[0-9A-F]{6}$/));
+      for (let a = 0; a < originales[i].length; a++) {
+        for (let b = a + 1; b < originales[i].length; b++) {
+          const diferenciaOriginal = lum(originales[i][a]) - lum(originales[i][b]);
+          if (Math.abs(diferenciaOriginal) < UMBRAL_DIFERENCIA_PERCEPTIBLE) continue; // casi empatadas: cualquier orden vale
+          const diferenciaDerivada = lum(derivado[a]) - lum(derivado[b]);
+          expect(Math.sign(diferenciaDerivada)).toBe(Math.sign(diferenciaOriginal));
+        }
+      }
     });
   });
 
@@ -211,12 +234,16 @@ describe('iconos: el icono típico cae en el color del paquete (no pastel)', () 
   const TIPICO = hsvARgb({ h: 135 / 360, s: 0.67, v: 0.77 });
   const tintar = (tono: ReturnType<typeof crearTonoMaster>, rgb = TIPICO) =>
     rgbAHsv(tintarPixelHsv(rgb, { delta: tono.deltaHue ?? 0, oscuroGlobal: 1, saturacion: tono.icono.saturacion, valorTema: tono.icono.valor }));
-  const hsvDelPaquete = (hex: string, tono: ReturnType<typeof crearTonoMaster>) => rgbAHsv([1, 3, 5].map((i) => parseInt(tono.acento.slice(i, i + 2), 16) / 255));
+  // El color REAL del paquete, no tono.acento: crearTonoMaster ajusta los
+  // íconos contra masterPackColor a propósito (ver el comentario en
+  // masterColor.ts) — acento existe para que el texto sea legible, no como
+  // referencia de brillo de ícono.
+  const hsvDelPaquete = (hex: string) => rgbAHsv([1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255));
 
   it('Eclipse (#6A3FA0): el icono queda en su morado profundo (S 0.61, V 0.63), no en un morado claro y desvaído', () => {
     const eclipse = crearTonoMaster('eclipse', '#6A3FA0');
     const resultado = tintar(eclipse);
-    const objetivo = hsvDelPaquete('#6A3FA0', eclipse);
+    const objetivo = hsvDelPaquete('#6A3FA0');
     expect(resultado.s).toBeCloseTo(objetivo.s, 1);
     expect(resultado.v).toBeCloseTo(objetivo.v, 1);
     // antes: saturación 0.5× y sin oscurecer -> S 0.34, V 0.77 (pastel). Ahora es más oscuro y más saturado que eso.
@@ -227,8 +254,14 @@ describe('iconos: el icono típico cae en el color del paquete (no pastel)', () 
   it('Abyss: el icono queda en su gris azulado oscuro, no negro ni brillante', () => {
     const abyss = crearTonoMaster('abyss', '#21232F');
     const resultado = tintar(abyss);
-    expect(resultado.v).toBeCloseTo(hsvDelPaquete('#21232F', abyss).v, 1);
-    expect(resultado.v).toBeGreaterThan(0.3);
+    expect(resultado.v).toBeCloseTo(hsvDelPaquete('#21232F').v, 1);
+    // Objetivo ahora es el color REAL de Abyss (muy oscuro, v=0.18), no el
+    // acento ya aclarado para legibilidad — el ícono golpea el piso de
+    // icono.valor (0.3) y queda en 0.77×0.3≈0.23. Sigue siendo gris oscuro,
+    // no negro puro (v=0): antes daba más claro (~0.41) solo porque tomaba
+    // prestado el clamp de legibilidad de `acento`, no porque hiciera falta
+    // para el ícono.
+    expect(resultado.v).toBeGreaterThan(0.2);
   });
 
   it('Ignate (rojo saturado): el icono queda igual de vivo que el paquete', () => {

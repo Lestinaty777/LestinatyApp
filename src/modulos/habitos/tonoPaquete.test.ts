@@ -10,7 +10,9 @@ describe('tonoDelPaquete', () => {
     expect(mathist.id).toBe('mathist');
     expect(sakura.id).toBe('sakura');
     expect(mathist.escala).not.toEqual(sakura.escala);
-    expect(mathist.hue).toBeCloseTo(276, -1);
+    // Matiz Oklch (motor de la paleta migrado — ver masterColor.ts), no HSL:
+    // el mismo morado mide un matiz distinto en cada espacio.
+    expect(mathist.hue).toBeCloseTo(305, -1);
   });
 
   it('sin paquete, paquete desconocido o esmeralda: tono Esmeralda (el verde de siempre)', () => {
