@@ -27,7 +27,12 @@ import { useSaldoGemas } from '../../tienda/useSaldoGemas';
 // cuando se defina el diseño de "tipo de tarea" (kanban/checklist/simple/
 // eisenhower). Hasta entonces esto es solo la referencia visual.
 const PAQUETE_TAREAS = 'golden';
-const COLOR_PAQUETE_TAREAS = '#FCB103';
+// No es el master_pack_color real de "golden" en la base (ese es #FCB103) —
+// este es solo el color que alimenta la rotación de la paleta reactiva de
+// ESTA pantalla (fondo, panel, textos secundarios, todo lo que usa esc.*),
+// elegido por estética. No toca la fila real de arboles_paquetes ni el
+// árbol/arbusto (son PNG fijos, no se tiñen con el tono).
+const COLOR_PAQUETE_TAREAS = '#FFAE00';
 
 type VistaPanel = 'hoy' | 'progresion' | 'recordatorios';
 const ICONOS_VISTA_PANEL: Record<VistaPanel, string> = { hoy: 'sol', progresion: 'progreso', recordatorios: 'reloj' };
@@ -48,7 +53,20 @@ const TAREAS_MUESTRA: TareaMock[] = [
   { completada: false, icono: 'corazon', id: 'm5', meta: '1 vez', titulo: 'Llamar a mamá' },
 ];
 
+// Envoltorio fino: solo pone el tono dorado fijo. useEscala()/useEstilosS()
+// hay que llamarlos DESDE ADENTRO del Provider (en TareasPantallaContenido),
+// no acá — si se llamaran en este mismo componente leerían el tema global de
+// arriba (Esmeralda u otro), no el dorado que este wrapper recién arma más
+// abajo. Ver la discusión que quedó en el historial de esta sesión.
 export function TareasPantalla() {
+  return (
+    <TonoDelHabito colorPaquete={COLOR_PAQUETE_TAREAS} paqueteId={PAQUETE_TAREAS}>
+      <TareasPantallaContenido />
+    </TonoDelHabito>
+  );
+}
+
+function TareasPantallaContenido() {
   const esc = useEscala();
   const s = useEstilosS();
   const { t } = useTranslation();
@@ -88,7 +106,6 @@ export function TareasPantalla() {
   }
 
   return (
-    <TonoDelHabito colorPaquete={COLOR_PAQUETE_TAREAS} paqueteId={PAQUETE_TAREAS}>
       <LinearGradient colors={[esc.hoja.l99, esc.hoja.l95, esc.hoja.l91]} end={{ x: 0, y: 1 }} start={{ x: 0, y: 0 }} style={s.raiz}>
         <ScrollView contentContainerStyle={[s.contenido, { paddingBottom: insets.bottom + 100 }]} showsVerticalScrollIndicator={false}>
           <View style={[s.superiorInicio, { paddingTop: insets.top + 32 }]}>
@@ -239,7 +256,6 @@ export function TareasPantalla() {
           </Rebote>
         </ScrollView>
       </LinearGradient>
-    </TonoDelHabito>
   );
 }
 
