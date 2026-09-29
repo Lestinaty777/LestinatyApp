@@ -416,7 +416,7 @@ export function MapaSenderosPantalla() {
         )}
 
         {/* Contenedor del Mapa / Estado Vacío (ocupa el espacio entre navbar y barra de navegación inferior) */}
-        <TonoDelHabito colorPaquete={sendero.consulta.data?.habito.colorPaquete} paqueteId={sendero.consulta.data?.habito.paqueteId}>
+        <TonoDelHabito colorPaquete={sendero.consulta.data?.habito.colorPaquete ?? asignatura?.habitoReal.colorPaquete} paqueteId={sendero.consulta.data?.habito.paqueteId ?? asignatura?.habitoReal.paqueteId}>
         <View style={[styles.capaMapa, !asignatura && styles.capaMapaVacia]}>
           {asignatura ? (
             sendero.consulta.isLoading || sendero.consultaResumen.isLoading ? (
