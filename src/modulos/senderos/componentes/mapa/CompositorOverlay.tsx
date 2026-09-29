@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { BackHandler, Pressable, StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { useQueryClient } from '@tanstack/react-query';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
@@ -93,6 +94,11 @@ type CompositorOverlayProps = {
 export function CompositorOverlay({ color, medirDestino, onAnclado, onCancelado, onTerminado, registroId }: CompositorOverlayProps) {
   const { t } = useTranslation();
   const esc = useEscala();
+  // La barra de pestañas flota (position: 'absolute', ver app/(principal)/_layout.tsx)
+  // y no reserva espacio propio — sin este margen, 'Más tarde' y el poema de
+  // contemplación quedaban debajo, tapados por ella.
+  const insets = useSafeAreaInsets();
+  const alturaBarraTabs = insets.bottom + 108;
   const cliente = useQueryClient();
   const aura = esc.jade.l70;
 
@@ -420,13 +426,13 @@ export function CompositorOverlay({ color, medirDestino, onAnclado, onCancelado,
         <Texto style={styles.instruccion}>{t('habitos.mandala.compositor.instruccion')}</Texto>
       </Animated.View>
 
-      <Animated.View pointerEvents={fase === 'trazando' ? 'box-none' : 'none'} style={[styles.pie, estiloTextos]}>
+      <Animated.View pointerEvents={fase === 'trazando' ? 'box-none' : 'none'} style={[styles.pie, { bottom: alturaBarraTabs + 28 }, estiloTextos]}>
         <Pressable accessibilityRole="button" hitSlop={12} onPress={cancelar}>
           <Texto style={styles.masTarde}>{t('habitos.mandala.ritual.masTarde')}</Texto>
         </Pressable>
       </Animated.View>
 
-      <Animated.View pointerEvents="none" style={[styles.poema, estiloPoema]}>
+      <Animated.View pointerEvents="none" style={[styles.poema, { bottom: alturaBarraTabs + 40 }, estiloPoema]}>
         <View style={styles.poemaPildora}>
           <Texto style={[styles.poemaTexto, { color: esc.hoja.l22 }]}>{t('habitos.mandala.ritual.contemplacion')}</Texto>
         </View>
