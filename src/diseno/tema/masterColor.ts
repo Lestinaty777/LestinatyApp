@@ -9,6 +9,7 @@
 // conservando su luminosidad — igual que los iconos PNG (ver MasterChanger).
 
 import { ESCALA_ESMERALDA, type EscalaMaster } from './escalaEsmeralda';
+import { CENTRO_HUE_ICONOS } from './matrizColor';
 
 export type PaletaMaster = {
   /** Acento medio: trazos, acentos. */
@@ -130,7 +131,7 @@ export const HUE_REFERENCIA_VERDE = 152.26;
 // al pasar la paleta a Oklch, un delta calculado en grados Oklch se estaba
 // aplicando a una rotación que interpreta grados en HSL (espacios de matiz
 // distintos), y un ícono "amarillo" terminaba rotando de más hacia el verde.
-export const HUE_REFERENCIA_VERDE_ICONO = 142;
+export const HUE_REFERENCIA_VERDE_ICONO = CENTRO_HUE_ICONOS;
 // Croma Oklch de referencia: promedio de 'vivo' (#21A844) y 'brillante'
 // (#22C55E), los verdes más saturados de la paleta — equivalente al 0.68 de
 // saturación HSL que usaba la versión anterior.

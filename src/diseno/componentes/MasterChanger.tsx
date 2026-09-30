@@ -13,7 +13,7 @@ import {
 } from '@shopify/react-native-skia';
 import { useImagenSkiaCompartida } from '../iconos/imagenSkiaCompartida';
 import { SKSL_TINTE_HSV } from '../iconos/tinteHsv';
-import { aplicarOscurecido, calcularMatrizHue, componerMatrices, esHueVerde, matrizSaturacion, matrizSoloClaros } from '../tema/matrizColor';
+import { aplicarOscurecido, calcularMatrizHue, CENTRO_HUE_ICONOS, componerMatrices, deltaTemaEfectivo, esHueVerde, matrizSaturacion, matrizSoloClaros } from '../tema/matrizColor';
 
 // Shader de teñido por píxel en HSV (ver tinteHsv.ts): conserva la saturación al cambiar de matiz,
 // que es lo que la matriz de color no puede hacer (un verde vivo pasaba a un rojo pastel). Se
@@ -264,7 +264,13 @@ export function MasterChanger({
     const oscuridadTotal = oscurecido * (teñido ? Math.min(1, valorTema) : 1);
     if (!teñido && oscuridadTotal === 1) return null;
     if (!teñido) return { modo: 'matriz' as const, color: aplicarOscurecido(calcularMatrizHue(0), oscuridadTotal), claros: null };
-    const delta = hueObjetivo !== undefined ? (hueEfectivo !== null ? calcularDeltaHue(hueEfectivo, hueObjetivo) : 0) : (deltaTema as number);
+    // Ruta de tema (deltaTema, sin hueObjetivo explícito): cada ícono conserva
+    // SOLO parte de su variedad de hue propio (ver deltaTemaEfectivo) — sin
+    // esto, temas que rotan hacia la franja roja/naranja/amarilla desparraman
+    // la misma familia de íconos en colores con nombre distinto.
+    const delta = hueObjetivo !== undefined
+      ? (hueEfectivo !== null ? calcularDeltaHue(hueEfectivo, hueObjetivo) : 0)
+      : deltaTemaEfectivo(hueEfectivo ?? CENTRO_HUE_ICONOS, deltaTema as number);
     if (efecto) return { modo: 'shader' as const, efecto, uniforms: { delta, saturacion, valorTema, oscuroGlobal: oscurecido, soloVerdes: soloPixelesVerdes ? 1 : 0 } };
     const rotada = componerMatrices(calcularMatrizHue(delta), matrizSaturacion(saturacion));
     return {

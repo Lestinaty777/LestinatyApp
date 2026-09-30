@@ -12,6 +12,32 @@ export const HUE_VERDE_MIN = 70;
 export const HUE_VERDE_MAX = 175;
 export const esHueVerde = (hue: number) => hue >= HUE_VERDE_MIN && hue <= HUE_VERDE_MAX;
 
+// Centro de esa familia (el verde #25884C, el más usado — mismo valor que
+// HUE_REFERENCIA_VERDE_ICONO en masterColor.ts, importado de acá para que
+// exista un solo número). El rango real (99°-155°, arriba) es angosto: rotar
+// cada ícono por el MISMO delta respecto a su propio hue (ver deltaTema en
+// MasterChanger) apenas se nota ahí, así que "cada ícono conserva su
+// variedad" se veía bien. El problema aparece cuando el tema rota hacia una
+// zona más "densa" perceptualmente — roja/naranja/amarilla: esos mismos 56°
+// de variedad, ya rotados, caían en rojo, naranja Y amarillo a la vez bajo
+// UN MISMO tema (p. ej. Golden). COHESION_TEMA achica esa variedad sin
+// eliminarla: con 1 no cambia nada (comportamiento de siempre); con 0 todos
+// los íconos convergerían al mismo hue exacto.
+export const CENTRO_HUE_ICONOS = 142;
+const COHESION_TEMA = 0.45;
+
+/**
+ * Delta efectivo a aplicar (por shader o por matriz) cuando se rota por tema
+ * (ruta relativa, `deltaTema`): en vez de sumarlo tal cual al hue del ícono,
+ * primero acerca ese hue al centro de la familia en la proporción
+ * `1 - COHESION_TEMA`, así el resultado converge hacia el mismo hue de
+ * destino en vez de desparramarse. `hueEfectivo` es el hue medido/registrado
+ * del ícono (el mismo que decide si el tema lo afecta, ver `esHueVerde`).
+ */
+export function deltaTemaEfectivo(hueEfectivo: number, deltaTema: number): number {
+  return deltaTema - (1 - COHESION_TEMA) * (hueEfectivo - CENTRO_HUE_ICONOS);
+}
+
 const LR = 0.213;
 const LG = 0.715;
 const LB = 0.072;
