@@ -5,6 +5,7 @@ import { useMemo, useState, type ReactNode } from 'react';
 import { Image, Linking, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { MasterAnimation, MasterGlass, MasterIcon, MasterIconBg, MasterProgressbar, Rebote, Texto } from '../../../diseno';
 import { conAlfa, crearTonoMaster } from '../../../diseno/tema/masterColor';
@@ -17,7 +18,10 @@ import { TonoDelHabito } from '../../habitos/componentes/TonoDelHabito';
 import { iconosHabitos } from '../../habitos/iconosHabitos';
 import { obtenerAssetsPaqueteHabito } from '../../habitos/paqueteVisual.assets';
 import { obtenerAssetsPaquete } from '../../senderos/algoritmo/registroPaquetesArbol';
+import { CLAVE_SEMILLAS_DISPONIBLES } from '../../tienda/pantallas/TiendaArbolesPantalla';
 import { useSaldoGemas } from '../../tienda/useSaldoGemas';
+import { CrearTareaHoja } from '../componentes/CrearTareaHoja';
+import { asignarSemillaTarea, crearTarea } from '../tareas.servicio';
 
 // Duplicado visual de HabitosPantalla.tsx, con el mismo esqueleto (encabezado,
 // hero, accesos, panel con pestañas, tarjeta de "casi terminas") pero teñido
@@ -79,6 +83,24 @@ function TareasPantallaContenido() {
   const router = useRouter();
   const { data: saldoGemas } = useSaldoGemas();
   const [vistaPanel, setVistaPanel] = useState<VistaPanel>('hoy');
+  const [crearAbierto, setCrearAbierto] = useState(false);
+  const cliente = useQueryClient();
+
+  // El resto de la pantalla (Hoy, Mis tareas, Recordatorios) sigue en mock —
+  // eso llega con la Fase 4. Esto sí es real: crea la fila en tareas_items
+  // (y le asigna la semilla elegida, si la hay) contra Supabase de verdad.
+  const crear = useMutation({
+    mutationFn: async (input: Parameters<typeof crearTarea>[0] & { semillaId: string | null }) => {
+      const { semillaId, ...datos } = input;
+      const tarea = await crearTarea(datos);
+      if (semillaId) {
+        await asignarSemillaTarea(semillaId, tarea.id);
+        cliente.invalidateQueries({ queryKey: CLAVE_SEMILLAS_DISPONIBLES });
+      }
+      return tarea;
+    },
+    onSuccess: () => { hapticSeguro('confirmacion'); setCrearAbierto(false); },
+  });
 
   // Fijo en dorado sin importar el tema global de la app (a diferencia de
   // Hábitos, que sigue el tema activo del usuario) — TonoDelHabito es el
@@ -107,10 +129,12 @@ function TareasPantallaContenido() {
   function abrirAcceso(id: (typeof ACCESOS)[number]['id']) {
     hapticSeguro('seleccion');
     if (id === 'progresion' || id === 'recordatorios') { alternarVista(id); return; }
+    if (id === 'creacion') { setCrearAbierto(true); return; }
     sinFuncionTodavia();
   }
 
   return (
+    <>
       <LinearGradient colors={[esc.hoja.l99, esc.hoja.l95, esc.hoja.l91]} end={{ x: 0, y: 1 }} start={{ x: 0, y: 0 }} style={s.raiz}>
         <ScrollView contentContainerStyle={[s.contenido, { paddingBottom: insets.bottom + 100 }]} showsVerticalScrollIndicator={false}>
           <View style={[s.superiorInicio, { paddingTop: insets.top + 32 }]}>
@@ -261,6 +285,14 @@ function TareasPantallaContenido() {
           </Rebote>
         </ScrollView>
       </LinearGradient>
+      {crearAbierto && (
+        <CrearTareaHoja
+          guardando={crear.isPending}
+          onCerrar={() => setCrearAbierto(false)}
+          onCrear={(input) => crear.mutate(input)}
+        />
+      )}
+    </>
   );
 }
 
