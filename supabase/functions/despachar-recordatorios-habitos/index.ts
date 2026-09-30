@@ -3,7 +3,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 type Dispositivo = { id: string; subscription_id: string };
-type RecordatorioReclamado = {
+type RecordatorioHabito = {
   dispositivos: Dispositivo[];
   habito_id: string;
   mostrar_nombre: boolean;
@@ -11,6 +11,22 @@ type RecordatorioReclamado = {
   preferencia_activa: boolean;
   titulo_habito: string;
 };
+// Misma forma que RecordatorioHabito (reclamar_recordatorios_tareas es la
+// hermana de reclamar_recordatorios_habitos), cambia habito_id/titulo_habito
+// por tarea_id/titulo_tarea — se distinguen por cuál de los dos campos trae.
+type RecordatorioTarea = {
+  dispositivos: Dispositivo[];
+  mostrar_nombre: boolean;
+  notificacion_id: string;
+  preferencia_activa: boolean;
+  tarea_id: string;
+  titulo_tarea: string;
+};
+type RecordatorioReclamado = RecordatorioHabito | RecordatorioTarea;
+
+function esRecordatorioTarea(recordatorio: RecordatorioReclamado): recordatorio is RecordatorioTarea {
+  return 'tarea_id' in recordatorio;
+}
 
 const jsonHeaders = { 'Content-Type': 'application/json' };
 
@@ -25,17 +41,20 @@ type Textos = { es: string; en: string };
 function decidir(recordatorio: RecordatorioReclamado) {
   if (!recordatorio.preferencia_activa) return { accion: 'cancelar' as const, razon: 'preferencia_inactiva' };
   if (!recordatorio.dispositivos.length) return { accion: 'cancelar' as const, razon: 'sin_dispositivo' };
+  const esTarea = esRecordatorioTarea(recordatorio);
+  const titulo = esTarea ? recordatorio.titulo_tarea : recordatorio.titulo_habito;
   if (recordatorio.mostrar_nombre) {
-    const cuerpo: Textos = {
-      en: `Your habit ${recordatorio.titulo_habito} is waiting. One small step counts today.`,
-      es: `Tu hábito ${recordatorio.titulo_habito} te espera. Una pequeña acción cuenta hoy.`,
-    };
-    return { accion: 'enviar' as const, cuerpo, titulo: { en: recordatorio.titulo_habito, es: recordatorio.titulo_habito } };
+    const cuerpo: Textos = esTarea
+      ? { en: `Your task ${titulo} is waiting. One small step counts today.`, es: `Tu tarea ${titulo} te espera. Una pequeña acción cuenta hoy.` }
+      : { en: `Your habit ${titulo} is waiting. One small step counts today.`, es: `Tu hábito ${titulo} te espera. Una pequeña acción cuenta hoy.` };
+    return { accion: 'enviar' as const, cuerpo, titulo: { en: titulo, es: titulo } };
   }
   return {
     accion: 'enviar' as const,
     cuerpo: { en: 'One small step counts today.', es: 'Una pequeña acción cuenta hoy.' },
-    titulo: { en: "It's time for your habit", es: 'Es momento de tu hábito' },
+    titulo: esTarea
+      ? { en: "It's time for your task", es: 'Es momento de tu tarea' }
+      : { en: "It's time for your habit", es: 'Es momento de tu hábito' },
   };
 }
 
@@ -67,10 +86,16 @@ Deno.serve(async (request) => {
   }
 
   const cliente = createClient(supabaseUrl, serviceRole);
-  const { data, error } = await cliente.rpc('reclamar_recordatorios_habitos', { p_limite: 100 });
-  if (error) return responder(502, { codigo: 'cola', mensaje: 'No se pudo reclamar la cola de recordatorios.' });
+  const [habitos, tareas] = await Promise.all([
+    cliente.rpc('reclamar_recordatorios_habitos', { p_limite: 100 }),
+    cliente.rpc('reclamar_recordatorios_tareas', { p_limite: 100 }),
+  ]);
+  if (habitos.error && tareas.error) return responder(502, { codigo: 'cola', mensaje: 'No se pudo reclamar la cola de recordatorios.' });
 
-  const recordatorios = Array.isArray(data) ? data as RecordatorioReclamado[] : [];
+  const recordatorios = [
+    ...(Array.isArray(habitos.data) ? habitos.data as RecordatorioReclamado[] : []),
+    ...(Array.isArray(tareas.data) ? tareas.data as RecordatorioReclamado[] : []),
+  ];
   let enviados = 0;
   let cancelados = 0;
   let fallidos = 0;
@@ -93,7 +118,7 @@ Deno.serve(async (request) => {
           // dispositivo lo reemplaza en vez de mostrarlo dos veces.
           collapse_id: recordatorio.notificacion_id,
           contents: decision.cuerpo,
-          data: { notificacion_id: recordatorio.notificacion_id, ruta: `/habitos/${recordatorio.habito_id}` },
+          data: { notificacion_id: recordatorio.notificacion_id, ruta: esRecordatorioTarea(recordatorio) ? `/tareas/${recordatorio.tarea_id}` : `/habitos/${recordatorio.habito_id}` },
           headings: decision.titulo,
           include_subscription_ids: recordatorio.dispositivos.map((dispositivo) => dispositivo.subscription_id),
           target_channel: 'push',
