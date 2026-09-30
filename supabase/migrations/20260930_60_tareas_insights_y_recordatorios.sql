@@ -177,9 +177,13 @@ begin
   where item.recordatorio_activo
     and item.hora_recordatorio is not null
     and item.estado <> 'archivada'
-    and item.frecuencia = 'dias_semana'
     and public.tareas_es_dia_programado(item, (now() at time zone perfil.zona_horaria)::date)
-    and registro.id is null
+    -- 'dias_semana': no completada hoy (registro); 'una_vez' no lleva
+    -- registro (siempre sale null del left join) — se mira el estado.
+    and (
+      (item.frecuencia = 'dias_semana' and registro.id is null)
+      or (item.frecuencia = 'una_vez' and item.estado <> 'hecha')
+    )
   on conflict (tarea_id, fecha_local) where tarea_id is not null do nothing;
 
   with candidatas as (
