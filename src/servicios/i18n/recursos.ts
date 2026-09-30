@@ -111,6 +111,17 @@ export const recursosI18n = {
           noRemindersTitle: 'No reminders yet', noRemindersDescription: 'Turn on a reminder from any task to see it here.',
           remindersLoading: 'Loading your reminders…', remindersError: 'Could not load your reminders. Tap to retry.', noReminder: 'No reminder',
         },
+        insights: {
+          patterns: {
+            title: 'Your week', recordedDays: '{{count}}/7 days with records', gatheringHistory: 'Gathering your history',
+            needMoreDays: 'We need more days of records to see your week clearly.',
+          },
+          risk: {
+            title: 'Attention', subtitle: 'Activity dropped this week.',
+            needMoreHistory: 'We need more history to detect drops in activity.',
+            empty: 'No task slowed down. You are going strong.',
+          },
+        },
       },
       habitos: { pantalla: {
         volverAlInicio: 'Back to Home',
@@ -1061,6 +1072,17 @@ export const recursosI18n = {
           },
           noRemindersTitle: 'Todavía no hay recordatorios', noRemindersDescription: 'Activá un recordatorio desde cualquier tarea para verlo acá.',
           remindersLoading: 'Cargando tus recordatorios…', remindersError: 'No pudimos cargar tus recordatorios. Tocá para reintentar.', noReminder: 'Sin recordatorio',
+        },
+        insights: {
+          patterns: {
+            title: 'Tu semana', recordedDays: '{{count}}/7 días con registros', gatheringHistory: 'Reuniendo tu historial',
+            needMoreDays: 'Necesitamos más días de registros para ver tu semana con claridad.',
+          },
+          risk: {
+            title: 'Atención', subtitle: 'La actividad bajó esta semana.',
+            needMoreHistory: 'Necesitamos más historial para detectar caídas de actividad.',
+            empty: 'Ninguna tarea se frenó. Vas muy bien.',
+          },
         },
       },
       habitos: { pantalla: {

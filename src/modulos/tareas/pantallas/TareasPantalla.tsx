@@ -22,9 +22,11 @@ import { useSaldoGemas } from '../../tienda/useSaldoGemas';
 import { CrearTareaHoja } from '../componentes/CrearTareaHoja';
 import { ListaMisTareas } from '../componentes/ListaMisTareas';
 import { ListaRecordatoriosTareas } from '../componentes/ListaRecordatoriosTareas';
+import { SeccionPatronesTareas } from '../componentes/SeccionPatronesTareas';
+import { SeccionRiesgoTareas } from '../componentes/SeccionRiesgoTareas';
 import { TimelineTareasHoy } from '../componentes/TimelineTareasHoy';
 import {
-  asignarSemillaTarea, completarTareaDia, crearTarea, obtenerResumenRecordatoriosTareas,
+  asignarSemillaTarea, completarTareaDia, crearTarea, obtenerPanelTareas, obtenerResumenRecordatoriosTareas,
   obtenerTareaMejorRacha, obtenerTareas, obtenerTareasHoy,
 } from '../tareas.servicio';
 import type { Tarea, TareaHoyDetalle } from '../tareas.tipos';
@@ -40,8 +42,8 @@ const PAQUETE_TAREAS = 'golden';
 // árbol/arbusto (son PNG fijos, no se tiñen con el tono).
 const COLOR_PAQUETE_TAREAS = '#FFAE00';
 
-type VistaPanel = 'hoy' | 'progresion' | 'recordatorios';
-const ICONOS_VISTA_PANEL: Record<VistaPanel, string> = { hoy: 'sol', progresion: 'progreso', recordatorios: 'reloj' };
+type VistaPanel = 'hoy' | 'progresion' | 'recordatorios' | 'insights';
+const ICONOS_VISTA_PANEL: Record<VistaPanel, string> = { hoy: 'sol', insights: 'estadistica', progresion: 'progreso', recordatorios: 'reloj' };
 
 const ACCESOS = [
   { id: 'progresion', nombreIcono: 'progreso' }, { id: 'creacion', nombreIcono: 'idea' }, { id: 'recordatorios', nombreIcono: 'reloj' }, { id: 'insights', nombreIcono: 'estadistica' },
@@ -51,6 +53,7 @@ const CLAVE_TAREAS_HOY = ['tareas', 'hoy'] as const;
 const CLAVE_TAREAS_LISTA = ['tareas', 'lista'] as const;
 const CLAVE_TAREAS_RECORDATORIOS = ['tareas', 'recordatorios'] as const;
 const CLAVE_TAREAS_MEJOR_RACHA = ['tareas', 'mejorRacha'] as const;
+const CLAVE_TAREAS_PANEL = ['tareas', 'panel'] as const;
 
 // Envoltorio fino: solo pone el tono dorado fijo. useEscala()/useEstilosS()
 // hay que llamarlos DESDE ADENTRO del Provider (en TareasPantallaContenido),
@@ -81,6 +84,7 @@ function TareasPantallaContenido() {
   const consultaLista = useQuery({ queryKey: CLAVE_TAREAS_LISTA, queryFn: () => obtenerTareas() });
   const consultaRecordatorios = useQuery({ queryKey: CLAVE_TAREAS_RECORDATORIOS, queryFn: () => obtenerResumenRecordatoriosTareas() });
   const consultaMejorRacha = useQuery({ queryKey: CLAVE_TAREAS_MEJOR_RACHA, queryFn: () => obtenerTareaMejorRacha() });
+  const consultaPanel = useQuery({ queryKey: CLAVE_TAREAS_PANEL, queryFn: () => obtenerPanelTareas(), enabled: vistaPanel === 'insights' });
 
   const crear = useMutation({
     mutationFn: async (input: Parameters<typeof crearTarea>[0] & { semillaId: string | null }) => {
@@ -137,10 +141,8 @@ function TareasPantallaContenido() {
 
   function abrirAcceso(id: (typeof ACCESOS)[number]['id']) {
     hapticSeguro('seleccion');
-    if (id === 'progresion' || id === 'recordatorios') { alternarVista(id); return; }
-    if (id === 'creacion') { setCrearAbierto(true); return; }
-    // Insights de tareas llega en la Fase 5 — por ahora, sin acción.
-    hapticSeguro('seleccion');
+    if (id === 'progresion' || id === 'recordatorios' || id === 'insights') { alternarVista(id); return; }
+    setCrearAbierto(true);
   }
 
   return (
@@ -232,7 +234,7 @@ function TareasPantallaContenido() {
                 </View>
               </View>
             ) : (
-              <View style={s.tituloFila}><View style={s.tituloConIcono}><MasterIcon alTema name={ICONOS_VISTA_PANEL[vistaPanel]} size={22} /><Texto style={s.titulo}>{vistaPanel === 'progresion' ? t('tareas.pantallaCompleta.viewProgress') : t('tareas.pantallaCompleta.viewReminders')}</Texto></View></View>
+              <View style={s.tituloFila}><View style={s.tituloConIcono}><MasterIcon alTema name={ICONOS_VISTA_PANEL[vistaPanel]} size={22} /><Texto style={s.titulo}>{vistaPanel === 'progresion' ? t('tareas.pantallaCompleta.viewProgress') : vistaPanel === 'insights' ? t('tareas.pantallaCompleta.access.insights.label') : t('tareas.pantallaCompleta.viewReminders')}</Texto></View></View>
             )}
 
             {vistaPanel === 'hoy' && (
@@ -259,6 +261,17 @@ function TareasPantallaContenido() {
                 onSeleccionar={() => hapticSeguro('seleccion')}
                 planes={consultaRecordatorios.data ?? []}
               />
+            )}
+
+            {vistaPanel === 'insights' && (
+              consultaPanel.isLoading ? <Texto style={s.vacioTexto}>{t('tareas.pantalla.cargando')}</Texto> : consultaPanel.isError ? (
+                <Pressable onPress={() => consultaPanel.refetch()}><Texto style={s.error}>{t('tareas.pantalla.errorCargar')}</Texto></Pressable>
+              ) : consultaPanel.data ? (
+                <View>
+                  <SeccionPatronesTareas datos={consultaPanel.data.patrones.datos} estado={consultaPanel.data.patrones.estado} progreso={consultaPanel.data.patrones.progreso} />
+                  <SeccionRiesgoTareas datos={consultaPanel.data.riesgo.datos} estado={consultaPanel.data.riesgo.estado} progreso={consultaPanel.data.riesgo.progreso} />
+                </View>
+              ) : null
             )}
           </MasterGlass>
         </ScrollView>
