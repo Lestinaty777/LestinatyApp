@@ -70,6 +70,14 @@ export const recursosI18n = {
           fecha: { hoy: 'Today', manana: 'Tomorrow', semana: 'This week', sinFecha: 'No date' },
           prioridad: { urgenteImportante: 'Urgent & important', urgenteNoImportante: 'Urgent', noUrgenteImportante: 'Important', noUrgenteNoImportante: 'Someday', sinPrioridad: 'No priority' },
           semilla: { titulo: "Give it a seed (optional)", descripcion: 'Use one of your seeds to color this task.', ninguna: 'None' },
+          tipo: {
+            titulo: 'What kind of task?', simple: 'Simple', checklist: 'Checklist', contador: 'Counter', cronometro: 'Timer',
+            metaProximamente: 'Its own goal is coming soon — for now it completes with a single tap, like Simple.',
+          },
+          pasos: {
+            titulo: 'Steps', descripcion: 'Break it down into steps — each one becomes a stop on its own trail.',
+            placeholder: 'Step {{number}}', agregar: 'Add a step', quitar: 'Remove step',
+          },
           frecuencia: {
             titulo: 'How often?', unaVez: 'Once', diasSemana: 'Repeats',
             elegirDias: 'Which days?', todosLosDias: 'Every day', diasDeSemana: 'Weekdays',
@@ -1035,6 +1043,14 @@ export const recursosI18n = {
           fecha: { hoy: 'Hoy', manana: 'Mañana', semana: 'Esta semana', sinFecha: 'Sin fecha' },
           prioridad: { urgenteImportante: 'Urgente e importante', urgenteNoImportante: 'Urgente', noUrgenteImportante: 'Importante', noUrgenteNoImportante: 'Algún día', sinPrioridad: 'Sin prioridad' },
           semilla: { titulo: 'Dale una semilla (opcional)', descripcion: 'Usá una de tus semillas para darle color a esta tarea.', ninguna: 'Ninguna' },
+          tipo: {
+            titulo: '¿Qué tipo de tarea?', simple: 'Simple', checklist: 'Checklist', contador: 'Contador', cronometro: 'Cronómetro',
+            metaProximamente: 'Su propia meta llega pronto — por ahora se completa con un toque, igual que Simple.',
+          },
+          pasos: {
+            titulo: 'Pasos', descripcion: 'Dividila en pasos — cada uno se convierte en una parada de su propio sendero.',
+            placeholder: 'Paso {{number}}', agregar: 'Agregar un paso', quitar: 'Quitar paso',
+          },
           frecuencia: {
             titulo: '¿Con qué frecuencia?', unaVez: 'Una vez', diasSemana: 'Se repite',
             elegirDias: '¿Qué días?', todosLosDias: 'Todos los días', diasDeSemana: 'Días de semana',

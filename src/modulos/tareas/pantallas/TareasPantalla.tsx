@@ -26,7 +26,7 @@ import { SeccionPatronesTareas } from '../componentes/SeccionPatronesTareas';
 import { SeccionRiesgoTareas } from '../componentes/SeccionRiesgoTareas';
 import { TimelineTareasHoy } from '../componentes/TimelineTareasHoy';
 import {
-  asignarSemillaTarea, completarTareaDia, crearTarea, obtenerPanelTareas, obtenerResumenRecordatoriosTareas,
+  asignarSemillaTarea, completarTareaDia, crearSubitemsTarea, crearTarea, obtenerPanelTareas, obtenerResumenRecordatoriosTareas,
   obtenerTareaMejorRacha, obtenerTareas, obtenerTareasHoy,
 } from '../tareas.servicio';
 import type { Tarea, TareaHoyDetalle } from '../tareas.tipos';
@@ -93,6 +93,9 @@ function TareasPantallaContenido() {
       if (semillaId) {
         await asignarSemillaTarea(semillaId, tarea.id);
         cliente.invalidateQueries({ queryKey: CLAVE_SEMILLAS_DISPONIBLES });
+      }
+      if (datos.tipo === 'checklist' && datos.pasos?.length) {
+        await crearSubitemsTarea(tarea.id, datos.pasos);
       }
       return tarea;
     },

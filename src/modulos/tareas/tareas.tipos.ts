@@ -46,6 +46,8 @@ export type CrearTareaInput = {
   titulo: string;
   descripcion?: string | null;
   tipo?: TipoTarea;
+  /** Solo cuando tipo = 'checklist' — títulos de los pasos, en orden. Se insertan en tareas_subitems tras crear la tarea. */
+  pasos?: string[];
   prioridad?: PrioridadTarea | null;
   columnaKanban?: string | null;
   fechaVencimiento?: string | null;
@@ -61,6 +63,15 @@ export type CrearTareaInput = {
 };
 
 export type EditarTareaInput = Partial<CrearTareaInput>;
+
+// ─── Checklist (tareas_subitems) ───────────────────────────────────────────
+export type SubitemTarea = {
+  id: string;
+  tareaId: string;
+  titulo: string;
+  hecho: boolean;
+  orden: number;
+};
 
 // ─── Hoy ────────────────────────────────────────────────────────────────────
 export type TareaHoyDetalle = {

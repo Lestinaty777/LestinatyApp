@@ -5,7 +5,7 @@ import { mapearPanelTareas } from './tareas.mapper';
 import { calcularRachaTarea, estaProgramadaEnFecha } from './tareaProgramada';
 import type {
   CrearTareaInput, EditarTareaInput, EstadoTarea, FrecuenciaTarea, MejorRachaTarea, PanelTareas,
-  PlanTareaResumen, ResultadoCompletarTarea, Tarea, TareaHoyDetalle, TipoTarea,
+  PlanTareaResumen, ResultadoCompletarTarea, SubitemTarea, Tarea, TareaHoyDetalle, TipoTarea,
 } from './tareas.tipos';
 
 // A diferencia de hábitos (que pasa todo por RPCs porque tiene reglas de
@@ -274,6 +274,37 @@ export async function obtenerResumenRecordatoriosTareas(): Promise<PlanTareaResu
     recordatorioActivo: fila.recordatorio_activo,
     titulo: fila.titulo,
   }));
+}
+
+// ─── Checklist (pasos de una tarea tipo 'checklist') ───────────────────────
+type FilaSubitem = { id: string; tarea_id: string; titulo: string; hecho: boolean; orden: number };
+
+function normalizarSubitem(fila: FilaSubitem): SubitemTarea {
+  return { hecho: fila.hecho, id: fila.id, orden: fila.orden, tareaId: fila.tarea_id, titulo: fila.titulo };
+}
+
+// Se llama justo después de crearTarea (tipo='checklist') con los títulos ya
+// escritos en el formulario — inserta uno por título, en el mismo orden.
+export async function crearSubitemsTarea(tareaId: string, titulos: string[]): Promise<SubitemTarea[]> {
+  const filas = titulos.map((titulo, orden) => ({ orden, tarea_id: tareaId, titulo: titulo.trim() })).filter((fila) => fila.titulo.length > 0);
+  if (filas.length === 0) return [];
+  const { data, error } = await obtenerClienteSupabase().from('tareas_subitems').insert(filas).select('id,tarea_id,titulo,hecho,orden');
+  if (error) throw error;
+  return (data as FilaSubitem[]).map(normalizarSubitem);
+}
+
+export async function obtenerSubitemsTarea(tareaId: string): Promise<SubitemTarea[]> {
+  const { data, error } = await obtenerClienteSupabase().from('tareas_subitems').select('id,tarea_id,titulo,hecho,orden').eq('tarea_id', tareaId).order('orden');
+  if (error) throw error;
+  return (data as FilaSubitem[]).map(normalizarSubitem);
+}
+
+// Sin RPC (a diferencia de completar_tarea_dia): un paso no tiene racha ni
+// gemas propias, es un simple toggle sobre su fila — RLS (join contra
+// tareas_items) ya garantiza que solo su dueño lo pueda tocar.
+export async function completarSubitemTarea(subitemId: string, hecho: boolean): Promise<void> {
+  const { error } = await obtenerClienteSupabase().from('tareas_subitems').update({ hecho }).eq('id', subitemId);
+  if (error) throw error;
 }
 
 export { asignarSemillaTarea };

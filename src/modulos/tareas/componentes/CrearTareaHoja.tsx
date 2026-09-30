@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { ScrollView, Switch, TextInput, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
-import { Bell, Check, Clock3 } from 'lucide-react-native';
+import { Bell, Check, Clock3, Plus, X } from 'lucide-react-native';
 
 import { Boton, HojaDeslizante, Rebote, RecuadroGlass, Texto } from '../../../diseno';
 import { colorMasterMasCercano } from '../../../diseno/componentes/MasterChanger';
@@ -12,7 +12,7 @@ import { solicitarPermisoYRegistrar } from '../../../nucleo/notificaciones/oneSi
 import { actualizarPreferenciaNotificacion } from '../../configuracion/configuracion.servicio';
 import { obtenerCatalogoArboles, obtenerSemillasDisponibles } from '../../tienda/gemas.servicio';
 import { CLAVE_SEMILLAS_DISPONIBLES } from '../../tienda/pantallas/TiendaArbolesPantalla';
-import type { CrearTareaInput, FrecuenciaTarea, PrioridadTarea } from '../tareas.tipos';
+import type { CrearTareaInput, FrecuenciaTarea, PrioridadTarea, TipoTarea } from '../tareas.tipos';
 
 type CrearTareaHojaProps = {
   guardando: boolean;
@@ -43,6 +43,12 @@ const OPCIONES_PRIORIDAD: { clave: string; valor: PrioridadTarea | null }[] = [
 
 const DIAS_SEMANA = [1, 2, 3, 4, 5, 6, 7];
 const HORA_VALIDA_REGEX = /^([01]\d|2[0-3]):[0-5]\d$/;
+// Los únicos 4 con mecánica de completar propia (ver tareas.tipos.ts) —
+// contador/cronómetro todavía no piden su meta acá: la base no tiene dónde
+// guardarla (columna pendiente de una fase posterior), así que por ahora se
+// comportan como 'simple' al completar — se avisa con "próximamente" en vez
+// de fingir que ya piden algo.
+const OPCIONES_TIPO: TipoTarea[] = ['simple', 'checklist', 'contador', 'cronometro'];
 
 // Espejo liviano del selector de semillas del wizard de hábitos (CrearHabitoWizard):
 // una tarjeta de color por paquete con semillas libres, agrupadas por familia
@@ -53,6 +59,8 @@ export function CrearTareaHoja({ guardando, onCerrar, onCrear }: CrearTareaHojaP
   const consultaSemillas = useQuery({ queryKey: CLAVE_SEMILLAS_DISPONIBLES, queryFn: obtenerSemillasDisponibles });
   const consultaPaquetes = useQuery({ queryKey: ['tienda', 'catalogoArboles'], queryFn: obtenerCatalogoArboles });
   const [titulo, setTitulo] = useState('');
+  const [tipo, setTipo] = useState<TipoTarea>('simple');
+  const [pasos, setPasos] = useState<string[]>(['', '']);
   const [frecuencia, setFrecuencia] = useState<FrecuenciaTarea>('una_vez');
   const [fecha, setFecha] = useState<string | null>(OPCIONES_FECHA[0].valor);
   const [diasSemana, setDiasSemana] = useState<number[]>(DIAS_SEMANA);
@@ -90,13 +98,23 @@ export function CrearTareaHoja({ guardando, onCerrar, onCrear }: CrearTareaHojaP
 
   const semillaInfo = semillasPorPaquete.find((grupo) => grupo.semillaIds.includes(semillaSeleccionada ?? ''));
   const horaValida = HORA_VALIDA_REGEX.test(hora);
+  const pasosValidos = pasos.map((paso) => paso.trim()).filter((paso) => paso.length > 0);
   const puedeCrear = titulo.trim().length > 0
     && (frecuencia === 'una_vez' || diasSemana.length > 0)
     && (!recordatorio || horaValida)
+    && (tipo !== 'checklist' || pasosValidos.length > 0)
     && !guardando;
 
   function alternarDia(dia: number) {
     setDiasSemana((actual) => (actual.includes(dia) ? actual.filter((x) => x !== dia) : [...actual, dia].sort()));
+  }
+
+  function actualizarPaso(indice: number, texto: string) {
+    setPasos((actual) => actual.map((paso, i) => (i === indice ? texto : paso)));
+  }
+
+  function quitarPaso(indice: number) {
+    setPasos((actual) => (actual.length > 1 ? actual.filter((_, i) => i !== indice) : actual));
   }
 
   function confirmar() {
@@ -112,9 +130,11 @@ export function CrearTareaHoja({ guardando, onCerrar, onCrear }: CrearTareaHojaP
       horaRecordatorio: recordatorio ? hora : null,
       mostrarNombreNotificacion: mostrarNombre,
       paqueteId: semillaInfo?.paquete.id ?? null,
+      pasos: tipo === 'checklist' ? pasosValidos : undefined,
       prioridad,
       recordatorioActivo: recordatorio,
       semillaId: semillaSeleccionada,
+      tipo,
       titulo,
     });
   }
@@ -132,6 +152,52 @@ export function CrearTareaHoja({ guardando, onCerrar, onCrear }: CrearTareaHojaP
           style={{ backgroundColor: '#F5F3F9', borderRadius: 14, color: '#1A1335', fontFamily: 'Montserrat-Bold', fontSize: 15, padding: 14 }}
           value={titulo}
         />
+
+        <View>
+          <Texto style={{ color: '#554E68', fontFamily: 'Montserrat-Bold', fontSize: 13, marginBottom: 8 }}>{t('tareas.pantalla.tipo.titulo')}</Texto>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+            {OPCIONES_TIPO.map((opcion) => {
+              const activo = tipo === opcion;
+              return (
+                <Rebote key={opcion} onPress={() => { hapticSeguro('seleccion'); setTipo(opcion); }} estilo={{ backgroundColor: activo ? '#EEE8FB' : '#F5F3F9', borderColor: activo ? '#7C3AED' : 'transparent', borderRadius: 999, borderWidth: 1.5, paddingHorizontal: 12, paddingVertical: 8 }}>
+                  <Texto style={{ color: activo ? '#5B21B6' : '#7B7494', fontFamily: 'Montserrat-Bold', fontSize: 11 }}>{t(`tareas.pantalla.tipo.${opcion}`)}</Texto>
+                </Rebote>
+              );
+            })}
+          </View>
+          {(tipo === 'contador' || tipo === 'cronometro') && (
+            <Texto style={{ color: '#9A93A8', fontSize: 11, marginTop: 6 }}>{t('tareas.pantalla.tipo.metaProximamente')}</Texto>
+          )}
+        </View>
+
+        {tipo === 'checklist' && (
+          <View>
+            <Texto style={{ color: '#554E68', fontFamily: 'Montserrat-Bold', fontSize: 13 }}>{t('tareas.pantalla.pasos.titulo')}</Texto>
+            <Texto style={{ color: '#7B7494', fontSize: 12, marginBottom: 8, marginTop: 2 }}>{t('tareas.pantalla.pasos.descripcion')}</Texto>
+            <View style={{ gap: 8 }}>
+              {pasos.map((paso, indice) => (
+                <View key={indice} style={{ alignItems: 'center', flexDirection: 'row', gap: 8 }}>
+                  <TextInput
+                    keyboardAppearance="light"
+                    maxFontSizeMultiplier={TOPE_ESCALA_TEXTO_COMPACTO}
+                    onChangeText={(texto) => actualizarPaso(indice, texto)}
+                    placeholder={t('tareas.pantalla.pasos.placeholder', { number: indice + 1 })}
+                    style={{ backgroundColor: '#F5F3F9', borderRadius: 12, color: '#1A1335', flex: 1, fontFamily: 'Montserrat-Medium', fontSize: 14, padding: 12 }}
+                    value={paso}
+                  />
+                  {pasos.length > 1 && (
+                    <Rebote accessibilityLabel={t('tareas.pantalla.pasos.quitar')} onPress={() => quitarPaso(indice)} estilo={{ alignItems: 'center', height: 32, justifyContent: 'center', width: 32 }}>
+                      <X color="#9A93A8" size={18} />
+                    </Rebote>
+                  )}
+                </View>
+              ))}
+            </View>
+            <Rebote onPress={() => setPasos((actual) => [...actual, ''])} estilo={{ alignItems: 'center', flexDirection: 'row', gap: 6, marginTop: 10, paddingVertical: 4 }}>
+              <Plus color="#5B21B6" size={16} /><Texto style={{ color: '#5B21B6', fontFamily: 'Montserrat-Bold', fontSize: 12 }}>{t('tareas.pantalla.pasos.agregar')}</Texto>
+            </Rebote>
+          </View>
+        )}
 
         <View>
           <Texto style={{ color: '#554E68', fontFamily: 'Montserrat-Bold', fontSize: 13, marginBottom: 8 }}>{t('tareas.pantalla.frecuencia.titulo')}</Texto>
