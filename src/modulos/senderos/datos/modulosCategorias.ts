@@ -1,7 +1,7 @@
 import type { CategoriaMapaId } from '../algoritmo/mapaProcedural';
 import { ESCALA_ESMERALDA } from '../../../diseno/tema/escalaEsmeralda';
 
-export type CategoriaMapaMvp = 'habitos';
+export type CategoriaMapaMvp = 'habitos' | 'tareas';
 export type IconoModuloMapa = 'actividad' | 'ciencia' | 'checklist' | 'libro' | 'usuarios';
 
 export type ModuloCategoriaMapa = {
@@ -18,9 +18,13 @@ export const categoriaInicialMapa: CategoriaMapaMvp = 'habitos';
 
 export const coloresSelectorCategoria: Record<CategoriaMapaMvp, string> = {
   habitos: ESCALA_ESMERALDA.jade.l70,
+  // master_pack_color real de 'golden' en arboles_paquetes — mismo dorado del
+  // bioma bosque-dorado (registroBiomas.ts) que ya usa categoriaId 'tareas'.
+  tareas: '#FCB103',
 };
 
 export const modulosPorCategoria: Record<CategoriaMapaMvp, readonly ModuloCategoriaMapa[]> = {
+  tareas: [],
   habitos: [
     { categoriaId: 'habitos', color: '#B34A4A', descripcion: 'Un momento breve para volver al centro.', icono: 'actividad', id: 'meditar', subcategoriaId: 'manana', titulo: 'Meditar' },
     { categoriaId: 'habitos', color: '#734AB3', descripcion: 'Una lectura pequeña, todos los días.', icono: 'libro', id: 'leer', subcategoriaId: 'manana', titulo: 'Leer diario' },

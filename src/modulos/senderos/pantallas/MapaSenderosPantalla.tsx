@@ -28,11 +28,15 @@ import { obtenerDetallesHabitosHoy, obtenerHabitosActivos } from '../../habitos/
 import { EstadoVacioSenderos } from '../componentes/EstadoVacioSenderos';
 import type { HabitoResumen } from '../../habitos/tipos';
 import { useSaldoGemas } from '../../tienda/useSaldoGemas';
-import { coloresSelectorCategoria, type ModuloCategoriaMapa } from '../datos/modulosCategorias';
+import { coloresSelectorCategoria, type CategoriaMapaMvp, type ModuloCategoriaMapa } from '../datos/modulosCategorias';
 import { MAPAS_NIVELES } from '../Mapas';
 import { useEscala } from '../../../diseno/tema/MasterColorContext';
 import type { EscalaMaster } from '../../../diseno/tema/escalaEsmeralda';
 import { conAlfa } from '../../../diseno/tema/masterColor';
+import { TarjetaChecklistCompacta } from '../../tareas/componentes/TarjetaChecklistCompacta';
+import { useSenderoPasosTarea } from '../../tareas/hooks/useSenderoPasosTarea';
+import { obtenerResumenSubitemsTareas, obtenerTareas } from '../../tareas/tareas.servicio';
+import type { Tarea } from '../../tareas/tareas.tipos';
 
 const DIAS_SEMANA_COMPLETA = [1, 2, 3, 4, 5, 6, 7];
 const TAMANO_ICONO_CATEGORIA = 64;
@@ -41,9 +45,12 @@ const PEEK_SIGUIENTE_TARJETA = 32;
 const TOTAL_NODOS_PROGRESION = MAPAS_NIVELES.reduce((total, mapa) => total + mapa.cantidadNodos, 0);
 
 type AsignaturaVisible = ModuloCategoriaMapa & { habitoReal: HabitoResumen };
+type AsignaturaTareaVisible = ModuloCategoriaMapa & { tareaReal: Tarea };
 
 const CLAVES_HABITOS = { titulo: 'senderos.map.categories.habits', subtitulo: 'senderos.map.categories.habitsSubtitle' };
 const ICONO_HABITOS = 'hoy/habitos';
+const CLAVES_TAREAS = { titulo: 'senderos.map.categories.tasks', subtitulo: 'senderos.map.categories.tasksSubtitle' };
+const ICONO_TAREAS = 'hoy/tareas';
 
 
 // Panel "tus hábitos" del menú del libro — réplica del mockup de referencia.
@@ -117,6 +124,32 @@ export function MapaSenderosPantalla() {
   React.useEffect(() => {
     if (!asignatura && ASIGNATURAS.length > 0) setAsignaturaId(ASIGNATURAS[0].id);
   }, [ASIGNATURAS, asignatura]);
+
+  // ─── Categoría "Tareas" (Fase 7): un sendero de PASOS por tarea tipo
+  // checklist, en paralelo al sendero de DÍAS de hábitos de arriba — selección
+  // y datos propios, para no mezclar el tipado de "asignatura" de hábitos
+  // (que el resto del archivo asume libremente con `!`) con el de tareas.
+  const [categoriaActiva, setCategoriaActiva] = React.useState<CategoriaMapaMvp>('habitos');
+  const [selectorCategoriaVisible, setSelectorCategoriaVisible] = React.useState(false);
+  const consultaTareas = useQuery({ queryKey: ['tareas', 'checklist'], queryFn: () => obtenerTareas() });
+  const tareasChecklist = React.useMemo(() => (consultaTareas.data ?? []).filter((tarea) => tarea.tipo === 'checklist'), [consultaTareas.data]);
+  const asignaturasTareas: AsignaturaTareaVisible[] = React.useMemo(() => tareasChecklist.map((tarea) => ({
+    categoriaId: 'tareas', color: tarea.color ?? coloresSelectorCategoria.tareas, descripcion: tarea.descripcion?.trim() || 'Tu progreso paso a paso.',
+    icono: 'checklist', id: tarea.id, subcategoriaId: tarea.id, tareaReal: tarea, titulo: tarea.titulo,
+  })), [tareasChecklist]);
+  const [asignaturaIdTarea, setAsignaturaIdTarea] = React.useState<string | undefined>(undefined);
+  const asignaturaTarea = asignaturasTareas.find((item) => item.id === asignaturaIdTarea) ?? asignaturasTareas[0];
+  React.useEffect(() => {
+    if (!asignaturaTarea && asignaturasTareas.length > 0) setAsignaturaIdTarea(asignaturasTareas[0].id);
+  }, [asignaturasTareas, asignaturaTarea]);
+  const contadorAsignaturas = categoriaActiva === 'habitos' ? ASIGNATURAS.length : asignaturasTareas.length;
+  const sendero7 = useSenderoPasosTarea(categoriaActiva === 'tareas' ? asignaturaTarea?.id : undefined);
+  const idsTareasChecklist = React.useMemo(() => tareasChecklist.map((tarea) => tarea.id), [tareasChecklist]);
+  const consultaResumenSubitems = useQuery({
+    enabled: idsTareasChecklist.length > 0,
+    queryKey: ['tareas', 'subitems-resumen', idsTareasChecklist.join(',')],
+    queryFn: () => obtenerResumenSubitemsTareas(idsTareasChecklist),
+  });
 
   const idHabitoSeleccionado = asignatura?.habitoReal?.id;
   const [nivelSeleccionado, setNivelSeleccionado] = React.useState<number | undefined>(undefined);
@@ -197,18 +230,20 @@ export function MapaSenderosPantalla() {
           <View style={styles.navbarContenedor}>
             <MasterGlass blur style={styles.navbarGlass}>
             <View style={styles.navbarFila}>
-              <MasterIconBg fuente={buscarIcono(ICONO_HABITOS)!.fuente} hue={buscarIcono(ICONO_HABITOS)!.hue} size={TAMANO_ICONO_CATEGORIA} />
+              <Pressable accessibilityLabel={t('senderos.map.accessibility.switchCategory')} onPress={() => { hapticSeguro('seleccion'); setSelectorCategoriaVisible((actual) => !actual); }}>
+                <MasterIconBg fuente={buscarIcono(categoriaActiva === 'habitos' ? ICONO_HABITOS : ICONO_TAREAS)!.fuente} hue={buscarIcono(categoriaActiva === 'habitos' ? ICONO_HABITOS : ICONO_TAREAS)!.hue} size={TAMANO_ICONO_CATEGORIA} />
+              </Pressable>
 
               <View style={styles.navInfo}>
-                <Texto numberOfLines={1} style={[styles.tituloAsignatura, { color: oscurecer(coloresSelectorCategoria.habitos, 0.4) }]}>{t(CLAVES_HABITOS.titulo)}</Texto>
-                <Texto numberOfLines={2} style={[styles.descAsignatura, { color: oscurecer(coloresSelectorCategoria.habitos, 0.6) }]}>{t(CLAVES_HABITOS.subtitulo)}</Texto>
+                <Texto numberOfLines={1} style={[styles.tituloAsignatura, { color: oscurecer(coloresSelectorCategoria[categoriaActiva], 0.4) }]}>{t(categoriaActiva === 'habitos' ? CLAVES_HABITOS.titulo : CLAVES_TAREAS.titulo)}</Texto>
+                <Texto numberOfLines={2} style={[styles.descAsignatura, { color: oscurecer(coloresSelectorCategoria[categoriaActiva], 0.6) }]}>{t(categoriaActiva === 'habitos' ? CLAVES_HABITOS.subtitulo : CLAVES_TAREAS.subtitulo)}</Texto>
               </View>
 
               <Pressable accessibilityLabel={t('senderos.map.accessibility.viewHabits')} onPress={() => handleToggleMenu('courses')}>
                 <MasterGlass blur compacto style={styles.botonCristal}>
-                  <View style={[styles.botonPildora, activeMenu === 'courses' && { backgroundColor: aclarar(coloresSelectorCategoria.habitos, 0.84) }]}>
-                    <BookOpen color={activeMenu === 'courses' ? oscurecer(coloresSelectorCategoria.habitos, 0.4) : '#53505B'} size={22} strokeWidth={2.35} />
-                    <Texto style={{ fontSize: 14, fontFamily: 'Montserrat-Bold', color: activeMenu === 'courses' ? oscurecer(coloresSelectorCategoria.habitos, 0.4) : '#53505B', marginTop: -2 }}>{ASIGNATURAS.length}</Texto>
+                  <View style={[styles.botonPildora, activeMenu === 'courses' && { backgroundColor: aclarar(coloresSelectorCategoria[categoriaActiva], 0.84) }]}>
+                    <BookOpen color={activeMenu === 'courses' ? oscurecer(coloresSelectorCategoria[categoriaActiva], 0.4) : '#53505B'} size={22} strokeWidth={2.35} />
+                    <Texto style={{ fontSize: 14, fontFamily: 'Montserrat-Bold', color: activeMenu === 'courses' ? oscurecer(coloresSelectorCategoria[categoriaActiva], 0.4) : '#53505B', marginTop: -2 }}>{contadorAsignaturas}</Texto>
                   </View>
                 </MasterGlass>
               </Pressable>
@@ -223,10 +258,38 @@ export function MapaSenderosPantalla() {
             </View>
 
             </MasterGlass>
+            {selectorCategoriaVisible && (
+              <MasterGlass style={styles.tooltipCategoriasGlass}>
+                <View style={styles.tooltipCategorias}>
+                  <Texto style={styles.tooltipCategoriasTitulo}>{t('senderos.map.accessibility.switchCategory')}</Texto>
+                  <View style={styles.tooltipCategoriasFila}>
+                    {(['habitos', 'tareas'] as const).map((categoria) => {
+                      const activa = categoriaActiva === categoria;
+                      const icono = buscarIcono(categoria === 'habitos' ? ICONO_HABITOS : ICONO_TAREAS)!;
+                      return (
+                        <Pressable
+                          key={categoria}
+                          onPress={() => {
+                            hapticSeguro('seleccion');
+                            setCategoriaActiva(categoria);
+                            setActiveMenu('none');
+                            setSelectorCategoriaVisible(false);
+                          }}
+                          style={({ pressed }) => [styles.tooltipCategoriaOpcion, activa && styles.tooltipCategoriaOpcionActiva, pressed && styles.tooltipCategoriaOpcionPresionada]}
+                        >
+                          <Image resizeMode="contain" source={icono.fuente} style={styles.tooltipCategoriaIcono} />
+                          <Texto style={styles.tooltipCategoriaTexto}>{t(categoria === 'habitos' ? CLAVES_HABITOS.titulo : CLAVES_TAREAS.titulo)}</Texto>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                </View>
+              </MasterGlass>
+            )}
             {activeMenu !== 'none' && (
               <MasterGlass style={[styles.panelDesplegable, { height: alturaPanelMenu }]}>
             <Animated.View pointerEvents="auto" style={[styles.contenidoDesplegable, animContenidoEstilos]}>
-              {activeMenu === 'courses' && (() => {
+              {activeMenu === 'courses' && categoriaActiva === 'habitos' && (() => {
                 const habitosPendientesHoy = Math.max(0, habitosReales.length - habitosCompletadosHoy);
                 const fraccionHoy = habitosReales.length > 0 ? habitosCompletadosHoy / habitosReales.length : 0;
                 const anchoCarta = 260; // Ancho fijo para nuevo layout de row
@@ -286,6 +349,53 @@ export function MapaSenderosPantalla() {
                   </View>
                 );
               })()}
+              {activeMenu === 'courses' && categoriaActiva === 'tareas' && (() => {
+                const anchoCarta = 260;
+                return (
+                  <View style={{ flex: 1, paddingHorizontal: 20, paddingTop: 5, paddingBottom: 5 }}>
+                    <MasterGlass blur style={cp.headerGlass}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+                        <MasterIcon name="hoy/lista" size={64} />
+                        <View>
+                          <Texto style={cp.etiqueta}>{t('senderos.map.tasksPanel.title')}</Texto>
+                          <Texto style={cp.contador}>{t('senderos.map.tasksPanel.count', { count: asignaturasTareas.length, suffix: asignaturasTareas.length === 1 ? '' : t('senderos.map.habitsPanel.pluralSuffix') })}</Texto>
+                        </View>
+                      </View>
+                    </MasterGlass>
+
+                    {asignaturasTareas.length === 0 ? (
+                      <Texto style={styles.subMapa}>{t('senderos.map.tasksPanel.empty')}</Texto>
+                    ) : (
+                      <ScrollView
+                        horizontal
+                        showsHorizontalScrollIndicator={false}
+                        contentContainerStyle={{ gap: 14, paddingBottom: 6 }}
+                        style={{ flex: 1, overflow: 'visible' }}
+                        decelerationRate="fast"
+                        snapToInterval={anchoCarta + 14}
+                      >
+                        {asignaturasTareas.map((asig) => {
+                          const resumen = consultaResumenSubitems.data?.get(asig.id);
+                          return (
+                            <TonoDelHabito colorPaquete={asig.tareaReal.color} key={asig.id} paqueteId={asig.tareaReal.paqueteId}>
+                              <TarjetaChecklistCompacta
+                                alto={92}
+                                ancho={anchoCarta}
+                                color={asig.tareaReal.color}
+                                iconoLucide={asig.tareaReal.iconoLucide}
+                                onPress={() => { hapticSeguro('seleccion'); setAsignaturaIdTarea(asig.id); setActiveMenu('none'); }}
+                                pasosCompletados={resumen?.completados ?? 0}
+                                titulo={asig.titulo}
+                                totalPasos={resumen?.total ?? 0}
+                              />
+                            </TonoDelHabito>
+                          );
+                        })}
+                      </ScrollView>
+                    )}
+                  </View>
+                );
+              })()}
             </Animated.View>
             </MasterGlass>
             )}
@@ -293,7 +403,7 @@ export function MapaSenderosPantalla() {
         </View>
 
         {/* Barra del hábito seleccionado — info normal, o se convierte en el widget de registro / celebración de nivel */}
-        {asignatura && (() => {
+        {categoriaActiva === 'habitos' && asignatura && (() => {
           // El color efectivo viene del MasterPackColor del paquete asignado
           // (ya clampeado a un rango seguro en obtenerProgresoNivelHabito) —
           // asignatura.color es solo el fallback mientras esa consulta carga.
@@ -399,8 +509,51 @@ export function MapaSenderosPantalla() {
           );
         })()}
 
-        {/* Modal de niveles del sendero desplegable al tocar la tarjeta o insignia */}
-        {asignatura && sendero.consulta.data && sendero.resumen && (
+        {/* Barra de la tarea checklist seleccionada — mucho más simple que la
+            de hábitos: sin nivel, sin celebración, sin widget de registro
+            (acá "registrar" es tocar un paso directo en el mapa). */}
+        {categoriaActiva === 'tareas' && asignaturaTarea && (() => {
+          const colorEfectivo = asignaturaTarea.tareaReal.color ?? coloresSelectorCategoria.tareas;
+          const colorTexto = oscurecer(colorEfectivo, 0.5);
+          const iconoTarea = buscarIconoHabito(asignaturaTarea.tareaReal.iconoLucide);
+          const porcentajePasos = sendero7.totalPasos > 0 ? Math.round((sendero7.pasosCompletados / sendero7.totalPasos) * 100) : 0;
+          return (
+            <TonoDelHabito colorPaquete={asignaturaTarea.tareaReal.color} paqueteId={asignaturaTarea.tareaReal.paqueteId}>
+              <View style={styles.tarjetaContenedor}>
+                <RecuadroGlass blur degradado={{ inicio: aclarar(colorEfectivo, 0.86), fin: aclarar(colorEfectivo, 0.5) }} style={styles.tarjetaAsignatura}>
+                  <View style={{ alignItems: 'center', flexDirection: 'row', flex: 1, gap: 12, padding: 14 }}>
+                    {iconoTarea && (
+                      <MasterIconBg
+                        colorBordeInicio={aclarar(colorEfectivo, 0.7)}
+                        colorBordeFin={oscurecer(colorEfectivo, 0.75)}
+                        degradadoInicio={aclarar(colorEfectivo, 0.93)}
+                        degradadoFin={aclarar(colorEfectivo, 0.72)}
+                        size={48}
+                        tinte={colorEfectivo}
+                      >
+                        <MasterChanger ancho={41} alto={41} colorDestino={colorMasterMasCercano(colorEfectivo)} fuente={iconoTarea.fuente} />
+                      </MasterIconBg>
+                    )}
+                    <View style={{ flex: 1, minWidth: 0 }}>
+                      <Texto numberOfLines={1} style={{ color: colorTexto, fontFamily: 'MontserratAlternates-Bold', fontSize: 16 }}>{asignaturaTarea.titulo}</Texto>
+                      <View style={styles.progresoNivelContenedor}>
+                        <View style={{ alignItems: 'center', flexDirection: 'row', gap: 8 }}>
+                          <Texto style={[styles.progresoNivelPorcentaje, { color: colorTexto }]}>{sendero7.pasosCompletados}/{sendero7.totalPasos}</Texto>
+                          <View style={{ flex: 1 }}>
+                            <MasterProgressbar altura={9} colorBase={colorEfectivo} porcentaje={porcentajePasos} />
+                          </View>
+                        </View>
+                      </View>
+                    </View>
+                  </View>
+                </RecuadroGlass>
+              </View>
+            </TonoDelHabito>
+          );
+        })()}
+
+        {/* Modal de niveles del sendero desplegable al tocar la tarjeta o insignia — solo hábitos, Tareas no tiene nivel. */}
+        {categoriaActiva === 'habitos' && asignatura && sendero.consulta.data && sendero.resumen && (
           <ModalNivelesSendero
             colorEfectivo={sendero.consulta.data?.habito.color ?? asignatura.color}
             colorPaquete={sendero.consulta.data.habito.color}
@@ -416,6 +569,7 @@ export function MapaSenderosPantalla() {
         )}
 
         {/* Contenedor del Mapa / Estado Vacío (ocupa el espacio entre navbar y barra de navegación inferior) */}
+        {categoriaActiva === 'habitos' ? (
         <TonoDelHabito colorPaquete={sendero.consulta.data?.habito.colorPaquete} paqueteId={sendero.consulta.data?.habito.paqueteId}>
         <View style={[styles.capaMapa, !asignatura && styles.capaMapaVacia]}>
           {asignatura ? (
@@ -508,6 +662,60 @@ export function MapaSenderosPantalla() {
           )}
         </View>
         </TonoDelHabito>
+        ) : (
+        // Categoría "Tareas" (Fase 7): sendero de PASOS de una tarea checklist
+        // — mismo motor de mapa (ContenedorMapaSenderos ya acepta cualquier
+        // categoriaId/nodos), sin nivel/mandala/cofre real. onCompletarNodo
+        // marca el paso directo, sin navegar a ninguna pantalla de misión.
+        <TonoDelHabito colorPaquete={asignaturaTarea?.tareaReal.color} paqueteId={asignaturaTarea?.tareaReal.paqueteId}>
+        <View style={[styles.capaMapa, !asignaturaTarea && styles.capaMapaVacia]}>
+          {asignaturaTarea ? (
+            sendero7.consulta.isLoading ? (
+              <View style={styles.centroMapa}><ActivityIndicator color={colores.tintaTenue} style={styles.spinnerCarga} /><Texto style={styles.subMapa}>{t('senderos.map.loadingTrail')}</Texto></View>
+            ) : sendero7.consulta.isError ? (
+              <View style={styles.centroMapa}><Texto style={styles.subMapa}>{t('senderos.map.trailError')}</Texto></View>
+            ) : sendero7.totalPasos === 0 ? (
+              <View style={styles.centroMapa}><Texto style={styles.subMapa}>{t('senderos.map.tasksPanel.noSteps')}</Texto></View>
+            ) : (
+              <ContenedorMapaSenderos
+                key={asignaturaTarea.id}
+                altura={alturaMapa}
+                categoriaId="tareas"
+                color={asignaturaTarea.tareaReal.color ?? coloresSelectorCategoria.tareas}
+                colorPaquete={asignaturaTarea.tareaReal.color ?? coloresSelectorCategoria.tareas}
+                enfocado
+                nodos={sendero7.nodos}
+                onCompletarNodo={(nodo) => {
+                  if (nodo.estado !== 'activo') return;
+                  const subitemId = nodo.id.replace('paso-', '');
+                  const subitem = sendero7.subitems.find((item) => item.id === subitemId);
+                  if (!subitem) return;
+                  hapticSeguro('accion');
+                  sendero7.completar.mutate({ hecho: true, subitemId: subitem.id });
+                }}
+                subcategoriaId={asignaturaTarea.id}
+              />
+            )
+          ) : (
+            <View style={[styles.centroMapa, { paddingBottom: insets.bottom + 96 }]}>
+              {consultaTareas.isLoading ? (
+                <><ActivityIndicator color={colores.tintaTenue} style={styles.spinnerCarga} /><Texto style={styles.subMapa}>{t('senderos.map.loadingHabits')}</Texto></>
+              ) : (
+                <View style={{ alignItems: 'center', gap: 14, paddingHorizontal: 32 }}>
+                  <Texto style={styles.subMapa}>{t('senderos.map.tasksPanel.emptyTrail')}</Texto>
+                  <Pressable
+                    onPress={() => router.navigate('/(principal)/tareas' as any)}
+                    style={{ backgroundColor: coloresSelectorCategoria.tareas, borderRadius: 14, paddingHorizontal: 20, paddingVertical: 12 }}
+                  >
+                    <Texto style={{ color: '#FFFFFF', fontFamily: 'Montserrat-Bold', fontSize: 13 }}>{t('senderos.map.tasksPanel.goToTasks')}</Texto>
+                  </Pressable>
+                </View>
+              )}
+            </View>
+          )}
+        </View>
+        </TonoDelHabito>
+        )}
       </SafeAreaView>
     </View>
   );
@@ -570,6 +778,14 @@ const crearEstilosStyles = (esc: EscalaMaster) => StyleSheet.create({
     paddingVertical: 8,
   },
   botonCristal: { borderRadius: 12 },
+  tooltipCategoriasGlass: {
+    borderRadius: 18,
+    left: 0,
+    position: 'absolute',
+    top: ALTURA_NAVBAR_BASE + 8,
+    width: 200,
+    zIndex: 2,
+  },
   tooltipCategorias: {
     flex: 1,
     paddingHorizontal: 16,
@@ -578,9 +794,10 @@ const crearEstilosStyles = (esc: EscalaMaster) => StyleSheet.create({
   tooltipCategoriasTitulo: {
     color: 'rgba(17,17,17,.48)',
     fontFamily: 'Montserrat-Bold',
-    fontSize: 8,
+    fontSize: 10,
     letterSpacing: 1.15,
     marginBottom: 8,
+    textTransform: 'uppercase',
   },
   tooltipCategoriasFila: {
     flexDirection: 'row',
@@ -610,7 +827,8 @@ const crearEstilosStyles = (esc: EscalaMaster) => StyleSheet.create({
   tooltipCategoriaTexto: {
     color: '#252525',
     fontFamily: 'Montserrat-Bold',
-    fontSize: 10,
+    fontSize: 11,
+    textAlign: 'center',
   },
   carruselSenderos: {
     paddingHorizontal: 15,

@@ -299,6 +299,22 @@ export async function obtenerSubitemsTarea(tareaId: string): Promise<SubitemTare
   return (data as FilaSubitem[]).map(normalizarSubitem);
 }
 
+// Progreso "X/Y pasos" de varias tareas checklist a la vez (para tarjetas en
+// un carrusel, sin pedir los subitems completos de cada una una por una).
+export async function obtenerResumenSubitemsTareas(tareaIds: string[]): Promise<Map<string, { completados: number; total: number }>> {
+  const resumen = new Map<string, { completados: number; total: number }>();
+  if (tareaIds.length === 0) return resumen;
+  const { data, error } = await obtenerClienteSupabase().from('tareas_subitems').select('tarea_id,hecho').in('tarea_id', tareaIds);
+  if (error) throw error;
+  for (const fila of data as { tarea_id: string; hecho: boolean }[]) {
+    const actual = resumen.get(fila.tarea_id) ?? { completados: 0, total: 0 };
+    actual.total += 1;
+    if (fila.hecho) actual.completados += 1;
+    resumen.set(fila.tarea_id, actual);
+  }
+  return resumen;
+}
+
 // Sin RPC (a diferencia de completar_tarea_dia): un paso no tiene racha ni
 // gemas propias, es un simple toggle sobre su fila — RLS (join contra
 // tareas_items) ya garantiza que solo su dueño lo pueda tocar.
