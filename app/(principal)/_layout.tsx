@@ -83,6 +83,15 @@ export default function LayoutPrincipal() {
         name="habitos"
         options={{ href: null }}
       />
+      {/* Mismo criterio que "habitos": no es un destino propio de la barra —
+          se llega desde el hub de Hoy o desde el panel de Metas — pero al
+          quedar dentro del grupo con tabs, la navegación mantiene el
+          back-stack/deep-linking oficial en vez de la ruta suelta que tenía
+          antes (app/tareas/index.tsx, ya retirada). */}
+      <Tabs.Screen
+        name="tareas"
+        options={{ href: null }}
+      />
       <Tabs.Screen
         name="senderos"
         options={{ title: 'Senderos' }}
