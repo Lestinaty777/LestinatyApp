@@ -106,11 +106,17 @@ begin
     v_completada := true;
   end if;
 
-  -- Racha: días programados consecutivos, hacia atrás desde p_fecha_local, con registro.
+  -- Racha: días PROGRAMADOS consecutivos, hacia atrás desde p_fecha_local, con
+  -- registro — un día no programado (p. ej. martes en una tarea lunes/miércoles/
+  -- viernes) se salta sin más: ni cuenta ni corta la racha. Tope de 366 vueltas
+  -- por seguridad (dias_semana siempre trae al menos un día, así que en teoría
+  -- nunca haría falta, pero esto corre como security definer).
   v_fecha := p_fecha_local;
-  while public.tareas_es_dia_programado(v_tarea, v_fecha)
-    and exists (select 1 from public.tareas_registros where tarea_id = p_tarea_id and fecha_local = v_fecha) loop
-    v_racha := v_racha + 1;
+  for v_vueltas in 1..366 loop
+    if public.tareas_es_dia_programado(v_tarea, v_fecha) then
+      exit when not exists (select 1 from public.tareas_registros where tarea_id = p_tarea_id and fecha_local = v_fecha);
+      v_racha := v_racha + 1;
+    end if;
     v_fecha := v_fecha - 1;
   end loop;
 
