@@ -22,7 +22,7 @@ export function ImagenTema({ conVerde = true, estilo, fuente, resizeMode = 'cont
   const tono = useTonoMaster();
   const [caja, setCaja] = useState<{ alto: number; ancho: number } | null>(null);
 
-  if (!conVerde || tono.deltaHue === undefined) {
+  if (!conVerde || tono.deltaHueIcono === undefined) {
     return <Image resizeMode={resizeMode} source={fuente} style={estilo as StyleProp<ImageStyle>} />;
   }
   return (
@@ -31,7 +31,7 @@ export function ImagenTema({ conVerde = true, estilo, fuente, resizeMode = 'cont
         <MasterChanger
           alto={caja.alto}
           ancho={caja.ancho}
-          deltaTema={tono.deltaHue}
+          deltaTema={tono.deltaHueIcono}
           fit={resizeMode}
           fuente={fuente}
           saturacion={tono.icono.saturacion}

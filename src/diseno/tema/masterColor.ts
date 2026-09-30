@@ -66,10 +66,23 @@ export type TonoMaster = {
   id: string;
   /** Color de UI del paquete (luminosidad clampeada a un rango legible). */
   acento: string;
-  /** Hue absoluto del paquete en grados: para teñidos forzados (`MasterIcon hueDestino`). `undefined` en Esmeralda. */
+  /**
+   * Hue absoluto del paquete en grados OKLCH: para rotar la paleta (`tintarHex`/`rotarHex`).
+   * `undefined` en Esmeralda.
+   */
   hue?: number;
-  /** Rotación relativa respecto a Esmeralda en grados (hue del paquete − HUE_REFERENCIA_VERDE). `undefined` en Esmeralda = sin rotar. */
+  /** Rotación de la PALETA respecto a Esmeralda, en grados OKLCH (hue del paquete − HUE_REFERENCIA_VERDE). `undefined` en Esmeralda = sin rotar. */
   deltaHue?: number;
+  /**
+   * Hue absoluto del paquete en grados HSL: para teñidos forzados de ÍCONOS
+   * (`MasterIcon hueDestino`, `MasterIconBg`) — el tinte por píxel de
+   * MasterChanger/matrizColor.ts rota en HSL/RGB, no en OKLCH, así que no
+   * puede recibir `hue` (que sí es OKLCH, para no reintroducir el café de la
+   * franja amarilla en la paleta). `undefined` en Esmeralda.
+   */
+  hueIcono?: number;
+  /** Rotación de ÍCONOS respecto a Esmeralda, en grados HSL — ver `hueIcono`. `undefined` en Esmeralda = sin rotar. */
+  deltaHueIcono?: number;
   /** Factor de saturación HSL de la paleta y de `tintarHex`. 1 = sin cambio; baja en paquetes de color poco saturado. */
   saturacion: number;
   /**
@@ -110,6 +123,14 @@ export const ICONO_REFERENCIA_HSV = { s: 0.67, v: 0.77 };
 // matiz Oklch de ese mismo verde (antes 142, el matiz HSL), no un
 // redondeo del mismo número.
 export const HUE_REFERENCIA_VERDE = 152.26;
+// El mismo "cero", pero en HSL (142°): lo sigue usando el teñido de íconos
+// (MasterChanger/matrizColor.ts, ver `hueIcono`/`deltaHueIcono` en
+// TonoMaster) — esa rotación es HSL/RGB por píxel y nunca se migró a Oklch.
+// Antes de esta separación, `deltaHue` servía a la vez para paleta e íconos:
+// al pasar la paleta a Oklch, un delta calculado en grados Oklch se estaba
+// aplicando a una rotación que interpreta grados en HSL (espacios de matiz
+// distintos), y un ícono "amarillo" terminaba rotando de más hacia el verde.
+export const HUE_REFERENCIA_VERDE_ICONO = 142;
 // Croma Oklch de referencia: promedio de 'vivo' (#21A844) y 'brillante'
 // (#22C55E), los verdes más saturados de la paleta — equivalente al 0.68 de
 // saturación HSL que usaba la versión anterior.
@@ -402,7 +423,8 @@ export function crearTonoMaster(id: string, masterPackColor: string): TonoMaster
   // notaba (a Nevalhi el clamp de acento apenas lo tocaba), pero con Oklch
   // el clamp de acento y el brillo HSV de un paquete muy pálido divergen
   // bastante más — usar el color real evita apagar íconos de paquetes claros.
-  const objetivo = hslAHsv(hexAHsl(masterPackColor));
+  const originalHsl = hexAHsl(masterPackColor);
+  const objetivo = hslAHsv(originalHsl);
   const icono = { saturacion: limitar(objetivo.s / ICONO_REFERENCIA_HSV.s, 0.15, 1.3), valor: limitar(objetivo.v / ICONO_REFERENCIA_HSV.v, 0.3, 1.35) };
   const derivados = mapearHex(TOKENS_ESMERALDA, (hex) => rotarHex(hex, deltaHue, saturacion));
   return {
@@ -410,6 +432,9 @@ export function crearTonoMaster(id: string, masterPackColor: string): TonoMaster
     acento,
     hue: original.h,
     deltaHue,
+    // En HSL, no Oklch — ver `hueIcono`/`deltaHueIcono` en TonoMaster.
+    hueIcono: originalHsl.h,
+    deltaHueIcono: originalHsl.h - HUE_REFERENCIA_VERDE_ICONO,
     saturacion,
     icono,
     ...derivados,

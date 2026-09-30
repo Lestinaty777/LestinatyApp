@@ -105,7 +105,7 @@ const Bell = ({ size = 28 }: { color?: string; size?: number }) => <Image source
 function EncabezadoPaso({ colorMaster, icono, subtitulo, titulo }: { colorMaster: ReturnType<typeof obtenerColorMasterPaquete>; icono: string; subtitulo: string; titulo: string }) {
   const s = useEstilosS();
   const tono = useTonoMaster();
-  return <View style={s.encabezadoPaso}><MasterIcon color={colorMaster} hueDestino={tono.hue} name={icono} size={52} /><View style={s.encabezadoTexto}><Texto style={s.titulo}>{titulo}</Texto><Texto style={s.sub}>{subtitulo}</Texto></View></View>;
+  return <View style={s.encabezadoPaso}><MasterIcon color={colorMaster} hueDestino={tono.hueIcono} name={icono} size={52} /><View style={s.encabezadoTexto}><Texto style={s.titulo}>{titulo}</Texto><Texto style={s.sub}>{subtitulo}</Texto></View></View>;
 }
 
 function AnilloMeta({ color, meta, unidad }: { color: string; meta: string; unidad: string }) {
@@ -133,7 +133,7 @@ function RutaNiveles({ colorMaster, meta, tipo, unidad }: { colorMaster: ReturnT
     const consistencia = nivel === 1 ? t('habitos.crearWizard.growth.startConsistency') : t('habitos.crearWizard.growth.consistencyDays', { days: DIAS_REQUERIDOS_POR_NIVEL[nivel] });
     const porDia = (cantidad: number) => t('habitos.crearWizard.growth.perDay', { amount: cantidad, unit: unidadFinal });
     const detalle = tipo === 'duracion' ? porDia(metaNivel) : tipo === 'check' ? consistencia : nivel === 1 ? porDia(base) : `${porDia(base)} · ${consistencia}`;
-    return <ReanimatedView.View entering={FadeInDown.delay(indice * 70).duration(360).easing(EasingR.out(EasingR.cubic))} key={nivel}><RecuadroGlass blur style={s.nivelRuta}><View style={s.insigniaNivel}><MasterIcon color={colorMaster} hueDestino={tono.hue} name={`nivel${nivel}`} oscurecido={1 - indice * .05} size={48}/></View><View style={s.nivelRutaTexto}><Texto style={[s.nivelRutaTitulo, { color: tono.tarjeta.tinta }]}>{t('habitos.crearWizard.growth.level', { level: nivel })}</Texto><Texto style={[s.nivelRutaDetalle, { color: tono.tarjeta.tintaMedia }]}>{detalle}</Texto></View>{nivel === 1 ? <Texto style={[s.nivelActual, { backgroundColor: tono.etiquetaActual.fondo, color: tono.etiquetaActual.texto }]}>{t('habitos.crearWizard.growth.current')}</Texto> : <View style={s.gemasNivel}><Image source={require('../../../../assets/icons/hoy/gemas.png')} style={s.gemaNivelIcono}/><Texto style={s.gemasNivelTexto}>+{gemas}</Texto></View>}</RecuadroGlass></ReanimatedView.View>;
+    return <ReanimatedView.View entering={FadeInDown.delay(indice * 70).duration(360).easing(EasingR.out(EasingR.cubic))} key={nivel}><RecuadroGlass blur style={s.nivelRuta}><View style={s.insigniaNivel}><MasterIcon color={colorMaster} hueDestino={tono.hueIcono} name={`nivel${nivel}`} oscurecido={1 - indice * .05} size={48}/></View><View style={s.nivelRutaTexto}><Texto style={[s.nivelRutaTitulo, { color: tono.tarjeta.tinta }]}>{t('habitos.crearWizard.growth.level', { level: nivel })}</Texto><Texto style={[s.nivelRutaDetalle, { color: tono.tarjeta.tintaMedia }]}>{detalle}</Texto></View>{nivel === 1 ? <Texto style={[s.nivelActual, { backgroundColor: tono.etiquetaActual.fondo, color: tono.etiquetaActual.texto }]}>{t('habitos.crearWizard.growth.current')}</Texto> : <View style={s.gemasNivel}><Image source={require('../../../../assets/icons/hoy/gemas.png')} style={s.gemaNivelIcono}/><Texto style={s.gemasNivelTexto}>+{gemas}</Texto></View>}</RecuadroGlass></ReanimatedView.View>;
   })}</View>;
 }
 
@@ -196,7 +196,7 @@ export function GridIconosHabito({ color, etiquetaIcono, iconoSeleccionado, onEl
   const s = useEstilosS();
   const { t } = useTranslation();
   const tono = useTonoMaster();
-  const tinta = tono.hue !== undefined;
+  const tinta = tono.hueIcono !== undefined;
   const revelados = useRevelacionProgresiva(ICONOS_SELECCIONABLES.length, tono.id, tinta);
   const indiceSeleccionado = ICONOS_SELECCIONABLES.findIndex((x) => x.id === iconoSeleccionado);
   // El icono elegido se procesa primero; los demás siguen en su orden.
@@ -517,7 +517,7 @@ export function CrearHabitoWizard({ visible, guardando, onCerrar, onCrear }: { v
         <View style={s.tarjetasGrid}>
           {metas.map((x) => <Rebote estilo={s.tarjetaGridColumna} key={x.id} onPress={() => elegirSubtipo(x.id)} overlay={subtipoMeta===x.id && <AnilloSeleccion activo color={color}/>}>
             <MasterGlass style={[s.tarjetaCompacta,subtipoMeta===x.id&&{borderColor:color,backgroundColor:`${color}12`}]}>
-              <View style={s.metaIconoCompacto}><MasterIcon color={colorMaster} hueDestino={tono.hue} name={x.icono} size={60}/></View>
+              <View style={s.metaIconoCompacto}><MasterIcon color={colorMaster} hueDestino={tono.hueIcono} name={x.icono} size={60}/></View>
               <Texto style={s.metaTituloCompacto}>{x.titulo}</Texto>
               <Texto numberOfLines={1} style={s.metaEjemploCompacto}>{x.ejemplo}</Texto>
               {subtipoMeta===x.id&&<View style={[s.plantillaCheck,{backgroundColor:color}]}><Check color="#fff" size={10}/></View>}

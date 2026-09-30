@@ -79,9 +79,9 @@ export function MasterIconBg({
               compartido (lo usan muchas otras pantallas que deben seguir
               viéndose verdes). Sin `tinte`, se comporta igual que antes. */}
           {tinte && <View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: tinte, borderRadius: radioInterior, opacity: 0.4 }]} />}
-          {fuente ? (rutaDeIcono({ deltaHue: tono.deltaHue, hue }) === 'imagen'
+          {fuente ? (rutaDeIcono({ deltaHue: tono.deltaHueIcono, hue }) === 'imagen'
             ? <Image resizeMode="contain" source={fuente} style={{ height: tamanoIcono, width: tamanoIcono }} />
-            : <MasterChanger alto={tamanoIcono} ancho={tamanoIcono} deltaTema={tono.deltaHue} fuente={fuente} hueOrigen={hue} saturacion={tono.icono.saturacion} valorTema={tono.icono.valor} />) : children}
+            : <MasterChanger alto={tamanoIcono} ancho={tamanoIcono} deltaTema={tono.deltaHueIcono} fuente={fuente} hueOrigen={hue} saturacion={tono.icono.saturacion} valorTema={tono.icono.valor} />) : children}
         </MasterGlass>
       </View>
     </View>

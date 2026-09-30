@@ -13,7 +13,7 @@ type MasterIconProps = {
   /** 1=Azul, 2=Verde, 3=Amarillo, 4=Naranja, 5=Rojo, 6=Rosa, 7=Morado. Sin esto, se muestra tal cual. */
   color?: ColorMaster;
   /**
-   * Hue destino en grados (0-360): tiñe el icono a ese hue exacto (p. ej. `tono.hue`).
+   * Hue destino en grados (0-360): tiñe el icono a ese hue exacto (p. ej. `tono.hueIcono`).
    * Sin `color` ni `hueDestino`, dentro de un MasterColorProvider el icono sigue
    * el tema: rota relativo a su propio hue y solo si es verde (ver MasterChanger).
    */
@@ -52,14 +52,14 @@ export function MasterIcon({ name, color, hueDestino, alTema, oscurecido, size =
     return <Skeleton alto={size} ancho={size} radio={radioSkeleton ?? Math.round(size * 0.28)} style={style} />;
   }
   // `alTema` es un teñido forzado al matiz del tono activo; en Esmeralda (sin matiz) cae al verde 2 de siempre.
-  const hueForzado = hueDestino ?? (alTema ? tono.hue : undefined);
-  const colorForzado = color ?? (alTema && tono.hue === undefined ? 2 : undefined);
+  const hueForzado = hueDestino ?? (alTema ? tono.hueIcono : undefined);
+  const colorForzado = color ?? (alTema && tono.hueIcono === undefined ? 2 : undefined);
   // Ruta rápida: un <Image> normal (síncrono, sin Skia) salvo que de verdad haya que rotar el matiz.
   // El hue del PNG viene medido en el registro, así que no se decodifica nada para decidir.
-  if (rutaDeIcono({ color: colorForzado, deltaHue: tono.deltaHue, hue: icono.hue, hueDestino: hueForzado, oscurecido }) === 'imagen') {
+  if (rutaDeIcono({ color: colorForzado, deltaHue: tono.deltaHueIcono, hue: icono.hue, hueDestino: hueForzado, oscurecido }) === 'imagen') {
     return <Image resizeMode="contain" source={icono.fuente} style={{ height: size, width: size }} />;
   }
   // Un `color` explícito sin hueDestino es un teñido forzado de la API vieja: no lo mezclamos con el tono.
   const usaTono = colorForzado === undefined || hueForzado !== undefined;
-  return <MasterChanger ancho={size} alto={size} colorDestino={colorForzado} deltaTema={colorForzado === undefined && hueForzado === undefined ? tono.deltaHue : undefined} fuente={icono.fuente} hueDestino={hueForzado} hueOrigen={icono.hue} oscurecido={oscurecido} saturacion={usaTono ? tono.icono.saturacion : 1} valorTema={usaTono ? tono.icono.valor : 1} />;
+  return <MasterChanger ancho={size} alto={size} colorDestino={colorForzado} deltaTema={colorForzado === undefined && hueForzado === undefined ? tono.deltaHueIcono : undefined} fuente={icono.fuente} hueDestino={hueForzado} hueOrigen={icono.hue} oscurecido={oscurecido} saturacion={usaTono ? tono.icono.saturacion : 1} valorTema={usaTono ? tono.icono.valor : 1} />;
 }

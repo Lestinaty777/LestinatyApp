@@ -191,7 +191,7 @@ describe('oscurecer solo lo que tiene color (Abyss)', () => {
   const componerCapas = (abajo: number[], arriba: number[]) => { const alfa = arriba[3]; return [0, 1, 2].map((i) => arriba[i] * alfa + abajo[i] * (1 - alfa)); };
 
   const abyss = crearTonoMaster('abyss', '#21232F');
-  const rotada = componerMatrices(calcularMatrizHue(abyss.deltaHue ?? 0), matrizSaturacion(abyss.icono.saturacion));
+  const rotada = componerMatrices(calcularMatrizHue(abyss.deltaHueIcono ?? 0), matrizSaturacion(abyss.icono.saturacion));
   const capaColor = aplicarOscurecido(rotada, Math.min(1, abyss.icono.valor));
   const capaClaros = matrizSoloClaros(rotada);
   const pixel = (p: number[]) => componerCapas(aplicar(capaColor, p), aplicar(capaClaros, p));
@@ -233,7 +233,7 @@ describe('iconos: el icono típico cae en el color del paquete (no pastel)', () 
   // El icono verde "típico" de assets/icons (medido): saturación 0.67, valor 0.77, matiz verde.
   const TIPICO = hsvARgb({ h: 135 / 360, s: 0.67, v: 0.77 });
   const tintar = (tono: ReturnType<typeof crearTonoMaster>, rgb = TIPICO) =>
-    rgbAHsv(tintarPixelHsv(rgb, { delta: tono.deltaHue ?? 0, oscuroGlobal: 1, saturacion: tono.icono.saturacion, valorTema: tono.icono.valor }));
+    rgbAHsv(tintarPixelHsv(rgb, { delta: tono.deltaHueIcono ?? 0, oscuroGlobal: 1, saturacion: tono.icono.saturacion, valorTema: tono.icono.valor }));
   // El color REAL del paquete, no tono.acento: crearTonoMaster ajusta los
   // íconos contra masterPackColor a propósito (ver el comentario en
   // masterColor.ts) — acento existe para que el texto sea legible, no como
