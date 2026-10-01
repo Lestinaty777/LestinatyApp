@@ -50,3 +50,6 @@ yarn-error.*
 .superpowers/
 .agents/
 .vscode/
+
+# Estado local del CLI de Supabase (ids de proyecto/organización)
+supabase/.temp/
