@@ -42,18 +42,21 @@ Decisiones clave de seguridad (detalle en [`supabase/resumen.md`](supabase/resum
 - Escrituras sensibles (gemas, progreso de hábitos) son RPC transaccionales e idempotentes; `acreditar_gemas` es exclusivo de `service_role`.
 - Ningún secreto en el cliente: `scripts/validar-entorno-release.mjs` falla el build si detecta uno.
 
-## Ejecutar en local
+## Ejecutar en local (judges: quick start)
+
+Requisitos: Node 20+, y Xcode (iOS) o Android Studio (Android). La app usa módulos nativos (Skia, RevenueCat, OneSignal, widget), por lo que **no corre en Expo Go**: hay que compilar un dev client.
 
 ```bash
 npm install
-cp .env.example .env     # completar variables EXPO_PUBLIC_* (Supabase, RevenueCat, Google)
-npm run start            # Expo dev server
-npm run ios | npm run android   # build nativo (requiere dev client; usa módulos nativos)
-npm run typecheck
-npm test                 # Vitest
+cp .env.judges .env        # variables públicas ya preparadas para evaluación
+npm run typecheck && npm test
+npm run ios                # o: npm run android  (compila el dev client y abre la app)
+# alternativa en la nube: npx eas build --profile ios-simulator --platform ios
 ```
 
-> La app usa módulos nativos (Skia, RevenueCat, OneSignal, widget), por lo que **no corre en Expo Go**. Para una revisión rápida sin compilar, ver el flujo de revisión más abajo.
+- `.env.judges` contiene solo identificadores **públicos** de cliente (URL y anon key de Supabase protegida por RLS, claves públicas de RevenueCat). Los secretos de backend (Gemini, service-role, OneSignal REST, webhook) viven en Supabase Secrets y nunca están en el repo; `scripts/validar-entorno-release.mjs` falla el build si detecta alguno.
+- Las compras usan el **modo sandbox** de RevenueCat/App Store; no se realiza ningún cargo real.
+- Las credenciales de la cuenta demo se entregan en el formulario de envío (no se versionan). También se puede crear una cuenta nueva desde la pantalla de registro.
 
 ## Guía para jueces (judge guide)
 
