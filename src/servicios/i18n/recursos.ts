@@ -130,6 +130,17 @@ export const recursosI18n = {
             empty: 'No task slowed down. You are going strong.',
           },
         },
+        // Sendero de días (Fase 8) — espejo de habitos.mandala.compositor/ritual.
+        figura: {
+          compositor: {
+            titulo: 'Draw your figure',
+            instruccion: 'Place your finger anywhere and drag — it forms as you go',
+          },
+          ritual: {
+            contemplacion: 'One more step on your path',
+            masTarde: 'Later',
+          },
+        },
       },
       habitos: { pantalla: {
         volverAlInicio: 'Back to Home',
@@ -1098,6 +1109,17 @@ export const recursosI18n = {
             title: 'Atención', subtitle: 'La actividad bajó esta semana.',
             needMoreHistory: 'Necesitamos más historial para detectar caídas de actividad.',
             empty: 'Ninguna tarea se frenó. Vas muy bien.',
+          },
+        },
+        // Sendero de días (Fase 8) — espejo de habitos.mandala.compositor/ritual.
+        figura: {
+          compositor: {
+            titulo: 'Dibujá tu figura',
+            instruccion: 'Apoyá el dedo donde quieras y arrastrá — se va formando a medida que trazás',
+          },
+          ritual: {
+            contemplacion: 'Un paso más en tu camino',
+            masTarde: 'Más tarde',
           },
         },
       },

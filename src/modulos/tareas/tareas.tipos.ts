@@ -126,3 +126,44 @@ export type PlanTareaResumen = {
   recordatorioActivo: boolean;
   horaRecordatorio: string | null;
 };
+
+// ─── Sendero de días (Fase 8) — espejo de mandalaNodo.tipos.ts, para tareas
+// tipo simple/contador/cronometro con frecuencia='dias_semana'. El trazo es
+// el mismo punto {x,y} genérico; lo que cambia es la simetría con la que se
+// repite (PLIEGUES_SELLO en vez de PLIEGUES_MANDALA, ver figuraSello.ts).
+export type EstadoFiguraTarea = 'pendiente' | 'creada';
+
+export type TrazoFigura = { x: number; y: number };
+
+export type FiguraTareaPendiente = {
+  registroId: string;
+  estado: EstadoFiguraTarea;
+  semilla: string;
+  paqueteId: string | null;
+  color: string | null;
+  nivel: number;
+  ciclo: number;
+  nodoDia: number;
+};
+
+export type FiguraTareaNodo = {
+  registroId: string;
+  nivel: number;
+  ciclo: number;
+  nodoDia: number;
+  estado: EstadoFiguraTarea;
+  semilla: string;
+  trazos: TrazoFigura[] | null;
+  paqueteId: string | null;
+  color: string | null;
+};
+
+export type ResultadoGuardarFiguraTarea = {
+  registroId: string;
+  estado: EstadoFiguraTarea;
+  paqueteId: string | null;
+  color: string | null;
+  nivel: number;
+  ciclo: number;
+  nodoDia: number;
+};

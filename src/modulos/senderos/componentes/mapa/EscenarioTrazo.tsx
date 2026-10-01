@@ -19,10 +19,10 @@ const CURVA_PISTA: TrazoMandala[] = [
 ];
 const MUESTRAS_PISTA = 48;
 
-function pathDeContornos(trazos: TrazoMandala[]): SkPath | null {
+function pathDeContornos(trazos: TrazoMandala[], pliegues: number): SkPath | null {
   if (trazos.length < 2) return null;
   // Orientados igual: la regla "nonzero" une las cintas superpuestas.
-  const poligonos = prepararPoligonos(construirContornosMandala(trazos, ANCHO_CINTA_MANDALA));
+  const poligonos = prepararPoligonos(construirContornosMandala(trazos, ANCHO_CINTA_MANDALA, pliegues));
   const path = Skia.Path.Make();
   for (const plano of poligonos) {
     path.moveTo(plano[0] + C, plano[1] + C);
@@ -35,10 +35,11 @@ function pathDeContornos(trazos: TrazoMandala[]): SkPath | null {
 /**
  * La mandala tal como se traza: cintas blancas con un halo suave. La usan el
  * lienzo en vivo y la mandala que levita, así el relevo al soltar no cambia
- * ni un píxel.
+ * ni un píxel. `pliegues` por default es PLIEGUES_MANDALA (7, Hábitos); el
+ * sendero de días de Tareas pasa PLIEGUES_SELLO (ver figuraSello.ts).
  */
-export const CintasBlancas = memo(function CintasBlancas({ aura, trazos }: { aura: string; trazos: TrazoMandala[] }) {
-  const path = useMemo(() => pathDeContornos(trazos), [trazos]);
+export const CintasBlancas = memo(function CintasBlancas({ aura, pliegues = PLIEGUES_MANDALA, trazos }: { aura: string; pliegues?: number; trazos: TrazoMandala[] }) {
+  const path = useMemo(() => pathDeContornos(trazos, pliegues), [trazos, pliegues]);
   if (!path) return null;
   // Aura en el color del paquete detrás del blanco: la mandala se sigue
   // leyendo cuando el velo se retira y queda sobre el mapa claro.
@@ -55,14 +56,14 @@ export const CintasBlancas = memo(function CintasBlancas({ aura, trazos }: { aur
   );
 });
 
-// Siete rayos tenues desde el centro: la simetría se ve antes de trazar, y
-// se encienden cuando el dedo pasa cerca de uno (todos a la vez: son la
-// misma dirección repetida siete veces).
-const RayosGuia = memo(function RayosGuia({ brillo }: { brillo: SharedValue<number> }) {
-  const rayos = useMemo(() => Array.from({ length: PLIEGUES_MANDALA }, (_, k) => {
-    const a = (k / PLIEGUES_MANDALA) * Math.PI * 2;
+// Rayos tenues desde el centro (7 en Hábitos, `pliegues` en general): la
+// simetría se ve antes de trazar, y se encienden cuando el dedo pasa cerca
+// de uno (todos a la vez: son la misma dirección repetida `pliegues` veces).
+const RayosGuia = memo(function RayosGuia({ brillo, pliegues = PLIEGUES_MANDALA }: { brillo: SharedValue<number>; pliegues?: number }) {
+  const rayos = useMemo(() => Array.from({ length: pliegues }, (_, k) => {
+    const a = (k / pliegues) * Math.PI * 2;
     return { desde: vec(C + Math.cos(a) * 22, C + Math.sin(a) * 22), hasta: vec(C + Math.cos(a) * RADIO_TRAZO_MANDALA, C + Math.sin(a) * RADIO_TRAZO_MANDALA) };
-  }), []);
+  }), [pliegues]);
   const opacidad = useDerivedValue(() => 0.1 + brillo.value * 0.35);
   return (
     <Group opacity={opacidad}>
@@ -90,12 +91,12 @@ const AnilloTinta = memo(function AnilloTinta({ color, tinta }: { color: string;
   );
 });
 
-// Puntas de luz: la cabeza del trazo, repetida en las siete copias, con
+// Puntas de luz: la cabeza del trazo, repetida en las `pliegues` copias, con
 // una estela corta que se apaga detrás.
-function PuntasDeLuz({ puntos }: { puntos: TrazoMandala[] }) {
+function PuntasDeLuz({ pliegues = PLIEGUES_MANDALA, puntos }: { pliegues?: number; puntos: TrazoMandala[] }) {
   const estela = puntos.slice(-LARGO_ESTELA);
   if (estela.length === 0) return null;
-  const copias = Array.from({ length: PLIEGUES_MANDALA }, (_, k) => rotarPuntos(estela, (k / PLIEGUES_MANDALA) * Math.PI * 2));
+  const copias = Array.from({ length: pliegues }, (_, k) => rotarPuntos(estela, (k / pliegues) * Math.PI * 2));
   return (
     <>
       {copias.map((copia, k) => copia.map((p, i) => {
@@ -114,19 +115,19 @@ function PuntasDeLuz({ puntos }: { puntos: TrazoMandala[] }) {
 }
 
 // Mano fantasma: la primera vez, una mano recorre una curva de ejemplo y la
-// mandala fantasma se dibuja sola en las siete copias, hasta el primer toque.
-const ManoFantasma = memo(function ManoFantasma() {
+// figura fantasma se dibuja sola en las `pliegues` copias, hasta el primer toque.
+const ManoFantasma = memo(function ManoFantasma({ pliegues = PLIEGUES_MANDALA }: { pliegues?: number }) {
   const avance = useSharedValue(0);
   const { copias, muestras } = useMemo(() => {
     const curva = resamplearTrazo(suavizarTrazo(resamplearTrazo(CURVA_PISTA)), MUESTRAS_PISTA);
-    const paths = Array.from({ length: PLIEGUES_MANDALA }, (_, k) => {
-      const rotada = rotarPuntos(curva, (k / PLIEGUES_MANDALA) * Math.PI * 2);
+    const paths = Array.from({ length: pliegues }, (_, k) => {
+      const rotada = rotarPuntos(curva, (k / pliegues) * Math.PI * 2);
       const path = Skia.Path.Make();
       rotada.forEach((p, i) => (i === 0 ? path.moveTo(p.x + C, p.y + C) : path.lineTo(p.x + C, p.y + C)));
       return path;
     });
     return { copias: paths, muestras: curva.flatMap((p) => [p.x + C, p.y + C]) };
-  }, []);
+  }, [pliegues]);
 
   useEffect(() => {
     avance.value = withRepeat(withSequence(
@@ -168,26 +169,28 @@ type EscenarioTrazoProps = {
   brilloRayos: SharedValue<number>;
   colorTinta: string;
   mostrarPista: boolean;
+  /** Simetría radial. Sin él, PLIEGUES_MANDALA (7, Hábitos) — ver PLIEGUES_SELLO para el sendero de días de Tareas. */
+  pliegues?: number;
 };
 
 // El lienzo del acto 1, con el mismo lenguaje que el Sello del check:
 // rayos guía, anillo de tinta, cintas blancas y puntas de luz. Sólo las
 // cintas y las puntas se repintan con cada movimiento del dedo; lo demás
 // está memorizado y se anima en el hilo de UI.
-export function EscenarioTrazo({ brilloRayos, colorTinta, mostrarPista, puntos, tinta }: EscenarioTrazoProps) {
+export function EscenarioTrazo({ brilloRayos, colorTinta, mostrarPista, pliegues = PLIEGUES_MANDALA, puntos, tinta }: EscenarioTrazoProps) {
   return (
     <View pointerEvents="none" style={styles.lienzo}>
       <Canvas pointerEvents="none" style={styles.lienzo}>
-        <RayosGuia brillo={brilloRayos} />
+        <RayosGuia brillo={brilloRayos} pliegues={pliegues} />
         <AnilloTinta color={colorTinta} tinta={tinta} />
       </Canvas>
-      {puntos.length > 1 && <CintasBlancas aura={colorTinta} trazos={puntos} />}
+      {puntos.length > 1 && <CintasBlancas aura={colorTinta} pliegues={pliegues} trazos={puntos} />}
       {puntos.length > 0 && (
         <Canvas pointerEvents="none" style={styles.lienzo}>
-          <PuntasDeLuz puntos={puntos} />
+          <PuntasDeLuz pliegues={pliegues} puntos={puntos} />
         </Canvas>
       )}
-      {mostrarPista && puntos.length === 0 && <ManoFantasma />}
+      {mostrarPista && puntos.length === 0 && <ManoFantasma pliegues={pliegues} />}
     </View>
   );
 }

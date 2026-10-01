@@ -192,23 +192,26 @@ export function trazarCintaSvg(puntos: TrazoMandala[], anchoBase: number): strin
 
 // Los 7 contornos de la mandala como polígonos — la base de la extrusión
 // real (MandalaExtruido): de cada lado del polígono sale una pared.
-export function construirContornosMandala(puntosCrudos: TrazoMandala[], anchoBase: number): TrazoMandala[][] {
+// `pliegues` es opcional (default = PLIEGUES_MANDALA, el de Hábitos) para
+// que otro dominio pueda generar una figura con otra simetría radial sin
+// duplicar este pipeline — ver PLIEGUES_SELLO en el lado de Tareas.
+export function construirContornosMandala(puntosCrudos: TrazoMandala[], anchoBase: number, pliegues: number = PLIEGUES_MANDALA): TrazoMandala[][] {
   const suave = suavizarTrazo(resamplearTrazo(puntosCrudos));
   const contornos: TrazoMandala[][] = [];
-  for (let k = 0; k < PLIEGUES_MANDALA; k += 1) {
-    contornos.push(contornoCinta(rotarPuntos(suave, (k / PLIEGUES_MANDALA) * Math.PI * 2), anchoBase));
+  for (let k = 0; k < pliegues; k += 1) {
+    contornos.push(contornoCinta(rotarPuntos(suave, (k / pliegues) * Math.PI * 2), anchoBase));
   }
   return contornos;
 }
 
 // Pipeline completo: re-muestrea a 9 puntos (siempre — en vivo y al fijar,
-// nunca sólo al soltar), suaviza una sola vez y rota+traza 7 veces — listo
-// para pasar cada `d` a un <Path>.
-export function construirCaminosMandala(puntosCrudos: TrazoMandala[], anchoBase: number): string[] {
+// nunca sólo al soltar), suaviza una sola vez y rota+traza `pliegues` veces
+// (7 por default, el de Hábitos) — listo para pasar cada `d` a un <Path>.
+export function construirCaminosMandala(puntosCrudos: TrazoMandala[], anchoBase: number, pliegues: number = PLIEGUES_MANDALA): string[] {
   const suave = suavizarTrazo(resamplearTrazo(puntosCrudos));
   const caminos: string[] = [];
-  for (let k = 0; k < PLIEGUES_MANDALA; k += 1) {
-    caminos.push(trazarCintaSvg(rotarPuntos(suave, (k / PLIEGUES_MANDALA) * Math.PI * 2), anchoBase));
+  for (let k = 0; k < pliegues; k += 1) {
+    caminos.push(trazarCintaSvg(rotarPuntos(suave, (k / pliegues) * Math.PI * 2), anchoBase));
   }
   return caminos;
 }

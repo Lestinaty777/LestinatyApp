@@ -1,11 +1,12 @@
 import { obtenerClienteSupabase } from '../../servicios/base-datos/supabase';
 import { fechaLocalDe, fechaLocalHoy } from '../../nucleo/dispositivo/fechaLocal';
 import { asignarSemillaTarea } from '../tienda/gemas.servicio';
+import { mapearFigurasTarea, mapearResultadoGuardarFiguraTarea } from './figuraTarea.mapper';
 import { mapearPanelTareas } from './tareas.mapper';
 import { calcularRachaTarea, estaProgramadaEnFecha } from './tareaProgramada';
 import type {
-  CrearTareaInput, EditarTareaInput, EstadoTarea, FrecuenciaTarea, MejorRachaTarea, PanelTareas,
-  PlanTareaResumen, ResultadoCompletarTarea, SubitemTarea, Tarea, TareaHoyDetalle, TipoTarea,
+  CrearTareaInput, EditarTareaInput, EstadoTarea, FiguraTareaNodo, FrecuenciaTarea, MejorRachaTarea, PanelTareas,
+  PlanTareaResumen, ResultadoCompletarTarea, ResultadoGuardarFiguraTarea, SubitemTarea, Tarea, TareaHoyDetalle, TipoTarea, TrazoFigura,
 } from './tareas.tipos';
 
 // A diferencia de hábitos (que pasa todo por RPCs porque tiene reglas de
@@ -321,6 +322,23 @@ export async function obtenerResumenSubitemsTareas(tareaIds: string[]): Promise<
 export async function completarSubitemTarea(subitemId: string, hecho: boolean): Promise<void> {
   const { error } = await obtenerClienteSupabase().from('tareas_subitems').update({ hecho }).eq('id', subitemId);
   if (error) throw error;
+}
+
+// ─── Sendero de días (Fase 8) — guardar/leer la figura trazada ────────────
+// Espejo de mandalaNodo.servicio.ts (guardarMandalaRegistro/obtenerMandalasHabito).
+export async function guardarFiguraTareaRegistro(registroId: string, trazos: TrazoFigura[]): Promise<ResultadoGuardarFiguraTarea> {
+  const { data, error } = await obtenerClienteSupabase().rpc('guardar_figura_tarea_registro', {
+    p_registro_id: registroId,
+    p_trazos: trazos,
+  });
+  if (error) throw error;
+  return mapearResultadoGuardarFiguraTarea(data);
+}
+
+export async function obtenerFigurasTarea(tareaId: string): Promise<FiguraTareaNodo[]> {
+  const { data, error } = await obtenerClienteSupabase().rpc('obtener_figuras_tarea', { p_tarea_id: tareaId });
+  if (error) throw error;
+  return mapearFigurasTarea(data);
 }
 
 export { asignarSemillaTarea };

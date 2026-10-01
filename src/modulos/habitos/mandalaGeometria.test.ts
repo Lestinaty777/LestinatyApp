@@ -93,4 +93,13 @@ describe('construirCaminosMandala', () => {
   it('con un trazo degenerado (un solo punto) no arroja, devuelve caminos vacíos', () => {
     expect(construirCaminosMandala([{ x: 0, y: 0 }], 12)).toEqual(Array(7).fill(''));
   });
+
+  // Fase 8 (sendero de días de tareas): `pliegues` es opcional y por default
+  // sigue dando la simetría de 7 de Hábitos — el sello de Tareas pasa otro
+  // valor (PLIEGUES_SELLO) sin tocar este pipeline compartido.
+  it('con pliegues explícito, produce esa cantidad de caminos en vez de 7', () => {
+    const puntos = trazoDesdeSemilla('cualquiera');
+    expect(construirCaminosMandala(puntos, 12, 6)).toHaveLength(6);
+    expect(construirCaminosMandala(puntos, 12, 4)).toHaveLength(4);
+  });
 });

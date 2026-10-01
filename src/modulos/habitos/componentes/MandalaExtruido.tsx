@@ -3,7 +3,7 @@ import { StyleSheet, View } from 'react-native';
 import { type SharedValue, useDerivedValue } from 'react-native-reanimated';
 import { Canvas, Path, Shader, Skia, type SkPath } from '@shopify/react-native-skia';
 
-import { construirContornosMandala } from '../mandalaGeometria';
+import { construirContornosMandala, PLIEGUES_MANDALA } from '../mandalaGeometria';
 import { prepararPoligonos, proyectarExtrusion, TONOS_PARED } from '../mandalaExtrusion';
 import { tonosNacarMandala } from '../nacarMandala';
 import type { TrazoMandala } from '../mandalaNodo.tipos';
@@ -122,6 +122,8 @@ type MandalaExtruidoProps = {
   relieve?: SharedValue<number>;
   /** 0 = de pie, 1 = recostada INCLINACION_MANDALA grados. Sin él, recostada. */
   inclinacion?: SharedValue<number>;
+  /** Simetría radial del contorno. Sin él, PLIEGUES_MANDALA (7, el de Hábitos) — ver PLIEGUES_SELLO en tareas/figuraSello.ts para el sendero de días de Tareas. */
+  pliegues?: number;
 };
 
 function armarPath(poligonos: number[][]): SkPath {
@@ -155,8 +157,8 @@ function armarCuadrilateros(cuadrilateros: number[]): SkPath {
 // y dibujadas en un solo Canvas de Skia — sin láminas apiladas, así el canto
 // se ve macizo. Sólo se dibujan la cara que mira a cámara y las paredes
 // visibles; como la cara es siempre lo más cercano, va encima de todo.
-export function MandalaExtruido({ color, giro, inclinacion, paqueteId, relieve, tamano, trazos }: MandalaExtruidoProps) {
-  const poligonos = useMemo(() => prepararPoligonos(construirContornosMandala(trazos, ANCHO_CINTA_MANDALA)), [trazos]);
+export function MandalaExtruido({ color, giro, inclinacion, paqueteId, pliegues = PLIEGUES_MANDALA, relieve, tamano, trazos }: MandalaExtruidoProps) {
+  const poligonos = useMemo(() => prepararPoligonos(construirContornosMandala(trazos, ANCHO_CINTA_MANDALA, pliegues)), [trazos, pliegues]);
   const paleta = useMemo(() => coloresMandala(color, paqueteId), [color, paqueteId]);
   const margen = tamano * MARGEN_LIENZO;
   const lado = tamano + margen * 2;
