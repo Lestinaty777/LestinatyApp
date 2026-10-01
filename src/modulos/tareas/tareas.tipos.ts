@@ -40,6 +40,15 @@ export type Tarea = {
   orden: number;
   creadaEn: string;
   completadaEn: string | null;
+  /**
+   * Sendero de días (Fase 8) — solo tiene sentido para tipo en
+   * ('simple','contador','cronometro') con frecuencia='dias_semana'; en el
+   * resto de los casos quedan en su valor por default (nivel 1, sin uso).
+   */
+  nivel: number;
+  nivelDesdeFecha: string;
+  objetivoValor: number;
+  unidad: string | null;
 };
 
 export type CrearTareaInput = {
@@ -166,4 +175,21 @@ export type ResultadoGuardarFiguraTarea = {
   nivel: number;
   ciclo: number;
   nodoDia: number;
+};
+
+// `TransicionSendero` (subida de nivel / ciclo de maestría) es genérica —
+// mismo shape que ya usa Hábitos (senderoHabito.tipos.ts), reusada tal cual.
+export type { TransicionSendero } from '../habitos/senderoHabito.tipos';
+
+export type ResultadoRegistroTarea = {
+  id: string;
+  tareaId: string;
+  fechaLocal: string;
+  valor: number;
+  nota: string | null;
+  subioNivel: boolean;
+  nivel: number;
+  gemasGanadas: number;
+  transicionSendero: import('../habitos/senderoHabito.tipos').TransicionSendero | null;
+  figuraPendiente: FiguraTareaPendiente | null;
 };

@@ -1,6 +1,7 @@
 import type { LucideIcon } from 'lucide-react-native';
 import { Bike, Check, Clock3, Dumbbell, HeartPulse, Repeat2, StretchHorizontal } from 'lucide-react-native';
 import type { InfoMandalaNodo } from '../../habitos/mandalaNodo.tipos';
+import type { FiguraTareaNodo } from '../../tareas/tareas.tipos';
 
 
 // 'esperando': es el siguiente nodo, pero ya se completó el de hoy — no se
@@ -9,7 +10,10 @@ import type { InfoMandalaNodo } from '../../habitos/mandalaNodo.tipos';
 // visual — ver NodoSendero.tsx.
 export type EstadoNodoMapa = 'activo' | 'bloqueado' | 'completado' | 'esperando';
 
-export type TipoNodoMapa = 'dia' | 'cofre_intermedio' | 'cofre_final' | 'orbe_mandala';
+// 'orbe_figura': espejo de 'orbe_mandala' para el sendero de días de Tareas
+// (Fase 8) — mismo pedestal, con la figura de 6 pliegues (NodoFiguraPedestal,
+// Fase 8.4) en vez del mandala de 7 de Hábitos.
+export type TipoNodoMapa = 'dia' | 'cofre_intermedio' | 'cofre_final' | 'orbe_mandala' | 'orbe_figura';
 
 export type EstadoCofre = 'bloqueado' | 'disponible' | 'reclamado';
 
@@ -34,6 +38,7 @@ export type NodoMapaSendero = {
   tipoNodo?: TipoNodoMapa;
   cofre?: InfoCofre;
   mandala?: InfoMandalaNodo;
+  figura?: FiguraTareaNodo;
 };
 
 const nodosEjercicio: NodoMapaSendero[] = [

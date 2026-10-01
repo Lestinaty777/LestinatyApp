@@ -1,12 +1,13 @@
 import { obtenerClienteSupabase } from '../../servicios/base-datos/supabase';
 import { fechaLocalDe, fechaLocalHoy } from '../../nucleo/dispositivo/fechaLocal';
+import { mapearTransicionSendero } from '../habitos/senderoHabito.mapper';
 import { asignarSemillaTarea } from '../tienda/gemas.servicio';
-import { mapearFigurasTarea, mapearResultadoGuardarFiguraTarea } from './figuraTarea.mapper';
+import { mapearFigurasTarea, mapearFiguraTareaPendiente, mapearResultadoGuardarFiguraTarea } from './figuraTarea.mapper';
 import { mapearPanelTareas } from './tareas.mapper';
 import { calcularRachaTarea, estaProgramadaEnFecha } from './tareaProgramada';
 import type {
   CrearTareaInput, EditarTareaInput, EstadoTarea, FiguraTareaNodo, FrecuenciaTarea, MejorRachaTarea, PanelTareas,
-  PlanTareaResumen, ResultadoCompletarTarea, ResultadoGuardarFiguraTarea, SubitemTarea, Tarea, TareaHoyDetalle, TipoTarea, TrazoFigura,
+  PlanTareaResumen, ResultadoCompletarTarea, ResultadoGuardarFiguraTarea, ResultadoRegistroTarea, SubitemTarea, Tarea, TareaHoyDetalle, TipoTarea, TrazoFigura,
 } from './tareas.tipos';
 
 // A diferencia de hábitos (que pasa todo por RPCs porque tiene reglas de
@@ -41,6 +42,10 @@ type FilaTarea = {
   orden: number;
   created_at: string;
   completada_en: string | null;
+  nivel: number;
+  nivel_desde_fecha: string;
+  objetivo_valor: number;
+  unidad: string | null;
 };
 
 function normalizar(fila: FilaTarea): Tarea {
@@ -65,10 +70,14 @@ function normalizar(fila: FilaTarea): Tarea {
     orden: fila.orden,
     creadaEn: fila.created_at,
     completadaEn: fila.completada_en,
+    nivel: fila.nivel,
+    nivelDesdeFecha: fila.nivel_desde_fecha,
+    objetivoValor: Number(fila.objetivo_valor),
+    unidad: fila.unidad,
   };
 }
 
-const COLUMNAS = 'id, titulo, descripcion, estado, tipo, prioridad, columna_kanban, fecha_vencimiento, frecuencia, dias_semana, recordatorio_activo, hora_recordatorio, mostrar_nombre_notificacion, routine_id, paquete_id, color, icono_lucide, orden, created_at, completada_en';
+const COLUMNAS = 'id, titulo, descripcion, estado, tipo, prioridad, columna_kanban, fecha_vencimiento, frecuencia, dias_semana, recordatorio_activo, hora_recordatorio, mostrar_nombre_notificacion, routine_id, paquete_id, color, icono_lucide, orden, created_at, completada_en, nivel, nivel_desde_fecha, objetivo_valor, unidad';
 
 async function usuarioActualId(): Promise<string> {
   const { data, error } = await obtenerClienteSupabase().auth.getUser();
@@ -86,6 +95,23 @@ export async function obtenerTareas(): Promise<Tarea[]> {
     .order('created_at', { ascending: false });
   if (error) throw error;
   return (data as FilaTarea[]).map(normalizar);
+}
+
+export async function obtenerTareaPorId(tareaId: string): Promise<Tarea> {
+  const { data, error } = await obtenerClienteSupabase().from('tareas_items').select(COLUMNAS).eq('id', tareaId).single();
+  if (error) throw error;
+  return normalizar(data as FilaTarea);
+}
+
+// Registros de una tarea desde una fecha (inclusive) — usado por el sendero
+// de días (Fase 8) para contar días completados del nivel vigente, igual que
+// `tareas_contar_dias_completados_nivel` pero del lado del cliente.
+type FilaRegistroTarea = { fecha_local: string; valor: number | null };
+
+export async function obtenerRegistrosTareaDesde(tareaId: string, desde: string): Promise<{ fechaLocal: string; valor: number }[]> {
+  const { data, error } = await obtenerClienteSupabase().from('tareas_registros').select('fecha_local,valor').eq('tarea_id', tareaId).gte('fecha_local', desde);
+  if (error) throw error;
+  return (data as FilaRegistroTarea[]).map((fila) => ({ fechaLocal: fila.fecha_local, valor: Number(fila.valor ?? 0) }));
 }
 
 export async function crearTarea(input: CrearTareaInput): Promise<Tarea> {
@@ -180,6 +206,80 @@ export async function completarTareaDia(tareaId: string, fechaLocal: string = fe
 export async function reprogramarRecordatorioTarea(tareaId: string, fechaLocal: string = fechaLocalHoy()): Promise<void> {
   const { error } = await obtenerClienteSupabase().rpc('reprogramar_recordatorio_tarea', { p_fecha_local: fechaLocal, p_tarea_id: tareaId });
   if (error) throw error;
+}
+
+// ─── Sendero de días (Fase 8) — registrar progreso de una tarea recurrente
+// (tipo simple/contador/cronometro, frecuencia='dias_semana'). Espejo de
+// registrarProgresoHabito, con figuraPendiente en vez de mandalaPendiente.
+// Rechaza explícitamente checklist/una_vez (ver registrar_progreso_tarea).
+type FilaResultadoRegistroTarea = {
+  id: string; tarea_id: string; fecha_local: string; valor: number; nota: string | null;
+  subio_nivel: boolean; nivel: number; gemas_ganadas: number; transicion_sendero: unknown; figura_pendiente: unknown;
+};
+
+export async function registrarProgresoTarea(input: { tareaId: string; fechaLocal: string; valor: number; nota?: string | null }): Promise<ResultadoRegistroTarea> {
+  const { data, error } = await obtenerClienteSupabase().rpc('registrar_progreso_tarea', {
+    p_fecha_local: input.fechaLocal, p_nota: input.nota ?? null, p_tarea_id: input.tareaId, p_valor: input.valor,
+  });
+  if (error) throw error;
+  const fila = data as FilaResultadoRegistroTarea;
+  return {
+    fechaLocal: fila.fecha_local,
+    figuraPendiente: mapearFiguraTareaPendiente(fila.figura_pendiente),
+    gemasGanadas: Number(fila.gemas_ganadas ?? 0),
+    id: fila.id,
+    nivel: Number(fila.nivel),
+    nota: fila.nota,
+    subioNivel: fila.subio_nivel,
+    tareaId: fila.tarea_id,
+    transicionSendero: mapearTransicionSendero(fila.transicion_sendero),
+    valor: Number(fila.valor),
+  };
+}
+
+// ─── Creación premium (Fase 8) — espejo de crearHabito/crear_habito_premium.
+// Reemplaza al insert directo de crearTarea solo en el wizard nuevo
+// (CrearTareaWizard.tsx, Fase 8.5); crearTarea/editarTarea no se tocan.
+export type CrearTareaPremiumInput = {
+  titulo: string;
+  descripcion?: string | null;
+  iconoLucide?: string | null;
+  color?: string | null;
+  tipo: TipoTarea;
+  objetivoValor?: number;
+  unidad?: string | null;
+  prioridad?: Tarea['prioridad'];
+  frecuencia?: FrecuenciaTarea;
+  diasSemana?: number[] | null;
+  fechaVencimiento?: string | null;
+  recordatorioActivo?: boolean;
+  horaRecordatorio?: string | null;
+  mostrarNombreNotificacion?: boolean;
+  paqueteId?: string | null;
+  nivelInicial?: number;
+};
+
+export async function crearTareaPremium(input: CrearTareaPremiumInput): Promise<{ id: string }> {
+  const { data, error } = await obtenerClienteSupabase().rpc('crear_tarea_premium', {
+    p_color: input.color ?? null,
+    p_descripcion: input.descripcion ?? null,
+    p_dias_semana: input.frecuencia === 'dias_semana' ? input.diasSemana ?? null : null,
+    p_fecha_vencimiento: input.fechaVencimiento ?? null,
+    p_frecuencia: input.frecuencia ?? 'una_vez',
+    p_hora_recordatorio: input.recordatorioActivo ? input.horaRecordatorio ?? null : null,
+    p_icono_lucide: input.iconoLucide ?? null,
+    p_mostrar_nombre_notificacion: input.mostrarNombreNotificacion ?? true,
+    p_nivel_inicial: input.nivelInicial ?? 1,
+    p_objetivo_valor: input.objetivoValor ?? 1,
+    p_paquete_id: input.paqueteId ?? null,
+    p_prioridad: input.prioridad ?? null,
+    p_recordatorio_activo: input.recordatorioActivo ?? false,
+    p_tipo: input.tipo,
+    p_titulo: input.titulo.trim(),
+    p_unidad: input.unidad ?? null,
+  });
+  if (error) throw error;
+  return data as { id: string };
 }
 
 // ─── Panel de insights ──────────────────────────────────────────────────
