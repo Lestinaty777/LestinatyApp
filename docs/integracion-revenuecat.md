@@ -10,7 +10,6 @@ Lestinaty usa **RevenueCat** para todas las compras dentro de la app: paquetes d
 |---|---|---|---|
 | Gemas 100 / 550 / 1200 | Consumible (IAP) | iOS: `com.lestinaty.app.gemas.100`, `.550`, `.1200` | Acredita 100 / 550 / 1200 gemas |
 | Lestinaty Horizon | Suscripción mensual | Entitlement `horizon` | Desbloquea la galería de widgets de hábitos |
-| Bono de prueba Horizon | Evento `INITIAL_PURCHASE` con `period_type=TRIAL` | — | Acredita 300 gemas una sola vez |
 
 Las gemas se gastan en la tienda de la app. Los **cofres** del progreso nunca se compran ni consumen gemas.
 
