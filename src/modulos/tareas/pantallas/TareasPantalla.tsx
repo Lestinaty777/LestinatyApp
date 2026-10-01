@@ -25,11 +25,20 @@ import { ListaRecordatoriosTareas } from '../componentes/ListaRecordatoriosTarea
 import { SeccionPatronesTareas } from '../componentes/SeccionPatronesTareas';
 import { SeccionRiesgoTareas } from '../componentes/SeccionRiesgoTareas';
 import { TimelineTareasHoy } from '../componentes/TimelineTareasHoy';
+import { fechaLocalHoy } from '../../../nucleo/dispositivo/fechaLocal';
 import {
   asignarSemillaTarea, completarTareaDia, crearSubitemsTarea, crearTarea, obtenerPanelTareas, obtenerResumenRecordatoriosTareas,
-  obtenerTareaMejorRacha, obtenerTareas, obtenerTareasHoy,
+  obtenerTareaMejorRacha, obtenerTareas, obtenerTareasHoy, registrarProgresoTarea,
 } from '../tareas.servicio';
-import type { Tarea, TareaHoyDetalle } from '../tareas.tipos';
+import type { ResultadoCompletarTarea, ResultadoRegistroTarea, Tarea, TareaHoyDetalle } from '../tareas.tipos';
+
+// Fase 8: mismo criterio de ruteo que MapaSenderosPantalla.tsx — checklist y
+// una_vez siguen con completar_tarea_dia (toggle); simple/contador/cronometro
+// recurrentes usan el sendero de días (registrar_progreso_tarea, sin undo).
+const TIPOS_CON_SENDERO_DIAS = ['simple', 'contador', 'cronometro'] as const;
+function usaSenderoDeDias(tarea: { frecuencia: string; tipo: string }): boolean {
+  return tarea.frecuencia === 'dias_semana' && (TIPOS_CON_SENDERO_DIAS as readonly string[]).includes(tarea.tipo);
+}
 
 // Tema dorado fijo (a diferencia de Hábitos, que sigue el tema activo del
 // usuario) — TonoDelHabito es el mismo mecanismo que ya usa cada tarjeta de
@@ -108,20 +117,33 @@ function TareasPantallaContenido() {
     },
   });
 
-  // Un solo mutation para completar/descompletar, sea desde "Hoy" (cualquier
-  // tarea) o desde "Mis tareas" (solo 'una_vez' — ver ListaMisTareas). El RPC
-  // ya es un toggle (ver completar_tarea_dia), así que un segundo toque
-  // deshace el primero.
-  const completar = useMutation({
-    mutationFn: (tarea: { id: string }) => {
+  // Un solo mutation para completar, sea desde "Hoy" (cualquier tarea) o
+  // desde "Mis tareas" (solo 'una_vez' — ver ListaMisTareas). checklist y
+  // una_vez van por completar_tarea_dia (toggle: un segundo toque deshace el
+  // primero); simple/contador/cronometro recurrentes van por el sendero de
+  // días (registrar_progreso_tarea, sin undo — mismo RPC que usa el mapa de
+  // Senderos para esta misma tarea, así nunca se desincronizan). Si queda una
+  // figura pendiente, no se abre ningún ritual acá (esta pantalla no tiene
+  // mapa/pedestal) — queda esperando, igual que una mandala de hábito
+  // completada desde otra pantalla: se resuelve la próxima vez que se entra
+  // a Senderos y se toca el pedestal pendiente.
+  const completar = useMutation<ResultadoCompletarTarea | ResultadoRegistroTarea, Error, { id: string; frecuencia: string; tipo: string }>({
+    mutationFn: (tarea) => {
       setCompletandoId(tarea.id);
+      if (usaSenderoDeDias(tarea)) {
+        return registrarProgresoTarea({ fechaLocal: fechaLocalHoy(), nota: null, tareaId: tarea.id, valor: 1 });
+      }
       return completarTareaDia(tarea.id);
     },
-    onSuccess: (resultado) => {
-      hapticSeguro(resultado.completada ? 'confirmacion' : 'seleccion');
+    onSuccess: (resultado, tarea) => {
+      const descompletada = 'completada' in resultado && resultado.completada === false;
+      hapticSeguro(descompletada ? 'seleccion' : 'confirmacion');
       cliente.invalidateQueries({ queryKey: CLAVE_TAREAS_HOY });
       cliente.invalidateQueries({ queryKey: CLAVE_TAREAS_LISTA });
       cliente.invalidateQueries({ queryKey: CLAVE_TAREAS_MEJOR_RACHA });
+      cliente.invalidateQueries({ queryKey: ['tareas', 'tarea', tarea.id] });
+      cliente.invalidateQueries({ queryKey: ['tareas', 'registros-nivel', tarea.id] });
+      cliente.invalidateQueries({ queryKey: ['tareas', 'figuras', tarea.id] });
       if (resultado.gemasGanadas > 0) cliente.invalidateQueries({ queryKey: CLAVE_SALDO_GEMAS });
     },
     onSettled: () => setCompletandoId(null),

@@ -135,6 +135,7 @@ const ESTATICOS: Record<string, string> = {
   'src/modulos/onboarding/pantallas/RegaloTrialHorizonPantalla.tsx': 'PENDIENTE: constante de módulo o helper compartido, hacerlo reactivo',
   'src/modulos/senderos/componentes/EstadoVacioSenderos.tsx': 'PENDIENTE: constante de módulo o helper compartido, hacerlo reactivo',
   'src/modulos/senderos/componentes/mapa/ContenedorMapaSenderos.tsx': 'colores de identidad o datos de cálculo (categorías, paquetes, especies, paleta que se rota)',
+  'src/modulos/senderos/componentes/mapa/ContenedorSenderoTareas.tsx': 'colores de identidad o datos de cálculo (categorías, paquetes, especies, paleta que se rota)',
   'src/modulos/senderos/componentes/mapa/PedestalNodo.tsx': 'colores de identidad o datos de cálculo (categorías, paquetes, especies, paleta que se rota)',
   'src/modulos/senderos/datos/modulosCategorias.ts': 'PENDIENTE: constante de módulo o helper compartido, hacerlo reactivo',
   'src/modulos/senderos/paginas/AnalisisSenderos.tsx': 'colores de identidad o datos de cálculo (categorías, paquetes, especies, paleta que se rota)',

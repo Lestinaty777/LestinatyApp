@@ -12,6 +12,7 @@ import { BookOpen } from 'lucide-react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Trophy, Leaf, Sun, Moon, ChevronDown } from 'lucide-react-native';
 import { ContenedorMapaSenderos } from '../../senderos/componentes/mapa/ContenedorMapaSenderos';
+import { ContenedorSenderoTareas } from '../../senderos/componentes/mapa/ContenedorSenderoTareas';
 import { AmbienteLluviaMapa } from '../componentes/mapa/AmbienteLluviaMapa';
 import { MasterChip, MasterGlass, MasterIcon, MasterIconBg, MasterProgressbar, Texto, colores, RecuadroGlass, buscarIcono } from '../../../diseno';
 import { colorMasterMasCercano, MasterChanger } from '../../../diseno/componentes/MasterChanger';
@@ -34,9 +35,15 @@ import { useEscala } from '../../../diseno/tema/MasterColorContext';
 import type { EscalaMaster } from '../../../diseno/tema/escalaEsmeralda';
 import { conAlfa } from '../../../diseno/tema/masterColor';
 import { TarjetaChecklistCompacta } from '../../tareas/componentes/TarjetaChecklistCompacta';
+import { TarjetaSenderoDiaCompacta } from '../../tareas/componentes/TarjetaSenderoDiaCompacta';
 import { useSenderoPasosTarea } from '../../tareas/hooks/useSenderoPasosTarea';
+import { useSenderoDiaTarea } from '../../tareas/hooks/useSenderoDiaTarea';
 import { obtenerResumenSubitemsTareas, obtenerTareas } from '../../tareas/tareas.servicio';
 import type { Tarea } from '../../tareas/tareas.tipos';
+
+// Fase 8: tipos de tarea con sendero de días (árbol/nivel/figura) — checklist
+// sigue usando su propio sendero de pasos (Fase 7); una_vez no tiene sendero.
+const TIPOS_CON_SENDERO_DIAS = ['simple', 'contador', 'cronometro'] as const;
 
 const DIAS_SEMANA_COMPLETA = [1, 2, 3, 4, 5, 6, 7];
 const TAMANO_ICONO_CATEGORIA = 64;
@@ -133,17 +140,28 @@ export function MapaSenderosPantalla() {
   const [selectorCategoriaVisible, setSelectorCategoriaVisible] = React.useState(false);
   const consultaTareas = useQuery({ queryKey: ['tareas', 'checklist'], queryFn: () => obtenerTareas() });
   const tareasChecklist = React.useMemo(() => (consultaTareas.data ?? []).filter((tarea) => tarea.tipo === 'checklist'), [consultaTareas.data]);
-  const asignaturasTareas: AsignaturaTareaVisible[] = React.useMemo(() => tareasChecklist.map((tarea) => ({
-    categoriaId: 'tareas', color: tarea.color ?? coloresSelectorCategoria.tareas, descripcion: tarea.descripcion?.trim() || 'Tu progreso paso a paso.',
+  // Fase 8: tareas recurrentes (simple/contador/cronometro + dias_semana) con
+  // su propio sendero de días — conviven en el mismo carrusel que el sendero
+  // de pasos de checklist (Fase 7), cada una ruteada a su motor correcto más
+  // abajo según `tareaReal.tipo`.
+  const tareasConSenderoDias = React.useMemo(
+    () => (consultaTareas.data ?? []).filter((tarea) => tarea.frecuencia === 'dias_semana' && (TIPOS_CON_SENDERO_DIAS as readonly string[]).includes(tarea.tipo)),
+    [consultaTareas.data],
+  );
+  const asignaturasTareas: AsignaturaTareaVisible[] = React.useMemo(() => [...tareasChecklist, ...tareasConSenderoDias].map((tarea) => ({
+    categoriaId: 'tareas', color: tarea.color ?? coloresSelectorCategoria.tareas,
+    descripcion: tarea.descripcion?.trim() || (tarea.tipo === 'checklist' ? 'Tu progreso paso a paso.' : 'Tu sendero de días.'),
     icono: 'checklist', id: tarea.id, subcategoriaId: tarea.id, tareaReal: tarea, titulo: tarea.titulo,
-  })), [tareasChecklist]);
+  })), [tareasChecklist, tareasConSenderoDias]);
   const [asignaturaIdTarea, setAsignaturaIdTarea] = React.useState<string | undefined>(undefined);
   const asignaturaTarea = asignaturasTareas.find((item) => item.id === asignaturaIdTarea) ?? asignaturasTareas[0];
   React.useEffect(() => {
     if (!asignaturaTarea && asignaturasTareas.length > 0) setAsignaturaIdTarea(asignaturasTareas[0].id);
   }, [asignaturasTareas, asignaturaTarea]);
   const contadorAsignaturas = categoriaActiva === 'habitos' ? ASIGNATURAS.length : asignaturasTareas.length;
-  const sendero7 = useSenderoPasosTarea(categoriaActiva === 'tareas' ? asignaturaTarea?.id : undefined);
+  const esTareaChecklistSeleccionada = asignaturaTarea?.tareaReal.tipo === 'checklist';
+  const sendero7 = useSenderoPasosTarea(categoriaActiva === 'tareas' && esTareaChecklistSeleccionada ? asignaturaTarea?.id : undefined);
+  const sendero8 = useSenderoDiaTarea(categoriaActiva === 'tareas' && asignaturaTarea && !esTareaChecklistSeleccionada ? asignaturaTarea.id : undefined);
   const idsTareasChecklist = React.useMemo(() => tareasChecklist.map((tarea) => tarea.id), [tareasChecklist]);
   const consultaResumenSubitems = useQuery({
     enabled: idsTareasChecklist.length > 0,
@@ -376,18 +394,31 @@ export function MapaSenderosPantalla() {
                       >
                         {asignaturasTareas.map((asig) => {
                           const resumen = consultaResumenSubitems.data?.get(asig.id);
+                          const esChecklist = asig.tareaReal.tipo === 'checklist';
                           return (
                             <TonoDelHabito colorPaquete={asig.tareaReal.color} key={asig.id} paqueteId={asig.tareaReal.paqueteId}>
-                              <TarjetaChecklistCompacta
-                                alto={92}
-                                ancho={anchoCarta}
-                                color={asig.tareaReal.color}
-                                iconoLucide={asig.tareaReal.iconoLucide}
-                                onPress={() => { hapticSeguro('seleccion'); setAsignaturaIdTarea(asig.id); setActiveMenu('none'); }}
-                                pasosCompletados={resumen?.completados ?? 0}
-                                titulo={asig.titulo}
-                                totalPasos={resumen?.total ?? 0}
-                              />
+                              {esChecklist ? (
+                                <TarjetaChecklistCompacta
+                                  alto={92}
+                                  ancho={anchoCarta}
+                                  color={asig.tareaReal.color}
+                                  iconoLucide={asig.tareaReal.iconoLucide}
+                                  onPress={() => { hapticSeguro('seleccion'); setAsignaturaIdTarea(asig.id); setActiveMenu('none'); }}
+                                  pasosCompletados={resumen?.completados ?? 0}
+                                  titulo={asig.titulo}
+                                  totalPasos={resumen?.total ?? 0}
+                                />
+                              ) : (
+                                <TarjetaSenderoDiaCompacta
+                                  alto={92}
+                                  ancho={anchoCarta}
+                                  color={asig.tareaReal.color}
+                                  iconoLucide={asig.tareaReal.iconoLucide}
+                                  nivel={asig.tareaReal.nivel}
+                                  onPress={() => { hapticSeguro('seleccion'); setAsignaturaIdTarea(asig.id); setActiveMenu('none'); }}
+                                  titulo={asig.titulo}
+                                />
+                              )}
                             </TonoDelHabito>
                           );
                         })}
@@ -516,7 +547,12 @@ export function MapaSenderosPantalla() {
           const colorEfectivo = asignaturaTarea.tareaReal.color ?? coloresSelectorCategoria.tareas;
           const colorTexto = oscurecer(colorEfectivo, 0.5);
           const iconoTarea = buscarIconoHabito(asignaturaTarea.tareaReal.iconoLucide);
-          const porcentajePasos = sendero7.totalPasos > 0 ? Math.round((sendero7.pasosCompletados / sendero7.totalPasos) * 100) : 0;
+          // Fase 8: la tarea seleccionada puede ser un sendero de pasos
+          // (checklist, Fase 7) o un sendero de días (simple/contador/
+          // cronometro, Fase 8) — cada uno con su propia fuente de progreso.
+          const completados = esTareaChecklistSeleccionada ? sendero7.pasosCompletados : sendero8.diasCompletados;
+          const total = esTareaChecklistSeleccionada ? sendero7.totalPasos : sendero8.diasRequeridos;
+          const porcentajePasos = total > 0 ? Math.round((completados / total) * 100) : 0;
           return (
             <TonoDelHabito colorPaquete={asignaturaTarea.tareaReal.color} paqueteId={asignaturaTarea.tareaReal.paqueteId}>
               <View style={styles.tarjetaContenedor}>
@@ -538,7 +574,7 @@ export function MapaSenderosPantalla() {
                       <Texto numberOfLines={1} style={{ color: colorTexto, fontFamily: 'MontserratAlternates-Bold', fontSize: 16 }}>{asignaturaTarea.titulo}</Texto>
                       <View style={styles.progresoNivelContenedor}>
                         <View style={{ alignItems: 'center', flexDirection: 'row', gap: 8 }}>
-                          <Texto style={[styles.progresoNivelPorcentaje, { color: colorTexto }]}>{sendero7.pasosCompletados}/{sendero7.totalPasos}</Texto>
+                          <Texto style={[styles.progresoNivelPorcentaje, { color: colorTexto }]}>{completados}/{total}</Texto>
                           <View style={{ flex: 1 }}>
                             <MasterProgressbar altura={9} colorBase={colorEfectivo} porcentaje={porcentajePasos} />
                           </View>
@@ -669,7 +705,7 @@ export function MapaSenderosPantalla() {
         // marca el paso directo, sin navegar a ninguna pantalla de misión.
         <TonoDelHabito colorPaquete={asignaturaTarea?.tareaReal.color} paqueteId={asignaturaTarea?.tareaReal.paqueteId}>
         <View style={[styles.capaMapa, !asignaturaTarea && styles.capaMapaVacia]}>
-          {asignaturaTarea ? (
+          {asignaturaTarea && esTareaChecklistSeleccionada ? (
             sendero7.consulta.isLoading ? (
               <View style={styles.centroMapa}><ActivityIndicator color={colores.tintaTenue} style={styles.spinnerCarga} /><Texto style={styles.subMapa}>{t('senderos.map.loadingTrail')}</Texto></View>
             ) : sendero7.consulta.isError ? (
@@ -693,6 +729,39 @@ export function MapaSenderosPantalla() {
                   hapticSeguro('accion');
                   sendero7.completar.mutate({ hecho: true, subitemId: subitem.id });
                 }}
+                subcategoriaId={asignaturaTarea.id}
+              />
+            )
+          ) : asignaturaTarea ? (
+            // Fase 8: sendero de DÍAS (árbol/nivel/figura) de una tarea
+            // recurrente simple/contador/cronometro — mismo patrón de
+            // loading/error que el sendero de pasos, motor distinto
+            // (ContenedorSenderoTareas, con su propio ritual de figura).
+            sendero8.consulta.isLoading ? (
+              <View style={styles.centroMapa}><ActivityIndicator color={colores.tintaTenue} style={styles.spinnerCarga} /><Texto style={styles.subMapa}>{t('senderos.map.loadingTrail')}</Texto></View>
+            ) : sendero8.consulta.isError ? (
+              <View style={styles.centroMapa}><Texto style={styles.subMapa}>{t('senderos.map.trailError')}</Texto></View>
+            ) : (
+              <ContenedorSenderoTareas
+                key={asignaturaTarea.id}
+                altura={alturaMapa}
+                color={asignaturaTarea.tareaReal.color ?? coloresSelectorCategoria.tareas}
+                colorPaquete={asignaturaTarea.tareaReal.color ?? coloresSelectorCategoria.tareas}
+                enfocado
+                encargoFigura={sendero8.figuraPendiente ? { registroId: sendero8.figuraPendiente.registroId } : null}
+                nivel={sendero8.nivel}
+                nodos={sendero8.nodos}
+                onCompletarNodo={(nodo) => {
+                  if (nodo.estado !== 'activo') return;
+                  // Contador/cronómetro necesitan su propio control de
+                  // cantidad/duración (Fase 8.5, TareasPantalla) — desde el
+                  // mapa, por ahora, solo 'simple' se completa con un toque.
+                  if (asignaturaTarea.tareaReal.tipo !== 'simple') return;
+                  hapticSeguro('accion');
+                  sendero8.registrar.mutate({ fechaLocal: fechaLocalHoy(), nota: null, tareaId: asignaturaTarea.id, valor: 1 });
+                }}
+                onEncargoFiguraConsumido={() => sendero8.setFiguraPendiente(null)}
+                paqueteId={asignaturaTarea.tareaReal.paqueteId}
                 subcategoriaId={asignaturaTarea.id}
               />
             )

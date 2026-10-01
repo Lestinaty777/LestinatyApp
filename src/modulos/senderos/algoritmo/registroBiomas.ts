@@ -152,7 +152,10 @@ export const registroBiomas: Record<CategoriaMapaId, ReglaBioma> = {
 // un solo asset por rol, igual que siempre. Cuando el paquete SÍ tiene sus 7
 // etapas reales, se arma la mezcla de hasta 3 profundidades (actual y las 2
 // anteriores) que resuelve mapaProcedural.ts.
-function construirAssetsBiomaHabitos(paqueteId: string, nivel: number): AssetBioma[] {
+// Exportada (antes privada) para que el sendero de días de Tareas (Fase 8,
+// ContenedorSenderoTareas.tsx) la llame directo con el paquete/nivel real de
+// la tarea — es genérica (árbol por paquete+nivel), pese al nombre histórico.
+export function construirAssetsArbolPorNivel(paqueteId: string, nivel: number): AssetBioma[] {
   const paqueteIdResuelto = resolverPaqueteHabito(paqueteId);
   const paquete = obtenerAssetsPaquete(paqueteIdResuelto)!;
 
@@ -182,7 +185,7 @@ function construirAssetsBiomaHabitos(paqueteId: string, nivel: number): AssetBio
 
 /** Assets del bioma para una categoría — 'habitos' se recalcula por paquete+nivel, el resto es fijo. */
 export function obtenerAssetsBioma(categoriaId: CategoriaMapaId, paqueteId?: string, nivel?: number): AssetBioma[] {
-  if (categoriaId === 'habitos') return construirAssetsBiomaHabitos(paqueteId ?? 'verde-1', nivel ?? 1);
+  if (categoriaId === 'habitos') return construirAssetsArbolPorNivel(paqueteId ?? 'verde-1', nivel ?? 1);
   return registroBiomas[categoriaId].assets;
 }
 

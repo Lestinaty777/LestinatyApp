@@ -132,6 +132,9 @@ export const recursosI18n = {
         },
         // Sendero de días (Fase 8) — espejo de habitos.mandala.compositor/ritual.
         figura: {
+          pendienteAccesibilidad: 'Figure pending for Day {{dia}}, tap to finish it',
+          creadaAccesibilidad: 'Figure created for Day {{dia}}',
+          badgeTerminar: 'Finish',
           compositor: {
             titulo: 'Draw your figure',
             instruccion: 'Place your finger anywhere and drag — it forms as you go',
@@ -1113,6 +1116,9 @@ export const recursosI18n = {
         },
         // Sendero de días (Fase 8) — espejo de habitos.mandala.compositor/ritual.
         figura: {
+          pendienteAccesibilidad: 'Figura pendiente del Día {{dia}}, tocá para terminarla',
+          creadaAccesibilidad: 'Figura creada para el Día {{dia}}',
+          badgeTerminar: 'Terminar',
           compositor: {
             titulo: 'Dibujá tu figura',
             instruccion: 'Apoyá el dedo donde quieras y arrastrá — se va formando a medida que trazás',
