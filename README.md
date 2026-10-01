@@ -62,13 +62,14 @@ npm run ios                # o: npm run android  (compila el dev client y abre l
 
 Flujo principal sugerido (≈ 2 min): **Hoy → abrir un hábito → completar su nodo → Senderos muestra la progresión.**
 
-- **Monetización:** Tienda → Gemas (consumibles) y Perfil → Membresía (Horizon). Incluye Restaurar compras y Gestionar suscripción.
+- **Monetización (RevenueCat):** Tienda → Gemas (consumibles, en iOS y Android) y Perfil → Membresía (Horizon, hoy solo Android porque desbloquea widgets). Detalle técnico en [`docs/integracion-revenuecat.md`](docs/integracion-revenuecat.md).
 - **IA:** pestaña Aby → describir una meta → propuesta de sendero validada con Zod antes de guardarse.
 - **Cofres:** se ganan por progreso, no se compran ni consumen gemas.
 - Notas completas de revisión: [`docs/app-store/review-notes-en.md`](docs/app-store/review-notes-en.md).
 
 ## Documentación
 
+- [`docs/integracion-revenuecat.md`](docs/integracion-revenuecat.md): **integración con RevenueCat** (gemas, Horizon, webhook, seguridad, cómo probar).
 - [`docs/release/release-checklist.md`](docs/release/release-checklist.md): gate P0/P1 con evidencia.
 - [`docs/superpowers/specs`](docs/superpowers/specs) y [`plans`](docs/superpowers/plans): diseño y plan de cada funcionalidad.
 - [`supabase/`](supabase): esquema, migraciones y Edge Functions (cada una con su README).
