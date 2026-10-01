@@ -17,9 +17,8 @@ import { buscarIconoHabito } from '../../habitos/iconosHabitos';
 import { TonoDelHabito } from '../../habitos/componentes/TonoDelHabito';
 import { obtenerAssetsPaquete } from '../../senderos/algoritmo/registroPaquetesArbol';
 import { CLAVE_SALDO_GEMAS } from '../../tienda/useSaldoGemas';
-import { CLAVE_SEMILLAS_DISPONIBLES } from '../../tienda/pantallas/TiendaArbolesPantalla';
 import { useSaldoGemas } from '../../tienda/useSaldoGemas';
-import { CrearTareaHoja } from '../componentes/CrearTareaHoja';
+import { CrearTareaWizard } from '../componentes/CrearTareaWizard';
 import { ListaMisTareas } from '../componentes/ListaMisTareas';
 import { ListaRecordatoriosTareas } from '../componentes/ListaRecordatoriosTareas';
 import { SeccionPatronesTareas } from '../componentes/SeccionPatronesTareas';
@@ -27,7 +26,7 @@ import { SeccionRiesgoTareas } from '../componentes/SeccionRiesgoTareas';
 import { TimelineTareasHoy } from '../componentes/TimelineTareasHoy';
 import { fechaLocalHoy } from '../../../nucleo/dispositivo/fechaLocal';
 import {
-  asignarSemillaTarea, completarTareaDia, crearSubitemsTarea, crearTarea, obtenerPanelTareas, obtenerResumenRecordatoriosTareas,
+  completarTareaDia, crearTareaPremium, obtenerPanelTareas, obtenerResumenRecordatoriosTareas,
   obtenerTareaMejorRacha, obtenerTareas, obtenerTareasHoy, registrarProgresoTarea,
 } from '../tareas.servicio';
 import type { ResultadoCompletarTarea, ResultadoRegistroTarea, Tarea, TareaHoyDetalle } from '../tareas.tipos';
@@ -95,22 +94,19 @@ function TareasPantallaContenido() {
   const consultaMejorRacha = useQuery({ queryKey: CLAVE_TAREAS_MEJOR_RACHA, queryFn: () => obtenerTareaMejorRacha() });
   const consultaPanel = useQuery({ queryKey: CLAVE_TAREAS_PANEL, queryFn: () => obtenerPanelTareas(), enabled: vistaPanel === 'insights' });
 
-  const crear = useMutation({
-    mutationFn: async (input: Parameters<typeof crearTarea>[0] & { semillaId: string | null }) => {
-      const { semillaId, ...datos } = input;
-      const tarea = await crearTarea(datos);
-      if (semillaId) {
-        await asignarSemillaTarea(semillaId, tarea.id);
-        cliente.invalidateQueries({ queryKey: CLAVE_SEMILLAS_DISPONIBLES });
-      }
-      if (datos.tipo === 'checklist' && datos.pasos?.length) {
-        await crearSubitemsTarea(tarea.id, datos.pasos);
-      }
-      return tarea;
-    },
+  // El wizard (CrearTareaWizard, Fase 8.5) maneja semilla y pasos por su
+  // cuenta después de crear — mismo patrón que CrearHabitoWizard con
+  // asignarSemillaHabito, en vez de encadenarlo todo en esta mutación como
+  // hacía la hoja anterior (CrearTareaHoja, ya no se usa acá). Por eso NO
+  // cierra el modal acá: si lo hiciera, se vería antes de que el wizard
+  // termine de crear los pasos del checklist o asignar la semilla (el modal
+  // no se desmonta al ocultarse, así que esos pasos igual terminan
+  // corriendo, pero el usuario ya habría salido sin verlos reflejados) — el
+  // propio wizard llama a onCerrar() cuando TODO terminó.
+  const crearPremium = useMutation({
+    mutationFn: crearTareaPremium,
     onSuccess: () => {
       hapticSeguro('confirmacion');
-      setCrearAbierto(false);
       cliente.invalidateQueries({ queryKey: CLAVE_TAREAS_HOY });
       cliente.invalidateQueries({ queryKey: CLAVE_TAREAS_LISTA });
       cliente.invalidateQueries({ queryKey: CLAVE_TAREAS_RECORDATORIOS });
@@ -301,13 +297,12 @@ function TareasPantallaContenido() {
           </MasterGlass>
         </ScrollView>
       </LinearGradient>
-      {crearAbierto && (
-        <CrearTareaHoja
-          guardando={crear.isPending}
-          onCerrar={() => setCrearAbierto(false)}
-          onCrear={(input) => crear.mutate(input)}
-        />
-      )}
+      <CrearTareaWizard
+        guardando={crearPremium.isPending}
+        onCerrar={() => setCrearAbierto(false)}
+        onCrear={(input) => crearPremium.mutateAsync(input)}
+        visible={crearAbierto}
+      />
     </>
   );
 }
