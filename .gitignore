@@ -44,3 +44,9 @@ yarn-error.*
 # Fuera del paquete de EAS Build (pesaban ~1 GB de más en cada subida)
 /.venv
 /.kilo
+
+# IDE / herramientas de asistencia locales (no son parte del producto)
+.idea/
+.superpowers/
+.agents/
+.vscode/
