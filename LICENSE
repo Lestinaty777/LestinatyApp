@@ -6,13 +6,18 @@ This repository is made public solely to satisfy the public-repository
 requirement of RevenueCat's Shipaton 2026 hackathon (the "Hackathon").
 
 1. Evaluation License. RevenueCat, the Hackathon organizers, and Hackathon
-   judges are granted a limited, non-exclusive, non-transferable,
-   royalty-free license to view, clone, build, and run this software solely
-   for the purpose of evaluating this project as a submission to the
-   Hackathon. No other rights are granted under this clause.
+   judges (the "Evaluators"), and only them, are granted a limited,
+   non-exclusive, non-transferable, non-sublicensable, royalty-free license
+   to view this software and to clone or copy only what is strictly
+   necessary to build and run it in order to verify the build and evaluate
+   this project as a submission to the Hackathon. Copies made under this
+   Section must be deleted once the evaluation ends and may not be shared,
+   published, or used for any other purpose. No other rights are granted
+   under this clause.
 
-2. All Other Rights Reserved. Except as expressly granted in Section 1, no
-   permission is given to any person to use, copy, modify, merge, publish,
+2. All Other Rights Reserved. Except as expressly granted in Section 1 to the
+   Evaluators, no permission is given to any person (including anyone who
+   can merely view this public repository) to use, copy, modify, merge, publish,
    distribute, sublicense, and/or sell copies of this software, or to
    permit persons to whom this software is furnished to do so. Any use
    beyond evaluation under Section 1 requires prior written permission from

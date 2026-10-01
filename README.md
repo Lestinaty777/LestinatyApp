@@ -77,4 +77,4 @@ Pre-lanzamiento. Backend verificado contra Supabase real; pendientes de acción 
 
 ## Licencia
 
-Ver [`LICENSE`](LICENSE).
+**Source-available, no es open source.** El código es público únicamente para la evaluación de RevenueCat Shipaton 2026: solo los evaluadores pueden clonar o copiar lo estrictamente necesario para verificar el build. Cualquier otro uso, copia, modificación o reventa está prohibido sin permiso escrito. Ver [`LICENSE`](LICENSE).
