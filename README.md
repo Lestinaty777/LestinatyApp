@@ -40,7 +40,7 @@ Lestinaty convierte hábitos diarios en un mapa de progreso: cada hábito es un 
 |---|---|---|
 | **Hoy / Hábitos** | Crear, registrar y gestionar hábitos con niveles progresivos, recordatorios y widgets. | `src/modulos/habitos`, `src/modulos/hoy` |
 | **Senderos** | Mapa de progreso por hábito/meta (mandalas, nodos, cofres intermedios y finales). | `src/modulos/senderos` |
-| **Aby (IA)** | Chat guiado que propone un sendero; Gemini se llama **solo** desde una Edge Function, nunca desde el cliente. | `src/modulos/aby`, `supabase/functions/generar-sendero-aby` |
+| **Aby (IA)** | Chat guiado que propone un sendero; Gemini se llama **solo** desde una Edge Function, nunca desde el cliente. _(En desarrollo: no está activo en este build de evaluación.)_ | `src/modulos/aby`, `supabase/functions/generar-sendero-aby` |
 | **Tienda de gemas** | Paquetes IAP vía RevenueCat; las gemas se acreditan solo tras el webhook verificado. | `src/modulos/tienda`, `supabase/functions/recibir-webhook-revenuecat` |
 | **Horizon (Pro)** | Suscripción con entitlement `horizon` (RevenueCat) que desbloquea la galería de widgets. | `src/nucleo/compras`, `src/plataforma/compras` |
 | **Recordatorios** | Cola privada + OneSignal; el permiso se pide solo de forma contextual. | `supabase/functions/despachar-recordatorios-habitos` |
@@ -92,7 +92,6 @@ npm run ios                # o: npm run android  (compila el dev client y abre l
 Flujo principal sugerido (≈ 2 min): **Hoy → abrir un hábito → completar su nodo → Senderos muestra la progresión.**
 
 - **Monetización (RevenueCat):** Tienda → Gemas (consumibles, en iOS y Android) y Perfil → Membresía (Horizon, hoy solo Android porque desbloquea widgets). Detalle técnico en [`docs/integracion-revenuecat.md`](docs/integracion-revenuecat.md).
-- **IA:** pestaña Aby → describir una meta → propuesta de sendero validada con Zod antes de guardarse.
 - **Cofres:** se ganan por progreso, no se compran ni consumen gemas.
 - Notas completas de revisión: [`docs/app-store/review-notes-en.md`](docs/app-store/review-notes-en.md).
 
