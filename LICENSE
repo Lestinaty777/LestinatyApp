@@ -1,27 +1,30 @@
-Lestinaty Source-Available License (Hackathon Evaluation)
+All Rights Reserved
 
-Copyright (c) 2026-present Lestinaty. All rights reserved.
+Copyright (c) 2026 Lestinaty. All rights reserved.
 
-This repository is made public solely to satisfy the public-repository
-requirement of RevenueCat's Shipaton 2026 hackathon (the "Hackathon").
+This repository and everything in it (source code, assets, designs, and
+documentation) is the exclusive proprietary property of Lestinaty.
 
-1. Evaluation License. RevenueCat, the Hackathon organizers, and Hackathon
-   judges are granted a limited, non-exclusive, non-transferable,
-   royalty-free license to view, clone, build, and run this software solely
-   for the purpose of evaluating this project as a submission to the
-   Hackathon. No other rights are granted under this clause.
+No license, right, or permission of any kind is granted to any person
+or entity to use, copy, reproduce, modify, merge, publish, distribute,
+sublicense, create derivative works from, publicly display, publicly
+perform, or sell this software or any part of it, for any purpose,
+whether commercial or non-commercial.
 
-2. All Other Rights Reserved. Except as expressly granted in Section 1, no
-   permission is given to any person to use, copy, modify, merge, publish,
-   distribute, sublicense, and/or sell copies of this software, or to
-   permit persons to whom this software is furnished to do so. Any use
-   beyond evaluation under Section 1 requires prior written permission from
-   the copyright holder.
+The fact that this repository may be publicly visible does not
+constitute, and must not be construed as, a grant of any license or
+right under copyright, trademark, patent, or any other intellectual
+property right belonging to Lestinaty. Visibility is incidental and
+does not waive, and must not be read to waive, any right.
 
-3. No Warranty. THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY
-   KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-   MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN
-   NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
-   DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
-   OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
-   USE OR OTHER DEALINGS IN THE SOFTWARE.
+Any use of this software beyond viewing its publicly visible source
+code requires Lestinaty's prior written permission. For licensing
+inquiries, contact lestinaty@gmail.com.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND
+NONINFRINGEMENT. IN NO EVENT SHALL LESTINATY BE LIABLE FOR ANY CLAIM,
+DAMAGES, OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT, OR
+OTHERWISE, ARISING FROM, OUT OF, OR IN CONNECTION WITH THE SOFTWARE OR
+THE USE OR OTHER DEALINGS IN THE SOFTWARE.
