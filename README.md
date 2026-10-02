@@ -28,10 +28,16 @@ Lestinaty convierte hábitos diarios en un mapa de progreso: cada hábito es un 
 ## Capturas
 
 <p align="center">
-  <img src="assets/mockup.png" width="100%" alt="Hoy, Hábitos, Tareas, Rutinas, Metas" />
+  <img src="assets/shipaton/mockup-hoy.png" width="45%" alt="Pantalla Hoy" />
+  <img src="assets/shipaton/mockup-sendero.png" width="45%" alt="Detalle de hábito y sendero" />
 </p>
+
 <p align="center">
-  <img src="assets/mockup1.png" width="100%" alt="Senderos, Tienda, Mi espacio, Compartidos, Activo" />
+  <img src="assets/shipaton/IMG_9940.jpeg" width="18%" alt="Call a family member" />
+  <img src="assets/shipaton/IMG_9943.jpeg" width="18%" alt="Declutter one space" />
+  <img src="assets/shipaton/IMG_9944.jpeg" width="18%" alt="Learn Spanish" />
+  <img src="assets/shipaton/IMG_9946.jpeg" width="18%" alt="Plan tomorrow" />
+  <img src="assets/shipaton/IMG_9948.jpeg" width="18%" alt="Cycle to work" />
 </p>
 
 ## Qué hace (what it does)
