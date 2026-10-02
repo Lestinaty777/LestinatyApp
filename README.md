@@ -1,9 +1,38 @@
-# Lestinaty
+<p align="center">
+  <img src="assets/icon.png" width="96" alt="Lestinaty" />
+</p>
 
-> **ES:** App móvil de hábitos y estudio gamificada, con un guía de IA (Aby), progresión por "senderos" y monetización con RevenueCat.
-> **EN:** A gamified habit-building and study app for iOS/Android with an AI guide (Aby), progression "paths" (Senderos) and RevenueCat-powered monetization.
+<h1 align="center">
+  <img src="assets/marca/lestinaty.png" alt="Lestinaty" height="42" />
+</h1>
+
+<p align="center">
+  <b>ES:</b> App móvil de hábitos y estudio gamificada, con un guía de IA (Aby), progresión por "senderos" y monetización con RevenueCat.<br/>
+  <b>EN:</b> A gamified habit-building and study app for iOS/Android with an AI guide (Aby), progression "paths" (Senderos) and RevenueCat-powered monetization.
+</p>
+
+<p align="center">
+  <img alt="Shipaton 2026" src="https://img.shields.io/badge/Shipaton-2026-FF5A5F">
+  <img alt="RevenueCat" src="https://img.shields.io/badge/RevenueCat-powered-F7A600">
+  <img alt="Expo" src="https://img.shields.io/badge/Expo-SDK%2057-000020?logo=expo&logoColor=white">
+  <img alt="License" src="https://img.shields.io/badge/license-BUSL--1.1-5865F2">
+</p>
+
+<p align="center">
+  <!-- TODO: reemplazar con el link publico de TestFlight (App Store Connect -> TestFlight -> External Testing -> Public Link) -->
+  <a href="#"><b>📲 Probar en TestFlight</b></a>
+</p>
 
 Lestinaty convierte hábitos diarios en un mapa de progreso: cada hábito es un **sendero** de niveles, cada día cumplido avanza un nodo, y los hitos otorgan **cofres** y **gemas**. **Aby**, un agente conversacional con Gemini, ayuda a crear senderos personalizados a partir de una meta.
+
+## Capturas
+
+<p align="center">
+  <img src="assets/mockup.png" width="100%" alt="Hoy, Hábitos, Tareas, Rutinas, Metas" />
+</p>
+<p align="center">
+  <img src="assets/mockup1.png" width="100%" alt="Senderos, Tienda, Mi espacio, Compartidos, Activo" />
+</p>
 
 ## Qué hace (what it does)
 
@@ -81,4 +110,4 @@ Pre-lanzamiento. Backend verificado contra Supabase real; pendientes de acción 
 
 ## Licencia
 
-**Source-available, no es open source.** El código es público únicamente para la evaluación de RevenueCat Shipaton 2026: solo los evaluadores pueden clonar o copiar lo estrictamente necesario para verificar el build. Cualquier otro uso, copia, modificación o reventa está prohibido sin permiso escrito. Ver [`LICENSE`](LICENSE).
+[Business Source License 1.1](LICENSE) (BUSL-1.1). El código es público para que RevenueCat y los jueces de Shipaton 2026 puedan ver, clonar, compilar y correr la app únicamente para evaluar esta postulación (ver el "Additional Use Grant" en [`LICENSE`](LICENSE)). Cualquier otro uso requiere permiso escrito de Lestinaty. No es open source bajo la definición de OSI; la licencia convierte a GPLv2+ por versión, 4 años después de cada publicación.
