@@ -79,12 +79,39 @@ La versión de cliente es una función pura (`franjaDeHora`) con los mismos lím
 
 ## Interfaz
 
-- **Hoy:** secciones por franja en orden manana → tarde → noche → cualquier_momento. La franja del momento actual aparece expandida y las demás plegadas con un resumen ("Tarde: 3 · Noche: 2"). El resumen muestra pendientes y completados.
-- **Franja vacía:** se oculta; no se muestra una sección sin elementos.
-- **Creación de hábito, tarea y rutina:** selector de franja (cuatro opciones). Si hay hora de recordatorio, se pre-selecciona la franja correspondiente y se puede cambiar.
+### Selector de franja
+
+Cuatro botones pequeños sobre la timeline: `Mañana n` · `Tarde n` · `Noche n` · `Todo n`. El número es lo **pendiente** de esa franja.
+
+- Al abrir la pantalla queda seleccionada la **franja actual** (según los límites del perfil). No se guarda la última elección.
+- No cambia sola mientras la pantalla está abierta si la persona eligió una franja a mano.
+- Los elementos **sin franja** (`cualquier_momento`) aparecen **solo en `Todo`**, al final, bajo un encabezado "Sin franja".
+- Los pendientes de una franja pasada siguen contando en su botón; no se marcan como fallidos.
+- Franja vacía: mensaje corto con enlace a `Todo`.
+- `Todo` agrupa por franja con un encabezado por cada una (mañana, tarde, noche, sin franja).
+- El mismo componente (`SelectorFranja`) se usa en Hoy y en las pantallas de Hábitos y Tareas, cada una con sus propios conteos.
+
+### Hoy: un solo plan del día
+
+Hoy deja de ser un toggle Hábitos/Tareas y pasa a mostrar **hábitos, tareas y rutinas** juntos en una timeline dividida por franja.
+
+Reglas para que no se vuelva pesado:
+
+1. **Una rutina es un solo elemento.** Se muestra como tarjeta ("Rutina de estudio · 3 de 5 pasos"); sus hábitos y tareas quedan dentro de la tarjeta.
+2. **Sin duplicados en Hoy.** Un hábito o tarea que forma parte de una rutina que toca hoy aparece solo dentro de la rutina, en la franja de la rutina. Un paso nunca se reparte entre dos franjas. En las pantallas de Hábitos y Tareas sigue apareciendo con la etiqueta "en Rutina X" y con su propia franja.
+3. **Pendientes primero.** Se muestran como máximo 5 pendientes por franja con "Ver n más". Lo completado baja y se pliega en una línea ("6 completados").
+4. **Tipo reconocible.** Cada fila lleva un ícono distinto de hábito, tarea o rutina; no hay encabezados por tipo.
+5. **Sin límite de datos en `Todo`:** el tope de 5 por franja también aplica y el resto se expande bajo demanda.
+
+Los toggles actuales Hábitos/Tareas de Hoy se retiran. Las pantallas de Hábitos y Tareas siguen como gestión completa.
+
+### Otras pantallas
+
+- **Creación de hábito, tarea y rutina:** selector de franja (cuatro opciones) en el paso de programación de cada wizard (`CrearHabitoWizard`, `CrearTareaWizard`). Si hay hora de recordatorio y la persona no eligió franja a mano, se pre-selecciona la de esa hora; elegir una franja explícita nunca se pisa. La sugerencia vive en una función pura aparte, no dentro del componente.
+- **Edición:** el mismo selector en la edición de hábito y tarea.
 - **Ajustes:** pantalla para editar los límites de franja, con vista previa del día ("Mañana 5:00–12:00").
-- **Diseño:** no agregar un tercer toggle a Hoy. Reusar la jerarquía visual existente (cada franja es una sección de la misma timeline) y mantener el tema actual.
-- **Accesibilidad:** cada sección es un encabezado con estado expandido/plegado anunciable; el resumen es texto, no solo color.
+- **Tema:** mantener la jerarquía visual y los colores actuales; no introducir un tema nuevo.
+- **Accesibilidad:** cada botón es un control con estado seleccionado y el número se anuncia como texto ("Mañana, 3 pendientes"); el color no es el único indicador.
 
 ## Insights
 
@@ -118,13 +145,14 @@ La versión de cliente es una función pura (`franjaDeHora`) con los mismos lím
 ## Fases
 
 1. Migración, dominio, `franjaDeHora` y tipos/mappers de hábito y tarea.
-2. Selector de franja en creación y edición de hábitos y tareas.
-3. Hoy agrupado por franjas.
+2. Selector de franja en los wizards de creación y en la edición de hábitos y tareas.
+3. Hoy unificado (hábitos, tareas y rutinas) con selector de franja; depende de que Rutinas exista, por lo que una primera versión muestra hábitos y tareas y suma rutinas cuando estén.
 4. Ajustes de límites de franja.
 5. Insights por franja.
 
 ## Fuera de alcance
 
 - Franjas múltiples por elemento.
+- Filtro por tipo (hábito, tarea, rutina) en Hoy.
 - Reprogramar o penalizar automáticamente cuando una franja termina.
 - Recomendaciones de Aby basadas en franjas (llegan con Aby adaptativo).

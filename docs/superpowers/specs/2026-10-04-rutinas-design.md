@@ -23,7 +23,7 @@ Ejemplo — *Rutina de estudio (45 min)*:
 ## Principios
 
 1. **Fuente de verdad única.** Completar un paso que referencia un hábito llama a `registrar_progreso_habito`; si referencia una tarea, usa `tareas_registros` (o el estado de la tarea si es `una_vez`). La rutina **no guarda un duplicado**: su avance del día se calcula.
-2. **El hábito y la tarea siguen funcionando solos.** Estar en una rutina no los cambia ni los oculta de Hoy.
+2. **El hábito y la tarea siguen funcionando solos.** Estar en una rutina no los cambia ni los oculta de sus propias pantallas. En Hoy, un paso de rutina aparece solo dentro de la tarjeta de la rutina (ver franjas del día).
 3. **Un paso propio solo existe dentro de su rutina.** Si la persona quiere reutilizarlo fuera, lo convierte en tarea.
 4. **Servidor decide.** Identidad por `auth.uid()`, progreso y gemas en RPCs; el cliente no envía `usuario_id` ni cantidades de gemas.
 
@@ -148,7 +148,7 @@ Para evitar doble pago, una rutina completa **no** acredita gemas en esta fase. 
 2. **Ejecutor**: pantalla de sesión paso a paso. Hábito/tarea muestran su control nativo (check, contador, cronómetro) y al completar llaman a su RPC; pasos propios usan `completar_paso_propio_rutina`. Se puede salir y reanudar: el estado sale siempre del servidor. Reutiliza los componentes de ejecución de tareas (`TarjetaChecklistCompacta`, cronómetro, contador) en lugar de crear nuevos.
 3. **Creación**: wizard similar a `CrearTareaWizard`: datos → programación → pasos (elegir hábito, elegir tarea, o crear paso propio) → recordatorio. Aby podrá ofrecer una rutina propuesta en una fase posterior (misma estructura que `crear_rutina`).
 4. **Sendero visual**: los pasos se dibujan como nodos en un camino (reutilizando `construirNodosPasos`), con el cierre de la rutina como destino. Es la forma de mostrar la rutina dentro del lenguaje de Senderos.
-5. **Hoy**: las rutinas que tocan aparecen como tarjeta en la pestaña correspondiente, sin quitar sus hábitos/tareas de las demás vistas.
+5. **Hoy**: cada rutina que toca es una sola tarjeta dentro de su franja, con sus pasos dentro; sus hábitos y tareas no se repiten como elementos aparte en Hoy, y sí en las pantallas de Hábitos y Tareas con la etiqueta "en Rutina X".
 
 ## Recordatorios
 
