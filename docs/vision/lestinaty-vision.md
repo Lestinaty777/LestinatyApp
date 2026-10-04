@@ -103,15 +103,16 @@ Voxel/isométrico, mapas, árboles, caminos, nodos, mundos y pequeñas animacion
 | --- | --- | --- |
 | 1 | Hábitos: constancia, árboles, gemas, Senderos individuales | Hecho |
 | 2 | Tareas con modos (simple, checklist, contador, cronómetro) | En curso (rama `mejoras`) |
-| 3 | **Rutinas** que agrupan hábitos y tareas | Spec: `2026-10-04-rutinas-design.md` |
-| 4 | Planes por días/secciones (Senderos de etapas) | Pendiente |
-| 5 | Modelo unificado de Sendero + dependencias entre nodos | Pendiente (spec propio) |
-| 6 | Aby genera Senderos reales (planes y rutinas) | Parcial: estudio |
-| 7 | Cooperativo | Pendiente |
-| 8 | Cursos propios publicados y vendidos | Pendiente |
-| 9 | Marketplace | Solo tras validar la fase 8 |
+| 3 | **Franjas del día** (mañana, tarde, noche) para hábitos, tareas y rutinas | Spec: `2026-10-04-franjas-del-dia-design.md` |
+| 4 | **Rutinas** que agrupan hábitos y tareas | Spec: `2026-10-04-rutinas-design.md` |
+| 5 | Planes por días/secciones (Senderos de etapas) | Pendiente |
+| 6 | Modelo unificado de Sendero + dependencias entre nodos | Pendiente (spec propio) |
+| 7 | Aby genera Senderos reales (planes y rutinas) | Parcial: estudio |
+| 8 | Cooperativo | Pendiente |
+| 9 | Cursos propios publicados y vendidos | Pendiente |
+| 10 | Marketplace | Solo tras validar la fase 9 |
 
-Orden deliberado: Rutinas antes que el modelo unificado, porque obliga a definir pasos heterogéneos con casos reales; el modelo unificado se abstrae de lo que Tareas y Rutinas demuestren necesitar, en vez de diseñarse en abstracto.
+Orden deliberado: las franjas del día van antes que Rutinas porque son el concepto que ambas comparten. Rutinas va antes que el modelo unificado, porque obliga a definir pasos heterogéneos con casos reales; el modelo unificado se abstrae de lo que Tareas y Rutinas demuestren necesitar, en vez de diseñarse en abstracto.
 
 ## 11. Riesgos
 

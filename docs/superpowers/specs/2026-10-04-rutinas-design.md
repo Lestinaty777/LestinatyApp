@@ -1,6 +1,6 @@
 # Rutinas
 
-Parte de la [visión de Lestinaty](../../vision/lestinaty-vision.md), fase 3.
+Parte de la [visión de Lestinaty](../../vision/lestinaty-vision.md), fase 4. Depende de las [franjas del día](2026-10-04-franjas-del-dia-design.md).
 
 ## Objetivo
 
@@ -37,8 +37,7 @@ create table public.rutinas_items (
   usuario_id uuid not null references auth.users(id) on delete cascade,
   titulo text not null check (char_length(trim(titulo)) between 1 and 80),
   descripcion text check (descripcion is null or char_length(trim(descripcion)) <= 280),
-  momento text not null default 'personalizado'
-    check (momento in ('manana', 'tarde', 'noche', 'estudio', 'personalizado')),
+  franja public.franja_dia not null default 'cualquier_momento', -- ver 2026-10-04-franjas-del-dia-design.md
   icono_lucide text not null,
   color text not null,
   estado text not null default 'activa' check (estado in ('activa', 'pausada', 'archivada')),
@@ -145,7 +144,7 @@ Para evitar doble pago, una rutina completa **no** acredita gemas en esta fase. 
 
 ## Interfaz
 
-1. **Lista** (`RutinasPantalla`): reemplaza los datos mock por `obtener_rutinas_hoy`. Se conserva la estructura visual existente (momentos mañana/estudio/noche, racha, progreso del día).
+1. **Lista** (`RutinasPantalla`): reemplaza los datos mock por `obtener_rutinas_hoy`. Se conserva la estructura visual existente (racha, progreso del día) y se agrupa por franjas del día igual que Hoy; "Estudio" pasa a ser una plantilla de creación, no una franja.
 2. **Ejecutor**: pantalla de sesión paso a paso. Hábito/tarea muestran su control nativo (check, contador, cronómetro) y al completar llaman a su RPC; pasos propios usan `completar_paso_propio_rutina`. Se puede salir y reanudar: el estado sale siempre del servidor. Reutiliza los componentes de ejecución de tareas (`TarjetaChecklistCompacta`, cronómetro, contador) en lugar de crear nuevos.
 3. **Creación**: wizard similar a `CrearTareaWizard`: datos → programación → pasos (elegir hábito, elegir tarea, o crear paso propio) → recordatorio. Aby podrá ofrecer una rutina propuesta en una fase posterior (misma estructura que `crear_rutina`).
 4. **Sendero visual**: los pasos se dibujan como nodos en un camino (reutilizando `construirNodosPasos`), con el cierre de la rutina como destino. Es la forma de mostrar la rutina dentro del lenguaje de Senderos.
