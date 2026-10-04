@@ -40,6 +40,11 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+modules/*/android/.gradle/
+modules/*/android/build/
+
+# IDE
+.idea/
 
 # Fuera del paquete de EAS Build (pesaban ~1 GB de más en cada subida)
 /.venv

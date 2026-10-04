@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ChevronRight, ArrowDown, Sparkles } from 'lucide-react-native';
-import { Image, Linking, ScrollView, StyleSheet, View } from 'react-native';
+import { Image, Linking, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { Easing, useSharedValue, useAnimatedStyle, withRepeat, withSequence, withTiming, withDelay } from 'react-native-reanimated';
 
@@ -16,6 +16,9 @@ import { capacidades } from '../../../plataforma/capacidades';
 import { GaleriaWidgetsModal } from '../componentes/GaleriaWidgetsModal';
 import { SeccionProgresoDatos } from '../componentes/SeccionProgresoDatos';
 import { elegirReflexionAby } from '../reflexionAby';
+import { SeccionPatronesTareas } from '../../tareas/componentes/SeccionPatronesTareas';
+import { SeccionRiesgoTareas } from '../../tareas/componentes/SeccionRiesgoTareas';
+import { obtenerPanelTareas } from '../../tareas/tareas.servicio';
 import { useEscala } from '../../../diseno/tema/MasterColorContext';
 import type { EscalaMaster } from '../../../diseno/tema/escalaEsmeralda';
 import { ESCALA_ESMERALDA } from '../../../diseno/tema/escalaEsmeralda';
@@ -375,6 +378,11 @@ export function InsightsPantalla() {
   const panel = consulta.data;
   const habitosPorId = new Map((consultaHabitosTodos.data ?? []).map((habito) => [habito.id, habito]));
   const [modalWidgetsVisible, setModalWidgetsVisible] = useState(false);
+  // Tareas se fusionó acá en vez de tener su propia entrada — mismos datos,
+  // mismas secciones (SeccionPatronesTareas/SeccionRiesgoTareas), solo
+  // detrás de este selector en vez de vivir en TareasPantalla.tsx.
+  const [vistaInsights, setVistaInsights] = useState<'habitos' | 'tareas'>('habitos');
+  const consultaPanelTareas = useQuery({ enabled: vistaInsights === 'tareas', queryFn: () => obtenerPanelTareas(), queryKey: ['tareas', 'panel'] });
   const statsListos = !consulta.isLoading && !consultaMejorRacha.isLoading && !consultaGemas.isLoading;
 
   const diasConMuestras = panel?.patrones.datos.filter((item) => item.muestras > 0) ?? [];
@@ -417,6 +425,16 @@ export function InsightsPantalla() {
             </View>
           </View>
 
+          <View style={s.selectorModulo}>
+            <Pressable onPress={() => setVistaInsights('habitos')} style={[s.selectorPildora, vistaInsights === 'habitos' && { backgroundColor: esc.jade.l50 }]}>
+              <Texto style={[s.selectorTexto, vistaInsights === 'habitos' && s.selectorTextoActivo]}>{t('insights.header.habitsTab')}</Texto>
+            </Pressable>
+            <Pressable onPress={() => setVistaInsights('tareas')} style={[s.selectorPildora, vistaInsights === 'tareas' && { backgroundColor: esc.jade.l50 }]}>
+              <Texto style={[s.selectorTexto, vistaInsights === 'tareas' && s.selectorTextoActivo]}>{t('insights.header.tasksTab')}</Texto>
+            </Pressable>
+          </View>
+
+          {vistaInsights === 'habitos' && (
           <Animated.View entering={entradaEncadenada(2)} style={s.heroReflexion}>
             <WidgetReflexion mensaje={panel ? elegirReflexionAby(panel) : t('insights.reflection.defaultMessage')} />
             <View style={s.heroColDer}>
@@ -463,9 +481,12 @@ export function InsightsPantalla() {
               </ElementoFlotanteSuave>
             </View>
           </Animated.View>
+          )}
         </View>
 
         <View style={s.contenidoInterior}>
+          {vistaInsights === 'habitos' && (
+          <>
           <View style={s.statsFila}>
             {!statsListos
               ? [0, 1, 2, 3].map((i) => (
@@ -538,6 +559,19 @@ export function InsightsPantalla() {
           ) : (
             <EsqueletoColumnasInsights />
           )}
+          </>
+          )}
+
+          {vistaInsights === 'tareas' && (
+            consultaPanelTareas.isLoading ? <Texto style={s.vacioTexto}>{t('tareas.pantalla.cargando')}</Texto> : consultaPanelTareas.isError ? (
+              <Pressable onPress={() => consultaPanelTareas.refetch()}><Texto style={s.error}>{t('tareas.pantalla.errorCargar')}</Texto></Pressable>
+            ) : consultaPanelTareas.data ? (
+              <View>
+                <SeccionPatronesTareas datos={consultaPanelTareas.data.patrones.datos} estado={consultaPanelTareas.data.patrones.estado} progreso={consultaPanelTareas.data.patrones.progreso} />
+                <SeccionRiesgoTareas datos={consultaPanelTareas.data.riesgo.datos} estado={consultaPanelTareas.data.riesgo.estado} progreso={consultaPanelTareas.data.riesgo.progreso} />
+              </View>
+            ) : null
+          )}
         </View>
 
       </ScrollView>
@@ -564,7 +598,15 @@ const crearEstilosS = (esc: EscalaMaster): Record<string, any> => StyleSheet.cre
   headerDer: { alignItems: 'flex-start', flexDirection: 'row', gap: 8, marginTop: 4 },
   notificacion: { borderRadius: 22, paddingHorizontal: 10, paddingVertical: 10 },
   notificacionIcono: { height: 26, resizeMode: 'contain', width: 26 },
-  
+
+  // Selector Hábitos/Tareas
+  selectorModulo: { backgroundColor: conAlfa(esc.jade.l34, 0.08), borderRadius: 14, flexDirection: 'row', gap: 4, marginBottom: 14, marginHorizontal: 16, padding: 4 },
+  selectorPildora: { alignItems: 'center', borderRadius: 10, flex: 1, paddingVertical: 9 },
+  selectorTexto: { color: C.tenue, fontFamily: 'MontserratAlternates-Bold', fontSize: 13 },
+  selectorTextoActivo: { color: '#FFFFFF' },
+  vacioTexto: { color: C.tenue, fontFamily: 'Montserrat-Medium', fontSize: 13, paddingVertical: 24, textAlign: 'center' },
+  error: { color: C.rojo, fontFamily: 'Montserrat-Medium', fontSize: 13, paddingVertical: 24, textAlign: 'center' },
+
   // Hero Reflexion + Ilustracion lado a lado
   heroReflexion: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16, paddingHorizontal: 16 },
   widgetReflexionWrap: { width: 146 },

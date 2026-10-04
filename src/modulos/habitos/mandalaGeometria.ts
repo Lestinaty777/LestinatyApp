@@ -192,9 +192,10 @@ export function trazarCintaSvg(puntos: TrazoMandala[], anchoBase: number): strin
 
 // Los 7 contornos de la mandala como polígonos — la base de la extrusión
 // real (MandalaExtruido): de cada lado del polígono sale una pared.
-// `pliegues` es opcional (default = PLIEGUES_MANDALA, el de Hábitos) para
-// que otro dominio pueda generar una figura con otra simetría radial sin
-// duplicar este pipeline — ver PLIEGUES_SELLO en el lado de Tareas.
+// `pliegues` es opcional (default = PLIEGUES_MANDALA, el de Hábitos) por si
+// otro dominio con simetría radial quisiera otro valor — el sello del
+// sendero de días de Tareas ya NO es radial y no usa este pipeline, ver
+// figuraSello.ts y SelloExtruido.tsx.
 export function construirContornosMandala(puntosCrudos: TrazoMandala[], anchoBase: number, pliegues: number = PLIEGUES_MANDALA): TrazoMandala[][] {
   const suave = suavizarTrazo(resamplearTrazo(puntosCrudos));
   const contornos: TrazoMandala[][] = [];

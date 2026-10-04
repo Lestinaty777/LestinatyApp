@@ -94,9 +94,9 @@ describe('construirCaminosMandala', () => {
     expect(construirCaminosMandala([{ x: 0, y: 0 }], 12)).toEqual(Array(7).fill(''));
   });
 
-  // Fase 8 (sendero de días de tareas): `pliegues` es opcional y por default
-  // sigue dando la simetría de 7 de Hábitos — el sello de Tareas pasa otro
-  // valor (PLIEGUES_SELLO) sin tocar este pipeline compartido.
+  // `pliegues` es opcional y por default sigue dando la simetría de 7 de
+  // Hábitos. El sello del sendero de días de Tareas ya no usa este pipeline
+  // (dejó de ser una mandala) — ver figuraSello.ts.
   it('con pliegues explícito, produce esa cantidad de caminos en vez de 7', () => {
     const puntos = trazoDesdeSemilla('cualquiera');
     expect(construirCaminosMandala(puntos, 12, 6)).toHaveLength(6);

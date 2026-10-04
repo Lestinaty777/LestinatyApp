@@ -5,7 +5,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import ReanimatedView, { Easing as EasingR, FadeIn, FadeInDown, FadeOut } from 'react-native-reanimated';
 import { Bell, Check, ChevronLeft, ChevronRight, Clock3, Plus, Search, Sparkles, X } from 'lucide-react-native';
 
-import { Boton, MasterColorProvider, MasterGlass, MasterIcon, RecuadroGlass, Texto, crearTonoMaster, useTonoMaster } from '../../../diseno';
+import { Boton, formatoHora12, MasterChip, MasterColorProvider, MasterGlass, MasterIcon, RecuadroGlass, SelectorFechaCalendario, SelectorHora12, Texto, crearTonoMaster, useTonoMaster } from '../../../diseno';
 import { TOPE_ESCALA_TEXTO_COMPACTO } from '../../../diseno/fundamentos/accesibilidad';
 import { Rebote } from '../../../diseno/ui/Rebote';
 import { hapticSeguro } from '../../../nucleo/dispositivo/haptics';
@@ -149,6 +149,7 @@ export function CrearTareaWizard({ visible, guardando, onCerrar, onCrear }: {
   const [frecuencia, setFrecuencia] = useState<FrecuenciaTarea>('dias_semana');
   const [diasSemana, setDiasSemana] = useState<number[]>(DIAS_SEMANA);
   const [fechaVencimiento, setFechaVencimiento] = useState<string | null>(OPCIONES_FECHA[0].valor);
+  const [fechaPersonalizada, setFechaPersonalizada] = useState(false);
   const [recordatorioActivo, setRecordatorioActivo] = useState(false);
   const [hora, setHora] = useState('08:00');
   const [horaPersonalizada, setHoraPersonalizada] = useState(false);
@@ -523,46 +524,45 @@ export function CrearTareaWizard({ visible, guardando, onCerrar, onCrear }: {
                   <>
                     <EncabezadoPaso colorMaster={colorMaster} icono="calendario" subtitulo="¿Una vez, o se repite?" titulo="¿Cuándo?" />
                     <View style={{ flexDirection: 'row', gap: 8 }}>
-                      {(['una_vez', 'dias_semana'] as const).map((opcion) => {
-                        const activa = frecuencia === opcion;
-                        return (
-                          <Rebote key={opcion} onPress={() => { hapticSeguro('seleccion'); setFrecuencia(opcion); }} estilo={{ backgroundColor: activa ? '#1A1335' : '#F5F3F9', borderRadius: 13, flex: 1, paddingVertical: 10 }}>
-                            <Texto style={{ color: activa ? '#FFFFFF' : '#554E68', fontFamily: 'Montserrat-Bold', fontSize: 12, textAlign: 'center' }}>{opcion === 'una_vez' ? 'Una vez' : 'Días de la semana'}</Texto>
-                          </Rebote>
-                        );
-                      })}
+                      {(['una_vez', 'dias_semana'] as const).map((opcion) => (
+                        <MasterChip activo={frecuencia === opcion} key={opcion} onPress={() => { hapticSeguro('seleccion'); setFrecuencia(opcion); }} texto={opcion === 'una_vez' ? 'Una vez' : 'Días de la semana'} />
+                      ))}
                     </View>
                     {frecuencia === 'una_vez' ? (
-                      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-                        {OPCIONES_FECHA.map((opcion) => {
-                          const activa = fechaVencimiento === opcion.valor;
-                          return (
-                            <Rebote key={opcion.etiqueta} onPress={() => setFechaVencimiento(opcion.valor)} estilo={{ backgroundColor: activa ? '#1A1335' : '#F5F3F9', borderRadius: 999, paddingHorizontal: 14, paddingVertical: 9 }}>
-                              <Texto style={{ color: activa ? '#FFFFFF' : '#554E68', fontFamily: 'Montserrat-Bold', fontSize: 12 }}>{opcion.etiqueta}</Texto>
-                            </Rebote>
-                          );
-                        })}
-                      </View>
-                    ) : (
-                      <View style={{ gap: 10 }}>
-                        <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                          {DIAS_SEMANA.map((dia, indice) => {
-                            const activo = diasSemana.includes(dia);
+                      <>
+                        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                          {OPCIONES_FECHA.map((opcion) => {
+                            const activa = !fechaPersonalizada && fechaVencimiento === opcion.valor;
                             return (
-                              <Rebote key={dia} onPress={() => toggleDia(dia)} estilo={{ alignItems: 'center', backgroundColor: activo ? color : '#F5F3F9', borderRadius: 15, height: 44, justifyContent: 'center', width: 38 }}>
-                                <Texto style={{ color: activo ? '#FFFFFF' : '#554E68', fontFamily: 'Montserrat-Bold', fontSize: 12 }}>{ETIQUETAS_DIA[indice]}</Texto>
+                              <Rebote key={opcion.etiqueta} onPress={() => { setFechaPersonalizada(false); setFechaVencimiento(opcion.valor); }} estilo={{ backgroundColor: activa ? '#1A1335' : '#F5F3F9', borderRadius: 999, paddingHorizontal: 14, paddingVertical: 9 }}>
+                                <Texto style={{ color: activa ? '#FFFFFF' : '#554E68', fontFamily: 'Montserrat-Bold', fontSize: 12 }}>{opcion.etiqueta}</Texto>
                               </Rebote>
                             );
                           })}
-                        </View>
-                        <View style={{ flexDirection: 'row', gap: 8 }}>
-                          <Rebote estilo={{ backgroundColor: '#F5F3F9', borderRadius: 12, flex: 1, paddingVertical: 10 }} onPress={() => setDiasSemana(DIAS_SEMANA)}>
-                            <Texto style={{ color: '#1A1335', fontFamily: 'Montserrat-Bold', fontSize: 12, textAlign: 'center' }}>Todos los días</Texto>
-                          </Rebote>
-                          <Rebote estilo={{ backgroundColor: '#F5F3F9', borderRadius: 12, flex: 1, paddingVertical: 10 }} onPress={() => setDiasSemana([1, 2, 3, 4, 5])}>
-                            <Texto style={{ color: '#1A1335', fontFamily: 'Montserrat-Bold', fontSize: 12, textAlign: 'center' }}>Días de semana</Texto>
+                          <Rebote onPress={() => setFechaPersonalizada((valor) => !valor)} estilo={{ alignItems: 'center', backgroundColor: fechaPersonalizada ? `${color}16` : '#F5F3F9', borderRadius: 999, flexDirection: 'row', gap: 6, paddingHorizontal: 14, paddingVertical: 9 }}>
+                            <MasterIcon name="calendario" size={14} />
+                            <Texto style={{ color: '#554E68', fontFamily: 'Montserrat-Bold', fontSize: 12 }}>Elegir fecha</Texto>
                           </Rebote>
                         </View>
+                        {fechaPersonalizada && (
+                          <ReanimatedView.View entering={FadeIn.duration(220)}>
+                            <RecuadroGlass blur style={{ borderRadius: 18, borderWidth: 0, padding: 14 }}>
+                              <SelectorFechaCalendario color={color} fechaSeleccionada={fechaVencimiento} onSeleccionar={setFechaVencimiento} />
+                            </RecuadroGlass>
+                          </ReanimatedView.View>
+                        )}
+                      </>
+                    ) : (
+                      <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                        {DIAS_SEMANA.map((dia, indice) => {
+                          const activo = diasSemana.includes(dia);
+                          return (
+                            <Rebote key={dia} onPress={() => toggleDia(dia)} estilo={[{ alignItems: 'center', backgroundColor: '#FFFFFF', borderRadius: 15, height: 58, justifyContent: 'center', width: 38 }, activo && { backgroundColor: color }]}>
+                              <Texto style={[{ color: '#6F687F', fontFamily: 'Montserrat-Bold', fontSize: 12 }, activo && { color: '#FFFFFF' }]}>{ETIQUETAS_DIA[indice]}</Texto>
+                              <View style={[{ backgroundColor: 'rgba(111,104,127,.18)', borderRadius: 3, height: 5, marginTop: 5, width: 5 }, activo && { backgroundColor: '#FFFFFF' }]} />
+                            </Rebote>
+                          );
+                        })}
                       </View>
                     )}
                   </>
@@ -586,18 +586,17 @@ export function CrearTareaWizard({ visible, guardando, onCerrar, onCrear }: {
                           <View style={{ flexDirection: 'row', gap: 8 }}>
                             {['08:00', '13:00', '20:00'].map((valor) => (
                               <Rebote key={valor} onPress={() => { setHora(valor); setHoraPersonalizada(false); }} estilo={{ backgroundColor: !horaPersonalizada && hora === valor ? color : '#FFFFFF', borderRadius: 13, flex: 1, paddingVertical: 10 }}>
-                                <Texto style={{ color: !horaPersonalizada && hora === valor ? '#FFFFFF' : '#1A1335', fontFamily: 'Montserrat-Bold', fontSize: 12, textAlign: 'center' }}>{valor}</Texto>
+                                <Texto style={{ color: !horaPersonalizada && hora === valor ? '#FFFFFF' : '#1A1335', fontFamily: 'Montserrat-Bold', fontSize: 12, textAlign: 'center' }}>{formatoHora12(valor)}</Texto>
                               </Rebote>
                             ))}
                           </View>
-                          <Rebote onPress={() => { setHoraPersonalizada(true); desplazarAlFoco(); }} estilo={{ alignItems: 'center', backgroundColor: horaPersonalizada ? `${color}16` : '#FFFFFF', borderRadius: 14, flexDirection: 'row', gap: 9, justifyContent: 'center', paddingVertical: 12 }}>
+                          <Rebote onPress={() => setHoraPersonalizada(true)} estilo={{ alignItems: 'center', backgroundColor: horaPersonalizada ? `${color}16` : '#FFFFFF', borderRadius: 14, flexDirection: 'row', gap: 9, justifyContent: 'center', paddingVertical: 12 }}>
                             <Clock3 color={color} size={17} /><Texto style={{ color: '#1A1335', fontFamily: 'Montserrat-Bold', fontSize: 13 }}>Otra hora</Texto>
                           </Rebote>
                           {horaPersonalizada && (
                             <ReanimatedView.View entering={FadeIn.duration(220)}>
                               <RecuadroGlass blur style={{ borderRadius: 16, borderWidth: 0, padding: 13 }}>
-                                <TextInput keyboardAppearance="light" keyboardType="numbers-and-punctuation" maxFontSizeMultiplier={TOPE_ESCALA_TEXTO_COMPACTO} maxLength={5} onChangeText={setHora} onFocus={desplazarAlFoco} placeholder="HH:MM" placeholderTextColor="#9A93A8" style={{ backgroundColor: '#FFFFFF', borderRadius: 12, color: horaValida ? '#1A1335' : '#B64747', fontFamily: 'Montserrat-Bold', fontSize: 22, letterSpacing: 1, paddingHorizontal: 13, paddingVertical: 10 }} value={hora} />
-                                <Texto style={{ color: '#7B7494', fontSize: 11, marginTop: 4 }}>{horaValida ? 'Hora válida' : 'Formato HH:MM'}</Texto>
+                                <SelectorHora12 hora={hora} onCambiar={setHora} />
                               </RecuadroGlass>
                             </ReanimatedView.View>
                           )}

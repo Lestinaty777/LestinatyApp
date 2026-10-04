@@ -48,7 +48,9 @@ const BRILLO_PAREDES = [0.58, 0.72, 0.86, 1];
 // desplazándose con la posición y el giro; un leve resplandor central y una
 // franja especular que cruza la cara mientras gira. `luz` apaga la cara
 // cuando se aleja de la luz; `cara` es el pastel del frente o del reverso.
-const NACAR = Skia.RuntimeEffect.Make(`
+// Exportado: SelloExtruido.tsx (Tareas) reusa el mismo shader de nácar — es
+// genérico sobre cualquier contorno, no depende de que sea una mandala.
+export const NACAR = Skia.RuntimeEffect.Make(`
 uniform float2 centro;
 uniform float radio;
 uniform float giro;
@@ -122,11 +124,12 @@ type MandalaExtruidoProps = {
   relieve?: SharedValue<number>;
   /** 0 = de pie, 1 = recostada INCLINACION_MANDALA grados. Sin él, recostada. */
   inclinacion?: SharedValue<number>;
-  /** Simetría radial del contorno. Sin él, PLIEGUES_MANDALA (7, el de Hábitos) — ver PLIEGUES_SELLO en tareas/figuraSello.ts para el sendero de días de Tareas. */
+  /** Simetría radial del contorno, exclusiva de la mandala de Hábitos. Sin él, PLIEGUES_MANDALA (7). */
   pliegues?: number;
 };
 
-function armarPath(poligonos: number[][]): SkPath {
+// Exportado por la misma razón que NACAR — ver comentario arriba.
+export function armarPath(poligonos: number[][]): SkPath {
   'worklet';
   const path = Skia.Path.Make();
   for (let p = 0; p < poligonos.length; p += 1) {
@@ -139,7 +142,7 @@ function armarPath(poligonos: number[][]): SkPath {
   return path;
 }
 
-function armarCuadrilateros(cuadrilateros: number[]): SkPath {
+export function armarCuadrilateros(cuadrilateros: number[]): SkPath {
   'worklet';
   const path = Skia.Path.Make();
   for (let i = 0; i + 7 < cuadrilateros.length; i += 8) {

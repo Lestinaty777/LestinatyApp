@@ -95,6 +95,24 @@ export type TareaHoyDetalle = {
   columnaKanban: string | null;
   completada: boolean;
   racha: number;
+  /** Meta numérica (contador/cronómetro con sendero de días) — 1 para el resto. */
+  objetivoValor: number;
+  unidad: string | null;
+  /**
+   * Progreso actual hacia objetivoValor. Para 'dias_semana' es el valor de
+   * hoy en tareas_registros; para 'una_vez' es tareas_items.valor_actual
+   * (no hay "por día" para algo que pasa una sola vez) — 0 si no hay avance.
+   */
+  valorHoy: number;
+};
+
+// ─── Progreso de una tarea 'una_vez' tipo contador/cronómetro ─────────────
+// Sin niveles, sin figuras, sin gemas — ver registrar_progreso_tarea_unica.
+export type ResultadoProgresoTareaUnica = {
+  id: string;
+  valorActual: number;
+  objetivoValor: number;
+  completada: boolean;
 };
 
 // ─── Completar/descompletar un día ────────────────────────────────────────
@@ -138,8 +156,9 @@ export type PlanTareaResumen = {
 
 // ─── Sendero de días (Fase 8) — espejo de mandalaNodo.tipos.ts, para tareas
 // tipo simple/contador/cronometro con frecuencia='dias_semana'. El trazo es
-// el mismo punto {x,y} genérico; lo que cambia es la simetría con la que se
-// repite (PLIEGUES_SELLO en vez de PLIEGUES_MANDALA, ver figuraSello.ts).
+// el mismo punto {x,y} genérico, pero NO es una mandala (simetría radial):
+// es un único contorno con simetría de espejo horizontal, aristas rectas —
+// ver figuraSello.ts.
 export type EstadoFiguraTarea = 'pendiente' | 'creada';
 
 export type TrazoFigura = { x: number; y: number };

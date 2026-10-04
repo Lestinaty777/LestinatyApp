@@ -35,8 +35,10 @@ function pathDeContornos(trazos: TrazoMandala[], pliegues: number): SkPath | nul
 /**
  * La mandala tal como se traza: cintas blancas con un halo suave. La usan el
  * lienzo en vivo y la mandala que levita, así el relevo al soltar no cambia
- * ni un píxel. `pliegues` por default es PLIEGUES_MANDALA (7, Hábitos); el
- * sendero de días de Tareas pasa PLIEGUES_SELLO (ver figuraSello.ts).
+ * ni un píxel. `pliegues` por default es PLIEGUES_MANDALA (7, Hábitos) — esto
+ * es exclusivo de Hábitos; el sello del sendero de días de Tareas usa su
+ * propio componente, SiluetaSello en EscenarioTrazoSello.tsx (no es una
+ * mandala, no tiene `pliegues`).
  */
 export const CintasBlancas = memo(function CintasBlancas({ aura, pliegues = PLIEGUES_MANDALA, trazos }: { aura: string; pliegues?: number; trazos: TrazoMandala[] }) {
   const path = useMemo(() => pathDeContornos(trazos, pliegues), [trazos, pliegues]);
@@ -73,8 +75,9 @@ const RayosGuia = memo(function RayosGuia({ brillo, pliegues = PLIEGUES_MANDALA 
 });
 
 // Anillo de tinta: se llena alrededor a medida que se gasta el trazo
-// disponible; lleno = ya no queda tinta.
-const AnilloTinta = memo(function AnilloTinta({ color, tinta }: { color: string; tinta: SharedValue<number> }) {
+// disponible; lleno = ya no queda tinta. Exportado: es genérico (no depende
+// de pliegues ni de la geometría de la figura), lo reusa EscenarioTrazoSello.
+export const AnilloTinta = memo(function AnilloTinta({ color, tinta }: { color: string; tinta: SharedValue<number> }) {
   const circulo = useMemo(() => {
     const path = Skia.Path.Make();
     path.addArc({ height: RADIO_TINTA * 2, width: RADIO_TINTA * 2, x: C - RADIO_TINTA, y: C - RADIO_TINTA }, -90, 359.9);
@@ -169,7 +172,7 @@ type EscenarioTrazoProps = {
   brilloRayos: SharedValue<number>;
   colorTinta: string;
   mostrarPista: boolean;
-  /** Simetría radial. Sin él, PLIEGUES_MANDALA (7, Hábitos) — ver PLIEGUES_SELLO para el sendero de días de Tareas. */
+  /** Simetría radial, exclusiva de la mandala de Hábitos. Sin él, PLIEGUES_MANDALA (7). */
   pliegues?: number;
 };
 

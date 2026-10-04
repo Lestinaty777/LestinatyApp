@@ -59,13 +59,13 @@ export function WidgetRegistrarProgreso({
         <View style={s.kickerFila}>
           <View style={[s.kickerPill, { backgroundColor: `${color}15` }]}>
             <Texto style={[s.kickerTexto, { color }]}>
-              {tipoMeta === 'duracion' ? t('habitos.progressWidget.time') : tipoMeta === 'cantidad' ? t('habitos.progressWidget.count') : t('habitos.progressWidget.register')}
+              {tipoMeta === 'duracion' ? t('habitos.crearWizard.progressWidget.time') : tipoMeta === 'cantidad' ? t('habitos.crearWizard.progressWidget.count') : t('habitos.crearWizard.progressWidget.register')}
             </Texto>
           </View>
           {hecho && (
             <View style={s.badgeCompletado}>
               <Check color={"#color"} size={9} strokeWidth={3} />
-              <Texto style={s.badgeCompletadoTexto}>{t('habitos.progressWidget.readyToday')}</Texto>
+              <Texto style={s.badgeCompletadoTexto}>{t('habitos.crearWizard.progressWidget.readyToday')}</Texto>
             </View>
           )}
         </View>
@@ -74,10 +74,10 @@ export function WidgetRegistrarProgreso({
 
         <Texto numberOfLines={1} style={s.sub}>
           {tipoMeta === 'check'
-            ? (hecho ? t('habitos.progressWidget.habitLogged') : t('habitos.progressWidget.tapToMark'))
+            ? (hecho ? t('habitos.crearWizard.progressWidget.habitLogged') : t('habitos.crearWizard.progressWidget.tapToMark'))
             : tipoMeta === 'cantidad'
-            ? t('habitos.progressWidget.goalQuantity', { meta, unit: unidad || t('habitos.progressWidget.defaultUnit') })
-            : t('habitos.progressWidget.goalDuration', { meta })}
+            ? t('habitos.crearWizard.progressWidget.goalQuantity', { meta, unit: unidad || t('habitos.crearWizard.progressWidget.defaultUnit') })
+            : t('habitos.crearWizard.progressWidget.goalDuration', { meta })}
         </Texto>
       </View>
 
@@ -111,7 +111,7 @@ export function WidgetRegistrarProgreso({
 
         {/* Botón cerrar */}
         <Rebote
-          accessibilityLabel={t('habitos.progressWidget.close')}
+          accessibilityLabel={t('habitos.crearWizard.progressWidget.close')}
           hitSlop={8}
           onPress={() => {
             hapticSeguro('seleccion');
@@ -142,7 +142,7 @@ function ControlCheck({
   const hecho = valorInicial > 0;
   return (
     <Rebote
-      accessibilityLabel={hecho ? t('habitos.progressWidget.habitCompleted') : t('habitos.progressWidget.completeHabit')}
+      accessibilityLabel={hecho ? t('habitos.crearWizard.progressWidget.habitCompleted') : t('habitos.crearWizard.progressWidget.completeHabit')}
       disabled={guardando}
       onPress={() => {
         hapticSeguro('confirmacion');
@@ -193,7 +193,7 @@ function ControlContador({
   return (
     <View style={s.contadorFila}>
       <Rebote
-        accessibilityLabel={t('habitos.progressWidget.subtract')}
+        accessibilityLabel={t('habitos.crearWizard.progressWidget.subtract')}
         disabled={guardando || valor <= 0}
         onPress={() => cambiar(-1)}
         estilo={[
@@ -219,7 +219,7 @@ function ControlContador({
       </View>
 
       <Rebote
-        accessibilityLabel={t('habitos.progressWidget.add')}
+        accessibilityLabel={t('habitos.crearWizard.progressWidget.add')}
         disabled={guardando}
         onPress={() => cambiar(1)}
         estilo={[s.botonStepper, { backgroundColor: color, borderColor: color }]}
@@ -279,7 +279,7 @@ function ControlCronometro({
       </View>
 
       <Rebote
-        accessibilityLabel={corriendo ? t('habitos.progressWidget.pauseTimer') : t('habitos.progressWidget.startTimer')}
+        accessibilityLabel={corriendo ? t('habitos.crearWizard.progressWidget.pauseTimer') : t('habitos.crearWizard.progressWidget.startTimer')}
         onPress={alternar}
         estilo={[s.botonStepper, { backgroundColor: 'rgba(255, 255, 255, 0.85)', borderColor: `${color}35` }]}
       >
@@ -291,7 +291,7 @@ function ControlCronometro({
       </Rebote>
 
       <Rebote
-        accessibilityLabel={t('habitos.progressWidget.saveTime')}
+        accessibilityLabel={t('habitos.crearWizard.progressWidget.saveTime')}
         disabled={guardando || segundos === 0}
         onPress={guardar}
         estilo={[

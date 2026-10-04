@@ -11,6 +11,8 @@ type IconoMasterButton = ComponentType<{
 }>;
 
 export type MasterButtonProps = PropsWithChildren<{
+  /** Para botones solo-icono, sin texto (children) que ya lo describa. */
+  accessibilityLabel?: string;
   /** Cara superior saturada; normalmente el color real del nodo o hábito. */
   color: string;
   /** Extrusión inferior. Si se omite, se obtiene al oscurecer `color`. */
@@ -41,6 +43,7 @@ function oscurecer(color: string, factor = 0.52) {
  * A diferencia de `Boton`, su paleta completa es configurable por llamada.
  */
 export function MasterButton({
+  accessibilityLabel,
   children,
   color,
   colorBisel = 'rgba(255,255,255,0.42)',
@@ -62,6 +65,7 @@ export function MasterButton({
 
   return (
     <Pressable
+      accessibilityLabel={accessibilityLabel}
       accessibilityRole="button"
       disabled={disabled}
       onPress={() => { hapticSeguro('accion'); onPress?.(); }}

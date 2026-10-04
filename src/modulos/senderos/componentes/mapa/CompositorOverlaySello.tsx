@@ -11,28 +11,31 @@ import { useEscala } from '../../../../diseno/tema/MasterColorContext';
 import { hapticSeguro } from '../../../../nucleo/dispositivo/haptics';
 import { LADO_LIENZO_MANDALA, RADIO_TRAZO_MANDALA } from '../../../habitos/componentes/MandalaExtruido';
 import { ParticulasMandala } from '../../../habitos/componentes/ParticulasMandala';
-import { haVistoPistaTrazoMandala, marcarPistaTrazoMandalaVista } from '../../../habitos/pistaTrazoMandala';
-import { PLIEGUES_SELLO } from '../../../tareas/figuraSello';
+import { cercaniaLineaGuiaSello, RADIO_FIGURA_SELLO, restringirAMitadInferior } from '../../../tareas/figuraSello';
 import { guardarFiguraTareaRegistro } from '../../../tareas/tareas.servicio';
 import type { TrazoFigura } from '../../../tareas/tareas.tipos';
 import { CAMARA_MAPA } from './camaraMapa';
-import { CintasBlancas, EscenarioTrazo } from './EscenarioTrazo';
+import { EscenarioTrazoSello, SiluetaSello } from './EscenarioTrazoSello';
 
 /**
  * Fork de CompositorOverlay.tsx (el ritual del mandala de Hábitos) para el
- * sendero de días de Tareas (Fase 8): mismo mecanismo de trazo + levitación +
+ * sendero de días de Tareas (Fase 8): mismo mecanismo de levitación +
  * descenso + fusión, apuntado a `guardar_figura_tarea_registro` en vez de
- * `guardar_mandala_registro`, y con PLIEGUES_SELLO (6) en vez de
- * PLIEGUES_MANDALA (7) para que la figura se lea visualmente distinta.
+ * `guardar_mandala_registro`. El trazo en sí YA NO es una mandala (simetría
+ * radial): el usuario dibuja una sola vez, solo en la mitad de abajo del
+ * lienzo, entre dos anclas fijas, y la mitad de arriba es su espejo exacto —
+ * ver figuraSello.ts y EscenarioTrazoSello.tsx.
  *
  * Se forkeó en vez de generalizar CompositorOverlay.tsx in-place porque ese
  * archivo corre hoy en producción para Hábitos y está fuertemente acoplado
  * vía imports directos (guardarMandalaRegistro, tipos, pista) — mismo
  * criterio que ya se usó para no compartir las animaciones "sensibles" del
  * wizard de hábitos con CrearTareaHoja.tsx. Lo genuinamente genérico
- * (geometría del trazo, extrusión/nácar, partículas, pista "ya vista") se
- * sigue importando tal cual del módulo de hábitos — solo se duplica el
- * pegamento de interacción + guardado + textos.
+ * (extrusión/nácar, partículas) se sigue importando tal cual del módulo de
+ * hábitos — solo se duplica el pegamento de interacción + guardado + textos.
+ *
+ * Nota: a diferencia del mandala, acá no hay "mano fantasma" (tutorial
+ * animado de primera vez) — se dejó fuera a propósito, es una pieza aparte.
  */
 export type DestinoMapa = { x: number; y: number; tamano: number };
 
@@ -62,19 +65,13 @@ function longitudTrazo(puntos: TrazoFigura[]) {
   return total;
 }
 
-function limitarAlAnillo(p: TrazoFigura): TrazoFigura {
+// Confina el punto al radio del lienzo Y a la mitad de abajo (nunca puede
+// cruzar la línea central): por construcción, el contorno espejado nunca se
+// autointersecta — ver figuraSello.ts.
+function limitarPunto(p: TrazoFigura): TrazoFigura {
   const d = Math.hypot(p.x, p.y);
-  if (d <= RADIO_TRAZO_MANDALA) return p;
-  const k = RADIO_TRAZO_MANDALA / d;
-  return { x: p.x * k, y: p.y * k };
-}
-
-// Qué tan cerca de un rayo guía pasa el dedo: 1 encima, 0 a medio camino.
-function cercaniaRayo(p: TrazoFigura) {
-  const sector = (Math.PI * 2) / PLIEGUES_SELLO;
-  const angulo = ((Math.atan2(p.y, p.x) % sector) + sector) % sector;
-  const d = Math.min(angulo, sector - angulo);
-  return Math.max(0, 1 - d / (sector / 2));
+  const enRadio = d <= RADIO_TRAZO_MANDALA ? p : { x: (p.x * RADIO_TRAZO_MANDALA) / d, y: (p.y * RADIO_TRAZO_MANDALA) / d };
+  return restringirAMitadInferior(enRadio);
 }
 
 type CompositorOverlaySelloProps = {
@@ -102,7 +99,6 @@ export function CompositorOverlaySello({ color, medirDestino, onAnclado, onCance
   const [trazoFinal, setTrazoFinal] = useState<TrazoFigura[] | null>(null);
   const [charco, setCharco] = useState<{ x: number; y: number; ancho: number } | null>(null);
   const [dims, setDims] = useState({ alto: 0, ancho: 0 });
-  const [mostrarPista, setMostrarPista] = useState(false);
 
   const dimsRef = useRef(dims);
   const trazandoRef = useRef(false);
@@ -119,7 +115,7 @@ export function CompositorOverlaySello({ color, medirDestino, onAnclado, onCance
   const salida = useSharedValue(1);
   const polvo = useSharedValue(0);
   const tinta = useSharedValue(0);
-  const brilloRayos = useSharedValue(0);
+  const brilloLineaGuia = useSharedValue(0);
   const escala = useSharedValue(1);
   const escalaDestino = useSharedValue(ESCALA_LEVITACION);
   const flotar = useSharedValue(0);
@@ -143,7 +139,6 @@ export function CompositorOverlaySello({ color, medirDestino, onAnclado, onCance
     velo.value = withTiming(VELO_TRAZO, { duration: 420, easing: Easing.out(Easing.quad) });
     textos.value = withDelay(120, withTiming(1, { duration: 420 }));
     polvo.value = withDelay(200, withTiming(1, { duration: 900 }));
-    haVistoPistaTrazoMandala().then((vista) => { if (!vista && montadoRef.current && puntosRef.current.length === 0) setMostrarPista(true); }, () => undefined);
     return () => {
       montadoRef.current = false;
       temporizadoresRef.current.forEach(clearTimeout);
@@ -177,17 +172,13 @@ export function CompositorOverlaySello({ color, medirDestino, onAnclado, onCance
     setPuntos(siguientes);
     tinta.value = Math.min(1, longitudTrazo(siguientes) / TOPE_LONGITUD);
     const ultimo = siguientes[siguientes.length - 1];
-    brilloRayos.value = ultimo ? cercaniaRayo(ultimo) : 0;
+    brilloLineaGuia.value = ultimo ? cercaniaLineaGuiaSello(ultimo, RADIO_FIGURA_SELLO) : 0;
   }
 
   function iniciarTrazo(x: number, y: number) {
     if (faseRef.current !== 'trazando') return;
     trazandoRef.current = true;
-    if (mostrarPista) {
-      setMostrarPista(false);
-      void marcarPistaTrazoMandalaVista().catch(() => undefined);
-    }
-    actualizarPuntos([limitarAlAnillo({ x, y })]);
+    actualizarPuntos([limitarPunto({ x, y })]);
   }
 
   function agregarPunto(x: number, y: number) {
@@ -197,7 +188,7 @@ export function CompositorOverlaySello({ color, medirDestino, onAnclado, onCance
     const largoActual = longitudTrazo(actuales);
     if (largoActual >= TOPE_LONGITUD) return;
     const ultimo = actuales[actuales.length - 1];
-    const siguiente = limitarAlAnillo({ x, y });
+    const siguiente = limitarPunto({ x, y });
     const paso = distancia(ultimo, siguiente);
     if (largoActual + paso >= TOPE_LONGITUD) {
       const k = paso > 0 ? Math.max(0, TOPE_LONGITUD - largoActual) / paso : 0;
@@ -388,11 +379,11 @@ export function CompositorOverlaySello({ color, medirDestino, onAnclado, onCance
             {fase === 'trazando' || !trazoFinal ? (
               <GestureDetector gesture={gesto}>
                 <View style={styles.superficie}>
-                  <EscenarioTrazo brilloRayos={brilloRayos} colorTinta={aura} mostrarPista={mostrarPista} pliegues={PLIEGUES_SELLO} puntos={puntos} tinta={tinta} />
+                  <EscenarioTrazoSello brilloLineaGuia={brilloLineaGuia} colorTinta={aura} puntos={puntos} tinta={tinta} />
                 </View>
               </GestureDetector>
             ) : (
-              <CintasBlancas aura={aura} pliegues={PLIEGUES_SELLO} trazos={trazoFinal} />
+              <SiluetaSello aura={aura} trazoInferior={trazoFinal} />
             )}
           </Animated.View>
         )}

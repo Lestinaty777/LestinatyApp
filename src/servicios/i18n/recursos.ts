@@ -61,6 +61,41 @@ export const recursosI18n = {
         signup: 'Could not create the account.',
         updatePassword: 'Could not update the password.',
       },
+      planes: {
+        pantalla: {
+          saludo: 'Hello,', titulo: 'Plans', comprarGemas: 'Buy gems', notificaciones: 'Notifications', volverAlInicio: 'Back to home',
+          misPlanes: 'My plans', vacioTitulo: 'No plans yet', vacioDescripcion: 'Create one by hand, or let Aby build it with you.',
+          recordatoriosProximamente: 'Reminders for plans are coming soon.', compartidosProximamente: 'Shared plans are coming soon.',
+          access: {
+            progresion: { label: 'My plans', description: 'Everything, including finished plans' },
+            creacion: { label: 'Create', description: 'Start a new plan' },
+            recordatorios: { label: 'Reminders', description: 'Coming soon' },
+            compartidos: { label: 'Shared', description: 'Coming soon' },
+          },
+        },
+        tarjeta: { nivel: 'Lv. {{nivel}}', progreso: '{{completadas}}/{{total}} done' },
+        ritmo: { adelantado: 'Ahead', a_tiempo: 'On track', atrasado: 'Behind', sin_fecha: '' },
+        crear: {
+          titulo: 'New plan', manual: 'By hand', manualDescripcion: 'Just a title — add sections as you go.',
+          ia: 'With Aby', iaDescripcion: 'Describe your goal and Aby builds the first steps.',
+          tituloPlaceholder: 'Plan name…', descripcionPlaceholder: 'Short description (optional)…',
+          objetivoPlaceholder: 'E.g. "Build an app in 30 days"…',
+          bloquesPorDia: 'Blocks per day', generando: 'Generating…', generar: 'Generate with Aby',
+          errorGenerar: 'Aby could not prepare this. Try again.', confirmar: 'Create this plan', cancelar: 'Cancel', continuar: 'Continue',
+          eleccionSubtitulo: 'Choose how to build it — you can add more detail later.',
+          identidadTitulo: 'What is it called?', identidadSubtitulo: 'The name you will see every time.',
+          objetivoSubtitulo: 'Tell Aby what you want to achieve.',
+          revisionTitulo: 'All set', revisionManualSubtitulo: 'This is how your plan looks.',
+          revisionManualNota: 'Add sections, days and steps afterwards, from the plan itself.',
+        },
+        detalle: {
+          sinSecciones: 'This plan has no sections yet.', detallarSeccion: 'Detail this section',
+          diaNumero: 'Day {{numero}}', momento: { manana: 'Morning', tarde: 'Afternoon', noche: 'Evening' },
+          contextoTitulo: 'How did it go?', contextoDescripcion: 'Tell Aby how the previous section went, or what to focus on now.',
+          contextoPlaceholder: 'E.g. "I finished the setup, now I want to focus on the UI"…',
+          revisionTitulo: 'Here is the plan for this section', pasosTitulo: 'Add a few steps',
+        },
+      },
       tareas: {
         pantalla: {
           volverAlInicio: 'Back to Home',
@@ -98,16 +133,19 @@ export const recursosI18n = {
         // ver el comentario de cabecera de ese archivo: nada de esto llama a
         // ningún backend todavía.
         pantallaCompleta: {
-          streakLabel: 'Best streak', noStreak: 'No streak yet',
+          quickAdd: {
+            addItem: 'Add step', checklist: 'Checklist', checklistSubtitle: 'Step by step',
+            checklistTitlePlaceholder: 'Checklist name…', itemPlaceholder: 'Step {{count}}',
+            placeholder: 'Quick add a task…', simple: 'Quick task', simpleSubtitle: 'One tap to add',
+          },
           todayTasks: 'Tasks today', viewToday: 'Today',
           todayCompleted: '{{completed}} of {{total}} completed',
           todayEmptyTitle: 'Nothing due today', todayEmptyDescription: 'Enjoy the clear day, or create a new task.',
-          streakDays: '{{count}} day streak', oneTime: '1 time', repeats: 'Repeats',
+          streakDays: '{{count}} day streak', oneTime: '1 time', repeats: 'Repeats', quickComplete: 'Mark complete',
           access: {
             progresion: { label: 'My Tasks', description: 'Everything you have to do' },
             creacion: { label: 'Create', description: 'Add a new task' },
             recordatorios: { label: 'Reminders', description: 'Do not forget' },
-            insights: { label: 'Insights', description: 'Patterns and risk' },
           },
           viewProgress: 'My Tasks', viewReminders: 'Reminders',
           view: { lista: 'List', kanban: 'Kanban', eisenhower: 'Eisenhower' },
@@ -556,6 +594,8 @@ export const recursosI18n = {
           title: 'Your Insights',
           subtitle: 'Analyze your progress and discover patterns.',
           notificationsAccessibility: 'Notifications',
+          habitsTab: 'Habits',
+          tasksTab: 'Tasks',
         },
         reflection: {
           defaultMessage: 'I am gathering your data so I can support you better.',
@@ -1048,6 +1088,41 @@ export const recursosI18n = {
         signup: 'No se pudo crear la cuenta.',
         updatePassword: 'No se pudo actualizar la contrasena.',
       },
+      planes: {
+        pantalla: {
+          saludo: 'Hola,', titulo: 'Planes', comprarGemas: 'Comprar gemas', notificaciones: 'Notificaciones', volverAlInicio: 'Volver al inicio',
+          misPlanes: 'Mis planes', vacioTitulo: 'Todavía no tenés planes', vacioDescripcion: 'Creá uno a mano, o dejá que Aby lo arme con vos.',
+          recordatoriosProximamente: 'Los recordatorios de planes llegan pronto.', compartidosProximamente: 'Los planes compartidos llegan pronto.',
+          access: {
+            progresion: { label: 'Mis planes', description: 'Todos, incluidos los ya terminados' },
+            creacion: { label: 'Crear', description: 'Armá un plan nuevo' },
+            recordatorios: { label: 'Recordatorios', description: 'Muy pronto' },
+            compartidos: { label: 'Compartidos', description: 'Muy pronto' },
+          },
+        },
+        tarjeta: { nivel: 'Niv. {{nivel}}', progreso: '{{completadas}}/{{total}} hechos' },
+        ritmo: { adelantado: 'Adelantado', a_tiempo: 'A tiempo', atrasado: 'Atrasado', sin_fecha: '' },
+        crear: {
+          titulo: 'Nuevo plan', manual: 'A mano', manualDescripcion: 'Solo el título — agregás secciones después.',
+          ia: 'Con Aby', iaDescripcion: 'Contale tu objetivo y Aby arma los primeros pasos.',
+          tituloPlaceholder: 'Nombre del plan…', descripcionPlaceholder: 'Descripción corta (opcional)…',
+          objetivoPlaceholder: 'Ej. "Crear una app en 30 días"…',
+          bloquesPorDia: 'Bloques por día', generando: 'Generando…', generar: 'Generar con Aby',
+          errorGenerar: 'Aby no pudo preparar esto. Intentalo de nuevo.', confirmar: 'Crear este plan', cancelar: 'Cancelar', continuar: 'Continuar',
+          eleccionSubtitulo: 'Elegí cómo armarlo — podés agregar más detalle después.',
+          identidadTitulo: '¿Cómo se llama?', identidadSubtitulo: 'El nombre que vas a ver cada vez.',
+          objetivoSubtitulo: 'Contale a Aby qué querés lograr.',
+          revisionTitulo: 'Todo listo', revisionManualSubtitulo: 'Así queda tu plan.',
+          revisionManualNota: 'Agregás secciones, días y pasos después, desde el plan mismo.',
+        },
+        detalle: {
+          sinSecciones: 'Este plan todavía no tiene secciones.', detallarSeccion: 'Detallar esta sección',
+          diaNumero: 'Día {{numero}}', momento: { manana: 'Mañana', tarde: 'Tarde', noche: 'Noche' },
+          contextoTitulo: '¿Cómo te fue?', contextoDescripcion: 'Contale a Aby cómo te fue en la sección anterior, o en qué enfocarte ahora.',
+          contextoPlaceholder: 'Ej. "Terminé el setup, ahora quiero enfocarme en la UI"…',
+          revisionTitulo: 'Así queda el plan de esta sección', pasosTitulo: 'Agregá algunos pasos',
+        },
+      },
       tareas: {
         pantalla: {
           volverAlInicio: 'Volver a Inicio',
@@ -1082,16 +1157,19 @@ export const recursosI18n = {
           proximamente: { titulo: 'Próximamente', descripcion: 'Esta vista está en camino.' },
         },
         pantallaCompleta: {
-          streakLabel: 'Mejor racha', noStreak: 'Todavía sin racha',
+          quickAdd: {
+            addItem: 'Agregar paso', checklist: 'Checklist', checklistSubtitle: 'Paso a paso',
+            checklistTitlePlaceholder: 'Nombre de la checklist…', itemPlaceholder: 'Paso {{count}}',
+            placeholder: 'Anotar una tarea rápida…', simple: 'Tarea rápida', simpleSubtitle: 'Un toque y listo',
+          },
           todayTasks: 'Tareas hoy', viewToday: 'Hoy',
           todayCompleted: '{{completed}} de {{total}} completadas',
           todayEmptyTitle: 'Nada pendiente hoy', todayEmptyDescription: 'Disfrutá el día libre, o creá una nueva tarea.',
-          streakDays: '{{count}} días seguidos', oneTime: '1 vez', repeats: 'Se repite',
+          streakDays: '{{count}} días seguidos', oneTime: '1 vez', repeats: 'Se repite', quickComplete: 'Marcar como hecho',
           access: {
             progresion: { label: 'Mis Tareas', description: 'Todo lo que tenés que hacer' },
             creacion: { label: 'Crear', description: 'Agregá una nueva tarea' },
             recordatorios: { label: 'Recordatorios', description: 'Que no se te olvide' },
-            insights: { label: 'Insights', description: 'Patrones y riesgo' },
           },
           viewProgress: 'Mis Tareas', viewReminders: 'Recordatorios',
           view: { lista: 'Lista', kanban: 'Kanban', eisenhower: 'Eisenhower' },
@@ -1540,6 +1618,8 @@ export const recursosI18n = {
           title: 'Tus Insights',
           subtitle: 'Analiza tu progreso y descubre patrones.',
           notificationsAccessibility: 'Notificaciones',
+          habitsTab: 'Hábitos',
+          tasksTab: 'Tareas',
         },
         reflection: {
           defaultMessage: 'Estoy reuniendo tus datos para poder acompañarte mejor.',

@@ -7,16 +7,17 @@ import { BlurMask, Canvas, Group, Oval } from '@shopify/react-native-skia';
 import { Texto } from '../../../../diseno';
 import { useEscala } from '../../../../diseno/tema/MasterColorContext';
 import { hapticSeguro } from '../../../../nucleo/dispositivo/haptics';
-import { ANGULO_REPOSO_MANDALA, MandalaExtruido } from '../../../habitos/componentes/MandalaExtruido';
+import { ANGULO_REPOSO_MANDALA } from '../../../habitos/componentes/MandalaExtruido';
 import { ParticulasMandala, RafagaParticulas } from '../../../habitos/componentes/ParticulasMandala';
-import { PLIEGUES_SELLO } from '../../../tareas/figuraSello';
+import { SelloExtruido } from '../../../tareas/componentes/SelloExtruido';
 import type { FiguraTareaNodo } from '../../../tareas/tareas.tipos';
 import { PedestalBase, PedestalBotonSuperior } from './PedestalNodo';
 
 /**
  * Fork de NodoMandalaPedestal.tsx para el sendero de días de Tareas (Fase 8):
- * mismo pedestal + mismo motor de extrusión (MandalaExtruido, ya genérico vía
- * su prop `pliegues`), con PLIEGUES_SELLO (6) en vez de PLIEGUES_MANDALA (7).
+ * mismo pedestal, pero el sólido es SelloExtruido (figura de espejo, aristas
+ * rectas) en vez de MandalaExtruido (pétalos curvos rotados) — ver
+ * figuraSello.ts para por qué dejaron de ser la misma geometría.
  */
 const TAMANO_PEDESTAL = 84;
 export const TAMANO_FIGURA_PEDESTAL = 64;
@@ -181,7 +182,7 @@ export const NodoFiguraPedestal = forwardRef<View, NodoFiguraPedestalProps>(func
         <View collapsable={false} pointerEvents="none" ref={refAncla} style={styles.ancla}>
           {creada && !oculta && figura.trazos && (
             <Animated.View style={[styles.surgir, estiloSurgir]}>
-              <MandalaExtruido color={color} giro={giro} paqueteId={figura.paqueteId} pliegues={PLIEGUES_SELLO} tamano={TAMANO_FIGURA_PEDESTAL} trazos={figura.trazos} />
+              <SelloExtruido color={color} giro={giro} paqueteId={figura.paqueteId} tamano={TAMANO_FIGURA_PEDESTAL} trazos={figura.trazos} />
             </Animated.View>
           )}
         </View>

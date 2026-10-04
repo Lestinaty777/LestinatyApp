@@ -7,7 +7,7 @@ import { mapearPanelTareas } from './tareas.mapper';
 import { calcularRachaTarea, estaProgramadaEnFecha } from './tareaProgramada';
 import type {
   CrearTareaInput, EditarTareaInput, EstadoTarea, FiguraTareaNodo, FrecuenciaTarea, MejorRachaTarea, PanelTareas,
-  PlanTareaResumen, ResultadoCompletarTarea, ResultadoGuardarFiguraTarea, ResultadoRegistroTarea, SubitemTarea, Tarea, TareaHoyDetalle, TipoTarea, TrazoFigura,
+  PlanTareaResumen, ResultadoCompletarTarea, ResultadoGuardarFiguraTarea, ResultadoProgresoTareaUnica, ResultadoRegistroTarea, SubitemTarea, Tarea, TareaHoyDetalle, TipoTarea, TrazoFigura,
 } from './tareas.tipos';
 
 // A diferencia de hábitos (que pasa todo por RPCs porque tiene reglas de
@@ -237,6 +237,18 @@ export async function registrarProgresoTarea(input: { tareaId: string; fechaLoca
   };
 }
 
+// Contraparte de registrarProgresoTarea para contador/cronómetro 'una_vez' —
+// el progreso vive en tareas_items.valor_actual, no en tareas_registros (no
+// hay "por día" para algo que pasa una sola vez). Sin niveles, sin figuras,
+// sin gemas — registrar_progreso_tarea_unica rechaza cualquier tarea
+// 'dias_semana' (esa usa registrar_progreso_tarea de arriba).
+export async function registrarProgresoTareaUnica(tareaId: string, valor: number): Promise<ResultadoProgresoTareaUnica> {
+  const { data, error } = await obtenerClienteSupabase().rpc('registrar_progreso_tarea_unica', { p_tarea_id: tareaId, p_valor: valor });
+  if (error) throw error;
+  const fila = data as { id: string; valor_actual: number; objetivo_valor: number; completada: boolean };
+  return { completada: fila.completada, id: fila.id, objetivoValor: Number(fila.objetivo_valor), valorActual: Number(fila.valor_actual) };
+}
+
 // ─── Creación premium (Fase 8) — espejo de crearHabito/crear_habito_premium.
 // Reemplaza al insert directo de crearTarea solo en el wizard nuevo
 // (CrearTareaWizard.tsx, Fase 8.5); crearTarea/editarTarea no se tocan.
@@ -293,38 +305,62 @@ export async function obtenerPanelTareas(fecha?: string): Promise<PanelTareas> {
 // Sin RPC (igual criterio que obtenerHabitosActivos): RLS ya limita a lo
 // propio, así que se lee directo y se calcula acá qué tareas "tocan hoy" y
 // cuál es la racha de cada una.
+// simple/contador/cronometro con frecuencia='dias_semana' usan el sendero de
+// días (registrar_progreso_tarea): "completada" ahí es alcanzar la meta
+// numérica, no solo que exista un registro — mismo criterio que la función
+// SQL (ver privacidad.registrar_progreso_tarea, v_cumple_meta).
+const TIPOS_SENDERO_DIAS: readonly TipoTarea[] = ['simple', 'contador', 'cronometro'];
+function usaSenderoDeDias(item: { frecuencia: FrecuenciaTarea; tipo: TipoTarea }): boolean {
+  return item.frecuencia === 'dias_semana' && TIPOS_SENDERO_DIAS.includes(item.tipo);
+}
+
 export async function obtenerTareasHoy(referencia = new Date()): Promise<TareaHoyDetalle[]> {
   const supabase = obtenerClienteSupabase();
   const hoy = fechaLocalDe(referencia);
   const desdeRacha = fechaLocalDe(new Date(referencia.getTime() - VENTANA_RACHA_DIAS * 86400000));
 
   const [{ data: items, error: errorItems }, { data: registros, error: errorRegistros }] = await Promise.all([
-    supabase.from('tareas_items').select('id,titulo,descripcion,icono_lucide,color,tipo,frecuencia,dias_semana,fecha_vencimiento,prioridad,columna_kanban').neq('estado', 'archivada'),
-    supabase.from('tareas_registros').select('tarea_id,fecha_local').gte('fecha_local', desdeRacha).lte('fecha_local', hoy),
+    supabase.from('tareas_items').select('id,titulo,descripcion,icono_lucide,color,tipo,frecuencia,dias_semana,fecha_vencimiento,prioridad,columna_kanban,objetivo_valor,unidad,estado,valor_actual').neq('estado', 'archivada').order('orden', { ascending: true }),
+    supabase.from('tareas_registros').select('tarea_id,fecha_local,valor').gte('fecha_local', desdeRacha).lte('fecha_local', hoy),
   ]);
   if (errorItems) throw errorItems;
   if (errorRegistros) throw errorRegistros;
 
-  type FilaItemHoy = { id: string; titulo: string; descripcion: string | null; icono_lucide: string | null; color: string | null; tipo: TipoTarea; frecuencia: FrecuenciaTarea; dias_semana: number[] | null; fecha_vencimiento: string | null; prioridad: Tarea['prioridad']; columna_kanban: string | null };
+  type FilaItemHoy = { id: string; titulo: string; descripcion: string | null; icono_lucide: string | null; color: string | null; tipo: TipoTarea; frecuencia: FrecuenciaTarea; dias_semana: number[] | null; fecha_vencimiento: string | null; prioridad: Tarea['prioridad']; columna_kanban: string | null; objetivo_valor: number; unidad: string | null; estado: EstadoTarea; valor_actual: number };
   const todosItems = (items ?? []) as FilaItemHoy[];
-  const todosRegistros = (registros ?? []) as { tarea_id: string; fecha_local: string }[];
+  const todosRegistros = (registros ?? []) as { tarea_id: string; fecha_local: string; valor: number | null }[];
 
   return todosItems
     .filter((item) => estaProgramadaEnFecha({ diasSemana: item.dias_semana, fechaVencimiento: item.fecha_vencimiento, frecuencia: item.frecuencia }, hoy))
     .map((item): TareaHoyDetalle => {
-      const fechasCompletadas = new Set(todosRegistros.filter((registro) => registro.tarea_id === item.id).map((registro) => registro.fecha_local));
+      const registrosTarea = todosRegistros.filter((registro) => registro.tarea_id === item.id);
+      const fechasCompletadas = new Set(registrosTarea.map((registro) => registro.fecha_local));
+      // 'una_vez' no usa tareas_registros en absoluto — ni completar_tarea_dia
+      // (actualiza tareas_items.estado/completada_en directo) ni el progreso
+      // de contador/cronómetro (tareas_items.valor_actual, ver
+      // registrar_progreso_tarea_unica). Mirar tareas_registros ahí siempre
+      // daría 0/falso, sin importar el avance real.
+      const valorHoy = item.frecuencia === 'una_vez'
+        ? item.valor_actual
+        : registrosTarea.find((registro) => registro.fecha_local === hoy)?.valor ?? 0;
+      const completada = item.frecuencia === 'una_vez'
+        ? item.estado === 'hecha'
+        : usaSenderoDeDias(item) ? valorHoy >= item.objetivo_valor : fechasCompletadas.has(hoy);
       return {
         color: item.color,
         columnaKanban: item.columna_kanban,
-        completada: fechasCompletadas.has(hoy),
+        completada,
         descripcion: item.descripcion,
         frecuencia: item.frecuencia,
         iconoLucide: item.icono_lucide,
         id: item.id,
+        objetivoValor: item.objetivo_valor,
         prioridad: item.prioridad,
         racha: calcularRachaTarea({ diasSemana: item.dias_semana, fechaVencimiento: item.fecha_vencimiento, frecuencia: item.frecuencia }, fechasCompletadas, referencia),
         tipo: item.tipo,
         titulo: item.titulo,
+        unidad: item.unidad,
+        valorHoy,
       };
     });
 }
