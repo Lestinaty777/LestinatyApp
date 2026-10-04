@@ -126,6 +126,11 @@ Los toggles actuales Hábitos/Tareas de Hoy se retiran. Las pantallas de Hábito
 - La lista de Rutinas se agrupa con las mismas secciones de franja que Hoy.
 - "Estudio" deja de ser un momento y queda como una plantilla de creación, no como un valor de datos.
 
+### Planes (`planes_bloques.momento`)
+
+- Ya usa `manana`, `tarde`, `noche` con un `check` de texto. No se migra a `franja_dia` en esta fase: los códigos son idénticos, así que un bloque de plan se puede tratar como franja sin conversión. Unificar el tipo queda para una limpieza posterior.
+- Los bloques de plan no entran en Hoy en la primera versión (ver decisión pendiente del plan).
+
 ### Visión (`docs/vision/lestinaty-vision.md`)
 
 - Nueva fila en la hoja de ruta: franjas del día, entre Tareas y Rutinas.

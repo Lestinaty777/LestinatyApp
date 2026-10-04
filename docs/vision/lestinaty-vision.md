@@ -105,10 +105,10 @@ Voxel/isométrico, mapas, árboles, caminos, nodos, mundos y pequeñas animacion
 | 2 | Tareas con modos (simple, checklist, contador, cronómetro) | En curso (rama `mejoras`) |
 | 3 | **Franjas del día** (mañana, tarde, noche) para hábitos, tareas y rutinas | Spec: `2026-10-04-franjas-del-dia-design.md` |
 | 4 | **Rutinas** que agrupan hábitos y tareas | Spec: `2026-10-04-rutinas-design.md` |
-| 5 | Planes por días/secciones (Senderos de etapas) | Pendiente |
+| 5 | Planes por días/secciones (Senderos de etapas) | Hecho en `mejoras`: módulo Planes con generación por Aby y bloques mañana/tarde/noche |
 | 6 | Modelo unificado de Sendero + dependencias entre nodos | Pendiente (spec propio) |
 | 7 | Aby genera Senderos reales (planes y rutinas) | Parcial: estudio |
-| 8 | Cooperativo | Pendiente |
+| 8 | Cooperativo | Base lista en Planes (instancias por persona); falta compartir y dependencias |
 | 9 | Cursos propios publicados y vendidos | Pendiente |
 | 10 | Marketplace | Solo tras validar la fase 9 |
 
