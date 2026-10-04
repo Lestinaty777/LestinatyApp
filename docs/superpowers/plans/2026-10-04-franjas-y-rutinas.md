@@ -8,6 +8,27 @@ Este documento tiene dos partes. **La Parte 1 es para ti** (dirección y funció
 
 # PARTE 1 — Para ti: dirección y función
 
+## Avance (2026-10-04, noche)
+
+**Hecho en `mejoras`:** la pantalla de Rutinas con datos reales y su backend, más la base de franjas.
+
+- **Pantalla de Rutinas** con tema Ignate y cuatro accesos: **Mis rutinas**, **Crear**, **Recordatorios** y **Plantillas** (esta última la elegí yo: empezar de cero es difícil y las plantillas ayudan). Arriba, la vista **Hoy** con los 4 botones de franja (Mañana, Tarde, Noche, Todo).
+- **Asistente de creación:** nombre y momento, pasos (hábito tuyo, tarea tuya o paso propio con simple/cronómetro/contador), días y recordatorio, y revisión. Si el recordatorio cae en otra franja que la elegida, te lo sugiere sin cambiarlo solo.
+- **Probado de verdad:** corrí las migraciones 01 a 71 completas en un Postgres local y pasó el nuevo smoke SQL (permisos entre cuentas, límites, estados de pasos, franjas). También pasan `typecheck` y los 560 tests automáticos.
+
+**Lo que todavía no hace (decisión mía para esta primera entrega, dime si no te gusta):**
+
+- Los pasos que son **hábito o tarea** se ven con su estado, pero se completan desde Hábitos o Tareas. Solo los **pasos propios** se marcan desde la rutina. La pantalla de ejecución paso a paso (con cronómetro y contador reales) es la etapa D.
+- En **Recordatorios** puedes activar el aviso y elegir la hora, y queda guardado, pero **el envío real de la notificación aún no está conectado**. La pantalla lo avisa con una línea de texto.
+- Las franjas todavía no están en los asistentes de **hábito y tarea**, ni en **Hoy**. Es la etapa E.
+- Una rutina completa no da gemas (como acordamos).
+
+**Lo que tienes que hacer tú ahora:**
+
+1. Aplicar en tu proyecto de Supabase las migraciones `20261004_69`, `70` y `71`, en ese orden.
+2. Correr `supabase/tests/09_franjas_rutinas.sql` con `psql` contra tu base (hace rollback, no deja datos).
+3. Abrir la app y probar la pestaña Rutinas: crear una, usar una plantilla, marcar un paso propio, activar un recordatorio. Yo no puedo abrir la app nativa, así que **el aspecto visual (sobre todo el rojo Ignate y el contraste del texto) no está verificado**.
+
 ## Actualización tras tu commit `0194f44` (Planes y sendero de días en Tareas)
 
 Tu commit cambia varias cosas del plan. Lo importante:
@@ -43,10 +64,10 @@ Tus cambios locales sin commitear no los puedo ver, porque solo existen en tu co
 
 | Etapa | Qué ves tú | Riesgo para lo existente |
 | --- | --- | --- |
-| A. Base de franjas | Nada visible todavía | Ninguno |
-| B. Backend de Rutinas | Nada visible todavía | Ninguno (se eliminan campos sin uso) |
-| C. Pantalla de Rutinas | La pestaña Rutinas con datos reales, con el mismo estilo que Hábitos y Tareas | Bajo |
-| D. Crear rutinas y ejecutarlas | Wizard para crear una rutina y pantalla para hacerla paso a paso | Bajo |
+| A. Base de franjas | Nada visible todavía | Ninguno — **hecha** (migración 69 y lógica; tipos de hábito/tarea pendientes) |
+| B. Backend de Rutinas | Nada visible todavía | Ninguno — **hecha** (migraciones 70 y 71; `routine_id` se borra después) |
+| C. Pantalla de Rutinas | La pestaña Rutinas con datos reales, con el mismo estilo que Hábitos y Tareas | Bajo — **hecha**, falta tu prueba en dispositivo |
+| D. Crear rutinas y ejecutarlas | Wizard para crear una rutina y pantalla para hacerla paso a paso | Bajo — **wizard hecho**; falta la pantalla de ejecución |
 | E. Franjas en wizards y en Hoy | Selector de franja al crear hábito o tarea, y Hoy con los 4 botones | Medio: toca pantallas que ya usas |
 | F. Ajustes de franjas e insights | Cambiar las horas de mañana/tarde/noche y ver en qué franja cumples más | Bajo |
 
@@ -86,6 +107,28 @@ Gemas por rutina, rutinas compartidas o cooperativas, planes dentro de Hoy, ruti
 # PARTE 2 — Técnico (para mí)
 
 Rama de trabajo: `mejoras`. Un commit por paso, push al terminar cada etapa. No abrir PR salvo que se pida. Mensajes de commit con las líneas de atribución indicadas en la sesión.
+
+## Estado técnico de la ejecución (2026-10-04)
+
+Hecho y verificado (typecheck limpio, 95 archivos / 560 tests, SQL probado en Postgres 16 local con stubs de Supabase):
+
+- **A1** `20261004_69_franjas_del_dia.sql`. **A2** `src/compartido/utilidades/franjas.ts` (+ tests; `franja_de_hora` SQL y `franjaDeHora` TS dan lo mismo para las 24 horas).
+- **B1/B2** `20261004_70_rutinas_nucleo.sql`, `20261004_71_rutinas_rpcs.sql`. **B3** `src/modulos/rutinas/` (tipos, mapper, servicio, `estadoRutina.ts`, `plantillasRutinas.ts`, `formatoRutina.ts`, tests). **B4** `supabase/tests/09_franjas_rutinas.sql`.
+- **C** `RutinasPantalla` + `componentes/` (`TarjetaRutinaHoy`, `ListaRutinasHoy`, `ListaMisRutinas`, `ListaRecordatoriosRutinas`, `PlantillasRutinasLista`, `CrearRutinaWizard`) y `SelectorFranja` en `src/diseno/componentes/`. i18n ES/EN en `recursos.ts` con test de paridad y de claves usadas.
+
+Bug real encontrado probando el SQL: un `check` con `char_length(trim(titulo)) between 1 and 80` deja pasar `titulo null` (el check evalúa a null). Corregido con `titulo is not null`. Aplica a cualquier check futuro con columnas anulables.
+
+Decisiones de implementación que se apartan del plan original:
+
+- `rutinas_items.franja` usa el dominio `public.franja_dia` (migración 69).
+- **No** se tocó `Tarea`/`tareas.servicio.ts` (`COLUMNAS`) ni los planes de hábito: añadir `franja` al `select` antes de aplicar la migración 69 rompería Tareas. Va en la etapa E junto con la migración ya aplicada.
+- **`routine_id` no se borra todavía** (el cliente lo lee). Se borra cuando se limpie `tareas.servicio.ts`.
+- RPCs implementados: `obtener_rutinas_hoy`, `crear_rutina`, `completar_paso_propio_rutina`. Pendientes: `actualizar_rutina`, `iniciar_rutina`/cierre de sesión (`rutinas_registros` existe pero nadie escribe en ella aún). Recordatorio y archivado son `update` directo sobre `rutinas_items` (RLS).
+- Estado de los pasos (`aplica`/`completo`/`valor`) lo calcula SQL (`obtener_rutinas_hoy`); en TS `estadoRutina.ts` solo resume. Por eso los tests de estado por origen viven en el smoke SQL, no en vitest.
+- Etapa E, aviso: las RPCs de planes de hábito están en `privacidad` (security definer: `crear_habito_premium`, `actualizar_plan_habito`, migración 15); `habitos_planes` no admite escritura directa del cliente.
+- Etapa D pendiente: ejecutor paso a paso, `actualizar_rutina`, edición de rutina, envío real de recordatorios (catálogo de notificaciones + cola + Edge Function).
+- `supabase/resumen.md` quedó desactualizado desde la migración 23 (no lo toqué).
+- Entorno de pruebas: Postgres 16 local en `/var/lib/postgresql/lt` (puerto 55432), fuera del repo; script de reconstrucción en el scratchpad de la sesión.
 
 ## Estado verificado del repo
 

@@ -1,237 +1,366 @@
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { Bell, BookOpen, Calendar, Check, ChevronLeft, Clock3, Flame, Moon, Plus, Sparkles, Sun, TrendingUp } from 'lucide-react-native';
-import { useState } from 'react';
-import { Alert, Image, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { ChevronLeft } from 'lucide-react-native';
+import { useMemo, useState } from 'react';
+import { Image, Linking, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Boton, RecuadroGlass, Texto } from '../../../diseno';
+import {
+  contarPendientesPorFiltro, filtrarPorFranja, franjaActual, type FiltroFranja,
+} from '../../../compartido/utilidades/franjas';
+import { MasterButton, MasterGlass, MasterIcon, MasterIconBg, MasterProgressbar, Rebote, SelectorFranja, Texto } from '../../../diseno';
+import type { EscalaMaster } from '../../../diseno/tema/escalaEsmeralda';
+import { useEscala, useTonoMaster } from '../../../diseno/tema/MasterColorContext';
 import { hapticSeguro } from '../../../nucleo/dispositivo/haptics';
+import { TonoDelHabito } from '../../habitos/componentes/TonoDelHabito';
+import { obtenerHabitosActivos } from '../../habitos/habitos.servicio';
 import { AuroraBoreal } from '../../hoy/componentes/AuroraBoreal';
+import { obtenerAssetsPaquete } from '../../senderos/algoritmo/registroPaquetesArbol';
+import { obtenerTareas } from '../../tareas/tareas.servicio';
 import { useSaldoGemas } from '../../tienda/useSaldoGemas';
+import { CrearRutinaWizard } from '../componentes/CrearRutinaWizard';
+import { ListaMisRutinas } from '../componentes/ListaMisRutinas';
+import { ListaRecordatoriosRutinas } from '../componentes/ListaRecordatoriosRutinas';
+import { ListaRutinasHoy } from '../componentes/ListaRutinasHoy';
+import { PlantillasRutinasLista } from '../componentes/PlantillasRutinasLista';
+import { estaPendienteHoy, resumirDiaRutinas, siguientePaso } from '../estadoRutina';
+import type { PlantillaRutina } from '../plantillasRutinas';
+import {
+  actualizarRecordatorioRutina, archivarRutina, completarPasoPropioRutina, CLAVE_RUTINAS, crearRutina, obtenerRutinasHoy,
+} from '../rutinas.servicio';
+import type { CrearRutinaInput, PasoRutina, Rutina } from '../rutinas.tipos';
 
-const C = { texto: '#1A1335', tenue: '#7B7494', rojo: '#EF4444', morado: '#7C3AED', barra: '#F3DEDD', glass: 'rgba(255,255,255,0.72)', glassBorde: 'rgba(255,255,255,0.85)' };
+// Tema Ignate (rojo saturado) fijo para todo el módulo — mismo mecanismo que
+// Tareas (golden) y Planes (aurelia): TonoDelHabito reemplaza la escala de
+// color que lee el resto del árbol. #90010D es el master_pack_color real de
+// "ignate" en arboles_paquetes (migración 28).
+const PAQUETE_RUTINAS = 'ignate';
+const COLOR_PAQUETE_RUTINAS = '#90010D';
 
-type Momento = 'manana' | 'estudio' | 'noche';
-type RutinaMock = { id: string; titulo: string; pasos: number; minutos: number; racha: number; completada: boolean; momento: Momento; Icono: typeof Sun; color: string };
-
-const MOMENTOS: { id: Momento; etiqueta: string; Icono: typeof Sun }[] = [
-  { id: 'manana', etiqueta: 'Mañana', Icono: Sun },
-  { id: 'estudio', etiqueta: 'Estudio', Icono: BookOpen },
-  { id: 'noche', etiqueta: 'Noche', Icono: Moon },
-];
-
+type VistaPanel = 'hoy' | 'progresion' | 'recordatorios' | 'plantillas';
+const ICONOS_VISTA: Record<VistaPanel, string> = { hoy: 'sol', progresion: 'progreso', recordatorios: 'reloj', plantillas: 'metas' };
 const ACCESOS = [
-  { id: 'programacion', etiqueta: 'Programación', descripcion: 'Cuándo realizarlas', Icono: Calendar },
-  { id: 'creacion', etiqueta: 'Creación', descripcion: 'Arma una nueva', Icono: Sparkles },
-  { id: 'recordatorios', etiqueta: 'Recordatorios', descripcion: 'Que no se te olvide', Icono: Bell },
-  { id: 'insights', etiqueta: 'Insights', descripcion: 'Tu consistencia', Icono: TrendingUp },
+  { id: 'progresion', nombreIcono: 'progreso' }, { id: 'creacion', nombreIcono: 'idea' },
+  { id: 'recordatorios', nombreIcono: 'reloj' }, { id: 'plantillas', nombreIcono: 'metas' },
 ] as const;
+const FILTROS = ['manana', 'tarde', 'noche', 'todo'] as const;
 
-const RUTINAS_INICIALES: RutinaMock[] = [
-  { id: 'manana', titulo: 'Rutina de la mañana', pasos: 5, minutos: 35, racha: 12, completada: true, momento: 'manana', Icono: Sun, color: '#F97316' },
-  { id: 'estudio', titulo: 'Rutina de estudio', pasos: 4, minutos: 50, racha: 8, completada: true, momento: 'estudio', Icono: BookOpen, color: '#EC4899' },
-  { id: 'noche', titulo: 'Rutina nocturna', pasos: 4, minutos: 25, racha: 4, completada: false, momento: 'noche', Icono: Moon, color: '#8B5CF6' },
-];
-
-// Mismo layout superior que HabitosPantalla/HoyPantalla: aurora, header con
-// volver+saludo+gemas, hero con racha + progreso del día + ilustración.
-// Datos de "hoy" son de muestra: el backend de rutinas todavía no existe
-// (generaliza el core de hábitos cuando se construya).
 export function RutinasPantalla() {
+  return (
+    <TonoDelHabito colorPaquete={COLOR_PAQUETE_RUTINAS} paqueteId={PAQUETE_RUTINAS}>
+      <RutinasPantallaContenido />
+    </TonoDelHabito>
+  );
+}
+
+function RutinasPantallaContenido() {
+  const esc = useEscala();
+  const s = useEstilos();
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const cliente = useQueryClient();
   const { data: saldoGemas } = useSaldoGemas();
-  const [rutinas, setRutinas] = useState(RUTINAS_INICIALES);
-  const [filtro, setFiltro] = useState<Momento | 'todas'>('todas');
+  const { acento } = useTonoMaster();
+  const [vistaPanel, setVistaPanel] = useState<VistaPanel>('hoy');
+  // Arranca en la franja de "ahora" y no se guarda: el botón existe para
+  // mostrar lo que toca en este momento. Tampoco cambia solo si la persona
+  // eligió otra a mano.
+  const [filtro, setFiltro] = useState<FiltroFranja>(() => franjaActual());
+  const [crearAbierto, setCrearAbierto] = useState(false);
+  const [plantilla, setPlantilla] = useState<PlantillaRutina | null>(null);
+  const [pasoEnCursoId, setPasoEnCursoId] = useState<string | null>(null);
+  const [recordatorioEnCursoId, setRecordatorioEnCursoId] = useState<string | null>(null);
 
-  const completadas = rutinas.filter((rutina) => rutina.completada).length;
-  const porcentaje = rutinas.length ? Math.round(completadas * 100 / rutinas.length) : 0;
-  const visibles = filtro === 'todas' ? rutinas : rutinas.filter((rutina) => rutina.momento === filtro);
-  const siguiente = rutinas.find((rutina) => !rutina.completada);
+  const consulta = useQuery({ queryKey: CLAVE_RUTINAS, queryFn: obtenerRutinasHoy });
+  // Solo hacen falta al armar una rutina (para elegir hábitos y tareas como pasos).
+  const consultaHabitos = useQuery({ enabled: crearAbierto, queryKey: ['habitos', 'activos'], queryFn: () => obtenerHabitosActivos() });
+  const consultaTareas = useQuery({ enabled: crearAbierto, queryKey: ['tareas', 'lista'], queryFn: () => obtenerTareas() });
+  const tareasElegibles = useMemo(
+    () => (consultaTareas.data ?? []).filter((tarea) => tarea.estado === 'pendiente' || (tarea.estado === 'hecha' && tarea.frecuencia === 'dias_semana')),
+    [consultaTareas.data],
+  );
 
-  function alternar(id: string) {
-    hapticSeguro('accion');
-    setRutinas((actual) => actual.map((rutina) => (rutina.id === id ? { ...rutina, completada: !rutina.completada } : rutina)));
-  }
+  const rutinas = consulta.data ?? [];
+  const rutinasHoy = useMemo(() => rutinas.filter((rutina) => rutina.estado === 'activa' && rutina.tocaHoy), [rutinas]);
+  const rutinasActivas = useMemo(() => rutinas.filter((rutina) => rutina.estado !== 'archivada'), [rutinas]);
+  const conteos = useMemo(() => contarPendientesPorFiltro(rutinasHoy, estaPendienteHoy), [rutinasHoy]);
+  const visibles = useMemo(() => filtrarPorFranja(rutinasHoy, filtro), [rutinasHoy, filtro]);
+  const dia = useMemo(() => resumirDiaRutinas(rutinas), [rutinas]);
+  const proxima = useMemo(() => rutinasHoy.find(estaPendienteHoy) ?? null, [rutinasHoy]);
+  const pasoProximo = proxima ? siguientePaso(proxima.pasos) : null;
 
-  function alternarFiltro(momento: Momento) {
-    hapticSeguro('seleccion');
-    setFiltro((actual) => (actual === momento ? 'todas' : momento));
-  }
+  const assets = useMemo(() => obtenerAssetsPaquete(PAQUETE_RUTINAS), []);
+  const refrescar = () => cliente.invalidateQueries({ queryKey: CLAVE_RUTINAS });
 
-  function nuevaRutina() {
-    hapticSeguro('seleccion');
-    Alert.alert('Muy pronto', 'Crear rutinas propias llega junto con su sendero de niveles.');
+  const crear = useMutation({ mutationFn: (input: CrearRutinaInput) => crearRutina(input), onSuccess: refrescar });
+  const alternarPaso = useMutation({
+    mutationFn: ({ paso }: { paso: PasoRutina }) => {
+      setPasoEnCursoId(paso.id);
+      return completarPasoPropioRutina(paso.id, paso.completo ? 0 : paso.objetivoValor ?? 1);
+    },
+    onSuccess: () => { hapticSeguro('confirmacion'); return refrescar(); },
+    onError: (error) => { console.error('[rutinas] no se pudo marcar el paso', error); hapticSeguro('impacto'); },
+    onSettled: () => setPasoEnCursoId(null),
+  });
+  const cambiarRecordatorio = useMutation({
+    mutationFn: ({ cambios, rutina }: { cambios: { activo: boolean; hora: string | null }; rutina: Rutina }) => {
+      setRecordatorioEnCursoId(rutina.id);
+      return actualizarRecordatorioRutina(rutina.id, cambios);
+    },
+    onSuccess: refrescar,
+    onSettled: () => setRecordatorioEnCursoId(null),
+  });
+  const archivar = useMutation({ mutationFn: (rutina: Rutina) => archivarRutina(rutina.id), onSuccess: refrescar });
+
+  function abrirCreacion(desde: PlantillaRutina | null = null) {
+    setPlantilla(desde);
+    setCrearAbierto(true);
   }
 
   function abrirAcceso(id: (typeof ACCESOS)[number]['id']) {
     hapticSeguro('seleccion');
-    if (id === 'programacion') {
-      const etiquetas: Record<Momento, string> = { manana: 'Mañana', estudio: 'Estudio', noche: 'Noche' };
-      const horario = rutinas.map((rutina) => `${rutina.titulo} — ${etiquetas[rutina.momento]} · ${rutina.minutos} min`).join('\n');
-      Alert.alert('Programación', horario);
-      return;
+    if (id === 'creacion') { abrirCreacion(); return; }
+    setVistaPanel((actual) => (actual === id ? 'hoy' : id));
+  }
+
+  const etiquetasFiltro = Object.fromEntries(FILTROS.map((f) => [f, t(`rutinas.franjas.${f}`)])) as Record<FiltroFranja, string>;
+
+  const estadoCarga = consulta.isLoading
+    ? <Texto style={s.vacioTexto}>{t('rutinas.pantalla.cargando')}</Texto>
+    : consulta.isError
+      ? <Pressable accessibilityRole="button" onPress={() => consulta.refetch()}><Texto style={s.error}>{t('rutinas.pantalla.errorCargar')}</Texto></Pressable>
+      : null;
+
+  function vacioHoy() {
+    if (rutinas.length === 0) {
+      return (
+        <View style={s.vacio}>
+          <Texto style={s.vacioTitulo}>{t('rutinas.pantalla.vacioTitulo')}</Texto>
+          <Texto style={s.vacioTexto}>{t('rutinas.pantalla.vacioDescripcion')}</Texto>
+          <MasterButton color={acento} onPress={() => abrirCreacion()}>{t('rutinas.pantalla.access.creacion.label')}</MasterButton>
+        </View>
+      );
     }
-    if (id === 'creacion') {
-      nuevaRutina();
-      return;
+    if (rutinasHoy.length === 0) {
+      return (
+        <View style={s.vacio}>
+          <Texto style={s.vacioTitulo}>{t('rutinas.pantalla.nadaHoyTitulo')}</Texto>
+          <Texto style={s.vacioTexto}>{t('rutinas.pantalla.nadaHoyDescripcion')}</Texto>
+        </View>
+      );
     }
-    if (id === 'recordatorios') {
-      Alert.alert('Muy pronto', 'Vas a poder elegir a qué hora te avisamos de cada rutina.');
-      return;
-    }
-    Alert.alert('Muy pronto', 'Insights va a juntar tu progreso, tus rachas y tus logros en un solo lugar.');
+    return (
+      <View style={s.vacio}>
+        <Texto style={s.vacioTitulo}>{t('rutinas.pantalla.vacioFranjaTitulo')}</Texto>
+        <Texto style={s.vacioTexto}>{t('rutinas.pantalla.vacioFranjaDescripcion')}</Texto>
+        <MasterButton color={acento} onPress={() => setFiltro('todo')}>{t('rutinas.pantalla.verTodo')}</MasterButton>
+      </View>
+    );
   }
 
   return (
-    <View style={s.raiz}>
-      <ScrollView contentContainerStyle={[s.contenido, { paddingBottom: insets.bottom + 100 }]} showsVerticalScrollIndicator={false}>
-        <View style={[s.superiorInicio, { paddingTop: insets.top + 32 }]}>
-          <AuroraBoreal tema="rojo" />
-          <View style={s.headerInicio}>
-            <View style={s.headerTitulo}>
-              <RecuadroGlass style={s.volverGlass}><Pressable accessibilityLabel="Volver a Inicio" hitSlop={12} onPress={() => router.replace('/hoy')} style={s.chevronInicio}><ChevronLeft color={C.texto} size={25} strokeWidth={2.7} /></Pressable></RecuadroGlass>
-              <View style={s.headerIzq}>
-                <View style={s.nombreFila}><Image source={require('../../../../assets/icons/hoy/rutinas.png')} style={s.saludoIcono} /><Texto style={s.headerNombre}>Rutinas</Texto></View>
-                <Texto style={s.headerFrase}>Hazlo en orden. Hazlo sencillo.</Texto>
+    <>
+      <LinearGradient colors={[esc.hoja.l99, esc.hoja.l95, esc.hoja.l91]} end={{ x: 0, y: 1 }} start={{ x: 0, y: 0 }} style={s.raiz}>
+        <ScrollView contentContainerStyle={[s.contenido, { paddingBottom: insets.bottom + 100 }]} showsVerticalScrollIndicator={false}>
+          <View style={[s.superiorInicio, { paddingTop: insets.top + 32 }]}>
+            <AuroraBoreal tema="rojo" />
+            <View style={s.headerInicio}>
+              <View style={s.headerTitulo}>
+                <Pressable accessibilityLabel={t('rutinas.pantalla.volverAlInicio')} accessibilityRole="button" onPress={() => router.navigate('/(principal)/hoy')} style={s.botonVolver}>
+                  <ChevronLeft color={acento} size={24} />
+                </Pressable>
+                <View style={s.headerIzq}>
+                  <View style={s.nombreFila}>
+                    <Image source={require('../../../../assets/icons/hoy/rutinas.png')} style={s.saludoIcono} />
+                    <Texto style={s.headerNombre}>{t('rutinas.pantalla.titulo')}</Texto>
+                  </View>
+                  <Texto style={s.headerFrase}>{t('rutinas.pantalla.frase')}</Texto>
+                </View>
+              </View>
+              <View style={s.headerDer}>
+                <Rebote accessibilityLabel={t('rutinas.pantalla.comprarGemas')} estilo={s.statPill} onPress={() => router.navigate('/(principal)/tienda')}>
+                  <View style={s.statPillFila}><Image source={require('../../../../assets/icons/hoy/gemas.png')} style={s.gemaIcono} /><Texto style={s.statTexto}>{saldoGemas ?? 0}</Texto></View>
+                </Rebote>
+                <Rebote accessibilityLabel={t('rutinas.pantalla.notificaciones')} onPress={() => Linking.openSettings()}>
+                  <MasterGlass style={s.notificacion}><Image source={require('../../../../assets/icons/hoy/notificaciones.png')} style={s.notificacionIcono} /></MasterGlass>
+                </Rebote>
               </View>
             </View>
-            <View style={s.headerDer}>
-              <RecuadroGlass style={s.statPill}><Image source={require('../../../../assets/icons/hoy/gemas.png')} style={s.gemaIcono} /><Texto style={s.statTexto}>{saldoGemas ?? 0}</Texto></RecuadroGlass>
-              <RecuadroGlass style={s.notificacion}><Image source={require('../../../../assets/icons/hoy/notificaciones.png')} style={s.notificacionIcono} /></RecuadroGlass>
-            </View>
-          </View>
 
-          <View style={s.heroInicio}>
-            <View style={s.heroColIzq}>
-              <RecuadroGlass style={s.diaCard}>
-                <Texto style={s.diaLabel}>Tu día</Texto>
-                <View style={s.bloquesFila}>
-                  {MOMENTOS.map((momento) => {
-                    const rutinasMomento = rutinas.filter((rutina) => rutina.momento === momento.id);
-                    const listo = rutinasMomento.length > 0 && rutinasMomento.every((rutina) => rutina.completada);
-                    const activo = filtro === momento.id;
-                    const colorIcono = listo ? '#FFFFFF' : activo ? C.rojo : '#B7B0C9';
-                    return (
-                      <Pressable key={momento.id} onPress={() => alternarFiltro(momento.id)} style={s.bloque}>
-                        <View style={[s.bloqueIcono, listo && s.bloqueIconoListo, activo && s.bloqueIconoActivo]}>
-                          <momento.Icono color={colorIcono} size={16} />
-                        </View>
-                        <Texto style={[s.bloqueTexto, activo && { color: C.rojo }]}>{momento.etiqueta}</Texto>
-                      </Pressable>
-                    );
-                  })}
+            <View style={s.heroInicio}>
+              <View style={s.heroColIzq}>
+                <MasterGlass style={s.nivelCard}>
+                  <MasterIcon alTema name="trofeo" size={26} />
+                  <View style={s.nivelInfo}>
+                    <View style={s.nivelTexto}><Texto style={s.nivelLabel}>{t('rutinas.pantalla.rutinasHoy')}</Texto><Texto style={s.nivelXP}>{dia.completadasHoy}/{dia.totalHoy}</Texto></View>
+                    <MasterProgressbar altura={10} porcentaje={dia.porcentaje} style={s.barraMaster} />
+                  </View>
+                </MasterGlass>
+                {proxima ? (
+                  <MasterGlass style={s.siguienteCard}>
+                    <Texto numberOfLines={1} style={s.siguienteTitulo}>{proxima.titulo}</Texto>
+                    {pasoProximo ? <Texto numberOfLines={2} style={s.siguienteSub}>{t('rutinas.tarjeta.siguiente', { titulo: pasoProximo.titulo })}</Texto> : null}
+                  </MasterGlass>
+                ) : null}
+              </View>
+              {assets ? <View style={s.heroColDer}><View style={s.ilustracionContenedor}><Image resizeMode="cover" source={assets.etapas[6]} style={s.ilustracion} /></View></View> : null}
+            </View>
+
+            <View style={s.accesosFila}>
+              {ACCESOS.map((acceso) => (
+                <View key={acceso.id} style={s.accesoTarjeta}>
+                  <Rebote accessibilityLabel={t(`rutinas.pantalla.access.${acceso.id}.label`)} onPress={() => abrirAcceso(acceso.id)}>
+                    <MasterGlass style={s.accesoGlass}>
+                      <MasterIcon alTema name={acceso.nombreIcono} size={32} />
+                      <View style={s.accesoTexto}>
+                        <Texto adjustsFontSizeToFit minimumFontScale={0.8} numberOfLines={1} style={s.accesoEtiqueta}>{t(`rutinas.pantalla.access.${acceso.id}.label`)}</Texto>
+                        <Texto numberOfLines={2} style={s.accesoDescripcion}>{t(`rutinas.pantalla.access.${acceso.id}.description`)}</Texto>
+                      </View>
+                    </MasterGlass>
+                  </Rebote>
                 </View>
-              </RecuadroGlass>
-              <RecuadroGlass style={s.nivelCard}>
-                <Image source={require('../../../../assets/icons/hoy/insignia.png')} style={s.insignia} />
-                <View style={s.nivelInfo}><View style={s.nivelTexto}><Texto style={s.nivelLabel}>Rutinas hoy</Texto><Texto style={s.nivelXP}>{completadas}/{rutinas.length}</Texto></View><Progreso porcentaje={porcentaje} color={C.rojo} /></View>
-              </RecuadroGlass>
-            </View>
-            <View style={s.heroColDer}>
-              <View style={s.ilustracionContenedor}><Image resizeMode="contain" source={require('../../../../assets/ilustraciones/senderos/biomas/arboles/arce-01.png')} style={s.ilustracion} /></View>
+              ))}
             </View>
           </View>
 
-          <View style={s.accesosFila}>
-            {ACCESOS.map((acceso) => (
-              <Pressable key={acceso.id} onPress={() => abrirAcceso(acceso.id)} style={s.accesoTarjeta}>
-                <RecuadroGlass style={s.accesoGlass}>
-                  <View style={s.accesoIcono}><acceso.Icono color={C.rojo} size={16} strokeWidth={2.2} /></View>
-                  <Texto numberOfLines={1} style={s.accesoEtiqueta}>{acceso.etiqueta}</Texto>
-                  <Texto numberOfLines={2} style={s.accesoDescripcion}>{acceso.descripcion}</Texto>
-                </RecuadroGlass>
-              </Pressable>
-            ))}
-          </View>
+          <MasterGlass style={s.panel}>
+            {vistaPanel === 'hoy' ? (
+              <View style={s.encabezadoHoy}>
+                <View style={s.encabezadoHoyFila}>
+                  {assets ? <MasterIconBg size={70}><Image resizeMode="contain" source={assets.arbusto} style={{ height: 58, width: 58 }} /></MasterIconBg> : null}
+                  <View style={{ flex: 1 }}>
+                    <Texto style={s.encabezadoHoyTitulo}>{t('rutinas.pantalla.vistaHoy')}</Texto>
+                    <Texto style={s.encabezadoHoyCompletadas}>{t('rutinas.pantalla.completadasHoy', { completed: dia.completadasHoy, total: dia.totalHoy })}</Texto>
+                    <View style={s.encabezadoHoyProgresoFila}>
+                      <MasterProgressbar altura={10} porcentaje={dia.porcentaje} style={s.encabezadoHoyBarra} />
+                      <Texto style={[s.encabezadoHoyPorcentaje, { color: acento }]}>{dia.porcentaje}%</Texto>
+                    </View>
+                  </View>
+                </View>
+              </View>
+            ) : (
+              <View style={s.tituloFila}>
+                <View style={s.tituloConIcono}>
+                  <MasterIcon alTema name={ICONOS_VISTA[vistaPanel]} size={22} />
+                  <Texto style={s.titulo}>{t(vistaPanel === 'progresion' ? 'rutinas.pantalla.vistaProgresion' : vistaPanel === 'recordatorios' ? 'rutinas.pantalla.vistaRecordatorios' : 'rutinas.pantalla.vistaPlantillas')}</Texto>
+                </View>
+              </View>
+            )}
 
-        </View>
-
-        <RecuadroGlass style={s.panel}>
-          <View style={s.tituloFila}><Texto style={s.tituloPanel}>Hoy</Texto><Texto style={s.contador}>{completadas}/{rutinas.length} completadas</Texto></View>
-          {visibles.map((rutina) => (
-            <Pressable key={rutina.id} onPress={() => alternar(rutina.id)} style={s.fila}>
-              <View style={[s.checkCirculo, rutina.completada && { backgroundColor: C.rojo, borderColor: C.rojo }]}>{rutina.completada && <Check color="#FFFFFF" size={14} strokeWidth={3} />}</View>
-              <View style={[s.icono, { backgroundColor: `${rutina.color}18` }]}><rutina.Icono color={rutina.color} size={20} /></View>
-              <View style={{ flex: 1 }}><Texto style={s.filaTitulo}>{rutina.titulo}</Texto><Texto style={s.filaMeta}>{rutina.pasos} pasos · {rutina.minutos} min</Texto></View>
-              <View style={s.rachaPill}><Flame color="#F97316" size={13} fill="#F97316" /><Texto style={s.rachaPillTexto}>{rutina.racha}</Texto></View>
-            </Pressable>
-          ))}
-          <Boton color={C.rojo} iconoIzquierda={Plus} onPress={nuevaRutina} style={s.nuevo} variante="sendero">Nueva rutina</Boton>
-        </RecuadroGlass>
-
-        {siguiente && (
-          <RecuadroGlass style={s.nudge}>
-            <View style={[s.icono, { backgroundColor: `${siguiente.color}18` }]}><siguiente.Icono color={siguiente.color} size={22} /></View>
-            <View style={{ flex: 1 }}><Texto style={s.nudgeLabel}>Siguiente rutina</Texto><Texto style={s.nudgeTitulo}>{siguiente.titulo}</Texto></View>
-          </RecuadroGlass>
-        )}
-      </ScrollView>
-    </View>
+            {vistaPanel === 'plantillas' ? (
+              <PlantillasRutinasLista color={acento} onElegir={(elegida) => abrirCreacion(elegida)} />
+            ) : estadoCarga ?? (
+              <>
+                {vistaPanel === 'hoy' && (
+                  <>
+                    <View style={s.selectorFranja}>
+                      <SelectorFranja
+                        color={acento}
+                        conteos={conteos}
+                        etiquetaAccesible={(f, pendientes) => t('rutinas.franjas.pendientes', { count: pendientes, franja: etiquetasFiltro[f] })}
+                        etiquetas={etiquetasFiltro}
+                        onCambiar={setFiltro}
+                        valor={filtro}
+                      />
+                    </View>
+                    {visibles.length === 0 ? vacioHoy() : (
+                      <ListaRutinasHoy
+                        color={acento}
+                        filtro={filtro}
+                        onAlternarPaso={(_rutina, paso) => { if (paso.origen === 'propio' && paso.aplica) alternarPaso.mutate({ paso }); }}
+                        pasoEnCursoId={pasoEnCursoId}
+                        rutinas={visibles}
+                      />
+                    )}
+                  </>
+                )}
+                {vistaPanel === 'progresion' && <ListaMisRutinas onArchivar={(rutina) => archivar.mutate(rutina)} rutinas={rutinasActivas} />}
+                {vistaPanel === 'recordatorios' && (
+                  <ListaRecordatoriosRutinas
+                    color={acento}
+                    error={cambiarRecordatorio.isError}
+                    guardandoId={recordatorioEnCursoId}
+                    onCambiar={(rutina, cambios) => cambiarRecordatorio.mutate({ cambios, rutina })}
+                    rutinas={rutinasActivas}
+                  />
+                )}
+              </>
+            )}
+          </MasterGlass>
+        </ScrollView>
+      </LinearGradient>
+      <CrearRutinaWizard
+        color={acento}
+        guardando={crear.isPending}
+        habitos={consultaHabitos.data ?? []}
+        onCerrar={() => setCrearAbierto(false)}
+        onCrear={async (input) => { await crear.mutateAsync(input); }}
+        plantilla={plantilla}
+        tareas={tareasElegibles}
+        visible={crearAbierto}
+      />
+    </>
   );
 }
 
-function Progreso({ porcentaje, color }: { porcentaje: number; color: string }) { return <View style={s.barraFondo}><View style={[s.barra, { width: `${porcentaje}%`, backgroundColor: color }]} /></View>; }
+const C = { texto: '#1A1335', tenue: '#7B7494', glass: 'rgba(255,255,255,0.72)', glassBorde: 'rgba(255,255,255,0.85)' };
 
-const s = StyleSheet.create({
-  raiz: { backgroundColor: '#EAEAEA', flex: 1 },
-  contenido: { gap: 16, paddingBottom: 0 },
-  superiorInicio: { gap: 0 },
-  volverGlass: { backgroundColor: C.glass, borderColor: C.glassBorde, borderRadius: 18, borderWidth: 1, marginRight: 5 },
-  chevronInicio: { alignItems: 'center', height: 34, justifyContent: 'center', width: 34 },
+// Mismo esqueleto visual que TareasPantalla/HabitosPantalla; se copia el
+// subconjunto que Rutinas usa en vez de exportarlo desde Tareas para no tocar
+// esa pantalla.
+const crearEstilos = (esc: EscalaMaster) => StyleSheet.create({
+  raiz: { flex: 1 }, contenido: { gap: 16, paddingBottom: 0 }, superiorInicio: { gap: 0 },
+  botonVolver: { alignItems: 'center', height: 34, justifyContent: 'center', marginRight: 2, width: 30 },
   headerInicio: { alignItems: 'flex-start', flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16, paddingHorizontal: 20 },
-  headerTitulo: { alignItems: 'center', flexDirection: 'row', width: '50%' },
-  headerIzq: { flex: 1 },
+  headerTitulo: { alignItems: 'center', flexDirection: 'row', width: '50%' }, headerIzq: { flex: 1 },
   nombreFila: { alignItems: 'center', flexDirection: 'row', gap: 6 },
-  headerNombre: { color: C.texto, fontFamily: 'Montserrat-Bold', fontSize: 22, lineHeight: 26 },
+  headerNombre: { color: C.texto, fontFamily: 'MontserratAlternates-Bold', fontSize: 22, lineHeight: 26 },
   saludoIcono: { height: 28, resizeMode: 'contain', width: 28 },
-  headerFrase: { color: '#5A5A5A', fontFamily: 'MontserratAlternates-Medium', fontSize: 8, lineHeight: 12, marginTop: 4 },
+  headerFrase: { color: '#5A5A5A', fontFamily: 'MontserratAlternates-Medium', fontSize: 10, lineHeight: 13, marginTop: 3 },
   headerDer: { alignItems: 'center', flexDirection: 'row', gap: 8, marginTop: -16 },
-  statPill: { alignItems: 'center', backgroundColor: C.glass, borderColor: C.glassBorde, borderRadius: 20, borderWidth: 1, flexDirection: 'row', gap: 4, paddingHorizontal: 10, paddingVertical: 6 },
-  gemaIcono: { height: 22, resizeMode: 'contain', width: 22 },
-  statTexto: { color: '#6D28D9', fontFamily: 'Montserrat-Bold', fontSize: 14 },
-  notificacion: { backgroundColor: C.glass, borderColor: C.glassBorde, borderRadius: 22, borderWidth: 1, paddingHorizontal: 10, paddingVertical: 10 },
-  notificacionIcono: { height: 30, resizeMode: 'contain', width: 30 },
-  heroInicio: { flexDirection: 'row', gap: 12, marginBottom: 16, paddingHorizontal: 20 },
-  heroColIzq: { gap: 12, width: '45%' },
+  statPill: { backgroundColor: C.glass, borderColor: C.glassBorde, borderRadius: 20, borderWidth: 1, paddingHorizontal: 10, paddingVertical: 6 },
+  statPillFila: { alignItems: 'center', flexDirection: 'row', gap: 4 }, gemaIcono: { height: 22, resizeMode: 'contain', width: 22 },
+  statTexto: { color: '#6D28D9', fontFamily: 'MontserratAlternates-Bold', fontSize: 14 },
+  notificacion: { borderRadius: 22, paddingHorizontal: 10, paddingVertical: 10 }, notificacionIcono: { height: 30, resizeMode: 'contain', width: 30 },
+  heroInicio: { flexDirection: 'row', gap: 12, marginBottom: 16, paddingHorizontal: 20 }, heroColIzq: { gap: 10, width: '45%' },
   heroColDer: { position: 'absolute', right: 20, top: 0, width: '50%', zIndex: -1 },
-  ilustracionContenedor: { alignItems: 'center', aspectRatio: 1, backgroundColor: 'rgba(239,68,68,0.12)', borderRadius: 20, justifyContent: 'center', overflow: 'hidden', transform: [{ translateX: 15 }], width: '135%' },
-  ilustracion: { height: '78%', width: '78%' },
-  diaCard: { backgroundColor: C.glass, borderColor: C.glassBorde, borderRadius: 20, borderWidth: 1, padding: 10 },
-  diaLabel: { color: C.tenue, fontFamily: 'MontserratAlternates-Medium', fontSize: 10, marginBottom: 8 },
-  bloquesFila: { flexDirection: 'row', justifyContent: 'space-between' },
-  bloque: { alignItems: 'center', gap: 5 },
-  bloqueIcono: { alignItems: 'center', backgroundColor: '#FFFFFF', borderColor: '#D8D3CD', borderRadius: 16, borderWidth: 1.5, height: 32, justifyContent: 'center', width: 32 },
-  bloqueIconoListo: { backgroundColor: C.rojo, borderColor: C.rojo },
-  bloqueIconoActivo: { borderColor: C.rojo, borderWidth: 2 },
-  bloqueTexto: { color: C.tenue, fontFamily: 'MontserratAlternates-Medium', fontSize: 9 },
-  nivelCard: { alignItems: 'center', backgroundColor: C.glass, borderColor: C.glassBorde, borderRadius: 16, borderWidth: 1, flexDirection: 'row', padding: 10 },
-  insignia: { height: 28, marginRight: 10, resizeMode: 'contain', width: 28 },
-  nivelInfo: { flex: 1 },
+  ilustracionContenedor: { aspectRatio: 1, borderRadius: 20, overflow: 'hidden', transform: [{ translateX: 15 }], width: '135%' }, ilustracion: { height: '100%', width: '100%' },
+  nivelCard: { alignItems: 'center', borderRadius: 16, flexDirection: 'row', gap: 10, padding: 10 }, nivelInfo: { flex: 1 },
   nivelTexto: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' },
-  nivelLabel: { color: C.texto, fontFamily: 'Montserrat-Bold', fontSize: 11 },
-  nivelXP: { color: C.tenue, fontFamily: 'MontserratAlternates-Medium', fontSize: 9 },
-  barraFondo: { backgroundColor: C.barra, borderRadius: 9, height: 6, marginTop: 7, overflow: 'hidden' },
-  barra: { borderRadius: 9, height: '100%' },
-  accesosFila: { flexDirection: 'row', gap: 6, marginBottom: 16, paddingHorizontal: 20 },
-  accesoTarjeta: { flex: 1 },
-  accesoGlass: { alignItems: 'center', backgroundColor: C.glass, borderColor: C.glassBorde, borderRadius: 14, borderWidth: 1, justifyContent: 'center', minHeight: 90, padding: 8 },
-  accesoIcono: { alignItems: 'center', backgroundColor: 'rgba(239,68,68,0.12)', borderRadius: 9, height: 28, justifyContent: 'center', marginBottom: 7, width: 28 },
-  accesoEtiqueta: { color: C.texto, fontFamily: 'Montserrat-Bold', fontSize: 9, lineHeight: 11, textAlign: 'center' },
-  accesoDescripcion: { color: C.tenue, fontSize: 8, lineHeight: 10, marginTop: 1, textAlign: 'center' },
-  panel: { backgroundColor: C.glass, borderColor: C.glassBorde, borderRadius: 22, borderWidth: 1, marginHorizontal: 20, marginTop: 16, padding: 15 },
-  tituloFila: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
-  tituloPanel: { color: C.texto, fontFamily: 'Montserrat-Bold', fontSize: 22 },
-  contador: { color: C.tenue, fontFamily: 'Montserrat-Bold', fontSize: 12 },
-  fila: { alignItems: 'center', borderBottomColor: 'rgba(239,68,68,.1)', borderBottomWidth: StyleSheet.hairlineWidth, flexDirection: 'row', gap: 10, paddingVertical: 11 },
-  checkCirculo: { alignItems: 'center', borderColor: '#D8D3CD', borderRadius: 13, borderWidth: 2, height: 26, justifyContent: 'center', width: 26 },
-  icono: { alignItems: 'center', borderRadius: 13, height: 42, justifyContent: 'center', width: 42 },
-  filaTitulo: { color: C.texto, fontFamily: 'Montserrat-Bold', fontSize: 14 },
-  filaMeta: { color: C.tenue, fontSize: 11, marginTop: 1 },
-  rachaPill: { alignItems: 'center', flexDirection: 'row', gap: 3 },
-  rachaPillTexto: { color: '#F97316', fontFamily: 'Montserrat-Bold', fontSize: 12 },
-  nuevo: { marginTop: 6 },
-  nudge: { alignItems: 'center', backgroundColor: C.glass, borderColor: C.glassBorde, borderRadius: 18, borderWidth: 1, flexDirection: 'row', gap: 12, marginHorizontal: 20, marginTop: 16, padding: 14 },
-  nudgeLabel: { color: C.tenue, fontSize: 10 },
-  nudgeTitulo: { color: C.texto, fontFamily: 'Montserrat-Bold', fontSize: 15, marginTop: 1 },
+  nivelLabel: { color: C.texto, fontFamily: 'MontserratAlternates-Bold', fontSize: 12 }, nivelXP: { color: C.tenue, fontFamily: 'Montserrat-Medium', fontSize: 11 }, barraMaster: { marginTop: 2 },
+  siguienteCard: { borderRadius: 16, gap: 2, padding: 10 },
+  siguienteTitulo: { color: C.texto, fontFamily: 'MontserratAlternates-Bold', fontSize: 12 }, siguienteSub: { color: C.tenue, fontFamily: 'Montserrat-Medium', fontSize: 10, lineHeight: 12 },
+  accesosFila: { flexDirection: 'row', gap: 6, marginBottom: 16, paddingHorizontal: 20 }, accesoTarjeta: { flex: 1 },
+  accesoGlass: { alignItems: 'center', borderRadius: 14, justifyContent: 'flex-start', minHeight: 100, padding: 8 },
+  accesoTexto: { alignItems: 'center', marginTop: 5, minHeight: 31, width: '100%' },
+  accesoEtiqueta: { color: C.texto, fontFamily: 'MontserratAlternates-Bold', fontSize: 12, lineHeight: 15, textAlign: 'center' },
+  accesoDescripcion: { color: C.tenue, fontFamily: 'Montserrat-Medium', fontSize: 11, lineHeight: 14, marginTop: 1, textAlign: 'center' },
+  panel: { borderRadius: 22, marginHorizontal: 20, padding: 15 },
+  tituloFila: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }, tituloConIcono: { alignItems: 'center', flexDirection: 'row', gap: 7 },
+  titulo: { color: C.texto, fontFamily: 'MontserratAlternates-Bold', fontSize: 22 },
+  selectorFranja: { marginBottom: 12 },
+  error: { color: '#DC2626', paddingVertical: 18, textAlign: 'center' },
+  vacio: { alignItems: 'center', gap: 8, paddingVertical: 14 },
+  vacioTitulo: { color: C.texto, fontFamily: 'MontserratAlternates-Bold', fontSize: 15, textAlign: 'center' },
+  vacioTexto: { color: C.tenue, fontFamily: 'Montserrat-Medium', fontSize: 13, lineHeight: 18, paddingVertical: 4, textAlign: 'center' },
+  encabezadoHoy: { marginBottom: 14 }, encabezadoHoyFila: { alignItems: 'center', flexDirection: 'row', gap: 12 },
+  encabezadoHoyTitulo: { color: esc.jade.l34, fontFamily: 'MontserratAlternates-Bold', fontSize: 26, lineHeight: 34 },
+  encabezadoHoyCompletadas: { color: esc.musgo.l49, fontFamily: 'Montserrat-Bold', fontSize: 13, marginTop: 2 },
+  encabezadoHoyProgresoFila: { alignItems: 'center', flexDirection: 'row', gap: 10, marginTop: 0 }, encabezadoHoyBarra: { flex: 1 },
+  encabezadoHoyPorcentaje: { fontFamily: 'MontserratAlternates-Bold', fontSize: 13, minWidth: 36, textAlign: 'right' },
 });
+
+const estilosPorEscala = new WeakMap<EscalaMaster, ReturnType<typeof crearEstilos>>();
+
+function useEstilos() {
+  const esc = useEscala();
+  let valor = estilosPorEscala.get(esc);
+  if (!valor) {
+    valor = crearEstilos(esc);
+    estilosPorEscala.set(esc, valor);
+  }
+  return valor;
+}
