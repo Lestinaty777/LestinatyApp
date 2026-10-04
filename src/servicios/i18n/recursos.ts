@@ -95,7 +95,15 @@ export const recursosI18n = {
           vacio: 'Create a routine to set a reminder.', sinRecordatorio: 'No reminder', proximamente: 'Routine reminder delivery is coming soon. Your time is saved.',
           errorGuardar: 'Could not save the reminder.', guardarHora: 'Save time', activar: 'Turn reminder on', desactivar: 'Turn reminder off',
         },
-        plantillas: { titulo: 'Start from an idea', descripcion: 'Pick one and adjust it before saving.', usar: 'Use template' },
+        plantillas: {
+          titulo: 'Start from an idea', descripcion: 'Pick one and adjust it before saving.', usar: 'Use template',
+          cargando: 'Loading…', errorCargar: 'Could not load the templates. Tap to retry.', vacio: 'There are no templates available yet.',
+          minutos_one: '{{count}} min', minutos_other: '{{count}} min', autor: 'By {{autor}}',
+          precioGemas_one: '{{count}} gem', precioGemas_other: '{{count}} gems',
+          vistaPrevia: 'You will see every step once you unlock it.', tuSaldo: 'Your balance',
+          desbloquearPor_one: 'Unlock for {{count}} gem', desbloquearPor_other: 'Unlock for {{count}} gems', comprando: 'Unlocking…',
+          gemasInsuficientes: 'You do not have enough gems.', conseguirGemas: 'Get gems', errorCompra: 'Could not complete the purchase. Try again.', cancelar: 'Cancel',
+        },
         crear: {
           cerrar: 'Close', atras: 'Back', siguiente: 'Next', crear: 'Create routine', creando: 'Creating…', errorCrear: 'Could not create the routine. Try again.',
           pasoIdentidad: 'Name and moment', pasoPasos: 'Steps', pasoProgramacion: 'When', pasoRevision: 'Review',
@@ -1173,7 +1181,15 @@ export const recursosI18n = {
           vacio: 'Creá una rutina para ponerle un recordatorio.', sinRecordatorio: 'Sin recordatorio', proximamente: 'El envío de avisos de rutinas llega pronto. Tu hora queda guardada.',
           errorGuardar: 'No pudimos guardar el recordatorio.', guardarHora: 'Guardar hora', activar: 'Activar recordatorio', desactivar: 'Desactivar recordatorio',
         },
-        plantillas: { titulo: 'Empezá con una idea', descripcion: 'Elegí una y ajustala antes de guardar.', usar: 'Usar plantilla' },
+        plantillas: {
+          titulo: 'Empezá con una idea', descripcion: 'Elegí una y ajustala antes de guardar.', usar: 'Usar plantilla',
+          cargando: 'Cargando…', errorCargar: 'No pudimos cargar las plantillas. Tocá para reintentar.', vacio: 'Todavía no hay plantillas disponibles.',
+          minutos_one: '{{count}} min', minutos_other: '{{count}} min', autor: 'Por {{autor}}',
+          precioGemas_one: '{{count}} gema', precioGemas_other: '{{count}} gemas',
+          vistaPrevia: 'Vas a ver todos los pasos cuando la desbloquees.', tuSaldo: 'Tu saldo',
+          desbloquearPor_one: 'Desbloquear por {{count}} gema', desbloquearPor_other: 'Desbloquear por {{count}} gemas', comprando: 'Desbloqueando…',
+          gemasInsuficientes: 'No tenés gemas suficientes.', conseguirGemas: 'Conseguir gemas', errorCompra: 'No pudimos completar la compra. Probá de nuevo.', cancelar: 'Cancelar',
+        },
         crear: {
           cerrar: 'Cerrar', atras: 'Atrás', siguiente: 'Siguiente', crear: 'Crear rutina', creando: 'Creando…', errorCrear: 'No pudimos crear la rutina. Probá de nuevo.',
           pasoIdentidad: 'Nombre y momento', pasoPasos: 'Pasos', pasoProgramacion: 'Cuándo', pasoRevision: 'Revisión',

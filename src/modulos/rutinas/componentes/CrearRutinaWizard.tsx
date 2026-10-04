@@ -49,7 +49,7 @@ export function CrearRutinaWizard({ color, guardando, habitos, onCerrar, onCrear
   habitos: readonly HabitoResumen[];
   onCerrar: () => void;
   onCrear: (input: CrearRutinaInput) => Promise<void>;
-  /** Si viene, el asistente arranca con todo cargado y se puede cambiar. */
+  /** Si viene (y está desbloqueada), el asistente arranca con todo cargado y se puede cambiar. */
   plantilla: PlantillaRutina | null;
   tareas: readonly Tarea[];
   visible: boolean;

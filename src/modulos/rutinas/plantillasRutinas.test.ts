@@ -1,37 +1,62 @@
-/// <reference types="node" />
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-import { PLANTILLAS_RUTINAS } from './plantillasRutinas';
-import { MAX_PASOS_RUTINA } from './rutinas.tipos';
+import { esErrorGemasInsuficientes, mapearPlantillaRutina, mapearPlantillasRutinas, mapearResultadoCompraPlantilla } from './plantillasRutinas';
 
-// Se lee el registro como texto: importarlo cargaría los PNG con require()
-// (mismo criterio que registroIconos.test.ts).
-const REGISTRO = readFileSync(join(process.cwd(), 'src/diseno/iconos/registroIconos.ts'), 'utf8');
-const [bloqueContenido] = REGISTRO.split('const ICONOS_INTERFAZ');
-const IDS_ICONOS = new Set([...bloqueContenido.matchAll(/^\s+'?([\w/-]+)'?: icono\(/gm)].map(([, id]) => id));
+const gratuita = {
+  id: 'sesion-de-estudio', titulo: 'Sesión de estudio', descripcion: '45 minutos con foco', franja: 'tarde', icono_id: 'estudiar',
+  autor: 'Lestinaty', precio_gemas: 0, num_pasos: 2, duracion_min: 10, desbloqueada: true,
+  pasos: [
+    { titulo: 'Repasar', modo: 'cronometro', objetivo_valor: 10, unidad: 'min' },
+    { titulo: 'Resolver', modo: 'contador', objetivo_valor: '20', unidad: 'ejercicios' },
+    { titulo: 'Cerrar', modo: 'simple' },
+  ],
+};
+const bloqueada = { ...gratuita, id: 'premium', precio_gemas: 100, desbloqueada: false, pasos: null };
 
-describe('PLANTILLAS_RUTINAS', () => {
-  it.each(PLANTILLAS_RUTINAS.map((plantilla) => [plantilla.id, plantilla] as const))('%s usa un ícono registrado', (_id, plantilla) => {
-    expect(IDS_ICONOS.has(plantilla.iconoId)).toBe(true);
+describe('mapearPlantillaRutina', () => {
+  it('mapea una plantilla desbloqueada con sus pasos', () => {
+    const plantilla = mapearPlantillaRutina(gratuita);
+    expect(plantilla).toMatchObject({ id: 'sesion-de-estudio', iconoId: 'estudiar', precioGemas: 0, numPasos: 2, duracionMin: 10, desbloqueada: true });
+    expect(plantilla.pasos).toEqual([
+      { titulo: 'Repasar', modo: 'cronometro', objetivoValor: 10, unidad: 'min' },
+      { titulo: 'Resolver', modo: 'contador', objetivoValor: 20, unidad: 'ejercicios' },
+      { titulo: 'Cerrar', modo: 'simple' },
+    ]);
   });
 
-  it('tiene ids únicos y entre 1 y el máximo de pasos', () => {
-    const ids = PLANTILLAS_RUTINAS.map((plantilla) => plantilla.id);
-    expect(new Set(ids).size).toBe(ids.length);
-    for (const plantilla of PLANTILLAS_RUTINAS) {
-      expect(plantilla.pasos.length).toBeGreaterThanOrEqual(1);
-      expect(plantilla.pasos.length).toBeLessThanOrEqual(MAX_PASOS_RUTINA);
-    }
+  it('una plantilla bloqueada no expone pasos aunque el servidor los enviara', () => {
+    expect(mapearPlantillaRutina(bloqueada).pasos).toBeNull();
+    expect(mapearPlantillaRutina({ ...bloqueada, pasos: gratuita.pasos }).pasos).toBeNull();
   });
 
-  it('los pasos con meta numérica la declaran y los simples no', () => {
-    for (const plantilla of PLANTILLAS_RUTINAS) {
-      for (const paso of plantilla.pasos) {
-        if (paso.modo === 'simple') expect(paso.objetivoValor).toBeUndefined();
-        else expect(paso.objetivoValor).toBeGreaterThan(0);
-      }
-    }
+  it('rechaza una desbloqueada sin contenido y datos inválidos', () => {
+    expect(() => mapearPlantillaRutina({ ...gratuita, pasos: null })).toThrow(/contenido/);
+    expect(() => mapearPlantillaRutina({ ...gratuita, franja: 'madrugada' })).toThrow(/franja/);
+    expect(() => mapearPlantillaRutina({ ...gratuita, pasos: [{ titulo: 'x', modo: 'raro' }] })).toThrow(/modo/);
+    expect(() => mapearPlantillaRutina({ ...gratuita, precio_gemas: 'caro' })).toThrow(/precio_gemas/);
+    expect(() => mapearPlantillaRutina(null)).toThrow();
+  });
+});
+
+describe('mapearPlantillasRutinas', () => {
+  it('mapea listas y rechaza lo que no lo es', () => {
+    expect(mapearPlantillasRutinas([gratuita, bloqueada])).toHaveLength(2);
+    expect(mapearPlantillasRutinas([])).toEqual([]);
+    expect(() => mapearPlantillasRutinas({})).toThrow();
+  });
+});
+
+describe('mapearResultadoCompraPlantilla', () => {
+  it('mapea el resultado del RPC', () => {
+    expect(mapearResultadoCompraPlantilla({ plantilla_id: 'p', ya_desbloqueada: false, saldo_restante: '150' })).toEqual({ plantillaId: 'p', yaDesbloqueada: false, saldoRestante: 150 });
+  });
+});
+
+describe('esErrorGemasInsuficientes', () => {
+  it('reconoce el check_violation del RPC y nada más', () => {
+    expect(esErrorGemasInsuficientes({ code: '23514', message: 'No tienes gemas suficientes.' })).toBe(true);
+    expect(esErrorGemasInsuficientes({ code: '22023' })).toBe(false);
+    expect(esErrorGemasInsuficientes(null)).toBe(false);
+    expect(esErrorGemasInsuficientes(new Error('x'))).toBe(false);
   });
 });

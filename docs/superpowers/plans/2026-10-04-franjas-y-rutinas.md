@@ -25,8 +25,8 @@ Este documento tiene dos partes. **La Parte 1 es para ti** (dirección y funció
 
 **Lo que tienes que hacer tú ahora:**
 
-1. Aplicar en tu proyecto de Supabase las migraciones `20261004_69`, `70` y `71`, en ese orden.
-2. Correr `supabase/tests/09_franjas_rutinas.sql` con `psql` contra tu base (hace rollback, no deja datos).
+1. Aplicar en tu proyecto de Supabase las migraciones `20261004_69`, `70`, `71` y `72`, en ese orden.
+2. Correr `supabase/tests/09_franjas_rutinas.sql` y `10_plantillas_rutinas.sql` con `psql` contra tu base (hacen rollback, no dejan datos).
 3. Abrir la app y probar la pestaña Rutinas: crear una, usar una plantilla, marcar un paso propio, activar un recordatorio. Yo no puedo abrir la app nativa, así que **el aspecto visual (sobre todo el rojo Ignate y el contraste del texto) no está verificado**.
 
 ## Actualización tras tu commit `0194f44` (Planes y sendero de días en Tareas)
@@ -107,6 +107,16 @@ Gemas por rutina, rutinas compartidas o cooperativas, planes dentro de Hoy, ruti
 # PARTE 2 — Técnico (para mí)
 
 Rama de trabajo: `mejoras`. Un commit por paso, push al terminar cada etapa. No abrir PR salvo que se pida. Mensajes de commit con las líneas de atribución indicadas en la sesión.
+
+## Plantillas con gemas (2026-10-04)
+
+Añadido a petición tuya: la pestaña **Plantillas** ahora lee un catálogo del **servidor**. Spec: `2026-10-04-plantillas-rutinas-design.md`.
+
+- Las cuatro plantillas de antes pasaron al servidor como gratuitas. Las **premium** (de pago con gemas) solo entregan sus pasos a quien las compró.
+- Al tocar una bloqueada ves una vista previa y el botón "Desbloquear por N gemas". Si no alcanzan, te lleva a la tienda.
+- **Todavía no hay ninguna plantilla premium cargada.** El contenido y los precios son tuyos. Cómo se añade una está explicado al inicio de la migración `20261004_72` (son dos `insert` en el panel de Supabase, sin publicar la app).
+- Probado en Postgres local: compra única, sin doble cobro, gemas insuficientes sin rastro, aislamiento entre cuentas, plantilla apagada. Falta correr `supabase/tests/10_plantillas_rutinas.sql` contra tu proyecto real.
+- **Aplicar también la migración 72** (junto con 69, 70 y 71).
 
 ## Estado técnico de la ejecución (2026-10-04)
 

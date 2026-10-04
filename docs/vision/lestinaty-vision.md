@@ -83,6 +83,8 @@ Para un objetivo compartido, Aby genera **un Sendero por persona** más las depe
 
 Un curso es un Sendero publicado: contenido + tareas + hábitos + rutinas + evaluaciones, organizado en secciones y días. Se vende un **camino estructurado hacia un resultado**, no solo información.
 
+Primer experimento ya construido: **plantillas de rutinas con gemas**, con el contenido en el servidor (`2026-10-04-plantillas-rutinas-design.md`). Sirve para medir qué se compra y a qué precio antes de invertir en cursos.
+
 Estrategia de validación (sin construir el marketplace primero):
 
 1. El fundador crea 2–3 cursos propios y los publica en la app.

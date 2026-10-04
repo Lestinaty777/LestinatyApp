@@ -19,14 +19,16 @@ import { obtenerHabitosActivos } from '../../habitos/habitos.servicio';
 import { AuroraBoreal } from '../../hoy/componentes/AuroraBoreal';
 import { obtenerAssetsPaquete } from '../../senderos/algoritmo/registroPaquetesArbol';
 import { obtenerTareas } from '../../tareas/tareas.servicio';
-import { useSaldoGemas } from '../../tienda/useSaldoGemas';
+import { CLAVE_SALDO_GEMAS, useSaldoGemas } from '../../tienda/useSaldoGemas';
 import { CrearRutinaWizard } from '../componentes/CrearRutinaWizard';
 import { ListaMisRutinas } from '../componentes/ListaMisRutinas';
 import { ListaRecordatoriosRutinas } from '../componentes/ListaRecordatoriosRutinas';
 import { ListaRutinasHoy } from '../componentes/ListaRutinasHoy';
+import { ModalCompraPlantilla, type ErrorCompraPlantilla } from '../componentes/ModalCompraPlantilla';
 import { PlantillasRutinasLista } from '../componentes/PlantillasRutinasLista';
 import { estaPendienteHoy, resumirDiaRutinas, siguientePaso } from '../estadoRutina';
-import type { PlantillaRutina } from '../plantillasRutinas';
+import { esErrorGemasInsuficientes, type PlantillaRutina } from '../plantillasRutinas';
+import { CLAVE_PLANTILLAS_RUTINAS, comprarPlantillaRutina, obtenerPlantillasRutinas } from '../plantillasRutinas.servicio';
 import {
   actualizarRecordatorioRutina, archivarRutina, completarPasoPropioRutina, CLAVE_RUTINAS, crearRutina, obtenerRutinasHoy,
 } from '../rutinas.servicio';
@@ -73,11 +75,14 @@ function RutinasPantallaContenido() {
   const [plantilla, setPlantilla] = useState<PlantillaRutina | null>(null);
   const [pasoEnCursoId, setPasoEnCursoId] = useState<string | null>(null);
   const [recordatorioEnCursoId, setRecordatorioEnCursoId] = useState<string | null>(null);
+  const [plantillaPorComprar, setPlantillaPorComprar] = useState<PlantillaRutina | null>(null);
+  const [errorCompra, setErrorCompra] = useState<ErrorCompraPlantilla>(null);
 
   const consulta = useQuery({ queryKey: CLAVE_RUTINAS, queryFn: obtenerRutinasHoy });
   // Solo hacen falta al armar una rutina (para elegir hábitos y tareas como pasos).
   const consultaHabitos = useQuery({ enabled: crearAbierto, queryKey: ['habitos', 'activos'], queryFn: () => obtenerHabitosActivos() });
   const consultaTareas = useQuery({ enabled: crearAbierto, queryKey: ['tareas', 'lista'], queryFn: () => obtenerTareas() });
+  const consultaPlantillas = useQuery({ enabled: vistaPanel === 'plantillas', queryKey: CLAVE_PLANTILLAS_RUTINAS, queryFn: obtenerPlantillasRutinas });
   const tareasElegibles = useMemo(
     () => (consultaTareas.data ?? []).filter((tarea) => tarea.estado === 'pendiente' || (tarea.estado === 'hecha' && tarea.frecuencia === 'dias_semana')),
     [consultaTareas.data],
@@ -112,6 +117,22 @@ function RutinasPantallaContenido() {
     },
     onSuccess: refrescar,
     onSettled: () => setRecordatorioEnCursoId(null),
+  });
+  const comprar = useMutation({
+    mutationFn: (plantilla: PlantillaRutina) => comprarPlantillaRutina(plantilla.id),
+    onMutate: () => setErrorCompra(null),
+    onSuccess: async (resultado) => {
+      hapticSeguro('confirmacion');
+      await Promise.all([
+        cliente.invalidateQueries({ queryKey: CLAVE_PLANTILLAS_RUTINAS }),
+        cliente.invalidateQueries({ queryKey: CLAVE_SALDO_GEMAS }),
+      ]);
+      // Recién comprada: ya trae sus pasos, así que abre el asistente de una vez.
+      const comprada = cliente.getQueryData<PlantillaRutina[]>(CLAVE_PLANTILLAS_RUTINAS)?.find((p) => p.id === resultado.plantillaId);
+      setPlantillaPorComprar(null);
+      if (comprada?.desbloqueada) abrirCreacion(comprada);
+    },
+    onError: (error) => { hapticSeguro('impacto'); setErrorCompra(esErrorGemasInsuficientes(error) ? 'gemas' : 'otro'); },
   });
   const archivar = useMutation({ mutationFn: (rutina: Rutina) => archivarRutina(rutina.id), onSuccess: refrescar });
 
@@ -251,7 +272,14 @@ function RutinasPantallaContenido() {
             )}
 
             {vistaPanel === 'plantillas' ? (
-              <PlantillasRutinasLista color={acento} onElegir={(elegida) => abrirCreacion(elegida)} />
+              <PlantillasRutinasLista
+                color={acento}
+                error={consultaPlantillas.isError}
+                onElegir={(elegida) => abrirCreacion(elegida)}
+                onPrevisualizar={(bloqueada) => { setErrorCompra(null); setPlantillaPorComprar(bloqueada); }}
+                onReintentar={() => consultaPlantillas.refetch()}
+                plantillas={consultaPlantillas.data}
+              />
             ) : estadoCarga ?? (
               <>
                 {vistaPanel === 'hoy' && (
@@ -292,6 +320,16 @@ function RutinasPantallaContenido() {
           </MasterGlass>
         </ScrollView>
       </LinearGradient>
+      <ModalCompraPlantilla
+        color={acento}
+        comprando={comprar.isPending}
+        error={errorCompra}
+        onCancelar={() => setPlantillaPorComprar(null)}
+        onComprar={(plantilla) => comprar.mutate(plantilla)}
+        onIrAGemas={() => { setPlantillaPorComprar(null); router.navigate('/(principal)/tienda'); }}
+        plantilla={plantillaPorComprar}
+        saldo={saldoGemas}
+      />
       <CrearRutinaWizard
         color={acento}
         guardando={crear.isPending}
