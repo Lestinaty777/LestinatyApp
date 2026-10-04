@@ -66,11 +66,10 @@ Las etapas A y B no muestran nada porque son la base. La primera vez que verás 
 - Una rutina completa no da gemas por ahora.
 - El campo `routine_id` de las tareas se elimina; los pasos de rutina son la única relación.
 - Hoy se unifica y deja de tener el toggle Hábitos/Tareas.
+- **Los planes quedan fuera de Hoy por ahora** (se siguen viendo en su pastilla de Tareas). Se retomarán cuando el resto funcione.
+- **Tema visual de Rutinas: Ignate** (paquete rojo carmesí `#90010D`, ya existe con sus ilustraciones). Tareas usa Golden y Planes Aurelia.
 
 ## Decisiones pendientes (puedo avanzar sin ellas, pero conviene que las pienses)
-
-0. **¿Los bloques de los planes entran en Hoy?** Como ya tienen mañana, tarde y noche, podrían aparecer en el plan del día junto a hábitos, tareas y rutinas. Mi propuesta: primera versión sin planes en Hoy (se siguen viendo en su pastilla de Tareas) y los sumamos después, cuando el resto funcione.
-00. **Tema visual de Rutinas.** Tareas usa dorado y Planes aurelia. ¿Qué paquete/color quieres para Rutinas? Mientras no decidas, uso el rojo que ya tiene la pestaña actual.
 
 1. **Tope de 5 pendientes por franja.** ¿Te sirve esa cifra o prefieres otra?
 2. **Horas por defecto de las franjas.** Propongo mañana 5–12, tarde 12–19, noche 19–5, editables.
@@ -163,7 +162,8 @@ Rama de trabajo: `mejoras`. Un commit por paso, push al terminar cada etapa. No 
 - Responsive: usar `maxWidth` y flex, sin anchos fijos; hook de breakpoints si ya existe uno, y si no, crear `useDispositivo` mínimo sin aplicar layouts de tablet todavía.
 - i18n: añadir claves ES/EN en `src/servicios/i18n/recursos.ts` (archivo único de 1.806 líneas; añadir sin reorganizar).
 - Mantener el montaje como pestaña `rutinas` de `SenderosPantalla` (no crear `app/rutinas/index.tsx`, lo prohíbe `superficieRelease.test.ts`).
-- Tema ambiente propio de Rutinas: ver cómo `TareasPantalla` elige `paqueteId`/`colorPaquete` y reutilizar el mismo mecanismo con el paquete que decida el usuario (por defecto el rojo actual de la pestaña).
+- Tema ambiente propio de Rutinas: paquete `ignate`, color `#90010D` (existe en `arboles_paquetes`, migración 28, y en `registroPaquetesArbol.ts` con sus ilustraciones). Definir `PAQUETE_RUTINAS = 'ignate'` y `COLOR_PAQUETE_RUTINAS = '#90010D'` y reutilizar el mecanismo de `TareasPantalla` (`paqueteId`/`colorPaquete`, `obtenerAssetsPaquete`, `crearTonoMaster`). Verificar que `TareasPantalla` usa su paquete fijo sin exigir que la persona lo tenga comprado (parece así: `PAQUETE_TAREAS='golden'` es de pago); si exige propiedad, usar el mismo criterio para Rutinas. Comprobar contraste del texto sobre `#90010D` (es oscuro) con `colorSeguroUi`.
+- Los planes no entran en `construirPlanDelDia` en esta fase: solo hábitos, tareas y rutinas.
 - Quitar `RUTINAS_INICIALES` y los tipos mock.
 
 ## Etapa D — Crear y ejecutar rutinas

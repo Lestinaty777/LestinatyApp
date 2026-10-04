@@ -129,7 +129,7 @@ Los toggles actuales Hábitos/Tareas de Hoy se retiran. Las pantallas de Hábito
 ### Planes (`planes_bloques.momento`)
 
 - Ya usa `manana`, `tarde`, `noche` con un `check` de texto. No se migra a `franja_dia` en esta fase: los códigos son idénticos, así que un bloque de plan se puede tratar como franja sin conversión. Unificar el tipo queda para una limpieza posterior.
-- Los bloques de plan no entran en Hoy en la primera versión (ver decisión pendiente del plan).
+- Los bloques de plan **no entran en Hoy** por decisión del usuario; se retomarán más adelante.
 
 ### Visión (`docs/vision/lestinaty-vision.md`)
 
