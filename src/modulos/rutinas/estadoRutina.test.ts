@@ -5,7 +5,7 @@ import type { PasoRutina, Rutina } from './rutinas.tipos';
 
 function paso(sobrescribir: Partial<PasoRutina> = {}): PasoRutina {
   return {
-    id: 'p', orden: 1, origen: 'propio', habitoId: null, tareaId: null, titulo: 'Paso', iconoLucide: null, color: null,
+    id: 'p', orden: 1, origen: 'propio', habitoId: null, tareaId: null, tareaTipo: null, tareaFrecuencia: null, esencial: true, titulo: 'Paso', iconoLucide: null, color: null,
     modo: 'simple', objetivoValor: null, unidad: null, aplica: true, completo: false, valor: null, ...sobrescribir,
   };
 }
@@ -16,11 +16,11 @@ function rutina(pasos: PasoRutina[], sobrescribir: Partial<Rutina> = {}): Pick<R
 describe('resumirPasos', () => {
   it('calcula avance sobre los pasos que aplican hoy', () => {
     const resumen = resumirPasos([paso({ completo: true }), paso({ id: 'b', orden: 2 }), paso({ id: 'c', orden: 3, aplica: false })]);
-    expect(resumen).toEqual({ aplican: 2, completos: 1, porcentaje: 50, completa: false });
+    expect(resumen).toEqual({ aplican: 2, completos: 1, requeridos: 2, requeridosCompletos: 1, porcentaje: 50, completa: false });
   });
 
   it('un paso que no aplica hoy no cuenta aunque esté marcado completo', () => {
-    expect(resumirPasos([paso({ aplica: false, completo: true })])).toEqual({ aplican: 0, completos: 0, porcentaje: 0, completa: false });
+    expect(resumirPasos([paso({ aplica: false, completo: true })])).toEqual({ aplican: 0, completos: 0, requeridos: 0, requeridosCompletos: 0, porcentaje: 0, completa: false });
   });
 
   it('está completa cuando todos los que aplican están completos', () => {
@@ -31,6 +31,25 @@ describe('resumirPasos', () => {
 
   it('sin pasos nunca está completa', () => {
     expect(resumirPasos([]).completa).toBe(false);
+  });
+
+  it('solo los esenciales deciden si la sesión está completa; los opcionales no suman ni restan al avance', () => {
+    const resumen = resumirPasos([
+      paso({ completo: true }), paso({ id: 'b', orden: 2, esencial: false }), paso({ id: 'c', orden: 3, completo: true }),
+    ]);
+    expect(resumen).toMatchObject({ aplican: 3, completos: 2, requeridos: 2, requeridosCompletos: 2, porcentaje: 100, completa: true });
+  });
+
+  it('un esencial pendiente impide completar aunque los opcionales estén hechos', () => {
+    const resumen = resumirPasos([paso(), paso({ id: 'b', orden: 2, esencial: false, completo: true })]);
+    expect(resumen).toMatchObject({ requeridos: 1, requeridosCompletos: 0, porcentaje: 0, completa: false });
+  });
+
+  it('si ningún esencial aplica hoy se requieren todos los que aplican', () => {
+    const solo = [paso({ esencial: true, aplica: false }), paso({ id: 'b', orden: 2, esencial: false })];
+    expect(resumirPasos(solo)).toMatchObject({ requeridos: 1, requeridosCompletos: 0, completa: false });
+    const hecho = [paso({ esencial: true, aplica: false }), paso({ id: 'b', orden: 2, esencial: false, completo: true })];
+    expect(resumirPasos(hecho)).toMatchObject({ requeridos: 1, requeridosCompletos: 1, completa: true });
   });
 
   it('redondea el porcentaje', () => {

@@ -1,7 +1,7 @@
 import { fechaLocalHoy } from '../../nucleo/dispositivo/fechaLocal';
 import { obtenerClienteSupabase } from '../../servicios/base-datos/supabase';
-import { mapearResultadoPasoPropio, mapearRutinas } from './rutinas.mapper';
-import type { CrearRutinaInput, PasoNuevoRutina, ResultadoPasoPropio, Rutina } from './rutinas.tipos';
+import { mapearResultadoCierreRutina, mapearResultadoPasoPropio, mapearRutinas } from './rutinas.mapper';
+import type { CrearRutinaInput, PasoNuevoRutina, ResultadoCierreRutina, ResultadoPasoPropio, Rutina } from './rutinas.tipos';
 
 // Lecturas y escrituras de Rutinas. El estado de cada paso se calcula en el
 // servidor (obtener_rutinas_hoy, migración 71); completar pasos de hábito o de
@@ -17,10 +17,11 @@ export async function obtenerRutinasHoy(): Promise<Rutina[]> {
 }
 
 function pasoARemoto(paso: PasoNuevoRutina) {
-  if (paso.origen === 'habito') return { tipo_origen: 'habito', habito_id: paso.habitoId };
-  if (paso.origen === 'tarea') return { tipo_origen: 'tarea', tarea_id: paso.tareaId };
+  const esencial = paso.esencial ?? true;
+  if (paso.origen === 'habito') return { tipo_origen: 'habito', habito_id: paso.habitoId, esencial };
+  if (paso.origen === 'tarea') return { tipo_origen: 'tarea', tarea_id: paso.tareaId, esencial };
   return {
-    tipo_origen: 'propio', titulo: paso.titulo, modo: paso.modo,
+    tipo_origen: 'propio', titulo: paso.titulo, modo: paso.modo, esencial,
     objetivo_valor: paso.modo === 'simple' ? null : paso.objetivoValor ?? null, unidad: paso.unidad ?? null,
   };
 }
@@ -70,4 +71,17 @@ export async function archivarRutina(rutinaId: string): Promise<void> {
     .update({ estado: 'archivada', archivada_en: new Date().toISOString() })
     .eq('id', rutinaId);
   if (error) throw error;
+}
+
+/** Abre (o conserva) la sesión de hoy; llamar dos veces no cambia la hora de inicio. */
+export async function iniciarRutina(rutinaId: string): Promise<void> {
+  const { error } = await obtenerClienteSupabase().rpc('iniciar_rutina', { p_rutina_id: rutinaId, p_fecha_local: fechaLocalHoy() });
+  if (error) throw error;
+}
+
+/** Recalcula en el servidor si la sesión está completa (regla de pasos esenciales) y la cierra si lo está. */
+export async function cerrarRutinaDia(rutinaId: string): Promise<ResultadoCierreRutina> {
+  const { data, error } = await obtenerClienteSupabase().rpc('cerrar_rutina_dia', { p_rutina_id: rutinaId, p_fecha_local: fechaLocalHoy() });
+  if (error) throw error;
+  return mapearResultadoCierreRutina(data);
 }

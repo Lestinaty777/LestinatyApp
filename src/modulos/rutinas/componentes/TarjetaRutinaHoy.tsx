@@ -17,11 +17,13 @@ function metaPaso(paso: PasoRutina): string | null {
   return `${paso.objetivoValor} ${unidad}`.trim();
 }
 
-export function TarjetaRutinaHoy({ color, onAlternarPaso, pasoEnCursoId, rutina }: {
+export function TarjetaRutinaHoy({ color, onAlternarPaso, onEmpezar, pasoEnCursoId, rutina }: {
   /** Acento del módulo (Ignate): el avance y los checks lo usan. */
   color: string;
   /** Solo se llama para pasos propios; los de hábito y tarea se completan desde su pantalla. */
   onAlternarPaso: (rutina: Rutina, paso: PasoRutina) => void;
+  /** Abre la sesión guiada. */
+  onEmpezar: (rutina: Rutina) => void;
   pasoEnCursoId: string | null;
   rutina: Rutina;
 }) {
@@ -56,7 +58,7 @@ export function TarjetaRutinaHoy({ color, onAlternarPaso, pasoEnCursoId, rutina 
                   ? t('rutinas.tarjeta.noToca')
                   : resumen.completa
                     ? t('rutinas.tarjeta.completa')
-                    : t('rutinas.tarjeta.avance', { completed: resumen.completos, total: resumen.aplican })}
+                    : t('rutinas.tarjeta.avance', { completed: resumen.requeridosCompletos, total: resumen.requeridos })}
               </Texto>
             </View>
           </View>
@@ -69,6 +71,16 @@ export function TarjetaRutinaHoy({ color, onAlternarPaso, pasoEnCursoId, rutina 
           <Texto numberOfLines={1} style={estilos.siguiente}>{t('rutinas.tarjeta.siguiente', { titulo: siguiente.titulo })}</Texto>
         ) : null}
       </Pressable>
+      {!resumen.completa && !sinPasosHoy ? (
+        <Pressable
+          accessibilityLabel={`${resumen.completos > 0 || rutina.sesionIniciadaEn ? t('rutinas.tarjeta.continuar') : t('rutinas.tarjeta.empezar')}: ${rutina.titulo}`}
+          accessibilityRole="button"
+          onPress={() => { hapticSeguro('seleccion'); onEmpezar(rutina); }}
+          style={[estilos.empezar, { backgroundColor: color }]}
+        >
+          <Texto style={estilos.empezarTexto}>{resumen.completos > 0 || rutina.sesionIniciadaEn ? t('rutinas.tarjeta.continuar') : t('rutinas.tarjeta.empezar')}</Texto>
+        </Pressable>
+      ) : null}
 
       {abierta ? (
         <View style={estilos.pasos}>
@@ -116,6 +128,8 @@ const estilos = StyleSheet.create({
   horaPill: { alignItems: 'center', flexDirection: 'row', gap: 3 },
   meta: { color: C.tenue, fontFamily: 'Montserrat-Medium', fontSize: 11 },
   barra: { marginTop: 9 },
+  empezar: { alignItems: 'center', alignSelf: 'flex-start', borderRadius: 16, marginTop: 10, minHeight: 36, justifyContent: 'center', paddingHorizontal: 18 },
+  empezarTexto: { color: '#FFFFFF', fontFamily: 'Montserrat-Bold', fontSize: 13 },
   siguiente: { color: C.tenue, fontFamily: 'Montserrat-Medium', fontSize: 11, marginTop: 6 },
   pasos: { gap: 2, marginTop: 8 },
   paso: { alignItems: 'center', flexDirection: 'row', gap: 10, minHeight: 44, paddingVertical: 6 },

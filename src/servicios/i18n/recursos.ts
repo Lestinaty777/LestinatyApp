@@ -85,7 +85,7 @@ export const recursosI18n = {
           pasos_one: '{{count}} step', pasos_other: '{{count}} steps', avance: '{{completed}} of {{total}} steps',
           noToca: 'Not scheduled today', completa: 'Done', hora: 'At {{hora}}', siguiente: 'Next: {{titulo}}',
           pasoPropioHint: 'Tap to mark it', pasoExterno: 'Done from {{origen}}', origenHabito: 'Habits', origenTarea: 'Tasks', pasoNoToca: 'Not scheduled today',
-          marcarPaso: 'Mark step', desmarcarPaso: 'Unmark step',
+          marcarPaso: 'Mark step', desmarcarPaso: 'Unmark step', empezar: 'Start', continuar: 'Continue',
         },
         misRutinas: {
           vacio: 'You have no routines yet.', todosLosDias: 'Every day', pausada: 'Paused',
@@ -94,6 +94,25 @@ export const recursosI18n = {
         recordatorios: {
           vacio: 'Create a routine to set a reminder.', sinRecordatorio: 'No reminder', proximamente: 'Routine reminder delivery is coming soon. Your time is saved.',
           errorGuardar: 'Could not save the reminder.', guardarHora: 'Save time', activar: 'Turn reminder on', desactivar: 'Turn reminder off',
+        },
+        sesion: {
+          volver: 'Back', noEncontrada: 'We could not find this routine.',
+          preparar: {
+            titulo: 'Before you start', tiempoTitulo: 'How much time do you have?', opcionCompleta: 'Full', opcionMinutos: '{{count}} min',
+            resumen_one: '{{count}} step · about {{minutos}} min', resumen_other: '{{count}} steps · about {{minutos}} min',
+            excede: 'The essential steps take longer than that, but you can still do them.', esencial: 'Essential', opcional: 'Optional',
+            omitidos: 'Left out for today: {{lista}}', empezar: 'Start', nadaPendiente: 'Nothing left to do today.',
+          },
+          curso: {
+            paso: 'Step {{actual}} of {{total}}', hecho: 'Done', saltar: 'Skip', siguiente: 'Next', listo: 'Done', externoHint: 'It is marked with its full goal.',
+            progreso: '{{valor}} of {{meta}}', mas: 'Add one', menos: 'Remove one', restante: '{{tiempo}} left', empezarReloj: 'Start', pausar: 'Pause', reanudar: 'Resume',
+            listoAntes: 'Done early', errorPaso: 'Could not save the step. Try again.',
+          },
+          fin: {
+            tituloCompleta: 'Session complete', textoCompleta: 'You did every essential step.', tituloParcial: 'Partial session',
+            textoParcial: 'Some essential steps are still pending.', tiempo: 'Duration: {{minutos}} min', retomar: 'Pick up what is left', cerrar: 'Close',
+            guardando: 'Saving…', errorCierre: 'Could not close the session.', reintentar: 'Try again',
+          },
         },
         plantillas: {
           titulo: 'Start from an idea', descripcion: 'Pick one and adjust it before saving.', usar: 'Use template',
@@ -110,6 +129,7 @@ export const recursosI18n = {
           nombrePlaceholder: 'Routine name', franja: 'When do you do it?',
           pasosTitulo: 'What does it include?', pasosVacio: 'Add at least one step.', maxPasos: 'A routine can have up to {{count}} steps.',
           agregarPropio: 'Own step', agregarHabito: 'Habit', agregarTarea: 'Task', quitar: 'Remove',
+          esencial: 'Essential', opcional: 'Optional', esencialAyuda: 'Essential steps are the ones that count to mark the session as done.', sinEsencial: 'Mark at least one step as essential.',
           pasoPropioPlaceholder: 'Step name', modoSimple: 'Simple', modoCronometro: 'Timer', modoContador: 'Counter',
           objetivoMinutos: 'Minutes', objetivoCantidad: 'Amount', unidadPlaceholder: 'Unit (optional)', agregarPaso: 'Add step',
           elegirHabito: 'Pick a habit', elegirTarea: 'Pick a task', sinHabitos: 'You have no active habits.', sinTareas: 'You have no pending tasks.', yaIncluido: 'Already included',
@@ -1171,7 +1191,7 @@ export const recursosI18n = {
           pasos_one: '{{count}} paso', pasos_other: '{{count}} pasos', avance: '{{completed}} de {{total}} pasos',
           noToca: 'No toca hoy', completa: 'Completa', hora: 'A las {{hora}}', siguiente: 'Sigue: {{titulo}}',
           pasoPropioHint: 'Tocá para marcarlo', pasoExterno: 'Se completa desde {{origen}}', origenHabito: 'Hábitos', origenTarea: 'Tareas', pasoNoToca: 'No toca hoy',
-          marcarPaso: 'Marcar paso', desmarcarPaso: 'Desmarcar paso',
+          marcarPaso: 'Marcar paso', desmarcarPaso: 'Desmarcar paso', empezar: 'Empezar', continuar: 'Continuar',
         },
         misRutinas: {
           vacio: 'Todavía no tenés rutinas.', todosLosDias: 'Todos los días', pausada: 'Pausada',
@@ -1180,6 +1200,25 @@ export const recursosI18n = {
         recordatorios: {
           vacio: 'Creá una rutina para ponerle un recordatorio.', sinRecordatorio: 'Sin recordatorio', proximamente: 'El envío de avisos de rutinas llega pronto. Tu hora queda guardada.',
           errorGuardar: 'No pudimos guardar el recordatorio.', guardarHora: 'Guardar hora', activar: 'Activar recordatorio', desactivar: 'Desactivar recordatorio',
+        },
+        sesion: {
+          volver: 'Volver', noEncontrada: 'No encontramos esta rutina.',
+          preparar: {
+            titulo: 'Antes de empezar', tiempoTitulo: '¿Cuánto tiempo tenés?', opcionCompleta: 'Completa', opcionMinutos: '{{count}} min',
+            resumen_one: '{{count}} paso · unos {{minutos}} min', resumen_other: '{{count}} pasos · unos {{minutos}} min',
+            excede: 'Los pasos esenciales llevan más que eso, pero igual se pueden hacer.', esencial: 'Esencial', opcional: 'Opcional',
+            omitidos: 'Quedan fuera por hoy: {{lista}}', empezar: 'Empezar', nadaPendiente: 'No queda nada por hacer hoy.',
+          },
+          curso: {
+            paso: 'Paso {{actual}} de {{total}}', hecho: 'Hecho', saltar: 'Saltar', siguiente: 'Siguiente', listo: 'Listo', externoHint: 'Se marca con su meta completa.',
+            progreso: '{{valor}} de {{meta}}', mas: 'Sumar uno', menos: 'Restar uno', restante: 'Faltan {{tiempo}}', empezarReloj: 'Empezar', pausar: 'Pausar', reanudar: 'Reanudar',
+            listoAntes: 'Listo antes', errorPaso: 'No pudimos guardar el paso. Probá de nuevo.',
+          },
+          fin: {
+            tituloCompleta: 'Sesión completa', textoCompleta: 'Hiciste todos los pasos esenciales.', tituloParcial: 'Sesión parcial',
+            textoParcial: 'Quedaron pasos esenciales sin hacer.', tiempo: 'Duración: {{minutos}} min', retomar: 'Retomar lo pendiente', cerrar: 'Cerrar',
+            guardando: 'Guardando…', errorCierre: 'No pudimos cerrar la sesión.', reintentar: 'Reintentar',
+          },
         },
         plantillas: {
           titulo: 'Empezá con una idea', descripcion: 'Elegí una y ajustala antes de guardar.', usar: 'Usar plantilla',
@@ -1196,6 +1235,7 @@ export const recursosI18n = {
           nombrePlaceholder: 'Nombre de la rutina', franja: '¿Cuándo la hacés?',
           pasosTitulo: '¿Qué incluye?', pasosVacio: 'Agregá al menos un paso.', maxPasos: 'Una rutina admite hasta {{count}} pasos.',
           agregarPropio: 'Paso propio', agregarHabito: 'Hábito', agregarTarea: 'Tarea', quitar: 'Quitar',
+          esencial: 'Esencial', opcional: 'Opcional', esencialAyuda: 'Los pasos esenciales son los que cuentan para dar la sesión por hecha.', sinEsencial: 'Marcá al menos un paso como esencial.',
           pasoPropioPlaceholder: 'Nombre del paso', modoSimple: 'Simple', modoCronometro: 'Cronómetro', modoContador: 'Contador',
           objetivoMinutos: 'Minutos', objetivoCantidad: 'Cantidad', unidadPlaceholder: 'Unidad (opcional)', agregarPaso: 'Agregar paso',
           elegirHabito: 'Elegí un hábito', elegirTarea: 'Elegí una tarea', sinHabitos: 'No tenés hábitos activos.', sinTareas: 'No tenés tareas pendientes.', yaIncluido: 'Ya incluido',

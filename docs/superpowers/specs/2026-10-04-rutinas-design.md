@@ -21,6 +21,7 @@ Ejemplo — *Rutina de estudio (45 min)*:
 - Pantalla: vista **Hoy** con selector de franja y cuatro accesos (**Mis rutinas**, **Crear**, **Recordatorios**, **Plantillas**), tema Ignate.
 - En esta primera entrega los pasos de hábito y tarea se muestran con su estado pero se completan desde su propia pantalla; solo los pasos propios se marcan desde la rutina. El ejecutor paso a paso es la siguiente etapa.
 - El recordatorio se guarda (hora y activo) pero el envío de la notificación no está conectado todavía.
+- **Sesión guiada (2026-10-05):** pasos esenciales/opcionales, "tengo X minutos", ejecución paso a paso con cronómetro y contador, `iniciar_rutina` y `cerrar_rutina_dia`. Ver `2026-10-05-sesion-guiada-rutinas-design.md`. Con esto, una rutina está completa cuando lo están sus pasos esenciales (no todos), y los pasos de hábito y tarea ya se pueden marcar desde la sesión.
 
 ## Principios
 

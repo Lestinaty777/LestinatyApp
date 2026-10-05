@@ -63,7 +63,7 @@ Cada acción diaria tiene cuatro piezas; casi todas existen o están planificada
 | Recompensa | árbol que crece, constancia que perdona, cierres visuales | hábitos y tareas: hecho; rutinas: pendiente |
 | Inversión | lo que la persona va construyendo (hábitos con nivel, planes, rutinas propias, plantillas compradas) | en curso |
 
-**Constancia que perdona:** completar solo los pasos esenciales de una rutina cuenta como sesión completa, para que un mal día no rompa la racha (decisión propuesta, pendiente de confirmar).
+**Constancia que perdona:** completar solo los pasos esenciales de una rutina cuenta como sesión completa, para que un mal día no rompa la racha (implementado en la sesión guiada; la racha de sesiones como tal está pendiente).
 
 ## 5. Qué es gratis y qué es de pago
 
@@ -90,7 +90,7 @@ Uso estratégico: publicar **1 o 2 plantillas por nicho (cuerpo, estudio, trabaj
 
 ## 6.1. Orden de construcción
 
-1. **Sesión guiada de rutinas** (acción diaria, esenciales/opcionales, "tengo X minutos"): la necesita el propio fundador para usar la app.
+1. **Sesión guiada de rutinas** (acción diaria, esenciales/opcionales, "tengo X minutos"): la necesita el propio fundador para usar la app. **Primera versión hecha (2026-10-05); falta probarla en dispositivo.**
 2. **Eventos de analítica** del embudo (ver 7).
 3. **Áreas + filtro en Hoy** y **franjas en los asistentes de hábito y tarea.**
 4. **Metas** como punto de partida de cada Sendero.
@@ -154,7 +154,7 @@ Los promedios por categoría mezclan apps muy distintas (muchas de IA, foto o pa
 
 ## 11. Decisiones abiertas
 
-- Confirmar que completar solo lo esencial cuenta como sesión completa.
+- ~~Confirmar que completar solo lo esencial cuenta como sesión completa.~~ Implementado así; revisar si se quiere otra regla.
 - Cuántas rutinas activas gratis (1 o 2) y qué entra exactamente en Horizon.
 - Duración del trial (14 días propuestos) y número de generaciones de Aby.
 - Qué pasó con el bono de trial de Horizon (migración 41).

@@ -33,13 +33,7 @@ import {
   actualizarRecordatorioRutina, archivarRutina, completarPasoPropioRutina, CLAVE_RUTINAS, crearRutina, obtenerRutinasHoy,
 } from '../rutinas.servicio';
 import type { CrearRutinaInput, PasoRutina, Rutina } from '../rutinas.tipos';
-
-// Tema Ignate (rojo saturado) fijo para todo el módulo — mismo mecanismo que
-// Tareas (golden) y Planes (aurelia): TonoDelHabito reemplaza la escala de
-// color que lee el resto del árbol. #90010D es el master_pack_color real de
-// "ignate" en arboles_paquetes (migración 28).
-const PAQUETE_RUTINAS = 'ignate';
-const COLOR_PAQUETE_RUTINAS = '#90010D';
+import { COLOR_PAQUETE_RUTINAS, PAQUETE_RUTINAS } from '../temaRutinas';
 
 type VistaPanel = 'hoy' | 'progresion' | 'recordatorios' | 'plantillas';
 const ICONOS_VISTA: Record<VistaPanel, string> = { hoy: 'sol', progresion: 'progreso', recordatorios: 'reloj', plantillas: 'metas' };
@@ -299,6 +293,7 @@ function RutinasPantallaContenido() {
                         color={acento}
                         filtro={filtro}
                         onAlternarPaso={(_rutina, paso) => { if (paso.origen === 'propio' && paso.aplica) alternarPaso.mutate({ paso }); }}
+                        onEmpezar={(r) => router.push({ pathname: '/rutinas/[id]', params: { id: r.id } })}
                         pasoEnCursoId={pasoEnCursoId}
                         rutinas={visibles}
                       />

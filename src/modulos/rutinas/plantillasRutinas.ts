@@ -7,6 +7,8 @@ export type PlantillaPasoRutina = {
   /** Minutos (cronómetro) o cantidad (contador); ausente en pasos simples. */
   objetivoValor?: number;
   unidad?: string;
+  /** Opcional si el servidor lo marca false; ausente = esencial. */
+  esencial?: boolean;
 };
 
 export type PlantillaRutina = {
@@ -55,6 +57,7 @@ export function mapearPasoPlantilla(crudo: unknown): PlantillaPasoRutina {
   const paso: PlantillaPasoRutina = { titulo: texto(crudo.titulo, 'paso.titulo'), modo };
   if (modo !== 'simple') paso.objetivoValor = numero(crudo.objetivo_valor, 'paso.objetivo_valor');
   if (typeof crudo.unidad === 'string' && crudo.unidad.length > 0) paso.unidad = crudo.unidad;
+  if (crudo.esencial === false) paso.esencial = false;
   return paso;
 }
 

@@ -24,9 +24,9 @@ const ETAPAS = ['identidad', 'pasos', 'programacion', 'revision'] as const;
 type Etapa = (typeof ETAPAS)[number];
 
 type BorradorPaso =
-  | { clave: string; origen: 'habito'; habitoId: string; titulo: string }
-  | { clave: string; origen: 'tarea'; tareaId: string; titulo: string }
-  | { clave: string; origen: 'propio'; titulo: string; modo: ModoPasoPropio; objetivo: string; unidad: string };
+  | { clave: string; esencial: boolean; origen: 'habito'; habitoId: string; titulo: string }
+  | { clave: string; esencial: boolean; origen: 'tarea'; tareaId: string; titulo: string }
+  | { clave: string; esencial: boolean; origen: 'propio'; titulo: string; modo: ModoPasoPropio; objetivo: string; unidad: string };
 
 function borradorValido(paso: BorradorPaso): boolean {
   if (paso.origen !== 'propio') return true;
@@ -35,10 +35,10 @@ function borradorValido(paso: BorradorPaso): boolean {
 }
 
 function aPasoNuevo(paso: BorradorPaso): PasoNuevoRutina {
-  if (paso.origen === 'habito') return { origen: 'habito', habitoId: paso.habitoId };
-  if (paso.origen === 'tarea') return { origen: 'tarea', tareaId: paso.tareaId };
+  if (paso.origen === 'habito') return { origen: 'habito', habitoId: paso.habitoId, esencial: paso.esencial };
+  if (paso.origen === 'tarea') return { origen: 'tarea', tareaId: paso.tareaId, esencial: paso.esencial };
   return {
-    origen: 'propio', titulo: paso.titulo.trim(), modo: paso.modo,
+    origen: 'propio', titulo: paso.titulo.trim(), modo: paso.modo, esencial: paso.esencial,
     ...(paso.modo === 'simple' ? {} : { objetivoValor: leerObjetivo(paso.objetivo) ?? 1, unidad: paso.unidad.trim() || (paso.modo === 'cronometro' ? 'min' : undefined) }),
   };
 }
@@ -85,7 +85,7 @@ export function CrearRutinaWizard({ color, guardando, habitos, onCerrar, onCrear
     setFranja(plantilla?.franja ?? 'cualquier_momento');
     setIconoId(plantilla?.iconoId ?? ICONOS_RUTINA[0]);
     setPasos((plantilla?.pasos ?? []).map((paso) => ({
-      clave: nuevaClave(), origen: 'propio', titulo: paso.titulo, modo: paso.modo,
+      clave: nuevaClave(), esencial: paso.esencial !== false, origen: 'propio', titulo: paso.titulo, modo: paso.modo,
       objetivo: paso.objetivoValor ? String(paso.objetivoValor) : '', unidad: paso.unidad ?? '',
     })));
   }, [visible, plantilla]);
@@ -100,7 +100,7 @@ export function CrearRutinaWizard({ color, guardando, habitos, onCerrar, onCrear
   const puedeContinuar = (() => {
     switch (etapa) {
       case 'identidad': return titulo.trim().length > 0;
-      case 'pasos': return pasos.length >= 1 && pasos.every(borradorValido) && agregando === null;
+      case 'pasos': return pasos.length >= 1 && pasos.some((paso) => paso.esencial) && pasos.every(borradorValido) && agregando === null;
       case 'programacion': return (frecuencia === 'diaria' || dias.length > 0) && (!recordatorio || horaValida);
       default: return true;
     }
@@ -119,6 +119,10 @@ export function CrearRutinaWizard({ color, guardando, habitos, onCerrar, onCrear
       [copia[indice], copia[destino]] = [copia[destino], copia[indice]];
       return copia;
     });
+  }
+  function alternarEsencial(clave: string) {
+    hapticSeguro('seleccion');
+    setPasos((actual) => actual.map((paso) => (paso.clave === clave ? { ...paso, esencial: !paso.esencial } : paso)));
   }
   function actualizarPropio(clave: string, cambios: Partial<Extract<BorradorPaso, { origen: 'propio' }>>) {
     setPasos((actual) => actual.map((paso) => (paso.clave === clave && paso.origen === 'propio' ? { ...paso, ...cambios } : paso)));
@@ -209,6 +213,8 @@ export function CrearRutinaWizard({ color, guardando, habitos, onCerrar, onCrear
                         </View>
                       ) : null}
                       <View style={estilos.mover}>
+                        <MasterChip activo={paso.esencial} onPress={() => alternarEsencial(paso.clave)} texto={t(paso.esencial ? 'rutinas.crear.esencial' : 'rutinas.crear.opcional')} />
+                        <View style={{ flex: 1 }} />
                         <Pressable accessibilityLabel={`${paso.titulo} ↑`} accessibilityRole="button" disabled={indice === 0} hitSlop={8} onPress={() => moverPaso(indice, -1)} style={[estilos.accion, indice === 0 && { opacity: 0.3 }]}><ArrowUp color={C.tenue} size={16} /></Pressable>
                         <Pressable accessibilityLabel={`${paso.titulo} ↓`} accessibilityRole="button" disabled={indice === pasos.length - 1} hitSlop={8} onPress={() => moverPaso(indice, 1)} style={[estilos.accion, indice === pasos.length - 1 && { opacity: 0.3 }]}><ArrowDown color={C.tenue} size={16} /></Pressable>
                       </View>
@@ -225,7 +231,7 @@ export function CrearRutinaWizard({ color, guardando, habitos, onCerrar, onCrear
                         ? habitos.map((habito) => {
                           const usado = idsHabitosUsados.has(habito.id);
                           return (
-                            <Pressable accessibilityRole="button" accessibilityState={{ disabled: usado }} disabled={usado} key={habito.id} onPress={() => agregarPaso({ clave: nuevaClave(), origen: 'habito', habitoId: habito.id, titulo: habito.titulo })} style={[estilos.opcion, usado && { opacity: 0.4 }]}>
+                            <Pressable accessibilityRole="button" accessibilityState={{ disabled: usado }} disabled={usado} key={habito.id} onPress={() => agregarPaso({ clave: nuevaClave(), esencial: true, origen: 'habito', habitoId: habito.id, titulo: habito.titulo })} style={[estilos.opcion, usado && { opacity: 0.4 }]}>
                               <Texto numberOfLines={1} style={estilos.pasoTitulo}>{habito.titulo}</Texto>
                               {usado ? <Check color={C.tenue} size={16} /> : null}
                             </Pressable>
@@ -234,7 +240,7 @@ export function CrearRutinaWizard({ color, guardando, habitos, onCerrar, onCrear
                         : tareas.map((tarea) => {
                           const usada = idsTareasUsadas.has(tarea.id);
                           return (
-                            <Pressable accessibilityRole="button" accessibilityState={{ disabled: usada }} disabled={usada} key={tarea.id} onPress={() => agregarPaso({ clave: nuevaClave(), origen: 'tarea', tareaId: tarea.id, titulo: tarea.titulo })} style={[estilos.opcion, usada && { opacity: 0.4 }]}>
+                            <Pressable accessibilityRole="button" accessibilityState={{ disabled: usada }} disabled={usada} key={tarea.id} onPress={() => agregarPaso({ clave: nuevaClave(), esencial: true, origen: 'tarea', tareaId: tarea.id, titulo: tarea.titulo })} style={[estilos.opcion, usada && { opacity: 0.4 }]}>
                               <Texto numberOfLines={1} style={estilos.pasoTitulo}>{tarea.titulo}</Texto>
                               {usada ? <Check color={C.tenue} size={16} /> : null}
                             </Pressable>
@@ -244,12 +250,14 @@ export function CrearRutinaWizard({ color, guardando, habitos, onCerrar, onCrear
                     </MasterGlass>
                   ) : (
                     <View style={estilos.chips}>
-                      <MasterChip icono={<Plus color={C.texto} size={14} />} onPress={() => { if (!llenaDePasos) agregarPaso({ clave: nuevaClave(), origen: 'propio', titulo: '', modo: 'simple', objetivo: '', unidad: '' }); }} texto={t('rutinas.crear.agregarPropio')} />
+                      <MasterChip icono={<Plus color={C.texto} size={14} />} onPress={() => { if (!llenaDePasos) agregarPaso({ clave: nuevaClave(), esencial: true, origen: 'propio', titulo: '', modo: 'simple', objetivo: '', unidad: '' }); }} texto={t('rutinas.crear.agregarPropio')} />
                       <MasterChip icono={<Plus color={C.texto} size={14} />} onPress={() => { if (!llenaDePasos) setAgregando('habito'); }} texto={t('rutinas.crear.agregarHabito')} />
                       <MasterChip icono={<Plus color={C.texto} size={14} />} onPress={() => { if (!llenaDePasos) setAgregando('tarea'); }} texto={t('rutinas.crear.agregarTarea')} />
                     </View>
                   )}
                   {llenaDePasos ? <Texto style={estilos.ayuda}>{t('rutinas.crear.maxPasos', { count: MAX_PASOS_RUTINA })}</Texto> : null}
+                  {pasos.length > 0 && !pasos.some((paso) => paso.esencial) ? <Texto style={[estilos.ayuda, { color: C.error }]}>{t('rutinas.crear.sinEsencial')}</Texto> : null}
+                  {pasos.length > 1 ? <Texto style={estilos.ayuda}>{t('rutinas.crear.esencialAyuda')}</Texto> : null}
                 </View>
               )}
 
@@ -359,7 +367,7 @@ const estilos = StyleSheet.create({
   accion: { alignItems: 'center', height: 32, justifyContent: 'center', width: 32 },
   modos: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   objetivoFila: { flexDirection: 'row', gap: 8 },
-  mover: { flexDirection: 'row', gap: 4, justifyContent: 'flex-end' },
+  mover: { alignItems: 'center', flexDirection: 'row', gap: 4 },
   selector: { borderRadius: 16, gap: 4, padding: 12 },
   opcion: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', minHeight: 44, paddingVertical: 8 },
   cancelar: { color: C.tenue, fontFamily: 'Montserrat-Bold', fontSize: 13 },

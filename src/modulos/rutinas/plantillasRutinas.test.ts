@@ -38,6 +38,13 @@ describe('mapearPlantillaRutina', () => {
   });
 });
 
+describe('pasos esenciales en plantillas', () => {
+  it('un paso marcado esencial=false llega como opcional y el resto no lleva la marca', () => {
+    const plantilla = mapearPlantillaRutina({ ...gratuita, pasos: [{ titulo: 'a', modo: 'simple', esencial: false }, { titulo: 'b', modo: 'simple' }] });
+    expect(plantilla.pasos).toEqual([{ titulo: 'a', modo: 'simple', esencial: false }, { titulo: 'b', modo: 'simple' }]);
+  });
+});
+
 describe('mapearPlantillasRutinas', () => {
   it('mapea listas y rechaza lo que no lo es', () => {
     expect(mapearPlantillasRutinas([gratuita, bloqueada])).toHaveLength(2);

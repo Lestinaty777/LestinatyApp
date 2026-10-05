@@ -4,21 +4,32 @@ export type ResumenRutina = {
   /** Pasos que cuentan hoy (los que no están programados hoy no suman ni restan). */
   aplican: number;
   completos: number;
-  /** 0–100, entero. 0 si no aplica ningún paso. */
+  /**
+   * Pasos que hay que completar para dar la sesión por hecha: los esenciales que
+   * aplican hoy; si ninguno aplica hoy, todos los que aplican. Debe coincidir con
+   * cerrar_rutina_dia (migración 73).
+   */
+  requeridos: number;
+  requeridosCompletos: number;
+  /** 0–100, entero: avance hacia completar la sesión (los pasos opcionales no suman ni restan). */
   porcentaje: number;
-  /** Todos los pasos que aplican están completos (y hay al menos uno). */
+  /** Todos los requeridos están completos (y hay al menos uno). */
   completa: boolean;
 };
 
 export function resumirPasos(pasos: readonly PasoRutina[]): ResumenRutina {
   const aplicables = pasos.filter((paso) => paso.aplica);
-  const completos = aplicables.filter((paso) => paso.completo).length;
-  const aplican = aplicables.length;
+  const esenciales = aplicables.filter((paso) => paso.esencial);
+  const requeridosLista = esenciales.length > 0 ? esenciales : aplicables;
+  const requeridosCompletos = requeridosLista.filter((paso) => paso.completo).length;
+  const requeridos = requeridosLista.length;
   return {
-    aplican,
-    completos,
-    porcentaje: aplican === 0 ? 0 : Math.round((completos * 100) / aplican),
-    completa: aplican > 0 && completos === aplican,
+    aplican: aplicables.length,
+    completos: aplicables.filter((paso) => paso.completo).length,
+    requeridos,
+    requeridosCompletos,
+    porcentaje: requeridos === 0 ? 0 : Math.round((requeridosCompletos * 100) / requeridos),
+    completa: requeridos > 0 && requeridosCompletos === requeridos,
   };
 }
 

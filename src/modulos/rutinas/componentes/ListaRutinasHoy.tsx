@@ -12,17 +12,19 @@ export function ordenarPendientesPrimero(rutinas: readonly Rutina[]): Rutina[] {
   return [...rutinas].sort((a, b) => Number(!estaPendienteHoy(a)) - Number(!estaPendienteHoy(b)));
 }
 
-export function ListaRutinasHoy({ color, filtro, onAlternarPaso, pasoEnCursoId, rutinas }: {
+export function ListaRutinasHoy({ color, filtro, onAlternarPaso, onEmpezar, pasoEnCursoId, rutinas }: {
   color: string;
   filtro: FiltroFranja;
   onAlternarPaso: (rutina: Rutina, paso: PasoRutina) => void;
+  /** Abre la sesión guiada de la rutina. */
+  onEmpezar: (rutina: Rutina) => void;
   pasoEnCursoId: string | null;
   /** Ya filtradas por franja y por "toca hoy". */
   rutinas: readonly Rutina[];
 }) {
   const { t } = useTranslation();
   const tarjeta = (rutina: Rutina) => (
-    <TarjetaRutinaHoy color={color} key={rutina.id} onAlternarPaso={onAlternarPaso} pasoEnCursoId={pasoEnCursoId} rutina={rutina} />
+    <TarjetaRutinaHoy color={color} key={rutina.id} onAlternarPaso={onAlternarPaso} onEmpezar={onEmpezar} pasoEnCursoId={pasoEnCursoId} rutina={rutina} />
   );
 
   if (filtro !== 'todo') return <View>{ordenarPendientesPrimero(rutinas).map(tarjeta)}</View>;

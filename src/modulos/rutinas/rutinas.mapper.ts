@@ -1,6 +1,7 @@
 import { FRANJAS_ORDEN, type FranjaDia } from '../../compartido/utilidades/franjas';
+import type { FrecuenciaTarea, TipoTarea } from '../tareas/tareas.tipos';
 import type {
-  EstadoRutina, FrecuenciaRutina, ModoPasoRutina, OrigenPasoRutina, PasoRutina, ResultadoPasoPropio, Rutina,
+  EstadoRutina, FrecuenciaRutina, ModoPasoRutina, OrigenPasoRutina, PasoRutina, ResultadoCierreRutina, ResultadoPasoPropio, Rutina,
 } from './rutinas.tipos';
 
 // Valida defensivamente lo que devuelve obtener_rutinas_hoy (jsonb): si el
@@ -35,6 +36,12 @@ const ORIGENES: readonly OrigenPasoRutina[] = ['habito', 'tarea', 'propio'];
 const MODOS: readonly ModoPasoRutina[] = ['simple', 'cronometro', 'contador', 'checklist'];
 const FRECUENCIAS: readonly FrecuenciaRutina[] = ['diaria', 'dias_semana'];
 const ESTADOS: readonly EstadoRutina[] = ['activa', 'pausada', 'archivada'];
+const TIPOS_TAREA: readonly TipoTarea[] = ['simple', 'checklist', 'contador', 'cronometro'];
+const FRECUENCIAS_TAREA: readonly FrecuenciaTarea[] = ['una_vez', 'dias_semana'];
+
+function elegirOpcional<T extends string>(valor: unknown, permitidos: readonly T[]): T | null {
+  return typeof valor === 'string' && (permitidos as readonly string[]).includes(valor) ? (valor as T) : null;
+}
 
 export function mapearPasoRutina(crudo: unknown): PasoRutina {
   if (!esObjeto(crudo)) throw new Error('Rutinas: paso inválido.');
@@ -44,6 +51,10 @@ export function mapearPasoRutina(crudo: unknown): PasoRutina {
     origen: elegir(crudo.origen, ORIGENES, 'paso.origen'),
     habitoId: textoOpcional(crudo.habito_id),
     tareaId: textoOpcional(crudo.tarea_id),
+    tareaTipo: elegirOpcional(crudo.tarea_tipo, TIPOS_TAREA),
+    tareaFrecuencia: elegirOpcional(crudo.tarea_frecuencia, FRECUENCIAS_TAREA),
+    // Por defecto esencial (igual que la columna): un servidor sin el campo no vuelve opcional todo.
+    esencial: crudo.esencial !== false,
     titulo: texto(crudo.titulo, 'paso.titulo'),
     iconoLucide: textoOpcional(crudo.icono_lucide),
     color: textoOpcional(crudo.color),
@@ -75,6 +86,8 @@ export function mapearRutina(crudo: unknown): Rutina {
     recordatorioActivo: crudo.recordatorio_activo === true,
     mostrarNombreNotificacion: crudo.mostrar_nombre_notificacion !== false,
     tocaHoy: crudo.toca_hoy === true,
+    sesionIniciadaEn: textoOpcional(crudo.sesion_iniciada_en),
+    sesionCompletadaEn: textoOpcional(crudo.sesion_completada_en),
     pasos: pasosCrudos.map(mapearPasoRutina).sort((a, b) => a.orden - b.orden),
   };
 }
@@ -87,4 +100,15 @@ export function mapearRutinas(crudo: unknown): Rutina[] {
 export function mapearResultadoPasoPropio(crudo: unknown): ResultadoPasoPropio {
   if (!esObjeto(crudo)) throw new Error('Rutinas: resultado inválido.');
   return { pasoId: texto(crudo.paso_id, 'paso_id'), valor: Number(crudo.valor), completo: crudo.completo === true };
+}
+
+export function mapearResultadoCierreRutina(crudo: unknown): ResultadoCierreRutina {
+  if (!esObjeto(crudo)) throw new Error('Rutinas: resultado de cierre inválido.');
+  return {
+    rutinaId: texto(crudo.rutina_id, 'rutina_id'),
+    completa: crudo.completa === true,
+    requeridos: Number(crudo.requeridos),
+    requeridosCompletos: Number(crudo.requeridos_completos),
+    completadaEn: textoOpcional(crudo.completada_en),
+  };
 }

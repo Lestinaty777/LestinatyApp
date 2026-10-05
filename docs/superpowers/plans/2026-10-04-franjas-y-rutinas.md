@@ -67,7 +67,7 @@ Tus cambios locales sin commitear no los puedo ver, porque solo existen en tu co
 | A. Base de franjas | Nada visible todavía | Ninguno — **hecha** (migración 69 y lógica; tipos de hábito/tarea pendientes) |
 | B. Backend de Rutinas | Nada visible todavía | Ninguno — **hecha** (migraciones 70 y 71; `routine_id` se borra después) |
 | C. Pantalla de Rutinas | La pestaña Rutinas con datos reales, con el mismo estilo que Hábitos y Tareas | Bajo — **hecha**, falta tu prueba en dispositivo |
-| D. Crear rutinas y ejecutarlas | Wizard para crear una rutina y pantalla para hacerla paso a paso | Bajo — **wizard hecho**; falta la pantalla de ejecución |
+| D. Crear rutinas y ejecutarlas | Wizard para crear una rutina y pantalla para hacerla paso a paso | Bajo — **hecha** (wizard y sesión guiada); falta tu prueba en dispositivo |
 | E. Franjas en wizards y en Hoy | Selector de franja al crear hábito o tarea, y Hoy con los 4 botones | Medio: toca pantallas que ya usas |
 | F. Ajustes de franjas e insights | Cambiar las horas de mañana/tarde/noche y ver en qué franja cumples más | Bajo |
 
@@ -107,6 +107,22 @@ Gemas por rutina, rutinas compartidas o cooperativas, planes dentro de Hoy, ruti
 # PARTE 2 — Técnico (para mí)
 
 Rama de trabajo: `mejoras`. Un commit por paso, push al terminar cada etapa. No abrir PR salvo que se pida. Mensajes de commit con las líneas de atribución indicadas en la sesión.
+
+## Sesión guiada (2026-10-05)
+
+Hecha la primera versión de la **sesión guiada** de rutinas (spec: `2026-10-05-sesion-guiada-rutinas-design.md`).
+
+- **Cómo se usa:** en Rutinas, cada tarjeta tiene un botón **Empezar** (o **Continuar**). Se abre una pantalla donde eliges cuánto tiempo tienes (completa, 30, 15 o 5 min), ves qué entra y empiezas. Luego vas un paso a la vez: "Hecho" para pasos simples, cuenta con + y − para contadores, cronómetro con cuenta regresiva (pausa, reanuda, "listo antes") para pasos de tiempo. Al final ves si la sesión quedó completa o parcial.
+- **Pasos esenciales y opcionales:** al crear una rutina marcas cada paso como esencial u opcional (siempre hace falta al menos un esencial). **Completar solo los esenciales cuenta como sesión completa.** Con poco tiempo, la sesión incluye los esenciales y los opcionales que quepan.
+- **Los pasos de hábito y tarea también se marcan desde la sesión** (con su meta completa), y sus árboles y gemas avanzan como si lo hubieras hecho desde su pantalla.
+- **Probado:** typecheck limpio, 96 archivos y 579 tests, y el SQL de la migración 73 en Postgres local (`supabase/tests/11_sesion_rutinas.sql`), incluida la regla de esenciales, el cierre de la sesión y el aislamiento entre cuentas.
+- **No probado:** las pantallas y el cronómetro (app nativa). El tiempo corre desde una hora de fin, así que debería seguir bien si la app pasa a segundo plano, pero hay que verlo en un dispositivo.
+
+**Tienes que hacer:** aplicar la migración `20261005_73` en Supabase (después de la 69 a la 72 si aún no están), correr `supabase/tests/11_sesion_rutinas.sql` con `psql`, y probar una sesión completa en un dispositivo.
+
+**Decisiones mías para esta entrega** (dime si no te gustan): la estimación de minutos de cada paso es una regla fija (cronómetro = su meta; contador y checklist 5 min; el resto 2 min); un contador a medias se guarda como avance parcial al pulsar "Siguiente"; completar una rutina sigue sin dar gemas.
+
+**Todavía no incluye:** racha de sesiones, editar una rutina (ni su marca esencial/opcional), Live Activities, avance automático con la app cerrada.
 
 ## Plantillas con gemas (2026-10-04)
 
