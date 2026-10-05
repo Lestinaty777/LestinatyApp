@@ -1,5 +1,7 @@
 # Lestinaty — Visión, modelo conceptual y hoja de ruta
 
+Ver también la [estrategia de producto y monetización](estrategia-y-monetizacion.md): usuario de partida, áreas de vida, gratis/trial/Horizon y métricas.
+
 Estado: **borrador de visión formalizado** (2026-10-04). Es el documento rector: los specs de cada feature (`docs/superpowers/specs/`) deben ser coherentes con él. Cuando un spec lo contradiga, se corrige uno de los dos explícitamente.
 
 ## 1. Qué es Lestinaty
