@@ -21,6 +21,7 @@ import { obtenerAssetsPaquete } from '../../senderos/algoritmo/registroPaquetesA
 import { obtenerTareas } from '../../tareas/tareas.servicio';
 import { CLAVE_SALDO_GEMAS, useSaldoGemas } from '../../tienda/useSaldoGemas';
 import { CrearRutinaWizard } from '../componentes/CrearRutinaWizard';
+import { prepararAvisosDeRutina } from '../recordatorioRutina';
 import { ListaMisRutinas } from '../componentes/ListaMisRutinas';
 import { ListaRecordatoriosRutinas } from '../componentes/ListaRecordatoriosRutinas';
 import { ListaRutinasHoy } from '../componentes/ListaRutinasHoy';
@@ -30,7 +31,7 @@ import { estaPendienteHoy, resumirDiaRutinas, siguientePaso } from '../estadoRut
 import { esErrorGemasInsuficientes, type PlantillaRutina } from '../plantillasRutinas';
 import { CLAVE_PLANTILLAS_RUTINAS, comprarPlantillaRutina, obtenerPlantillasRutinas } from '../plantillasRutinas.servicio';
 import {
-  actualizarRecordatorioRutina, archivarRutina, completarPasoPropioRutina, CLAVE_RUTINAS, crearRutina, obtenerRutinasHoy,
+  actualizarRecordatorioRutina, actualizarRutina, archivarRutina, completarPasoPropioRutina, CLAVE_RUTINAS, crearRutina, obtenerRutinasHoy,
 } from '../rutinas.servicio';
 import type { CrearRutinaInput, PasoRutina, Rutina } from '../rutinas.tipos';
 import { COLOR_PAQUETE_RUTINAS, PAQUETE_RUTINAS } from '../temaRutinas';
@@ -67,6 +68,7 @@ function RutinasPantallaContenido() {
   const [filtro, setFiltro] = useState<FiltroFranja>(() => franjaActual());
   const [crearAbierto, setCrearAbierto] = useState(false);
   const [plantilla, setPlantilla] = useState<PlantillaRutina | null>(null);
+  const [rutinaEditando, setRutinaEditando] = useState<Rutina | null>(null);
   const [pasoEnCursoId, setPasoEnCursoId] = useState<string | null>(null);
   const [recordatorioEnCursoId, setRecordatorioEnCursoId] = useState<string | null>(null);
   const [plantillaPorComprar, setPlantillaPorComprar] = useState<PlantillaRutina | null>(null);
@@ -94,7 +96,13 @@ function RutinasPantallaContenido() {
   const assets = useMemo(() => obtenerAssetsPaquete(PAQUETE_RUTINAS), []);
   const refrescar = () => cliente.invalidateQueries({ queryKey: CLAVE_RUTINAS });
 
-  const crear = useMutation({ mutationFn: (input: CrearRutinaInput) => crearRutina(input), onSuccess: refrescar });
+  // Si la rutina lleva recordatorio, se piden el permiso y la preferencia sin frenar el guardado.
+  const avisarSiHaceFalta = (input: CrearRutinaInput) => { if (input.recordatorioActivo) void prepararAvisosDeRutina(); };
+  const crear = useMutation({ mutationFn: (input: CrearRutinaInput) => crearRutina(input), onSuccess: (_id, input) => { avisarSiHaceFalta(input); return refrescar(); } });
+  const editar = useMutation({
+    mutationFn: ({ input, rutinaId }: { input: CrearRutinaInput; rutinaId: string }) => actualizarRutina(rutinaId, input),
+    onSuccess: (_vacio, { input }) => { avisarSiHaceFalta(input); return refrescar(); },
+  });
   const alternarPaso = useMutation({
     mutationFn: ({ paso }: { paso: PasoRutina }) => {
       setPasoEnCursoId(paso.id);
@@ -105,8 +113,10 @@ function RutinasPantallaContenido() {
     onSettled: () => setPasoEnCursoId(null),
   });
   const cambiarRecordatorio = useMutation({
-    mutationFn: ({ cambios, rutina }: { cambios: { activo: boolean; hora: string | null }; rutina: Rutina }) => {
+    mutationFn: async ({ cambios, rutina }: { cambios: { activo: boolean; hora: string | null }; rutina: Rutina }) => {
       setRecordatorioEnCursoId(rutina.id);
+      // Sin permiso de notificaciones el aviso nunca llegaría: no se deja encendido.
+      if (cambios.activo && !(await prepararAvisosDeRutina())) throw new Error('Rutinas: sin permiso de notificaciones.');
       return actualizarRecordatorioRutina(rutina.id, cambios);
     },
     onSuccess: refrescar,
@@ -131,7 +141,15 @@ function RutinasPantallaContenido() {
   const archivar = useMutation({ mutationFn: (rutina: Rutina) => archivarRutina(rutina.id), onSuccess: refrescar });
 
   function abrirCreacion(desde: PlantillaRutina | null = null) {
+    setRutinaEditando(null);
     setPlantilla(desde);
+    setCrearAbierto(true);
+  }
+
+  function abrirEdicion(rutina: Rutina) {
+    hapticSeguro('seleccion');
+    setPlantilla(null);
+    setRutinaEditando(rutina);
     setCrearAbierto(true);
   }
 
@@ -300,7 +318,7 @@ function RutinasPantallaContenido() {
                     )}
                   </>
                 )}
-                {vistaPanel === 'progresion' && <ListaMisRutinas onArchivar={(rutina) => archivar.mutate(rutina)} rutinas={rutinasActivas} />}
+                {vistaPanel === 'progresion' && <ListaMisRutinas onArchivar={(rutina) => archivar.mutate(rutina)} onEditar={abrirEdicion} rutinas={rutinasActivas} />}
                 {vistaPanel === 'recordatorios' && (
                   <ListaRecordatoriosRutinas
                     color={acento}
@@ -327,11 +345,15 @@ function RutinasPantallaContenido() {
       />
       <CrearRutinaWizard
         color={acento}
-        guardando={crear.isPending}
+        guardando={crear.isPending || editar.isPending}
         habitos={consultaHabitos.data ?? []}
         onCerrar={() => setCrearAbierto(false)}
-        onCrear={async (input) => { await crear.mutateAsync(input); }}
+        onCrear={async (input) => {
+          if (rutinaEditando) await editar.mutateAsync({ input, rutinaId: rutinaEditando.id });
+          else await crear.mutateAsync(input);
+        }}
         plantilla={plantilla}
+        rutinaInicial={rutinaEditando}
         tareas={tareasElegibles}
         visible={crearAbierto}
       />

@@ -88,12 +88,13 @@ export const recursosI18n = {
           pasoPropioHint: 'Tap to mark it', pasoExterno: 'Done from {{origen}}', origenHabito: 'Habits', origenTarea: 'Tasks', pasoNoToca: 'Not scheduled today',
           marcarPaso: 'Mark step', desmarcarPaso: 'Unmark step', empezar: 'Start', continuar: 'Continue',
         },
+        editar: { titulo: 'Editing routine', guardar: 'Save changes', guardando: 'Saving…', error: 'Could not save the changes.' },
         misRutinas: {
           vacio: 'You have no routines yet.', todosLosDias: 'Every day', pausada: 'Paused',
-          archivar: 'Archive', archivarTitulo: 'Archive "{{titulo}}"?', archivarMensaje: 'It will stop showing up. Your habits and tasks are not deleted.', cancelar: 'Cancel',
+          editar: 'Edit "{{titulo}}"', archivar: 'Archive', archivarTitulo: 'Archive "{{titulo}}"?', archivarMensaje: 'It will stop showing up. Your habits and tasks are not deleted.', cancelar: 'Cancel',
         },
         recordatorios: {
-          vacio: 'Create a routine to set a reminder.', sinRecordatorio: 'No reminder', proximamente: 'Routine reminder delivery is coming soon. Your time is saved.',
+          vacio: 'Create a routine to set a reminder.', sinRecordatorio: 'No reminder', ayuda: 'We remind you at that time on scheduled days, if you have not done the routine yet.',
           errorGuardar: 'Could not save the reminder.', guardarHora: 'Save time', activar: 'Turn reminder on', desactivar: 'Turn reminder off',
         },
         sesion: {
@@ -928,6 +929,8 @@ export const recursosI18n = {
           systemSettingsDesc: 'Device notification permissions',
           notifications: {
             habito_recordatorio: 'Habit reminders',
+            tarea_recordatorio: 'Task reminders',
+            rutina_recordatorio: 'Routine reminders',
             hoy_sesion_proxima: 'Session about to start',
             hoy_sesion_inicio: 'Scheduled session starting',
             hoy_repaso_pendiente: 'Pending review',
@@ -1299,12 +1302,13 @@ export const recursosI18n = {
           pasoPropioHint: 'Tocá para marcarlo', pasoExterno: 'Se completa desde {{origen}}', origenHabito: 'Hábitos', origenTarea: 'Tareas', pasoNoToca: 'No toca hoy',
           marcarPaso: 'Marcar paso', desmarcarPaso: 'Desmarcar paso', empezar: 'Empezar', continuar: 'Continuar',
         },
+        editar: { titulo: 'Editando rutina', guardar: 'Guardar cambios', guardando: 'Guardando…', error: 'No pudimos guardar los cambios.' },
         misRutinas: {
           vacio: 'Todavía no tenés rutinas.', todosLosDias: 'Todos los días', pausada: 'Pausada',
-          archivar: 'Archivar', archivarTitulo: '¿Archivar "{{titulo}}"?', archivarMensaje: 'Dejará de aparecer. Tus hábitos y tareas no se borran.', cancelar: 'Cancelar',
+          editar: 'Editar "{{titulo}}"', archivar: 'Archivar', archivarTitulo: '¿Archivar "{{titulo}}"?', archivarMensaje: 'Dejará de aparecer. Tus hábitos y tareas no se borran.', cancelar: 'Cancelar',
         },
         recordatorios: {
-          vacio: 'Creá una rutina para ponerle un recordatorio.', sinRecordatorio: 'Sin recordatorio', proximamente: 'El envío de avisos de rutinas llega pronto. Tu hora queda guardada.',
+          vacio: 'Creá una rutina para ponerle un recordatorio.', sinRecordatorio: 'Sin recordatorio', ayuda: 'Te avisamos a esa hora los días que toca, si todavía no hiciste la rutina.',
           errorGuardar: 'No pudimos guardar el recordatorio.', guardarHora: 'Guardar hora', activar: 'Activar recordatorio', desactivar: 'Desactivar recordatorio',
         },
         sesion: {
@@ -2136,6 +2140,8 @@ export const recursosI18n = {
           systemSettingsDesc: 'Permisos de notificaciones del dispositivo',
           notifications: {
             habito_recordatorio: 'Recordatorios de hábitos',
+            tarea_recordatorio: 'Recordatorios de tareas',
+            rutina_recordatorio: 'Recordatorios de rutinas',
             hoy_sesion_proxima: 'Sesión próxima a comenzar',
             hoy_sesion_inicio: 'Inicio de sesión programada',
             hoy_repaso_pendiente: 'Repaso pendiente',

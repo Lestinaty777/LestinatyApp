@@ -25,7 +25,7 @@ export function ListaRecordatoriosRutinas({ color, error, guardandoId, onCambiar
 
   return (
     <View>
-      <Texto style={estilos.aviso}>{t('rutinas.recordatorios.proximamente')}</Texto>
+      <Texto style={estilos.aviso}>{t('rutinas.recordatorios.ayuda')}</Texto>
       {error ? <Texto style={estilos.error}>{t('rutinas.recordatorios.errorGuardar')}</Texto> : null}
       {rutinas.map((rutina) => {
         const icono = buscarIconoHabito(rutina.iconoLucide);

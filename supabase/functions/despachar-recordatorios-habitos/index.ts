@@ -3,6 +3,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 type Dispositivo = { id: string; subscription_id: string };
+type Textos = { es: string; en: string };
 type RecordatorioHabito = {
   dispositivos: Dispositivo[];
   habito_id: string;
@@ -22,10 +23,28 @@ type RecordatorioTarea = {
   tarea_id: string;
   titulo_tarea: string;
 };
-type RecordatorioReclamado = RecordatorioHabito | RecordatorioTarea;
+// Tercer origen (migración 84): reclamar_recordatorios_rutinas devuelve la
+// misma forma con rutina_id/titulo_rutina.
+type RecordatorioRutina = {
+  dispositivos: Dispositivo[];
+  mostrar_nombre: boolean;
+  notificacion_id: string;
+  preferencia_activa: boolean;
+  rutina_id: string;
+  titulo_rutina: string;
+};
+type RecordatorioReclamado = RecordatorioHabito | RecordatorioTarea | RecordatorioRutina;
 
-function esRecordatorioTarea(recordatorio: RecordatorioReclamado): recordatorio is RecordatorioTarea {
-  return 'tarea_id' in recordatorio;
+// Lo único que cambia entre los tres orígenes: de qué se habla, cómo se llama
+// y a qué pantalla lleva el toque.
+function describir(recordatorio: RecordatorioReclamado): { nombre: Textos; ruta: string; titulo: string } {
+  if ('rutina_id' in recordatorio) {
+    return { nombre: { en: 'routine', es: 'rutina' }, ruta: `/rutinas/${recordatorio.rutina_id}`, titulo: recordatorio.titulo_rutina };
+  }
+  if ('tarea_id' in recordatorio) {
+    return { nombre: { en: 'task', es: 'tarea' }, ruta: `/tareas/${recordatorio.tarea_id}`, titulo: recordatorio.titulo_tarea };
+  }
+  return { nombre: { en: 'habit', es: 'hábito' }, ruta: `/habitos/${recordatorio.habito_id}`, titulo: recordatorio.titulo_habito };
 }
 
 const jsonHeaders = { 'Content-Type': 'application/json' };
@@ -34,27 +53,24 @@ function responder(status: number, cuerpo: unknown) {
   return new Response(JSON.stringify(cuerpo), { headers: jsonHeaders, status });
 }
 
-type Textos = { es: string; en: string };
-
 // Cada texto va en español e inglés: OneSignal elige según el idioma del
 // dispositivo (antes ambos llevaban el español).
 function decidir(recordatorio: RecordatorioReclamado) {
   if (!recordatorio.preferencia_activa) return { accion: 'cancelar' as const, razon: 'preferencia_inactiva' };
   if (!recordatorio.dispositivos.length) return { accion: 'cancelar' as const, razon: 'sin_dispositivo' };
-  const esTarea = esRecordatorioTarea(recordatorio);
-  const titulo = esTarea ? recordatorio.titulo_tarea : recordatorio.titulo_habito;
+  const { nombre, ruta, titulo } = describir(recordatorio);
   if (recordatorio.mostrar_nombre) {
-    const cuerpo: Textos = esTarea
-      ? { en: `Your task ${titulo} is waiting. One small step counts today.`, es: `Tu tarea ${titulo} te espera. Una pequeña acción cuenta hoy.` }
-      : { en: `Your habit ${titulo} is waiting. One small step counts today.`, es: `Tu hábito ${titulo} te espera. Una pequeña acción cuenta hoy.` };
-    return { accion: 'enviar' as const, cuerpo, titulo: { en: titulo, es: titulo } };
+    const cuerpo: Textos = {
+      en: `Your ${nombre.en} ${titulo} is waiting. One small step counts today.`,
+      es: `Tu ${nombre.es} ${titulo} te espera. Una pequeña acción cuenta hoy.`,
+    };
+    return { accion: 'enviar' as const, cuerpo, ruta, titulo: { en: titulo, es: titulo } };
   }
   return {
     accion: 'enviar' as const,
     cuerpo: { en: 'One small step counts today.', es: 'Una pequeña acción cuenta hoy.' },
-    titulo: esTarea
-      ? { en: "It's time for your task", es: 'Es momento de tu tarea' }
-      : { en: "It's time for your habit", es: 'Es momento de tu hábito' },
+    ruta,
+    titulo: { en: `It's time for your ${nombre.en}`, es: `Es momento de tu ${nombre.es}` },
   };
 }
 
@@ -86,15 +102,18 @@ Deno.serve(async (request) => {
   }
 
   const cliente = createClient(supabaseUrl, serviceRole);
-  const [habitos, tareas] = await Promise.all([
+  // Las tres colas son independientes: si una falla, las otras se procesan igual.
+  const [habitos, tareas, rutinas] = await Promise.all([
     cliente.rpc('reclamar_recordatorios_habitos', { p_limite: 100 }),
     cliente.rpc('reclamar_recordatorios_tareas', { p_limite: 100 }),
+    cliente.rpc('reclamar_recordatorios_rutinas', { p_limite: 100 }),
   ]);
-  if (habitos.error && tareas.error) return responder(502, { codigo: 'cola', mensaje: 'No se pudo reclamar la cola de recordatorios.' });
+  if (habitos.error && tareas.error && rutinas.error) return responder(502, { codigo: 'cola', mensaje: 'No se pudo reclamar la cola de recordatorios.' });
 
   const recordatorios = [
     ...(Array.isArray(habitos.data) ? habitos.data as RecordatorioReclamado[] : []),
     ...(Array.isArray(tareas.data) ? tareas.data as RecordatorioReclamado[] : []),
+    ...(Array.isArray(rutinas.data) ? rutinas.data as RecordatorioReclamado[] : []),
   ];
   let enviados = 0;
   let cancelados = 0;
@@ -118,7 +137,7 @@ Deno.serve(async (request) => {
           // dispositivo lo reemplaza en vez de mostrarlo dos veces.
           collapse_id: recordatorio.notificacion_id,
           contents: decision.cuerpo,
-          data: { notificacion_id: recordatorio.notificacion_id, ruta: esRecordatorioTarea(recordatorio) ? `/tareas/${recordatorio.tarea_id}` : `/habitos/${recordatorio.habito_id}` },
+          data: { notificacion_id: recordatorio.notificacion_id, ruta: decision.ruta },
           headings: decision.titulo,
           include_subscription_ids: recordatorio.dispositivos.map((dispositivo) => dispositivo.subscription_id),
           target_channel: 'push',

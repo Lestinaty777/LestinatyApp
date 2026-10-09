@@ -79,6 +79,8 @@ const PROPS_TEXTO_UNA_LINEA = {
 // recordatorio" en Ajustes.
 const ETIQUETAS_AVISO: Record<string, string> = {
   habito_recordatorio: 'Recordatorios de hábitos',
+  tarea_recordatorio: 'Recordatorios de tareas',
+  rutina_recordatorio: 'Recordatorios de rutinas',
   hoy_sesion_proxima: 'Sesión próxima a comenzar',
   hoy_sesion_inicio: 'Inicio de sesión programada',
   hoy_repaso_pendiente: 'Repaso pendiente',
@@ -90,6 +92,8 @@ const ETIQUETAS_AVISO: Record<string, string> = {
 
 const MAPA_CLAVES_AVISO: Record<string, string> = {
   habito_recordatorio: 'perfil.settings.notifications.habito_recordatorio',
+  tarea_recordatorio: 'perfil.settings.notifications.tarea_recordatorio',
+  rutina_recordatorio: 'perfil.settings.notifications.rutina_recordatorio',
   hoy_sesion_proxima: 'perfil.settings.notifications.hoy_sesion_proxima',
   hoy_sesion_inicio: 'perfil.settings.notifications.hoy_sesion_inicio',
   hoy_repaso_pendiente: 'perfil.settings.notifications.hoy_repaso_pendiente',
