@@ -205,10 +205,10 @@ function HeroSection() {
 }
 
 // ─── Grid de Categorías ──────────────────────────────────────────────────────
-// Tareas, Hábitos y Metas tienen ruta propia. Rutinas vive como pestaña de
-// Senderos (no hay ruta /rutinas): navegar ahí rompería contra una ruta que
-// no existe (expo-router la marcaría "Unmatched Route").
-const CATEGORIAS_CON_PANTALLA = new Set(['tareas', 'habitos', 'metas']);
+// Las cuatro categorías tienen ruta propia dentro del grupo con pestañas
+// (app/(principal)/<id>.tsx). Una categoría nueva sin ruta no debe entrar aquí:
+// expo-router la marcaría "Unmatched Route".
+const CATEGORIAS_CON_PANTALLA = new Set(['tareas', 'rutinas', 'habitos', 'metas']);
 
 function GridCategorias() {
   const router = useRouter();
@@ -230,10 +230,10 @@ function GridCategorias() {
   }
 
   const categorias = useMemo(() => [
-    { id: 'tareas', label: t('hoy.categorias.tareas'), progreso: tareasProgreso, color: C.amarillo, icono: 'hoy/tareas' },
-    { id: 'rutinas', label: t('hoy.categorias.rutinas'), progreso: rutinasProgreso, color: C.rojo, icono: 'hoy/rutinas' },
-    { id: 'habitos', label: t('hoy.categorias.habitos'), progreso: habitosProgreso, color: C.verde, icono: 'hoy/habitos' },
-    { id: 'metas', label: t('hoy.categorias.metas'), progreso: '', color: C.azul, icono: 'hoy/metas' },
+    { id: 'tareas', label: t('hoy.categorias.tareas'), subtitulo: t('hoy.categoriasSubtitulos.tareas'), progreso: tareasProgreso, color: C.amarillo, icono: 'hoy/tareas' },
+    { id: 'rutinas', label: t('hoy.categorias.rutinas'), subtitulo: t('hoy.categoriasSubtitulos.rutinas'), progreso: rutinasProgreso, color: C.rojo, icono: 'hoy/rutinas' },
+    { id: 'habitos', label: t('hoy.categorias.habitos'), subtitulo: t('hoy.categoriasSubtitulos.habitos'), progreso: habitosProgreso, color: C.verde, icono: 'hoy/habitos' },
+    { id: 'metas', label: t('hoy.categorias.metas'), subtitulo: t('hoy.categoriasSubtitulos.metas'), progreso: '', color: C.azul, icono: 'hoy/metas' },
   ], [habitosProgreso, rutinasProgreso, tareasProgreso, t]);
 
   return (
@@ -248,13 +248,14 @@ function GridCategorias() {
               <MasterIcon name={cat.icono} size={32} />
               <View style={s.categoriaTexto}>
                 <Texto adjustsFontSizeToFit minimumFontScale={0.8} numberOfLines={1} style={s.categoriaLabel}>{cat.label}</Texto>
+                <Texto numberOfLines={1} style={s.categoriaSubtitulo}>{cat.subtitulo}</Texto>
                 {cat.progreso !== '' && (
-                  <>
-                    <Texto style={s.categoriaProgreso}>{cat.progreso}</Texto>
+                  <View style={s.categoriaAvance}>
                     <View style={s.categoriaBarraFondo}>
                       <View style={[s.categoriaBarraRelleno, { backgroundColor: cat.color, width: `${obtenerAnchoProgreso(cat.progreso)}%` }]} />
                     </View>
-                  </>
+                    <Texto style={s.categoriaProgreso}>{cat.progreso}</Texto>
+                  </View>
                 )}
               </View>
             </MasterGlass>
@@ -512,7 +513,7 @@ function TimelineHoy() {
           </Pressable>
           <Pressable
             accessibilityRole="button"
-            onPress={() => { hapticSeguro('seleccion'); router.navigate('/senderos' as never); }}
+            onPress={() => { hapticSeguro('seleccion'); router.navigate('/rutinas' as never); }}
             style={[s.invitacionBoton, { backgroundColor: C.moradoSuave }]}
           >
             <Texto style={[s.invitacionBotonTexto, { color: C.morado }]}>{t('hoy.vacio.rutinaLista')}</Texto>
@@ -894,23 +895,32 @@ const s = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 15,
   },
-  categoriaProgreso: {
+  categoriaSubtitulo: {
     fontFamily: 'Montserrat-Medium',
     fontSize: 11,
     color: C.textoSecundario,
     marginTop: 1,
     lineHeight: 14,
+    textAlign: 'center',
+  },
+  categoriaAvance: { alignItems: 'center', flexDirection: 'row', gap: 4, marginTop: 5, width: '100%' },
+  categoriaProgreso: {
+    fontFamily: 'Montserrat-Medium',
+    fontSize: 9,
+    color: C.textoTenue,
+    lineHeight: 11,
   },
   categoriaBarraFondo: {
-    width: '80%',
-    height: 3,
-    borderRadius: 1.5,
-    backgroundColor: 'rgba(26,19,53,0.10)',
-    marginTop: 4,
+    flex: 1,
+    height: 2,
+    borderRadius: 1,
+    backgroundColor: 'rgba(26,19,53,0.08)',
+    overflow: 'hidden',
   },
   categoriaBarraRelleno: {
-    height: 3,
-    borderRadius: 1.5,
+    height: 2,
+    borderRadius: 1,
+    opacity: 0.75,
   },
 
   // ─── Sendero Card ──────────────────────────────────

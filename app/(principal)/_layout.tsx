@@ -93,7 +93,13 @@ export default function LayoutPrincipal() {
         options={{ href: null }}
       />
       {/* Mismo criterio que "habitos" y "tareas": se llega desde el hub de Hoy,
-          no es un destino de la barra, pero la barra persiste mientras se usa. */}
+          no es un destino de la barra, pero la barra persiste mientras se usa.
+          La sesión guiada de una rutina es otra ruta, fuera de las pestañas:
+          app/rutinas/[id].tsx. */}
+      <Tabs.Screen
+        name="rutinas"
+        options={{ href: null }}
+      />
       <Tabs.Screen
         name="metas"
         options={{ href: null }}
