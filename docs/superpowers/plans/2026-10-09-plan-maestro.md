@@ -33,7 +33,8 @@ Documentos de origen (leerlos solo cuando una tarea lo pida; este plan ya los re
    npx supabase db query --linked "select 1"                 # consulta suelta
    npx supabase db query --linked --file ruta/al/archivo.sql # archivo
    ```
-9. **Migraciones:** siempre aditivas, envueltas en `begin; … commit;`, nombre `AAAAMMDD_NN_descripcion.sql` con `NN` = siguiente número libre (`ls supabase/migrations | tail -3`). Nunca edites una migración ya aplicada: crea una nueva.
+9. **Nombres de tablas:** toda tabla lleva el prefijo de su familia: `habitos_`, `tareas_`, `rutinas_`, `planes_`, `metas`/`metas_`, `areas_`. Una tabla nueva de Rutinas se llama `rutinas_algo`, nunca `algo_rutinas`. Los RPC siguen empezando por verbo (`obtener_…`, `crear_…`). Si dudas de a qué familia pertenece una tabla, **PARADA**.
+9b. **Migraciones:** siempre aditivas, envueltas en `begin; … commit;`, nombre `AAAAMMDD_NN_descripcion.sql` con `NN` = siguiente número libre (`ls supabase/migrations | tail -3`). Nunca edites una migración ya aplicada: crea una nueva.
 10. **Checks SQL con columnas anulables:** `check (char_length(x) between 1 and 80)` deja pasar `null`. Añade siempre `x is not null and …`.
 11. **Seguridad:** identidad siempre por `auth.uid()`; ningún RPC recibe `usuario_id` del cliente; toda tabla nueva con RLS; funciones con `set search_path = ''`; `revoke all … from public, anon` y `grant execute … to authenticated`.
 12. **Textos de interfaz:** todo texto visible va en `src/servicios/i18n/recursos.ts`, en **las dos** secciones (`en.translation`, línea ~2, y `es.translation`, línea ~1081), con las mismas claves. Añade al final del bloque del módulo; no reordenes el archivo.
@@ -95,7 +96,7 @@ Simulación de merge: los commits se unen sin conflicto. El único archivo tocad
 
 ### 1.4 Base de datos de las fases 1 a 5, 8 y 9: ya definida
 
-Las migraciones 82 a 87 están escritas y ensayadas contra la base real dentro de una transacción con `rollback` (47 comprobaciones funcionales, todas correctas). **El agente no escribe ni modifica SQL en las fases 1 a 5, 8 y 9: solo conecta el cliente.**
+Las migraciones 82 a 88 están escritas y ensayadas contra la base real dentro de una transacción con `rollback` (58 comprobaciones funcionales, todas correctas). **El agente no escribe ni modifica SQL en las fases 1 a 5, 8 y 9: solo conecta el cliente.**
 
 | Migración | Qué aporta | La usa |
 | --- | --- | --- |
@@ -105,12 +106,13 @@ Las migraciones 82 a 87 están escritas y ensayadas contra la base real dentro d
 | `20261009_85_rutinas_actualizar.sql` | `actualizar_rutina` (conserva pasos por `id`) | Tarea 4.1 |
 | `20261009_86_cerrar_reclamo_recordatorios.sql` | Corrige permisos: `reclamar_recordatorios_tareas` era ejecutable por cualquier sesión | — |
 | `20261009_87_areas_y_metas.sql` | 7 áreas del sistema y áreas propias, ampliación de `metas`, `meta_id` en hábitos, tareas, rutinas y planes, `asignar_meta`, `obtener_metas` | Fases 8 y 9 |
+| `20261009_88_prefijos_por_familia.sql` | Renombra `plantillas_rutinas*` → `rutinas_plantillas*` y `tareas_diarias_reclamadas` → `habitos_tareas_diarias_reclamadas`. Los RPC no cambian de nombre | Fase 7 (nombres de tabla) |
 
 Las aplica el usuario, en orden:
 
 ```bash
 export SUPABASE_ACCESS_TOKEN=$(grep "^SUPABASE_ACESSS_TOKEN=" .env | cut -d= -f2-)
-for n in 82_franja_habitos 83_resumen_hoy 84_rutinas_recordatorios 85_rutinas_actualizar 86_cerrar_reclamo_recordatorios 87_areas_y_metas; do
+for n in 82_franja_habitos 83_resumen_hoy 84_rutinas_recordatorios 85_rutinas_actualizar 86_cerrar_reclamo_recordatorios 87_areas_y_metas 88_prefijos_por_familia; do
   echo "== $n"; npx supabase db query --linked --file supabase/migrations/20261009_$n.sql || break
 done
 ```
@@ -210,7 +212,7 @@ select
   (select count(*) from information_schema.columns where table_schema='public' and table_name='perfiles_usuario' and column_name like 'franja_%') as cols_limites,                                  -- 3
   (select count(*) from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relkind='r' and c.relname like 'rutinas%') as tablas_rutinas,                         -- 4
   (select count(*) from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relkind='r' and c.relname like 'plantillas_rutinas%') as tablas_plantillas,           -- 3
-  (select count(*) from public.plantillas_rutinas) as plantillas,                                                                                                                                   -- 4
+  (select count(*) from public.rutinas_plantillas) as plantillas,                                                                                                                                   -- 4
   (select count(*) from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname in ('obtener_rutinas_hoy','crear_rutina','completar_paso_propio_rutina','iniciar_rutina','cerrar_rutina_dia','obtener_plantillas_rutinas','comprar_plantilla_rutina','franja_de_hora')) as funciones, -- 8
   (select count(*) from public.habitos_planes where franja <> 'cualquier_momento') as habitos_con_franja,                                                                                           -- 0
   (select count(*) from information_schema.columns where table_schema='public' and table_name='rutinas_pasos' and column_name='esencial') as col_esencial;                                          -- 1
@@ -592,7 +594,7 @@ Commit: `chore(tareas): migración que elimina routine_id`
 
 ### Tarea 4.5 — Documentación de datos
 
-Añade las tablas `rutinas_items`, `rutinas_pasos`, `rutinas_pasos_registros`, `rutinas_registros`, `plantillas_rutinas`, `plantillas_rutinas_contenido`, `plantillas_rutinas_compradas` y las columnas de franja a `supabase/privacidad-schema.md` y `docs/app-store/privacy-inventory.md`, siguiendo el formato de las filas de `tareas_items`. Commit: `docs(privacidad): tablas de rutinas, plantillas y franjas`
+Añade las tablas `rutinas_items`, `rutinas_pasos`, `rutinas_pasos_registros`, `rutinas_registros`, `rutinas_plantillas`, `rutinas_plantillas_contenido`, `rutinas_plantillas_compradas` y las columnas de franja a `supabase/privacidad-schema.md` y `docs/app-store/privacy-inventory.md`, siguiendo el formato de las filas de `tareas_items`. Commit: `docs(privacidad): tablas de rutinas, plantillas y franjas`
 
 ### Tarea 4.6 — La rutina como camino de nodos
 
@@ -729,7 +731,7 @@ Propón al usuario 4 plantillas (una por nicho: cuerpo, estudio, trabajo, finanz
 
 ### Tarea 7.2 — Cargar
 
-Escribe `supabase/datos/plantillas_premium_2026_10.sql` con los `insert` en `plantillas_rutinas` y `plantillas_rutinas_contenido`, siguiendo exactamente el ejemplo comentado al inicio de `20261009_80_plantillas_rutinas.sql`. Prueba con `rollback`, **PARADA-BD**, aplica. Verifica con `select id, precio_gemas, num_pasos, duracion_min from public.plantillas_rutinas order by orden;`.
+Escribe `supabase/datos/plantillas_premium_2026_10.sql` con los `insert` en `rutinas_plantillas` y `rutinas_plantillas_contenido`, siguiendo el ejemplo comentado al inicio de `20261009_80_plantillas_rutinas.sql` **pero con los nombres nuevos de tabla** (`rutinas_plantillas` y `rutinas_plantillas_contenido`; la migración 88 las renombró). Prueba con `rollback`, **PARADA-BD**, aplica. Verifica con `select id, precio_gemas, num_pasos, duracion_min from public.rutinas_plantillas order by orden;`.
 
 Commit: `feat(plantillas): primeras plantillas premium por nicho`
 

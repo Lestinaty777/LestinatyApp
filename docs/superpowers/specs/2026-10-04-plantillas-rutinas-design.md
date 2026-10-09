@@ -21,9 +21,9 @@ Que la pestaña **Plantillas** de Rutinas ofrezca plantillas gratuitas y plantil
 
 | Tabla | Contenido | Quién puede leer |
 | --- | --- | --- |
-| `plantillas_rutinas` | id estable, título, descripción, franja, ícono, autor, `precio_gemas` (0 = gratis), `num_pasos`, `duracion_min`, `activa`, `orden` | Cualquiera con sesión si `activa`; el dueño aunque esté apagada |
-| `plantillas_rutinas_contenido` | `pasos` (jsonb, 1–20) | Solo si es gratis y activa, o si la compró |
-| `plantillas_rutinas_compradas` | (usuario, plantilla, `precio_pagado`, fecha) | Solo el propio usuario |
+| `rutinas_plantillas` | id estable, título, descripción, franja, ícono, autor, `precio_gemas` (0 = gratis), `num_pasos`, `duracion_min`, `activa`, `orden` | Cualquiera con sesión si `activa`; el dueño aunque esté apagada |
+| `rutinas_plantillas_contenido` | `pasos` (jsonb, 1–20) | Solo si es gratis y activa, o si la compró |
+| `rutinas_plantillas_compradas` | (usuario, plantilla, `precio_pagado`, fecha) | Solo el propio usuario |
 
 - Ningún rol de la app puede escribir en las tres tablas: se revoca todo y solo se concede `select`. El catálogo y el contenido los escribe `service_role`/admin; las compras, solo el RPC.
 - Un trigger valida cada paso (título, modo, objetivo numérico solo en cronómetro/contador) y calcula `num_pasos` y `duracion_min`.
@@ -42,7 +42,7 @@ Que la pestaña **Plantillas** de Rutinas ofrezca plantillas gratuitas y plantil
 
 ## Cómo añadir una plantilla premium
 
-Ejemplo comentado al inicio de la migración 80. Es un `insert` en `plantillas_rutinas` más otro en `plantillas_rutinas_contenido`; no requiere publicar la app.
+Ejemplo comentado al inicio de la migración 80. Es un `insert` en `rutinas_plantillas` más otro en `rutinas_plantillas_contenido`; no requiere publicar la app.
 
 ## Pruebas
 
