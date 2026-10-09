@@ -38,7 +38,6 @@ type FilaTarea = {
   recordatorio_activo: boolean;
   hora_recordatorio: string | null;
   mostrar_nombre_notificacion: boolean;
-  routine_id: string | null;
   paquete_id: string | null;
   color: string | null;
   icono_lucide: string | null;
@@ -67,7 +66,6 @@ function normalizar(fila: FilaTarea): Tarea {
     recordatorioActivo: fila.recordatorio_activo,
     horaRecordatorio: fila.hora_recordatorio,
     mostrarNombreNotificacion: fila.mostrar_nombre_notificacion,
-    routineId: fila.routine_id,
     paqueteId: fila.paquete_id,
     color: fila.color,
     iconoLucide: fila.icono_lucide,
@@ -82,7 +80,7 @@ function normalizar(fila: FilaTarea): Tarea {
   };
 }
 
-const COLUMNAS = 'id, titulo, descripcion, estado, tipo, prioridad, columna_kanban, fecha_vencimiento, frecuencia, dias_semana, recordatorio_activo, hora_recordatorio, mostrar_nombre_notificacion, routine_id, paquete_id, color, icono_lucide, orden, created_at, completada_en, nivel, nivel_desde_fecha, objetivo_valor, unidad, franja';
+const COLUMNAS = 'id, titulo, descripcion, estado, tipo, prioridad, columna_kanban, fecha_vencimiento, frecuencia, dias_semana, recordatorio_activo, hora_recordatorio, mostrar_nombre_notificacion, paquete_id, color, icono_lucide, orden, created_at, completada_en, nivel, nivel_desde_fecha, objetivo_valor, unidad, franja';
 
 async function usuarioActualId(): Promise<string> {
   const { data, error } = await obtenerClienteSupabase().auth.getUser();
@@ -137,7 +135,6 @@ export async function crearTarea(input: CrearTareaInput): Promise<Tarea> {
       paquete_id: input.paqueteId ?? null,
       prioridad: input.prioridad ?? null,
       recordatorio_activo: input.recordatorioActivo ?? false,
-      routine_id: input.routineId ?? null,
       tipo: input.tipo ?? 'simple',
       titulo: input.titulo.trim(),
       usuario_id: usuarioId,
@@ -162,7 +159,6 @@ export async function editarTarea(tareaId: string, input: EditarTareaInput): Pro
   if (input.recordatorioActivo !== undefined) cambios.recordatorio_activo = input.recordatorioActivo;
   if (input.horaRecordatorio !== undefined) cambios.hora_recordatorio = input.horaRecordatorio;
   if (input.mostrarNombreNotificacion !== undefined) cambios.mostrar_nombre_notificacion = input.mostrarNombreNotificacion;
-  if (input.routineId !== undefined) cambios.routine_id = input.routineId;
   if (input.franja !== undefined) cambios.franja = input.franja;
 
   const { data, error } = await obtenerClienteSupabase().from('tareas_items').update(cambios).eq('id', tareaId).select(COLUMNAS).single();

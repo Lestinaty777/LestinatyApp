@@ -34,8 +34,6 @@ export type Tarea = {
   recordatorioActivo: boolean;
   horaRecordatorio: string | null;
   mostrarNombreNotificacion: boolean;
-  /** De qué rutina es parte — el módulo de Rutinas todavía no existe, este campo solo lo deja listo. */
-  routineId: string | null;
   /** Paquete de la semilla usada para "vestir" la tarea — null si no tiene ninguna asignada. */
   paqueteId: string | null;
   color: string | null;
@@ -68,7 +66,6 @@ export type CrearTareaInput = {
   recordatorioActivo?: boolean;
   horaRecordatorio?: string | null;
   mostrarNombreNotificacion?: boolean;
-  routineId?: string | null;
   paqueteId?: string | null;
   color?: string | null;
   iconoLucide?: string | null;
