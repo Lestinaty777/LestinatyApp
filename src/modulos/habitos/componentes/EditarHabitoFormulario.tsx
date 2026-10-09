@@ -45,6 +45,7 @@ export function EditarHabitoFormulario({ colorHabito, edicionInicial, habitoId, 
     edicionInicial.horaRecordatorio !== null && !HORAS_PRESET.includes(edicionInicial.horaRecordatorio),
   );
   const [mostrarNombre, setMostrarNombre] = useState(edicionInicial.mostrarNombreNotificacion);
+  const [franja, setFranja] = useState(edicionInicial.franja);
   const [error, setError] = useState<string | null>(null);
 
   // Mismo requisito que en la creación: el permiso nativo y el registro del
@@ -75,6 +76,7 @@ export function EditarHabitoFormulario({ colorHabito, edicionInicial, habitoId, 
         recordatorioActivo: recordatorio,
         horaRecordatorio: recordatorio ? hora : null,
         mostrarNombreNotificacion: mostrarNombre,
+        franja,
       };
       const mensajeError = validarEdicionHabito(edicion);
       if (mensajeError) throw new Error(mensajeError);

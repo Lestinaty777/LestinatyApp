@@ -1,5 +1,6 @@
 import type { TransicionSendero } from './senderoHabito.tipos';
 import type { InfoMandalaPendiente } from './mandalaNodo.tipos';
+import type { FranjaDia } from '../../compartido/utilidades/franjas';
 
 export const categoriasHabitos = ['hoy', 'patrones', 'conexiones', 'riesgo', 'impacto'] as const;
 
@@ -53,7 +54,7 @@ export type DetalleHabito = {
   totalAcumulado: number;
   mejorDia: string | null;
   progresoSemana: { fecha: string; etiqueta: string; progreso: number; valor: number; meta: number }[];
-  programacion: { frecuencia: 'diaria' | 'dias_semana' | 'veces_semana'; diasSemana: number[]; vecesPorSemana: number | null; recordatorioActivo: boolean; horaRecordatorio: string | null; mostrarNombreNotificacion: boolean };
+  programacion: { frecuencia: 'diaria' | 'dias_semana' | 'veces_semana'; diasSemana: number[]; vecesPorSemana: number | null; recordatorioActivo: boolean; horaRecordatorio: string | null; mostrarNombreNotificacion: boolean; franja: FranjaDia };
 };
 
 export type PlanHabitoResumen = {

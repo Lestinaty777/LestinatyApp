@@ -192,7 +192,40 @@ describe('semanaProgramada', () => {
         esProgramadoHoy: true,
         programadoHoy: true,
         racha: 3,
+        franja: 'cualquier_momento',
       });
+    });
+
+    it('resuelve franja tarde con plan y cualquier_momento sin plan', () => {
+      const fecha = new Date('2026-09-23T12:00:00');
+      const planConFranja: FilaPlanSemana[] = [
+        {
+          frecuencia: 'diaria',
+          dias_semana: null,
+          objetivo_valor: 1,
+          desde_fecha: '2026-09-20',
+          hasta_fecha: null,
+          franja: 'tarde',
+        },
+      ];
+
+      const detalleConFranja = calcularDetalleHabitoHoy({
+        habitoId: 'habito-1',
+        tipoMeta: 'check',
+        planes: planConFranja,
+        registrosPorFecha: new Map(),
+        referencia: fecha,
+      });
+      expect(detalleConFranja.franja).toBe('tarde');
+
+      const detalleSinPlan = calcularDetalleHabitoHoy({
+        habitoId: 'habito-2',
+        tipoMeta: 'check',
+        planes: [],
+        registrosPorFecha: new Map(),
+        referencia: fecha,
+      });
+      expect(detalleSinPlan.franja).toBe('cualquier_momento');
     });
   });
 });

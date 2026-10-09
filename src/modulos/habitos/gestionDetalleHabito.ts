@@ -1,3 +1,4 @@
+import type { FranjaDia } from '../../compartido/utilidades/franjas';
 import type { DetalleHabito, TipoMetaHabito } from './tipos';
 
 export type EdicionHabito = {
@@ -13,6 +14,7 @@ export type EdicionHabito = {
   recordatorioActivo: boolean;
   horaRecordatorio: string | null;
   mostrarNombreNotificacion: boolean;
+  franja: FranjaDia;
 };
 
 export function validarEdicionHabito(edicion: EdicionHabito): string | null {
@@ -26,5 +28,5 @@ export function validarEdicionHabito(edicion: EdicionHabito): string | null {
 
 export function normalizarEdicionHabito(detalle: DetalleHabito): EdicionHabito {
   const { habito, programacion } = detalle;
-  return { titulo: habito.titulo, descripcion: habito.descripcion ?? '', iconoLucide: habito.iconoLucide, tipoMeta: habito.tipoMeta, unidad: habito.unidad ?? '', meta: habito.meta, frecuencia: programacion.frecuencia, diasSemana: programacion.diasSemana, vecesPorSemana: programacion.vecesPorSemana, recordatorioActivo: programacion.recordatorioActivo, horaRecordatorio: programacion.horaRecordatorio, mostrarNombreNotificacion: programacion.mostrarNombreNotificacion };
+  return { titulo: habito.titulo, descripcion: habito.descripcion ?? '', iconoLucide: habito.iconoLucide, tipoMeta: habito.tipoMeta, unidad: habito.unidad ?? '', meta: habito.meta, frecuencia: programacion.frecuencia, diasSemana: programacion.diasSemana, vecesPorSemana: programacion.vecesPorSemana, recordatorioActivo: programacion.recordatorioActivo, horaRecordatorio: programacion.horaRecordatorio, mostrarNombreNotificacion: programacion.mostrarNombreNotificacion, franja: programacion.franja };
 }

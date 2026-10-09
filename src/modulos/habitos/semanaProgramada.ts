@@ -1,4 +1,5 @@
 import { fechaLocalDe } from '../../nucleo/dispositivo/fechaLocal';
+import type { FranjaDia } from '../../compartido/utilidades/franjas';
 import type { TipoMetaHabito } from './tipos';
 
 export const VENTANA_RACHA_DIAS = 130;
@@ -12,6 +13,7 @@ export type FilaPlanSemana = {
   desde_fecha: string;
   hasta_fecha: string | null;
   nivel?: number;
+  franja?: FranjaDia;
 };
 
 export type HabitoHoyDetalle = {
@@ -22,6 +24,7 @@ export type HabitoHoyDetalle = {
   nivel: number;
   programadoHoy: boolean;
   racha: number;
+  franja: FranjaDia;
 };
 
 export type ResultadoSemanaHabito = {
@@ -194,5 +197,6 @@ export function calcularDetalleHabitoHoy({
     nivel: Number(planVigente?.nivel ?? 1),
     programadoHoy: semana.programadoHoy,
     racha,
+    franja: planHoy?.franja ?? 'cualquier_momento',
   };
 }
