@@ -230,7 +230,7 @@ function GridCategorias() {
             onPress={() => { if (CATEGORIAS_CON_PANTALLA.has(cat.id)) router.navigate(`/${cat.id}` as any); }}
           >
             <MasterGlass colorBase={cat.color} style={s.categoriaGlass}>
-              <MasterIcon name={cat.icono} size={42} />
+              <MasterIcon name={cat.icono} size={32} />
               <View style={s.categoriaTexto}>
                 <Texto adjustsFontSizeToFit minimumFontScale={0.8} numberOfLines={1} style={s.categoriaLabel}>{cat.label}</Texto>
                 <Texto numberOfLines={2} style={s.categoriaSubtitulo}>{cat.subtitulo}</Texto>
@@ -856,32 +856,16 @@ const s = StyleSheet.create({
   },
 
   // ─── Categorías ─────────────────────────────────────
-  categoriasRow: {
-    flexDirection: 'row',
-    gap: 6,
-    paddingHorizontal: PH,
-    marginBottom: 16,
-  },
+  // Mismas medidas, espacios y tipografías que los accesos de HabitosPantalla
+  // (accesosFila, accesoTarjeta, accesoGlass, accesoTexto, accesoEtiqueta,
+  // accesoDescripcion). Lo único distinto es el color de cada tarjeta
+  // (colorBase). Si cambian allá, cambiar aquí igual.
+  categoriasRow: { flexDirection: 'row', gap: 6, marginBottom: 16, paddingHorizontal: PH },
   categoriaCard: { flex: 1 },
-  categoriaGlass: { alignItems: 'center', borderRadius: 14, justifyContent: 'flex-start', minHeight: 110, padding: 8 },
+  categoriaGlass: { alignItems: 'center', borderRadius: 14, justifyContent: 'flex-start', minHeight: 100, padding: 8 },
   categoriaTexto: { alignItems: 'center', marginTop: 5, minHeight: 31, width: '100%' },
-  categoriaLabel: {
-    fontFamily: 'MontserratAlternates-Bold',
-    fontSize: 12,
-    color: C.texto,
-    textAlign: 'center',
-    lineHeight: 15,
-  },
-  categoriaSubtitulo: {
-    fontFamily: 'Montserrat-Medium',
-    fontSize: 11,
-    color: C.textoSecundario,
-    marginTop: 1,
-    lineHeight: 14,
-    // Siempre el alto de dos líneas, aunque el texto quepa en una: así las cuatro tarjetas quedan alineadas.
-    minHeight: 28,
-    textAlign: 'center',
-  },
+  categoriaLabel: { color: C.texto, fontFamily: 'MontserratAlternates-Bold', fontSize: 12, lineHeight: 15, textAlign: 'center' },
+  categoriaSubtitulo: { color: C.textoSecundario, fontFamily: 'Montserrat-Medium', fontSize: 11, lineHeight: 14, marginTop: 1, textAlign: 'center' },
 
   // ─── Sendero Card ──────────────────────────────────
   senderoCard: {
