@@ -1,5 +1,7 @@
 # Lestinaty — Visión, modelo conceptual y hoja de ruta
 
+Ver también la [estrategia de producto y monetización](estrategia-y-monetizacion.md): usuario de partida, áreas de vida, gratis/trial/Horizon y métricas.
+
 Estado: **borrador de visión formalizado** (2026-10-04). Es el documento rector: los specs de cada feature (`docs/superpowers/specs/`) deben ser coherentes con él. Cuando un spec lo contradiga, se corrige uno de los dos explícitamente.
 
 ## 1. Qué es Lestinaty
@@ -83,6 +85,8 @@ Para un objetivo compartido, Aby genera **un Sendero por persona** más las depe
 
 Un curso es un Sendero publicado: contenido + tareas + hábitos + rutinas + evaluaciones, organizado en secciones y días. Se vende un **camino estructurado hacia un resultado**, no solo información.
 
+Primer experimento ya construido: **plantillas de rutinas con gemas**, con el contenido en el servidor (`2026-10-04-plantillas-rutinas-design.md`). Sirve para medir qué se compra y a qué precio antes de invertir en cursos.
+
 Estrategia de validación (sin construir el marketplace primero):
 
 1. El fundador crea 2–3 cursos propios y los publica en la app.
@@ -105,10 +109,10 @@ Voxel/isométrico, mapas, árboles, caminos, nodos, mundos y pequeñas animacion
 | 2 | Tareas con modos (simple, checklist, contador, cronómetro) | En curso (rama `mejoras`) |
 | 3 | **Franjas del día** (mañana, tarde, noche) para hábitos, tareas y rutinas | Spec: `2026-10-04-franjas-del-dia-design.md` |
 | 4 | **Rutinas** que agrupan hábitos y tareas | Spec: `2026-10-04-rutinas-design.md` |
-| 5 | Planes por días/secciones (Senderos de etapas) | Pendiente |
+| 5 | Planes por días/secciones (Senderos de etapas) | Hecho en `mejoras`: módulo Planes con generación por Aby y bloques mañana/tarde/noche |
 | 6 | Modelo unificado de Sendero + dependencias entre nodos | Pendiente (spec propio) |
 | 7 | Aby genera Senderos reales (planes y rutinas) | Parcial: estudio |
-| 8 | Cooperativo | Pendiente |
+| 8 | Cooperativo | Base lista en Planes (instancias por persona); falta compartir y dependencias |
 | 9 | Cursos propios publicados y vendidos | Pendiente |
 | 10 | Marketplace | Solo tras validar la fase 9 |
 

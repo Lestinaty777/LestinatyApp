@@ -2,11 +2,48 @@
 
 Specs de referencia: [visión](../../vision/lestinaty-vision.md) · [franjas del día](../specs/2026-10-04-franjas-del-dia-design.md) · [Rutinas](../specs/2026-10-04-rutinas-design.md).
 
+> **Nota (2026-10-09):** las migraciones que este documento llama 69, 70, 71, 72 y 73 (franjas, rutinas, plantillas y sesión) se renumeraron a **77, 78, 79, 80 y 81** (`20261009_77_…` a `20261009_81_…`), porque los números 69–76 ya estaban ocupados por migraciones de Planes aplicadas en la base. El plan vigente es [2026-10-09-plan-maestro.md](2026-10-09-plan-maestro.md).
+
 Este documento tiene dos partes. **La Parte 1 es para ti** (dirección y función, sin tecnicismos). **La Parte 2 es mía** (detalle técnico de ejecución).
 
 ---
 
 # PARTE 1 — Para ti: dirección y función
+
+## Avance (2026-10-04, noche)
+
+**Hecho en `mejoras`:** la pantalla de Rutinas con datos reales y su backend, más la base de franjas.
+
+- **Pantalla de Rutinas** con tema Ignate y cuatro accesos: **Mis rutinas**, **Crear**, **Recordatorios** y **Plantillas** (esta última la elegí yo: empezar de cero es difícil y las plantillas ayudan). Arriba, la vista **Hoy** con los 4 botones de franja (Mañana, Tarde, Noche, Todo).
+- **Asistente de creación:** nombre y momento, pasos (hábito tuyo, tarea tuya o paso propio con simple/cronómetro/contador), días y recordatorio, y revisión. Si el recordatorio cae en otra franja que la elegida, te lo sugiere sin cambiarlo solo.
+- **Probado de verdad:** corrí las migraciones 01 a 71 completas en un Postgres local y pasó el nuevo smoke SQL (permisos entre cuentas, límites, estados de pasos, franjas). También pasan `typecheck` y los 560 tests automáticos.
+
+**Lo que todavía no hace (decisión mía para esta primera entrega, dime si no te gusta):**
+
+- Los pasos que son **hábito o tarea** se ven con su estado, pero se completan desde Hábitos o Tareas. Solo los **pasos propios** se marcan desde la rutina. La pantalla de ejecución paso a paso (con cronómetro y contador reales) es la etapa D.
+- En **Recordatorios** puedes activar el aviso y elegir la hora, y queda guardado, pero **el envío real de la notificación aún no está conectado**. La pantalla lo avisa con una línea de texto.
+- Las franjas todavía no están en los asistentes de **hábito y tarea**, ni en **Hoy**. Es la etapa E.
+- Una rutina completa no da gemas (como acordamos).
+
+**Lo que tienes que hacer tú ahora:**
+
+1. Aplicar en tu proyecto de Supabase las migraciones `20261004_69`, `70`, `71` y `72`, en ese orden.
+2. Correr `supabase/tests/09_franjas_rutinas.sql` y `10_plantillas_rutinas.sql` con `psql` contra tu base (hacen rollback, no dejan datos).
+3. Abrir la app y probar la pestaña Rutinas: crear una, usar una plantilla, marcar un paso propio, activar un recordatorio. Yo no puedo abrir la app nativa, así que **el aspecto visual (sobre todo el rojo Ignate y el contraste del texto) no está verificado**.
+
+## Actualización tras tu commit `0194f44` (Planes y sendero de días en Tareas)
+
+Tu commit cambia varias cosas del plan. Lo importante:
+
+- **Planes ya existe.** Un plan se organiza en Secciones → Días → Bloques → Ítems, con generación por Aby y progreso por instancia (preparado para compartir). Eso adelanta la fase de Planes de la visión y parte del cooperativo.
+- **Los bloques de un plan ya usan mañana / tarde / noche.** Es justo el concepto de franja que propusimos. Lo trato como confirmación de la idea, y las franjas usarán los mismos códigos, así que todo encaja.
+- **Tareas ya está mucho más avanzada** (sendero de días, widgets de contador y cronómetro, alta rápida). No hay que rehacer nada de eso. Mis cambios solo añaden la franja.
+- **Insights de hábitos y tareas se fusionó** en una pantalla; no me afecta.
+- **Cada módulo tiene su propio tema visual** (Tareas dorado, Planes aurelia). Rutinas necesitará el suyo.
+- **Hay un test que prohíbe una ruta `app/rutinas/index.tsx`.** Rutinas debe seguir viviendo como pestaña, no como pantalla independiente. Lo respeto en el plan.
+- **Números de migración:** las tuyas ocuparon la 64 a la 68. Las mías pasan a ser 69, 70 y 71.
+
+Tus cambios locales sin commitear no los puedo ver, porque solo existen en tu computadora. Lo que revisé es lo que está en GitHub. Si esos cambios tocan tareas o planes, hazme saber qué archivos o súbelos en otro commit antes de que empiece la etapa A, para no pisarlos ni dejar choques de migraciones.
 
 ## Qué vamos a construir
 
@@ -29,10 +66,10 @@ Este documento tiene dos partes. **La Parte 1 es para ti** (dirección y funció
 
 | Etapa | Qué ves tú | Riesgo para lo existente |
 | --- | --- | --- |
-| A. Base de franjas | Nada visible todavía | Ninguno |
-| B. Backend de Rutinas | Nada visible todavía | Ninguno (se eliminan campos sin uso) |
-| C. Pantalla de Rutinas | La pestaña Rutinas con datos reales, con el mismo estilo que Hábitos y Tareas | Bajo |
-| D. Crear rutinas y ejecutarlas | Wizard para crear una rutina y pantalla para hacerla paso a paso | Bajo |
+| A. Base de franjas | Nada visible todavía | Ninguno — **hecha** (migración 69 y lógica; tipos de hábito/tarea pendientes) |
+| B. Backend de Rutinas | Nada visible todavía | Ninguno — **hecha** (migraciones 70 y 71; `routine_id` se borra después) |
+| C. Pantalla de Rutinas | La pestaña Rutinas con datos reales, con el mismo estilo que Hábitos y Tareas | Bajo — **hecha**, falta tu prueba en dispositivo |
+| D. Crear rutinas y ejecutarlas | Wizard para crear una rutina y pantalla para hacerla paso a paso | Bajo — **hecha** (wizard y sesión guiada); falta tu prueba en dispositivo |
 | E. Franjas en wizards y en Hoy | Selector de franja al crear hábito o tarea, y Hoy con los 4 botones | Medio: toca pantallas que ya usas |
 | F. Ajustes de franjas e insights | Cambiar las horas de mañana/tarde/noche y ver en qué franja cumples más | Bajo |
 
@@ -52,6 +89,8 @@ Las etapas A y B no muestran nada porque son la base. La primera vez que verás 
 - Una rutina completa no da gemas por ahora.
 - El campo `routine_id` de las tareas se elimina; los pasos de rutina son la única relación.
 - Hoy se unifica y deja de tener el toggle Hábitos/Tareas.
+- **Los planes quedan fuera de Hoy por ahora** (se siguen viendo en su pastilla de Tareas). Se retomarán cuando el resto funcione.
+- **Tema visual de Rutinas: Ignate** (paquete rojo carmesí `#90010D`, ya existe con sus ilustraciones). Tareas usa Golden y Planes Aurelia.
 
 ## Decisiones pendientes (puedo avanzar sin ellas, pero conviene que las pienses)
 
@@ -63,7 +102,7 @@ Las etapas A y B no muestran nada porque son la base. La primera vez que verás 
 
 ## Lo que queda fuera
 
-Gemas por rutina, rutinas compartidas o cooperativas, rutinas dentro de planes y cursos, que Aby cree rutinas, adaptación responsive para iPad y web (solo dejo la base preparada), y cualquier cambio de marketplace o cursos.
+Gemas por rutina, rutinas compartidas o cooperativas, planes dentro de Hoy, rutinas dentro de planes y cursos, que Aby cree rutinas, adaptación responsive para iPad y web (solo dejo la base preparada), y cualquier cambio de marketplace o cursos.
 
 ---
 
@@ -71,11 +110,66 @@ Gemas por rutina, rutinas compartidas o cooperativas, rutinas dentro de planes y
 
 Rama de trabajo: `mejoras`. Un commit por paso, push al terminar cada etapa. No abrir PR salvo que se pida. Mensajes de commit con las líneas de atribución indicadas en la sesión.
 
+## Sesión guiada (2026-10-05)
+
+Hecha la primera versión de la **sesión guiada** de rutinas (spec: `2026-10-05-sesion-guiada-rutinas-design.md`).
+
+- **Cómo se usa:** en Rutinas, cada tarjeta tiene un botón **Empezar** (o **Continuar**). Se abre una pantalla donde eliges cuánto tiempo tienes (completa, 30, 15 o 5 min), ves qué entra y empiezas. Luego vas un paso a la vez: "Hecho" para pasos simples, cuenta con + y − para contadores, cronómetro con cuenta regresiva (pausa, reanuda, "listo antes") para pasos de tiempo. Al final ves si la sesión quedó completa o parcial.
+- **Pasos esenciales y opcionales:** al crear una rutina marcas cada paso como esencial u opcional (siempre hace falta al menos un esencial). **Completar solo los esenciales cuenta como sesión completa.** Con poco tiempo, la sesión incluye los esenciales y los opcionales que quepan.
+- **Los pasos de hábito y tarea también se marcan desde la sesión** (con su meta completa), y sus árboles y gemas avanzan como si lo hubieras hecho desde su pantalla.
+- **Probado:** typecheck limpio, 96 archivos y 579 tests, y el SQL de la migración 73 en Postgres local (`supabase/tests/11_sesion_rutinas.sql`), incluida la regla de esenciales, el cierre de la sesión y el aislamiento entre cuentas.
+- **No probado:** las pantallas y el cronómetro (app nativa). El tiempo corre desde una hora de fin, así que debería seguir bien si la app pasa a segundo plano, pero hay que verlo en un dispositivo.
+
+**Tienes que hacer:** aplicar la migración `20261005_73` en Supabase (después de la 69 a la 72 si aún no están), correr `supabase/tests/11_sesion_rutinas.sql` con `psql`, y probar una sesión completa en un dispositivo.
+
+**Decisiones mías para esta entrega** (dime si no te gustan): la estimación de minutos de cada paso es una regla fija (cronómetro = su meta; contador y checklist 5 min; el resto 2 min); un contador a medias se guarda como avance parcial al pulsar "Siguiente"; completar una rutina sigue sin dar gemas.
+
+**Todavía no incluye:** racha de sesiones, editar una rutina (ni su marca esencial/opcional), Live Activities, avance automático con la app cerrada.
+
+## Plantillas con gemas (2026-10-04)
+
+Añadido a petición tuya: la pestaña **Plantillas** ahora lee un catálogo del **servidor**. Spec: `2026-10-04-plantillas-rutinas-design.md`.
+
+- Las cuatro plantillas de antes pasaron al servidor como gratuitas. Las **premium** (de pago con gemas) solo entregan sus pasos a quien las compró.
+- Al tocar una bloqueada ves una vista previa y el botón "Desbloquear por N gemas". Si no alcanzan, te lleva a la tienda.
+- **Todavía no hay ninguna plantilla premium cargada.** El contenido y los precios son tuyos. Cómo se añade una está explicado al inicio de la migración `20261004_72` (son dos `insert` en el panel de Supabase, sin publicar la app).
+- Probado en Postgres local: compra única, sin doble cobro, gemas insuficientes sin rastro, aislamiento entre cuentas, plantilla apagada. Falta correr `supabase/tests/10_plantillas_rutinas.sql` contra tu proyecto real.
+- **Aplicar también la migración 72** (junto con 69, 70 y 71).
+
+## Estado técnico de la ejecución (2026-10-04)
+
+Hecho y verificado (typecheck limpio, 95 archivos / 560 tests, SQL probado en Postgres 16 local con stubs de Supabase):
+
+- **A1** `20261004_69_franjas_del_dia.sql`. **A2** `src/compartido/utilidades/franjas.ts` (+ tests; `franja_de_hora` SQL y `franjaDeHora` TS dan lo mismo para las 24 horas).
+- **B1/B2** `20261004_70_rutinas_nucleo.sql`, `20261004_71_rutinas_rpcs.sql`. **B3** `src/modulos/rutinas/` (tipos, mapper, servicio, `estadoRutina.ts`, `plantillasRutinas.ts`, `formatoRutina.ts`, tests). **B4** `supabase/tests/09_franjas_rutinas.sql`.
+- **C** `RutinasPantalla` + `componentes/` (`TarjetaRutinaHoy`, `ListaRutinasHoy`, `ListaMisRutinas`, `ListaRecordatoriosRutinas`, `PlantillasRutinasLista`, `CrearRutinaWizard`) y `SelectorFranja` en `src/diseno/componentes/`. i18n ES/EN en `recursos.ts` con test de paridad y de claves usadas.
+
+Bug real encontrado probando el SQL: un `check` con `char_length(trim(titulo)) between 1 and 80` deja pasar `titulo null` (el check evalúa a null). Corregido con `titulo is not null`. Aplica a cualquier check futuro con columnas anulables.
+
+Decisiones de implementación que se apartan del plan original:
+
+- `rutinas_items.franja` usa el dominio `public.franja_dia` (migración 69).
+- **No** se tocó `Tarea`/`tareas.servicio.ts` (`COLUMNAS`) ni los planes de hábito: añadir `franja` al `select` antes de aplicar la migración 69 rompería Tareas. Va en la etapa E junto con la migración ya aplicada.
+- **`routine_id` no se borra todavía** (el cliente lo lee). Se borra cuando se limpie `tareas.servicio.ts`.
+- RPCs implementados: `obtener_rutinas_hoy`, `crear_rutina`, `completar_paso_propio_rutina`. Pendientes: `actualizar_rutina`, `iniciar_rutina`/cierre de sesión (`rutinas_registros` existe pero nadie escribe en ella aún). Recordatorio y archivado son `update` directo sobre `rutinas_items` (RLS).
+- Estado de los pasos (`aplica`/`completo`/`valor`) lo calcula SQL (`obtener_rutinas_hoy`); en TS `estadoRutina.ts` solo resume. Por eso los tests de estado por origen viven en el smoke SQL, no en vitest.
+- Etapa E, aviso: las RPCs de planes de hábito están en `privacidad` (security definer: `crear_habito_premium`, `actualizar_plan_habito`, migración 15); `habitos_planes` no admite escritura directa del cliente.
+- Etapa D pendiente: ejecutor paso a paso, `actualizar_rutina`, edición de rutina, envío real de recordatorios (catálogo de notificaciones + cola + Edge Function).
+- `supabase/resumen.md` quedó desactualizado desde la migración 23 (no lo toqué).
+- Entorno de pruebas: Postgres 16 local en `/var/lib/postgresql/lt` (puerto 55432), fuera del repo; script de reconstrucción en el scratchpad de la sesión.
+
 ## Estado verificado del repo
 
-- Última migración: `20261001_63_guarda_completar_tarea_dia.sql`. Las nuevas son `20261004_64_*`, `20261004_65_*`, `20261004_66_*`.
+- Última migración tras `0194f44`: `20261003_68_obtener_resumen_planes.sql`. Las nuevas son `20261004_69_*`, `20261004_70_*`, `20261004_71_*` (sustituir los números 64/65/66 que aparecen más abajo por 69/70/71). Antes de escribir cada una, hacer `git fetch` y `ls supabase/migrations | tail` por si hay más.
+- Tras `0194f44`: existe `src/modulos/planes/` (tipos, servicio, wizard, detalle, timeline), `planes_items → planes_secciones → planes_dias → planes_bloques(momento manana|tarde|noche) → planes_bloque_items`, progreso en `planes_instancias` + `planes_instancia_progreso`. `planes_bloques.momento` es `text check (manana, tarde, noche)`; **no tocarlo**, solo mantener códigos idénticos a `franja_dia` por compatibilidad futura.
+- `TareasPantalla.tsx` ahora tiene 634 líneas, es una ruta (`app/(principal)/tareas.tsx`) y aloja un selector de pastillas Planes|Tareas con tema ambiente por módulo (`PAQUETE_TAREAS='golden'`, `PAQUETE_PLANES='aurelia'`). Se resolvió la duda de dónde se monta. `src/modulos/tareas/README.md` documenta el ruteo de RPCs al completar; leerlo antes de tocar Tareas.
+- `tareas.servicio.ts` usa la constante `COLUMNAS` (string con todas las columnas, incluye `routine_id`). Añadir `franja` ahí y quitar `routine_id` al borrarlo; `CrearTareaInput.routineId` y `EditarTareaInput.routineId` también.
+- `routine_id` sigue en uso en `tareas.tipos.ts` (líneas 35 y 68) y `tareas.servicio.ts` (38, 66, 80, 135, 159). El borrado en B1 requiere limpiar todo eso.
+- `src/nucleo/navegacion/superficieRelease.test.ts` lista `app/rutinas/index.tsx` como ruta **retirada**: no crear esa ruta. El ejecutor puede ser `app/rutinas/[id].tsx` (no está prohibido); la lista de rutinas sigue como pestaña dentro de `SenderosPantalla`. Si se añade ruta, revisar que el test siga en verde.
+- Los cambios de `0194f44` también tocaron `CrearHabitoWizard.tsx`, `CrearTareaWizard.tsx`, `HabitosPantalla`/`TimelineTareasHoy` y añadieron `SelectorHora12` y `SelectorFechaCalendario` (`src/diseno/ui`). Reutilizar `SelectorHora12` para la hora de la rutina. Releer los wizards completos antes de editarlos en la etapa E.
+- Hay cambios locales del usuario sin subir sobre tareas y planes. Antes de la etapa A, preguntar si ya los subió; si toca `tareas.servicio.ts`, `tareas.tipos.ts` o migraciones, esperar para evitar conflictos.
 - `RutinasPantalla.tsx` (237 líneas) es maqueta con `RUTINAS_INICIALES` fijos. Se monta en `SenderosPantalla.tsx` como pestaña `rutinas`.
-- En `SenderosPantalla.tsx` la pestaña `tareas` muestra `ProximamentePane`. **Verificar** dónde se monta `TareasPantalla.tsx` (no hay import fuera del módulo en `src`/`app`; puede ser una ruta de `expo-router` que no vi). No asumir hasta confirmarlo.
+- En `SenderosPantalla.tsx` la pestaña `tareas` aún muestra `ProximamentePane`, aunque la pantalla real vive en la ruta `tareas`. Es un residuo; no tocarlo salvo que moleste.
 - Patrón de servicios de tareas: `tareas.servicio.ts` usa `obtenerClienteSupabase()`; CRUD directo con RLS sobre `tareas_items`, RPC para lo que acredita gemas o calcula en servidor. `FilaTarea` → `normalizar` → `Tarea`. Hábitos pasa todo por RPC y mappers con validación defensiva (`senderoHabito.mapper.ts`).
 - `habitos_es_dia_programado(plan, fecha)` (migración 07) y `tareas_es_dia_programado(tarea, fecha)` (migración 59) son la base de "aplica hoy". `estaProgramadaEnFecha` en `tareaProgramada.ts` es el espejo de cliente.
 - Tests: `vitest run`, 82 archivos, nombres `*.test.ts` junto al código. Los smoke SQL remotos viven en `supabase/tests/*.mjs` ejecutados con `ejecutar_sql_management.mjs`.
@@ -83,7 +177,7 @@ Rama de trabajo: `mejoras`. Un commit por paso, push al terminar cada etapa. No 
 
 ## Etapa A — Base de franjas (sin UI)
 
-**A1. Migración `20261004_64_franjas_del_dia.sql`**
+**A1. Migración `20261004_69_franjas_del_dia.sql`**
 - `create domain public.franja_dia as text check (...)`.
 - `habitos_planes.franja`, `tareas_items.franja` con `not null default 'cualquier_momento'`.
 - `perfiles_usuario.franja_manana_desde / tarde_desde / noche_desde` con defaults 5/12/19 y check de orden.
@@ -106,7 +200,7 @@ Rama de trabajo: `mejoras`. Un commit por paso, push al terminar cada etapa. No 
 
 ## Etapa B — Backend de Rutinas (sin UI)
 
-**B1. Migración `20261004_65_rutinas_nucleo.sql`**
+**B1. Migración `20261004_70_rutinas_nucleo.sql`**
 - Tablas `rutinas_items` (con `franja public.franja_dia`), `rutinas_pasos`, `rutinas_pasos_registros`, `rutinas_registros` exactamente como el spec.
 - RLS y grants espejo de `tareas_items`; para `rutinas_pasos` y `rutinas_pasos_registros`, policy vía `exists` sobre la rutina propietaria.
 - Trigger `rutinas_pasos_mismo_propietario`: el hábito o tarea referenciados deben ser del `usuario_id` de la rutina; `security definer` con `search_path` fijo.
@@ -114,7 +208,7 @@ Rama de trabajo: `mejoras`. Un commit por paso, push al terminar cada etapa. No 
 - `alter table tareas_items drop column routine_id` (columna solo en `mejoras`, sin referencias en UI; confirmar con grep de `routine_id` y `routineId` antes de borrar y limpiar `Tarea`, `FilaTarea`, mappers, plantillas y tests).
 - Triggers `updated_at` con `set_updated_at()`.
 
-**B2. Migración `20261004_66_rutinas_rpcs.sql`**
+**B2. Migración `20261004_71_rutinas_rpcs.sql`**
 - `crear_rutina`, `actualizar_rutina`, `obtener_rutinas_hoy`, `iniciar_rutina`, `completar_paso_propio_rutina`.
 - Seguir el patrón existente de wrappers `public` sobre funciones en `privacidad`/`comercio`: leer una migración reciente (59/60/63) y copiar convención de `security definer`, `set search_path`, `auth.uid()`, grants a `authenticated` y revocar de `anon`.
 - `obtener_rutinas_hoy`: zona horaria desde `perfiles_usuario`, aplica `habitos_es_dia_programado` / `tareas_es_dia_programado`, estado de pasos calculado desde `habitos_registros`, `tareas_registros`/`tareas_items.estado` y `rutinas_pasos_registros`. Incluir `franja` de la rutina.
@@ -138,7 +232,9 @@ Rama de trabajo: `mejoras`. Un commit por paso, push al terminar cada etapa. No 
 - Estados: cargando (skeleton existente), vacío (invita a crear), error.
 - Responsive: usar `maxWidth` y flex, sin anchos fijos; hook de breakpoints si ya existe uno, y si no, crear `useDispositivo` mínimo sin aplicar layouts de tablet todavía.
 - i18n: añadir claves ES/EN en `src/servicios/i18n/recursos.ts` (archivo único de 1.806 líneas; añadir sin reorganizar).
-- Mantener el montaje como pestaña `rutinas` de `SenderosPantalla`.
+- Mantener el montaje como pestaña `rutinas` de `SenderosPantalla` (no crear `app/rutinas/index.tsx`, lo prohíbe `superficieRelease.test.ts`).
+- Tema ambiente propio de Rutinas: paquete `ignate`, color `#90010D` (existe en `arboles_paquetes`, migración 28, y en `registroPaquetesArbol.ts` con sus ilustraciones). Definir `PAQUETE_RUTINAS = 'ignate'` y `COLOR_PAQUETE_RUTINAS = '#90010D'` y reutilizar el mecanismo de `TareasPantalla` (`paqueteId`/`colorPaquete`, `obtenerAssetsPaquete`, `crearTonoMaster`). Verificar que `TareasPantalla` usa su paquete fijo sin exigir que la persona lo tenga comprado (parece así: `PAQUETE_TAREAS='golden'` es de pago); si exige propiedad, usar el mismo criterio para Rutinas. Comprobar contraste del texto sobre `#90010D` (es oscuro) con `colorSeguroUi`.
+- Los planes no entran en `construirPlanDelDia` en esta fase: solo hábitos, tareas y rutinas.
 - Quitar `RUTINAS_INICIALES` y los tipos mock.
 
 ## Etapa D — Crear y ejecutar rutinas
@@ -149,7 +245,7 @@ Rama de trabajo: `mejoras`. Un commit por paso, push al terminar cada etapa. No 
 
 ## Etapa E — Franjas en wizards y Hoy
 
-- `CrearHabitoWizard` y `CrearTareaWizard`: selector de franja en el paso de programación; sugerencia con `sugerirFranjaPorHora` solo si la persona no eligió a mano (flag `franjaManual`). Extender los RPCs de creación/edición de hábito con `p_franja` (identificados en A1) y la inserción de tareas.
+- `CrearHabitoWizard` y `CrearTareaWizard`: selector de franja en el paso de programación; sugerencia con `sugerirFranjaPorHora` solo si la persona no eligió a mano (flag `franjaManual`). Extender los RPCs de creación/edición de hábito con `p_franja` (identificados en A1; mirar también cómo `0194f44` modificó el wizard) y la inserción de tareas.
 - Edición de hábito (`DetalleHabitoPantalla`/gestión, migración 42) y de tarea.
 - `HoyPantalla` (892 líneas): plan unificado con `SelectorFranja`, tope de 5 por franja, rutinas como tarjeta, deduplicación de pasos de rutina. Antes de tocarla, leerla completa y mantener su tema. Hacer el cambio detrás de una función pura `construirPlanDelDia(items, rutinas, limites, ahora)` con tests, para no meter lógica en el componente.
 - Retirar el toggle Hábitos/Tareas de Hoy solo cuando el plan unificado funcione.
@@ -173,7 +269,8 @@ Rama de trabajo: `mejoras`. Un commit por paso, push al terminar cada etapa. No 
 | SQL sin probar contra Supabase | Revisión contra convenciones, smoke tests escritos, la persona los ejecuta al aplicar |
 | Borrar `routine_id` rompe código que lo lea | grep previo y typecheck |
 | `HoyPantalla` es grande y delicada | Lógica en función pura con tests; cambiar el componente al final |
-| Dominio SQL `franja_dia` no soportado por el generador de tipos o por PostgREST como se espera | Si da problema, cambiar a `check` repetido; decisión local a la migración 64 |
+| Choque de migraciones con trabajo local del usuario | Preguntar antes de A1, `git fetch` antes de cada migración |
+| Dominio SQL `franja_dia` no soportado por el generador de tipos o por PostgREST como se espera | Si da problema, cambiar a `check` repetido; decisión local a la migración 69 |
 | Triggers `security definer` mal acotados | `search_path` fijo y pruebas de propietario ajeno |
 | `perfiles_usuario` con grants por columna | Revisar en A1 antes de añadir columnas |
 | Recordatorios duplicados rutina vs hábitos | La hora de la rutina no reemplaza recordatorios de sus pasos; documentarlo en la pantalla de creación |

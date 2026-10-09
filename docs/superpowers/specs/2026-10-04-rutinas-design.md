@@ -16,9 +16,12 @@ Ejemplo — *Rutina de estudio (45 min)*:
 
 ## Estado actual
 
-- `src/modulos/rutinas/pantallas/RutinasPantalla.tsx` es una pantalla **de muestra** (datos mock, sin backend).
-- `tareas_items.routine_id` existe (migración 59) sin `references`; el comentario dice que se completa cuando exista la tabla de rutinas.
-- No existe ninguna tabla `rutinas_*` ni referencia desde hábitos.
+- **Implementado (2026-10-04):** migraciones 78 y 79, módulo `src/modulos/rutinas/` y `RutinasPantalla` con datos reales (ya no es maqueta). Ver el plan `2026-10-04-franjas-y-rutinas.md` para el detalle y lo pendiente.
+- `tareas_items.routine_id` (migración 59) sigue existiendo sin `references`: el cliente aún lo lee, así que **todavía no se borra**. `rutinas_pasos` es la relación autoritativa.
+- Pantalla: vista **Hoy** con selector de franja y cuatro accesos (**Mis rutinas**, **Crear**, **Recordatorios**, **Plantillas**), tema Ignate.
+- En esta primera entrega los pasos de hábito y tarea se muestran con su estado pero se completan desde su propia pantalla; solo los pasos propios se marcan desde la rutina. El ejecutor paso a paso es la siguiente etapa.
+- El recordatorio se guarda (hora y activo) pero el envío de la notificación no está conectado todavía.
+- **Sesión guiada (2026-10-05):** pasos esenciales/opcionales, "tengo X minutos", ejecución paso a paso con cronómetro y contador, `iniciar_rutina` y `cerrar_rutina_dia`. Ver `2026-10-05-sesion-guiada-rutinas-design.md`. Con esto, una rutina está completa cuando lo están sus pasos esenciales (no todos), y los pasos de hábito y tarea ya se pueden marcar desde la sesión.
 
 ## Principios
 
@@ -128,7 +131,7 @@ Para una fecha local, una rutina "toca" según su `frecuencia`/`dias_semana`. Ca
 
 ## RPCs
 
-Todos exigen sesión y derivan identidad de `auth.uid()`.
+Todos exigen sesión y derivan identidad de `auth.uid()`. Implementados en la migración 79: `obtener_rutinas_hoy`, `crear_rutina`, `completar_paso_propio_rutina`. Pendientes: `actualizar_rutina` e `iniciar_rutina`. Recordatorio y archivado son `update` directo sobre `rutinas_items` (RLS).
 
 - `public.crear_rutina(p_datos jsonb)` — crea rutina y pasos en una transacción; valida propietarios, límites (máx. 20 pasos por rutina) y orden contiguo. Idempotente por `p_idempotency_key` opcional.
 - `public.actualizar_rutina(p_rutina_id uuid, p_datos jsonb)` — reemplaza el conjunto de pasos de forma atómica (deferrable `unique(rutina_id, orden)`).
@@ -162,8 +165,8 @@ Se reutiliza la cola de recordatorios existente (`privacidad.notificaciones_prog
 
 ## Pruebas
 
-- Unitarias (vitest): cálculo de estado de pasos por origen, rutina sin pasos aplicables, orden de pasos, mapper de RPC → tipos.
-- Smoke SQL remoto (`supabase/tests/`): RLS (otra cuenta no lee ni referencia), trigger de propietario, completar paso propio idempotente, cierre de rutina, paso de hábito no programado no bloquea.
+- Unitarias (vitest): resumen de avance de una rutina (`estadoRutina.ts`), mapper de RPC → tipos, plantillas, i18n. El estado de cada paso por origen lo calcula SQL, así que se prueba en el smoke SQL.
+- Smoke SQL (`supabase/tests/09_franjas_rutinas.sql`, con `psql`): RLS (otra cuenta no lee ni referencia), trigger de propietario, completar paso propio idempotente, cierre de rutina, paso de hábito no programado no bloquea.
 
 ## Fases de implementación
 

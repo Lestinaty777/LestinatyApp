@@ -12,6 +12,7 @@ export { MasterChanger, useHueDominante, colorMasterMasCercano } from './MasterC
 export type { ColorMaster } from './MasterChanger';
 export { Pantalla } from './Pantalla';
 export { RecuadroGlass } from './RecuadroGlass';
+export { SelectorFranja } from './SelectorFranja';
 export { Skeleton } from './Skeleton';
 export { Tarjeta } from './Tarjeta';
 export { Texto } from './Texto';
