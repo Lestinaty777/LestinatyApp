@@ -1,4 +1,5 @@
 import { obtenerClienteSupabase } from '../../servicios/base-datos/supabase';
+import { registrarEvento } from '../../servicios/analitica/posthog';
 import { fechaLocalDe, fechaLocalHoy } from '../../nucleo/dispositivo/fechaLocal';
 import { colorSeguroUi } from '../senderos/algoritmo/colorHsl';
 import { mapearPanelHabitos } from './habitos.mapper';
@@ -89,6 +90,8 @@ export async function registrarProgresoHabito(input: { habitoId: string; fechaLo
   // Todas las vías de registro pasan por aquí (misión, mapa, widgets,
   // cronómetro): un solo punto para reportar outcomes y etiquetas.
   reportarRegistroANotificaciones(resultado);
+  // Único punto por el que pasan todas las vías de registro; deshacer (valor 0) no cuenta.
+  if (resultado.valor > 0) registrarEvento('habito_completado', { subio_nivel: resultado.subioNivel });
   return resultado;
 }
 

@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { ArrowLeft, Check, Crown, RefreshCw, Smartphone } from 'lucide-react-native';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
@@ -12,6 +12,7 @@ import { CLAVE_HORIZON } from '../../../nucleo/compras/useHorizon';
 import { useEscala } from '../../../diseno/tema/MasterColorContext';
 import type { EscalaMaster } from '../../../diseno/tema/escalaEsmeralda';
 import { capacidades } from '../../../plataforma/capacidades';
+import { registrarEvento } from '../../../servicios/analitica/posthog';
 
 // Dos sets de beneficios — Widgets (Android, hoy el único beneficio con
 // preview visual) y Planes con Aby (todas las plataformas). Sin widgets en
@@ -38,6 +39,7 @@ export function HorizonPaywallPantalla({ volver }: { volver?: string }) {
   const [comprando, setComprando] = useState(false);
   const [restaurando, setRestaurando] = useState(false);
   const [aviso, setAviso] = useState<string | null>(null);
+  useEffect(() => { registrarEvento('paywall_visto', { origen: volver ?? 'directo' }); }, [volver]);
   const paquete = paquetes.data?.estado === 'lista' ? (paquetes.data.paquetes[0] ?? null) : null;
   const beneficios = capacidades.widgets ? CLAVES_BENEFICIOS_WIDGETS : CLAVES_BENEFICIOS_PLANES;
   // `volver` es opcional y aditivo — sin él, el destino post-compra sigue

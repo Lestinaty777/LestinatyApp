@@ -15,6 +15,7 @@ import { buscarIconoHabito } from '../../habitos/iconosHabitos';
 import { obtenerAssetsPaquete } from '../../senderos/algoritmo/registroPaquetesArbol';
 import { ControlPaso } from '../componentes/sesion/ControlesPaso';
 import { CaminoRutina } from '../componentes/sesion/CaminoRutina';
+import { registrarEvento } from '../../../servicios/analitica/posthog';
 import { construirNodosRutina, type NodoRutina } from '../construirNodosRutina';
 import { cerrarRutinaDia, CLAVE_RUTINAS, iniciarRutina, obtenerRutinasHoy } from '../rutinas.servicio';
 import type { PasoRutina, ResultadoCierreRutina } from '../rutinas.tipos';
@@ -70,6 +71,7 @@ function SesionContenido({ id }: { id: string }) {
     onSuccess: async (resultado) => {
       setCierre(resultado);
       setErrorCierre(false);
+      registrarEvento('sesion_rutina_cerrada', { completa: resultado.completa, requeridos: resultado.requeridos, requeridos_completos: resultado.requeridosCompletos });
       hapticSeguro(resultado.completa ? 'confirmacion' : 'seleccion');
       await refrescar();
     },
@@ -98,6 +100,7 @@ function SesionContenido({ id }: { id: string }) {
     if (!plan || plan.pasos.length === 0) return;
     hapticSeguro('confirmacion');
     iniciar.mutate(); // si falla no frena la sesión: cerrar_rutina_dia también crea el registro
+    registrarEvento('sesion_rutina_iniciada', { minutos_disponibles: minutos, num_pasos: plan.pasos.length });
     inicioMs.current = Date.now();
     setPlanIds(plan.pasos.map((p) => p.id));
     setIndice(0);

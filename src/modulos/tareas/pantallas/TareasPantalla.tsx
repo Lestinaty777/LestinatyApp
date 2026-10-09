@@ -9,6 +9,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { MasterButton, MasterGlass, MasterIcon, MasterIconBg, MasterProgressbar, Rebote, SelectorFranja, Texto } from '../../../diseno';
 import { useFiltroFranja } from '../../../compartido/utilidades/useFiltroFranja';
+import { registrarEvento } from '../../../servicios/analitica/posthog';
 import { useEtiquetasRutina } from '../../rutinas/useEtiquetasRutina';
 import { conAlfa, crearTonoMaster } from '../../../diseno/tema/masterColor';
 import { useEscala, useTonoMaster } from '../../../diseno/tema/MasterColorContext';
@@ -143,8 +144,9 @@ function TareasPantallaContenido({ modulo, setModulo }: { modulo: 'planes' | 'ta
   // propio wizard llama a onCerrar() cuando TODO terminó.
   const crearPremium = useMutation({
     mutationFn: crearTareaPremium,
-    onSuccess: () => {
+    onSuccess: (_creada, input) => {
       hapticSeguro('confirmacion');
+      registrarEvento('tarea_creada', { tipo: input.tipo, frecuencia: input.frecuencia ?? 'una_vez', franja: input.franja ?? 'cualquier_momento' });
       cliente.invalidateQueries({ queryKey: CLAVE_TAREAS_HOY });
       cliente.invalidateQueries({ queryKey: CLAVE_TAREAS_LISTA });
       cliente.invalidateQueries({ queryKey: CLAVE_TAREAS_RECORDATORIOS });
@@ -174,6 +176,7 @@ function TareasPantallaContenido({ modulo, setModulo }: { modulo: 'planes' | 'ta
     },
     onSuccess: () => {
       hapticSeguro('confirmacion');
+      registrarEvento('tarea_creada', { tipo: tipoRapido ?? 'simple', frecuencia: 'una_vez', franja: 'cualquier_momento' });
       setTituloRapido('');
       setItemsRapidos(['', '']);
       setTipoRapido(null);
@@ -237,6 +240,7 @@ function TareasPantallaContenido({ modulo, setModulo }: { modulo: 'planes' | 'ta
     onSuccess: (resultado, tarea) => {
       const descompletada = 'completada' in resultado && resultado.completada === false;
       hapticSeguro(descompletada ? 'seleccion' : 'confirmacion');
+      if (!descompletada) registrarEvento('tarea_completada', { tipo: tarea.tipo });
       cliente.invalidateQueries({ queryKey: CLAVE_TAREAS_HOY });
       cliente.invalidateQueries({ queryKey: CLAVE_TAREAS_LISTA });
       cliente.invalidateQueries({ queryKey: ['tareas', 'tarea', tarea.id] });

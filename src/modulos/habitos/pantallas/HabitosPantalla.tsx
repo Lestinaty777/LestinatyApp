@@ -12,6 +12,7 @@ import { Boton, entradaEncadenada, MasterAnimation, MasterGlass, MasterIcon, Mas
 import { useFiltroFranja } from '../../../compartido/utilidades/useFiltroFranja';
 import { useEtiquetasRutina } from '../../rutinas/useEtiquetasRutina';
 import { hapticSeguro } from '../../../nucleo/dispositivo/haptics';
+import { registrarEvento } from '../../../servicios/analitica/posthog';
 import { AuroraBoreal } from '../../hoy/componentes/AuroraBoreal';
 import { crearHabito, obtenerDetallesHabitosHoy, obtenerHabitoMasCercaDeNivel, obtenerHabitoMejorRacha, obtenerHabitosActivos, obtenerPanelHabitos, obtenerResumenPlanesHabitos, type HabitoHoyDetalle } from '../habitos.servicio';
 import { CLAVE_ABRIR_CREACION_HABITO } from '../../onboarding/onboarding.servicio';
@@ -305,6 +306,7 @@ export function HabitosPantalla() {
     )}
     <CrearHabitoWizard guardando={crear.isPending} onCerrar={() => setCrearAbierto(false)} onCrear={async (input) => {
       const resultado = await crear.mutateAsync(input);
+      registrarEvento('habito_creado', { tipo_meta: input.tipoMeta ?? 'cantidad', frecuencia: input.frecuencia ?? 'diaria', franja: input.franja ?? 'cualquier_momento', con_recordatorio: Boolean(input.recordatorioActivo) });
       await Promise.all([
         cliente.invalidateQueries({ queryKey: ['habitos', 'panel'] }),
         cliente.invalidateQueries({ queryKey: ['habitos', 'detalles-hoy'] }),

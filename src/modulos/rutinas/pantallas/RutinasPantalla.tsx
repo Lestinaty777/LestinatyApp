@@ -23,6 +23,7 @@ import { CLAVE_SALDO_GEMAS, useSaldoGemas } from '../../tienda/useSaldoGemas';
 import { CrearRutinaWizard } from '../componentes/CrearRutinaWizard';
 import { usePerfilBasico } from '../../configuracion/usePerfilBasico';
 import { prepararAvisosDeRutina } from '../recordatorioRutina';
+import { registrarEvento } from '../../../servicios/analitica/posthog';
 import { useRachasRutinas } from '../useRachasRutinas';
 import { ListaMisRutinas } from '../componentes/ListaMisRutinas';
 import { ListaRecordatoriosRutinas } from '../componentes/ListaRecordatoriosRutinas';
@@ -102,7 +103,11 @@ function RutinasPantallaContenido() {
 
   // Si la rutina lleva recordatorio, se piden el permiso y la preferencia sin frenar el guardado.
   const avisarSiHaceFalta = (input: CrearRutinaInput) => { if (input.recordatorioActivo) void prepararAvisosDeRutina(); };
-  const crear = useMutation({ mutationFn: (input: CrearRutinaInput) => crearRutina(input), onSuccess: (_id, input) => { avisarSiHaceFalta(input); return refrescar(); } });
+  const crear = useMutation({ mutationFn: (input: CrearRutinaInput) => crearRutina(input), onSuccess: (_id, input) => {
+    avisarSiHaceFalta(input);
+    registrarEvento('rutina_creada', { num_pasos: input.pasos.length, franja: input.franja, desde_plantilla: plantilla !== null });
+    return refrescar();
+  } });
   const editar = useMutation({
     mutationFn: ({ input, rutinaId }: { input: CrearRutinaInput; rutinaId: string }) => actualizarRutina(rutinaId, input),
     onSuccess: (_vacio, { input }) => { avisarSiHaceFalta(input); return refrescar(); },
@@ -129,8 +134,9 @@ function RutinasPantallaContenido() {
   const comprar = useMutation({
     mutationFn: (plantilla: PlantillaRutina) => comprarPlantillaRutina(plantilla.id),
     onMutate: () => setErrorCompra(null),
-    onSuccess: async (resultado) => {
+    onSuccess: async (resultado, pedida) => {
       hapticSeguro('confirmacion');
+      if (!resultado.yaDesbloqueada) registrarEvento('plantilla_comprada', { plantilla_id: pedida.id, precio_gemas: pedida.precioGemas });
       await Promise.all([
         cliente.invalidateQueries({ queryKey: CLAVE_PLANTILLAS_RUTINAS }),
         cliente.invalidateQueries({ queryKey: CLAVE_SALDO_GEMAS }),
@@ -292,7 +298,7 @@ function RutinasPantallaContenido() {
                 color={acento}
                 error={consultaPlantillas.isError}
                 onElegir={(elegida) => abrirCreacion(elegida)}
-                onPrevisualizar={(bloqueada) => { setErrorCompra(null); setPlantillaPorComprar(bloqueada); }}
+                onPrevisualizar={(bloqueada) => { setErrorCompra(null); setPlantillaPorComprar(bloqueada); registrarEvento('plantilla_vista', { plantilla_id: bloqueada.id, precio_gemas: bloqueada.precioGemas }); }}
                 onReintentar={() => consultaPlantillas.refetch()}
                 plantillas={consultaPlantillas.data}
               />

@@ -19,6 +19,7 @@ import {
 import { RecuadroGlass, SelectorFranja, Skeleton, Texto, MasterIcon } from '../../../diseno';
 import { franjaActual, type FiltroFranja, type FranjaDia } from '../../../compartido/utilidades/franjas';
 import { hapticSeguro } from '../../../nucleo/dispositivo/haptics';
+import { registrarEvento } from '../../../servicios/analitica/posthog';
 import { AuroraBoreal } from '../componentes/AuroraBoreal';
 import { ESCALA_ESMERALDA } from '../../../diseno/tema/escalaEsmeralda';
 import { useAssetsPaqueteTema } from '../../habitos/usePaqueteTema';
@@ -403,7 +404,7 @@ function TimelineHoy() {
           conteos={plan.conteos}
           etiquetaAccesible={etiquetaAccesible}
           etiquetas={etiquetasFiltro}
-          onCambiar={setFiltro}
+          onCambiar={(nuevo) => { setFiltro(nuevo); registrarEvento('hoy_filtro_franja', { filtro: nuevo }); }}
           valor={filtro}
         />
       </View>

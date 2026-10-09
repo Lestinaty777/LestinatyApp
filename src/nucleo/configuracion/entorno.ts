@@ -4,7 +4,9 @@ export const entorno = {
   abyRemotoHabilitado: process.env.EXPO_PUBLIC_ABY_REMOTO === 'true',
   supabaseUrl: process.env.EXPO_PUBLIC_SUPABASE_URL ?? '',
   supabaseAnonKey: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? '',
-  posthogKey: '',
+  // Analítica de producto: opcional. Sin clave no se envía nada (ver servicios/analitica/posthog.ts).
+  posthogKey: process.env.EXPO_PUBLIC_POSTHOG_KEY ?? '',
+  posthogHost: process.env.EXPO_PUBLIC_POSTHOG_HOST ?? 'https://us.i.posthog.com',
   sentryDsn: '',
   revenueCatAppleKey: process.env.EXPO_PUBLIC_REVENUECAT_APPLE_KEY ?? '',
   revenueCatGoogleKey: process.env.EXPO_PUBLIC_REVENUECAT_GOOGLE_KEY ?? '',

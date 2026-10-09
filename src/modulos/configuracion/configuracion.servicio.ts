@@ -1,3 +1,4 @@
+import { reiniciarAnalitica } from '../../servicios/analitica/posthog';
 import { obtenerClienteSupabase } from '../../servicios/base-datos/supabase';
 import { LIMITES_FRANJA_DEFECTO, limitesValidos, type LimitesFranja } from '../../compartido/utilidades/franjas';
 import { zonaHorariaDispositivo } from '../../nucleo/dispositivo/fechaLocal';
@@ -139,6 +140,7 @@ export async function actualizarPermisosDatos(permisos: PermisosDatos): Promise<
   });
 
   if (error) throw error;
+  reiniciarAnalitica(); // el permiso de analítica pudo cambiar: que se vuelva a leer
   return normalizarPermisosDatos(data);
 }
 
