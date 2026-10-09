@@ -50,10 +50,10 @@ Todo lo de esta sección está comprobado contra la base real y el repositorio. 
 
 ### 1.1 Dónde estamos
 
-- Rama `mejoras`, local y `origin` iguales. La **Fase 0 está terminada**: el trabajo de Planes y el de Franjas/Rutinas ya están unidos.
-- **Migraciones 01 a 88 aplicadas en la base real.** No queda ninguna migración escrita sin aplicar.
-- Últimos commits relevantes: `49f6b96` (Planes), `e571ee3` (merge y renumeración a 77–81), `9fd60f5` (migraciones 82–86), `108ced4` (87), `dc79ed6` (88).
-- `npm run typecheck` limpio y 580 tests en verde tras el merge.
+- Rama `mejoras`. **Hechas las fases 0 a 6B y la parte de dominio, selector y filtro de la Fase 8** (tareas 8.1 a 8.5).
+- **Migraciones 01 a 88 aplicadas en la base real.** La **89** (`20261009_89_tareas_quitar_routine_id.sql`) está escrita y ensayada, **pendiente de aplicar** por el usuario.
+- 109 archivos de test y 686 tests en verde; `npm run typecheck` limpio.
+- Nada de lo construido en las fases 2 a 8 se ha visto correr en un dispositivo: **todo está pendiente de prueba visual** (ver sección 1.5).
 
 Numeración de migraciones (para no confundirse: los documentos antiguos usan otros números):
 
@@ -71,29 +71,38 @@ Numeración de migraciones (para no confundirse: los documentos antiguos usan ot
 | 86 | Permisos de las funciones de reclamo de recordatorios |
 | 87 | Áreas de vida y metas |
 | 88 | Prefijo de familia en los nombres de tabla |
+| 89 | Borra `tareas_items.routine_id` — **sin aplicar** |
 
 ### 1.2 Qué está hecho y qué falta en el código
 
 | Pieza | Estado |
 | --- | --- |
-| `src/compartido/utilidades/franjas.ts` (`franjaDeHora`, `franjaActual`, `sugerirFranjaPorHora`, `limitesValidos`, `agruparPorFranja`, `filtrarPorFranja`, `contarPendientesPorFiltro`) | Hecho, con tests |
-| `src/diseno/componentes/SelectorFranja.tsx` (4 botones de filtro) | Hecho |
-| `src/modulos/rutinas/` (pantalla, asistente, plantillas, sesión guiada, `app/rutinas/[id].tsx`) | Hecho, **sin probar en dispositivo** |
-| `franja` en tipos/servicios de Tarea y Hábito | Hecho (Fase 1) |
-| Selector de franja en `CrearHabitoWizard`, `CrearTareaWizard` y edición | **Falta** (Fase 2) |
-| Hoy unificado | **Falta** (Fase 3). `HoyPantalla.tsx` es una maqueta: `TimelineHoy` pinta la constante `TAREAS_HOY` y `GridCategorias` usa progresos fijos |
-| Cabecera de Hoy (nombre, racha, nivel y XP) | **Falta** (Fase 3). Muestra "Alejandro", "3 Días" y "Nivel 4 · 95/120 XP" fijos |
-| Etiqueta "en Rutina X" y `SelectorFranja` en Hábitos y Tareas | **Falta** (Fase 3) |
-| Editar una rutina | **Falta** el cliente (Fase 4); el RPC existe |
-| Envío real del recordatorio de rutina | **Falta** la Edge Function y el cliente (Fase 4); la cola y los RPC existen |
-| Racha de sesiones, rutina como camino de nodos | **Falta** (Fase 4) |
-| Borrar `tareas_items.routine_id` | **Falta** (Fase 4): única migración que queda por escribir |
-| Ajustes de límites de franja, insights por franja | **Falta** (Fase 5) |
-| Analítica | **Falta** (Fase 6). `src/servicios/analitica/posthog.ts` es un stub; `posthogKey` está vacío |
-| Guía hacia la primera victoria | **Falta** (Fase 6B) |
-| Plantillas premium reales | **Falta** (Fase 7): solo hay 4 gratuitas |
-| Áreas y metas | **Falta** todo el cliente (Fases 8 y 9); la base existe. `src/modulos/metas/` es maqueta |
+| Franja en hábitos y tareas (datos, asistentes, edición de hábito) | Hecho (fases 1 y 2) |
+| Hoy unificado por franja, con tope de 5, rutinas como un solo elemento y sin duplicados | Hecho (Fase 3) |
+| Cabecera de Hoy: nombre, saludo por franja, racha global, nivel y XP | Hecho (Fase 3) |
+| Etiqueta "En Rutina X" y filtro de franja en Hábitos y Tareas | Hecho (Fase 3). El filtro solo aparece si algún elemento tiene franja |
+| Completar con un toque desde Hoy | **No hecho** (tarea 3.5, decisión del usuario) |
+| Editar una rutina | Hecho (Fase 4) |
+| Recordatorios de rutina | Hecho en el código; **falta desplegar la Edge Function** (lo hace el usuario) |
+| Racha de sesiones y rutina como camino de nodos en la sesión | Hecho (Fase 4). El camino es una versión ligera, no el mapa isométrico |
+| `routineId` fuera del cliente | Hecho; falta aplicar la migración 89 |
+| Ajustes de horas de franja e insight "tu mejor franja" | Hecho (Fase 5) |
+| Analítica del embudo | Hecho (Fase 6). No envía nada hasta que exista `EXPO_PUBLIC_POSTHOG_KEY`; además exige el permiso de analítica de cada persona |
+| Invitación en Hoy vacío y primera victoria | Hecho (Fase 6B) |
+| Áreas y metas: dominio, `SelectorMeta` al crear, filtro por área en Hoy | Hecho (tareas 8.2 a 8.5). `SelectorMeta` no se muestra mientras la persona no tenga metas |
+| Pantalla de Metas (crear, listar, detalle) | **Falta** (Fase 9): bloqueada por la decisión 17. Hasta entonces no hay forma de crear una meta desde la app |
+| Cambiar la meta de algo ya creado | **Falta**: irá en el detalle de la meta (Fase 9) |
+| Edición de tarea con franja | **Falta**: no existe formulario de edición de tareas |
+| Plantillas premium reales | **Falta** (Fase 7): necesita contenido aprobado por el usuario |
 | Packs, límites y trial en servidor, Live Activities | **Falta y sin spec** (Fases 10 a 13) |
+
+Desviaciones respecto a lo que este plan pedía, y por qué:
+
+- **Camino de la rutina (4.6):** el componente que dibuja el sendero de Tareas es un mapa isométrico de pantalla completa con su propio motor; no cabe dentro de la sesión. Se hizo `CaminoRutina`, una versión ligera con las mismas reglas.
+- **Ajustes de franja (5.1):** en vez de una hoja con validación, botones − y + que nunca permiten un orden inválido.
+- **Analítica (6):** `habito_completado` se dispara dentro de `registrarProgresoHabito`, porque completar un hábito ocurre en cinco pantallas distintas y ese servicio es su único punto común.
+- **Primera victoria (6B):** el botón "Crear mi primer hábito" navega con el parámetro de ruta `abrirCreacion` que `HabitosPantalla` ya entendía, no con la señal del onboarding (esa solo se lee al montar).
+- **Áreas propias:** la paleta no incluye verdes, por la regla del proyecto de que todo verde pertenece al tema (`verdesEsmeralda.test.ts`).
 
 ### 1.3 Referencia de la base de datos
 
@@ -188,18 +197,38 @@ RPC: `asignar_meta(p_tipo text, p_elemento_id uuid, p_meta_id uuid) → void` (`
 
 `['rutinas','lista']` (`CLAVE_RUTINAS`), `['habitos','panel']`, `['habitos','detalles-hoy']`, `['habitos','activos']`, `['habitos','mejor-racha']`, `CLAVE_TAREAS_HOY`, `CLAVE_TAREAS_LISTA`, `CLAVE_TAREAS_RECORDATORIOS`, `CLAVE_SALDO_GEMAS`, `['configuracion','usuario']`.
 
-### 1.4 Qué SQL te queda por escribir
+### 1.4 Qué SQL queda
 
-Solo una migración en las fases 1 a 9: borrar `tareas_items.routine_id` (tarea 4.4). **En todo lo demás conectas el cliente a lo que ya existe.** Si crees que necesitas otra tabla, columna o RPC, **PARADA** y explícalo: lo más probable es que ya esté en la sección 1.3.
-
-Si alguna vez una comprobación indica que falta algo de las migraciones 82–88 (por ejemplo, en una base de pruebas nueva), se aplican en orden así:
+Ninguno por escribir para las fases 1 a 9. Queda **aplicar** la migración 89 (borra `tareas_items.routine_id`), y solo cuando la app instalada sea posterior al commit `refactor(tareas): quitar routineId del cliente`; una app más vieja falla al cargar Tareas si la columna ya no existe:
 
 ```bash
 export SUPABASE_ACCESS_TOKEN=$(grep "^SUPABASE_ACESSS_TOKEN=" .env | cut -d= -f2-)
-for n in 82_franja_habitos 83_resumen_hoy 84_rutinas_recordatorios 85_rutinas_actualizar 86_cerrar_reclamo_recordatorios 87_areas_y_metas 88_prefijos_por_familia; do
-  echo "== $n"; npx supabase db query --linked --file supabase/migrations/20261009_$n.sql || break
-done
+npx supabase db query --linked --file supabase/migrations/20261009_89_tareas_quitar_routine_id.sql
 ```
+
+Si crees que necesitas otra tabla, columna o RPC, **PARADA** y explícalo: lo más probable es que ya esté en la sección 1.3.
+
+### 1.5 Pendientes del usuario
+
+| # | Qué | Para qué |
+| --- | --- | --- |
+| 1 | Reconstruir la app y probar en dispositivo lo de las fases 2 a 8 | Nada de la interfaz nueva se ha visto correr |
+| 2 | `npx supabase functions deploy despachar-recordatorios-habitos` | Sin esto no salen los recordatorios de rutina (los de hábitos y tareas siguen funcionando) |
+| 3 | Aplicar la migración 89, después de instalar la app nueva | Limpieza; no bloquea nada |
+| 4 | Crear un proyecto en PostHog y poner `EXPO_PUBLIC_POSTHOG_KEY` en `.env`; añadir PostHog al inventario de privacidad antes de publicar | Sin clave la analítica no envía nada |
+| 5 | Decidir dónde vive la pantalla de Metas (decisión 17) | Desbloquea la Fase 9 |
+| 6 | Aprobar contenido y precio de las plantillas premium (decisión 6) | Desbloquea la Fase 7 |
+| 7 | Usar la app dos semanas y llenar `docs/fricciones.md` | Fase 5B: esa lista ordena lo que sigue |
+
+Qué probar en dispositivo, en orden:
+
+1. **Hoy:** saludo con tu nombre; racha y nivel reales (cuenta nueva: racha 0, Nivel 1 · 0/60 XP); botones de franja con la actual seleccionada; lo sin franja solo en "Todo"; un hábito que está en una rutina de hoy no sale suelto.
+2. **Crear hábito y tarea:** el selector de franja; con recordatorio a las 7:00 sugiere Mañana; si eliges otra a mano, cambiar la hora no la mueve.
+3. **Rutinas:** crear, editar (lápiz en Mis rutinas), sesión guiada con el camino de nodos al preparar y al terminar, racha a partir de 2 días.
+4. **Recordatorio de rutina:** activarlo pide permiso de notificaciones; tras desplegar la función, llega a la hora y al tocarlo abre la sesión.
+5. **Ajustes → Franjas del día:** mover las horas y ver que Hoy abre en la franja correcta.
+6. **Insights → Tu mejor franja:** con menos de 7 registros muestra la barra de "faltan datos".
+7. **Cuenta nueva:** Hoy muestra "Tu primer paso"; al completar el primer hábito aparece el aviso una vez.
 
 ---
 
@@ -209,22 +238,22 @@ done
 | --- | --- | --- | --- |
 | 0 | Una sola rama con todo, migraciones renumeradas y aplicadas | — | **Hecha** |
 | 1 | Hábitos y tareas guardan y leen su franja | 0 | **Hecha** |
-| 2 | Selector de franja al crear y editar | 1 | No |
-| 3 | Hoy unificado con datos reales y cabecera funcional (racha, nivel, XP) | 1 | Ya definida (83) |
-| 4 | Rutinas: editar, recordatorios reales, racha, camino visual, limpieza | 0 | Ya definida (84, 85); falta borrar `routine_id` |
-| 5 | Ajustes de horas de franja e insights por franja | 1 | No |
+| 2 | Selector de franja al crear y editar | 1 | **Hecha** |
+| 3 | Hoy unificado con datos reales y cabecera funcional (racha, nivel, XP) | 1 | **Hecha** (salvo 3.5, opcional) |
+| 4 | Rutinas: editar, recordatorios reales, racha, camino visual, limpieza | 0 | **Hecha**; falta aplicar la 89 y desplegar la función |
+| 5 | Ajustes de horas de franja e insights por franja | 1 | **Hecha** |
 | 5B | **Pausa de uso real (2 semanas)** y lista de fricciones | 5 | No |
-| 6 | Analítica del embudo | 0 | No |
-| 6B | Primera victoria de un usuario nuevo | 3, 6 | No |
+| 6 | Analítica del embudo | 0 | **Hecha** (falta la clave de PostHog) |
+| 6B | Primera victoria de un usuario nuevo | 3, 6 | **Hecha** |
 | 7 | Plantillas premium reales | 0, 6 | Sí (solo datos) |
-| 8 | Áreas de vida y metas: dominio, selector de meta y filtro por área en Hoy | 3 | Ya definida (87) |
+| 8 | Áreas de vida y metas: dominio, selector de meta y filtro por área en Hoy | 3 | **Hecha** (el cambio de meta al editar pasa a la Fase 9) |
 | 9 | Pantalla de Metas real | 8 | Ya definida (87) |
 | 10 | Packs por área | 7, 8, 9 | Sí (solo datos) |
 | 11 | Límites gratis/Horizon en servidor y trial | 6 | Sí |
 | 12 | Live Activities (iOS) | 4 | No |
 | 13 | Finanzas sencillas | 8, 9 | Por decidir |
 
-Las fases 0 y 1 están hechas; **empieza por la Fase 2 (tarea 2.0)**. Las fases 1–9 (incluidas 5B y 6B) están detalladas. Las fases 10–13 **no tienen spec**: su primera tarea es escribirlo y hacer PARADA. La sección 3 dice cuándo se retoman las fases 6–10 de la visión (modelo unificado, Aby, cooperativo, cursos, marketplace).
+Las fases 0 a 6B y la 8 están hechas. **Lo siguiente es la Fase 9 (pantalla de Metas), que espera la decisión 17, y la Fase 7, que espera la decisión 6.** Las fases 1–9 (incluidas 5B y 6B) están detalladas. Las fases 10–13 **no tienen spec**: su primera tarea es escribirlo y hacer PARADA. La sección 3 dice cuándo se retoman las fases 6–10 de la visión (modelo unificado, Aby, cooperativo, cursos, marketplace).
 
 ---
 
