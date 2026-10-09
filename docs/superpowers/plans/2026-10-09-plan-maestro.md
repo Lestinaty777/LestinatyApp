@@ -93,6 +93,29 @@ Simulación de merge: los commits se unen sin conflicto. El único archivo tocad
 - Motivos del ledger (`comercio.movimientos_gemas`): `compra_iap, gasto_tienda, ajuste_soporte, recompensa_nivel, gasto_semillas, referido_nivel2, trial_horizon_bono, cofre_intermedio, cofre_final, tarea_diaria, racha_tarea, cofre_final_tarea`.
 - Claves de caché existentes: `['rutinas','lista']` (`CLAVE_RUTINAS`), `['habitos','panel']`, `['habitos','detalles-hoy']`, `CLAVE_TAREAS_HOY`, `CLAVE_TAREAS_LISTA`, `CLAVE_SALDO_GEMAS`.
 
+### 1.4 Base de datos de las fases 1 a 5: ya definida
+
+Las migraciones 82 a 86 están escritas y ensayadas contra la base real dentro de una transacción con `rollback` (29 comprobaciones funcionales, todas correctas). **El agente no escribe ni modifica SQL en las fases 1 a 5: solo conecta el cliente.**
+
+| Migración | Qué aporta | La usa |
+| --- | --- | --- |
+| `20261009_82_franja_habitos.sql` | `establecer_franja_habito` y herencia de franja entre planes | Tarea 1.4 |
+| `20261009_83_resumen_hoy.sql` | `obtener_resumen_hoy` (racha global, días activos, XP) | Tareas 3.7 y 3.8 |
+| `20261009_84_rutinas_recordatorios.sql` | Cola con origen rutina, `reclamar_recordatorios_rutinas`, `reprogramar_recordatorio_rutina`, catálogo | Tarea 4.2 |
+| `20261009_85_rutinas_actualizar.sql` | `actualizar_rutina` (conserva pasos por `id`) | Tarea 4.1 |
+| `20261009_86_cerrar_reclamo_recordatorios.sql` | Corrige permisos: `reclamar_recordatorios_tareas` era ejecutable por cualquier sesión | — |
+
+Las aplica el usuario, en orden:
+
+```bash
+export SUPABASE_ACCESS_TOKEN=$(grep "^SUPABASE_ACESSS_TOKEN=" .env | cut -d= -f2-)
+for n in 82_franja_habitos 83_resumen_hoy 84_rutinas_recordatorios 85_rutinas_actualizar 86_cerrar_reclamo_recordatorios; do
+  echo "== $n"; npx supabase db query --linked --file supabase/migrations/20261009_$n.sql || break
+done
+```
+
+Sin migración (lectura directa con RLS): franja de tareas (`tareas_items.franja`), límites de franja (`perfiles_usuario.franja_*_desde`), racha de sesiones (`rutinas_registros`), insights por franja. La única migración que queda para el agente en estas fases es borrar `tareas_items.routine_id` (tarea 4.4), que no se puede aplicar hasta que el cliente deje de leer esa columna.
+
 ---
 
 ## 2. Mapa de fases
@@ -100,10 +123,10 @@ Simulación de merge: los commits se unen sin conflicto. El único archivo tocad
 | Fase | Resultado | Depende de | ¿Toca la base real? |
 | --- | --- | --- | --- |
 | 0 | Una sola rama con todo, migraciones renumeradas y aplicadas | — | Sí |
-| 1 | Hábitos y tareas guardan y leen su franja | 0 | Sí |
+| 1 | Hábitos y tareas guardan y leen su franja | 0 | Ya definida (82) |
 | 2 | Selector de franja al crear y editar | 1 | No |
-| 3 | Hoy unificado con datos reales y cabecera funcional (racha, nivel, XP) | 1 | Sí |
-| 4 | Rutinas: editar, recordatorios reales, racha, camino visual, limpieza | 0 | Sí |
+| 3 | Hoy unificado con datos reales y cabecera funcional (racha, nivel, XP) | 1 | Ya definida (83) |
+| 4 | Rutinas: editar, recordatorios reales, racha, camino visual, limpieza | 0 | Ya definida (84, 85); falta borrar `routine_id` |
 | 5 | Ajustes de horas de franja e insights por franja | 1 | No |
 | 5B | **Pausa de uso real (2 semanas)** y lista de fricciones | 5 | No |
 | 6 | Analítica del embudo | 0 | No |
@@ -218,80 +241,20 @@ Hoy todo SQL nuevo se prueba contra la base real con `rollback`. Propón al usua
 
 Objetivo: que cada hábito y cada tarea pueda guardar y devolver su franja. Sin interfaz todavía.
 
-Decisión de diseño (no la cambies): **no se reescriben** `crear_habito_premium` (20 parámetros) ni `actualizar_habito_desde_detalle`. Se añade un RPC pequeño que cambia la franja del plan vigente y un trigger que hace que un plan nuevo herede la franja del anterior. Es más seguro que tocar funciones grandes con datos reales.
+Decisión de diseño (no la cambies): **no se reescriben** `crear_habito_premium` (20 parámetros) ni `actualizar_habito_desde_detalle`. Hay un RPC pequeño que cambia la franja del plan vigente y un trigger que hace que un plan nuevo herede la franja del anterior.
 
-### Tarea 1.1 — Migración `NN_franja_habitos.sql` (NN = siguiente libre, hoy 82)
+### Tarea 1.1 — Migración 82 (ya escrita y ensayada: no la modifiques)
 
-Antes de escribirla, abre `supabase/migrations/20260920_42_gestion_detalle_habito.sql` y copia **su forma exacta** de: wrapper `public` → función `privacidad`, `revoke`, `grant`. Contenido:
+Archivo: `supabase/migrations/20261009_82_franja_habitos.sql`. Contiene:
 
-```sql
-begin;
+- Trigger `habitos_planes_heredar_franja`: un plan nuevo de un hábito hereda la franja del plan anterior.
+- RPC `public.establecer_franja_habito(p_habito_id uuid, p_franja text) returns void`: cambia la franja del plan más reciente de un hábito propio. Errores: `P0002` si el hábito no es tuyo, `23514` si la franja no es válida.
 
--- Un plan nuevo (al editar un hábito se versiona el plan) hereda la franja del plan anterior.
-create or replace function public.habitos_planes_heredar_franja()
-returns trigger language plpgsql set search_path = '' as $$
-declare v_franja public.franja_dia;
-begin
-  if new.franja = 'cualquier_momento' then
-    select p.franja into v_franja
-    from public.habitos_planes p
-    where p.habito_id = new.habito_id
-    order by p.desde_fecha desc, p.created_at desc
-    limit 1;
-    if v_franja is not null then new.franja := v_franja; end if;
-  end if;
-  return new;
-end $$;
-revoke all on function public.habitos_planes_heredar_franja() from public, anon, authenticated;
+Tu trabajo es solo llamarla desde el cliente (tarea 1.4).
 
-create trigger habitos_planes_heredar_franja
-  before insert on public.habitos_planes
-  for each row execute function public.habitos_planes_heredar_franja();
+### Tarea 1.2 — Comprobar que está aplicada (solo lectura)
 
--- Cambia la franja del plan más reciente de un hábito propio.
-create or replace function privacidad.establecer_franja_habito(p_habito_id uuid, p_franja text)
-returns void language plpgsql security definer set search_path = '' as $$
-declare
-  v_usuario uuid := auth.uid();
-  v_plan uuid;
-begin
-  if v_usuario is null then raise exception 'Sesión requerida.' using errcode = 'insufficient_privilege'; end if;
-  if p_franja is null or p_franja not in ('manana', 'tarde', 'noche', 'cualquier_momento') then
-    raise exception 'Franja inválida.' using errcode = 'check_violation';
-  end if;
-  select p.id into v_plan
-  from public.habitos_planes p
-  join public.habitos_items h on h.id = p.habito_id
-  where p.habito_id = p_habito_id and h.usuario_id = v_usuario
-  order by p.desde_fecha desc, p.created_at desc
-  limit 1;
-  if v_plan is null then raise exception 'Hábito no encontrado.' using errcode = 'no_data_found'; end if;
-  update public.habitos_planes set franja = p_franja::public.franja_dia where id = v_plan;
-end $$;
-
-create or replace function public.establecer_franja_habito(p_habito_id uuid, p_franja text)
-returns void language sql security invoker set search_path = '' as $$
-  select privacidad.establecer_franja_habito(p_habito_id, p_franja);
-$$;
-
-revoke all on function privacidad.establecer_franja_habito(uuid, text) from public, anon;
-revoke all on function public.establecer_franja_habito(uuid, text) from public, anon;
-grant execute on function privacidad.establecer_franja_habito(uuid, text) to authenticated;
-grant execute on function public.establecer_franja_habito(uuid, text) to authenticated;
-
-commit;
-```
-
-Si la migración 42 usa otra forma de grants para el par `public`/`privacidad`, usa la de la 42.
-
-### Tarea 1.2 — Probar la migración sin dejar rastro, luego aplicarla — **PARADA-BD**
-
-1. Copia el archivo a tu carpeta temporal, cambia el `commit;` final por `rollback;` y córrelo con `db query --linked --file`. Debe terminar sin error.
-2. Muestra el resultado al usuario y pide confirmación.
-3. Aplica el archivo original.
-4. Verifica: `select count(*) from pg_trigger where tgname='habitos_planes_heredar_franja';` → 1.
-
-Commit: `feat(franjas): franja de hábito por RPC y herencia entre planes (migración NN)`
+`select count(*) from pg_trigger where tgname = 'habitos_planes_heredar_franja';` debe dar 1. Si da 0, **PARADA**: pide al usuario que aplique las migraciones 82–86 (sección 1.4).
 
 ### Tarea 1.3 — Tareas: tipo, servicio y lectura
 
@@ -506,104 +469,23 @@ Commit: `feat(franjas): etiqueta de rutina y filtro de franja en Hábitos y Tare
 
 Pregunta al usuario si quiere marcar como hecho desde Hoy con un toque. Si sí, usa **solo** servicios que ya existen: para hábito `registrarProgresoHabito({ habitoId, fechaLocal: fechaLocalHoy(), valor: meta })`; para tarea, la misma decisión que toma `resolverCompletadoExterno` en `src/modulos/rutinas/sesionRutina.ts`. Tras completar, invalida las claves de `CLAVES_TRAS_PASO` (`sesionRutina.servicio.ts`). No escribas lógica de gemas ni niveles en el cliente.
 
-### Tarea 3.6 — Migración `NN_resumen_hoy.sql`: racha global y XP
+### Tarea 3.6 — Migración 83 (ya escrita y ensayada: no la modifiques)
 
-Definiciones (decisiones 10, 11 y 12 de la sección 4; no las cambies sin preguntar):
+Archivo: `supabase/migrations/20261009_83_resumen_hoy.sql`. RPC `public.obtener_resumen_hoy(p_fecha_referencia date default null) returns jsonb` con esta forma exacta:
 
-- **Día activo:** fecha local con al menos una acción: un registro de hábito con `valor > 0`, un registro de tarea, una tarea `una_vez` marcada `hecha`, un paso propio de rutina registrado, o una sesión de rutina completa.
-- **Racha global:** días activos consecutivos terminando hoy; si hoy todavía no hay acción, terminando ayer (hoy no rompe la racha hasta que acabe el día).
-- **XP:** se **calcula**, no se guarda (una sola fuente de verdad: los registros). No da gemas ni desbloquea nada; es solo visual.
-
-| Acción | XP |
-| --- | --- |
-| Registro de hábito con `valor > 0` (uno por hábito y día) | 10 |
-| Registro de tarea recurrente (uno por tarea y día) | 10 |
-| Tarea `una_vez` en estado `hecha` | 10 |
-| Sesión de rutina completa (`rutinas_registros.completada_en` no nulo) | 15 |
-
-Los pasos de hábito o tarea dentro de una rutina ya suman por su propio registro; los pasos propios no suman aparte (los cubre la sesión).
-
-Contenido de la migración:
-
-```sql
-begin;
-
--- Fechas locales con al menos una acción del usuario en sesión.
-create or replace function public.dias_activos_usuario(p_desde date, p_hasta date, p_zona text)
-returns setof date language sql stable security invoker set search_path = '' as $$
-  select fecha_local from public.habitos_registros
-    where usuario_id = auth.uid() and valor > 0 and fecha_local between p_desde and p_hasta
-  union
-  select fecha_local from public.tareas_registros
-    where usuario_id = auth.uid() and fecha_local between p_desde and p_hasta
-  union
-  select (completada_en at time zone p_zona)::date from public.tareas_items
-    where usuario_id = auth.uid() and frecuencia = 'una_vez' and estado = 'hecha' and completada_en is not null
-      and (completada_en at time zone p_zona)::date between p_desde and p_hasta
-  union
-  select fecha_local from public.rutinas_pasos_registros
-    where usuario_id = auth.uid() and fecha_local between p_desde and p_hasta
-  union
-  select fecha_local from public.rutinas_registros
-    where usuario_id = auth.uid() and completada_en is not null and fecha_local between p_desde and p_hasta;
-$$;
-
-create or replace function public.obtener_resumen_hoy(p_fecha_referencia date default null)
-returns jsonb language plpgsql stable security invoker set search_path = '' as $$
-declare
-  v_usuario uuid := auth.uid();
-  v_zona text;
-  v_fecha date;
-  v_lunes date;
-  v_racha integer;
-  v_semana jsonb;
-  v_xp bigint;
-begin
-  if v_usuario is null then raise exception 'Sesión requerida.' using errcode = 'insufficient_privilege'; end if;
-  select zona_horaria into v_zona from public.perfiles_usuario where id = v_usuario;
-  v_zona := coalesce(v_zona, 'UTC');
-  v_fecha := coalesce(p_fecha_referencia, (now() at time zone v_zona)::date);
-  v_lunes := v_fecha - (extract(isodow from v_fecha)::int - 1);
-
-  with dias as (
-    select d from public.dias_activos_usuario(v_fecha - 400, v_fecha, v_zona) as d
-  ), islas as (
-    select d, d - (row_number() over (order by d))::int as grupo from dias
-  ), ancla as (
-    select case when exists (select 1 from dias where d = v_fecha) then v_fecha else v_fecha - 1 end as f
-  )
-  select count(*) into v_racha from islas
-  where grupo = (select i.grupo from islas i, ancla a where i.d = a.f);
-
-  select coalesce(jsonb_agg(extract(isodow from d)::int order by d), '[]'::jsonb) into v_semana
-  from public.dias_activos_usuario(v_lunes, v_fecha, v_zona) as d;
-
-  select
-      10 * (select count(*) from public.habitos_registros where usuario_id = v_usuario and valor > 0)
-    + 10 * (select count(*) from public.tareas_registros where usuario_id = v_usuario)
-    + 10 * (select count(*) from public.tareas_items where usuario_id = v_usuario and frecuencia = 'una_vez' and estado = 'hecha')
-    + 15 * (select count(*) from public.rutinas_registros where usuario_id = v_usuario and completada_en is not null)
-  into v_xp;
-
-  return jsonb_build_object(
-    'fecha', v_fecha,
-    'racha', coalesce(v_racha, 0),
-    'dias_activos_semana', v_semana,   -- isodow: 1 = lunes … 7 = domingo
-    'xp_total', coalesce(v_xp, 0)
-  );
-end $$;
-
-revoke all on function public.dias_activos_usuario(date, date, text) from public, anon;
-revoke all on function public.obtener_resumen_hoy(date) from public, anon;
-grant execute on function public.dias_activos_usuario(date, date, text) to authenticated;
-grant execute on function public.obtener_resumen_hoy(date) to authenticated;
-
-commit;
+```json
+{ "fecha": "2026-10-09", "racha": 3, "dias_activos_semana": [3, 4, 5], "xp_total": 15 }
 ```
 
-Antes de aplicar, confirma con una consulta que existen las columnas usadas (`habitos_registros.usuario_id/valor/fecha_local`, `tareas_registros.usuario_id/fecha_local`, `tareas_items.completada_en/estado/frecuencia`, `rutinas_pasos_registros.usuario_id/fecha_local`, `rutinas_registros.completada_en/fecha_local`). Prueba con `rollback`, **PARADA-BD**, aplica. Verificación: `select public.obtener_resumen_hoy();` falla con "Sesión requerida" al correrlo sin sesión (es lo esperado); añade al final de `supabase/tests/11_sesion_rutinas.sql` un bloque que, como usuario de prueba, inserte registros en tres días seguidos y compruebe `racha = 3` y el `xp_total` esperado.
+`dias_activos_semana` usa isodow (1 = lunes … 7 = domingo) y solo incluye días de la semana actual hasta hoy.
 
-Commit: `feat(hoy): RPC obtener_resumen_hoy con racha global y XP calculado`
+Definiciones que implementa (decisiones 10, 11 y 12 de la sección 4):
+
+- **Día activo:** fecha local con al menos una acción: registro de hábito con `valor > 0`, registro de tarea, tarea `una_vez` hecha, paso propio de rutina registrado o sesión de rutina completa.
+- **Racha global:** días activos consecutivos terminando hoy; si hoy aún no hay acción, terminando ayer.
+- **XP** (calculado, no guardado; no da gemas): 10 por registro de hábito con avance, 10 por registro de tarea, 10 por tarea `una_vez` hecha, 15 por sesión de rutina completa.
+
+Comprobación: `select count(*) from pg_proc where proname = 'obtener_resumen_hoy';` debe dar 1. Si da 0, **PARADA** (sección 1.4).
 
 ### Tarea 3.7 — Nivel a partir del XP (función pura)
 
@@ -654,37 +536,40 @@ Pendiente de dispositivo (fase 3): con una cuenta nueva, Hoy muestra racha 0 y N
 
 ## FASE 4 — Rutinas: lo que quedó pendiente
 
-### Tarea 4.1 — `actualizar_rutina` y edición
+### Tarea 4.1 — Editar una rutina (migración 85 ya escrita y ensayada)
 
-1. Migración nueva `NN_rutinas_actualizar.sql`: `public.actualizar_rutina(p_rutina_id uuid, p_datos jsonb) returns jsonb`. Abre `20261009_81_rutinas_sesion.sql`, copia la función `crear_rutina` completa y adáptala:
-   - Comprueba primero que la rutina existe y es del usuario (`usuario_id = auth.uid()`); si no, `no_data_found`.
-   - `update public.rutinas_items` con los mismos campos que `crear_rutina` inserta.
-   - `delete from public.rutinas_pasos where rutina_id = p_rutina_id` y vuelve a insertar los pasos con **las mismas validaciones** (máx. 20, orden contiguo, al menos un esencial, propietario).
-   - Mismo `security`, `search_path`, `revoke` y `grant` que `crear_rutina`.
-   - Limitación conocida que debes dejar escrita en un comentario del SQL: al reemplazar los pasos, los registros de hoy de pasos **propios** (`rutinas_pasos_registros`) se pierden por el `on delete cascade`.
-2. Prueba con `rollback`, **PARADA-BD**, aplica.
-3. `rutinas.servicio.ts`: `actualizarRutina(rutinaId, input: CrearRutinaInput)` reutilizando el mismo armado de `p_datos` que `crearRutina` (extrae una función `datosARemoto(input)` y úsala en ambas).
-4. `CrearRutinaWizard.tsx`: prop opcional `rutinaInicial?: Rutina`. Si llega, precarga todos los campos y al guardar llama `actualizarRutina`. Título del asistente: `rutinas.editar.titulo` (es: `Editar rutina`, en: `Edit routine`).
-5. `ListaMisRutinas.tsx`: acción "Editar" en cada rutina que abre el asistente con `rutinaInicial`.
-6. Añade un bloque a `supabase/tests/11_sesion_rutinas.sql` que pruebe: actualizar rutina ajena falla; actualizar sin esenciales falla; actualizar cambia título y pasos.
+Archivo: `supabase/migrations/20261009_85_rutinas_actualizar.sql`. RPC `public.actualizar_rutina(p_rutina_id uuid, p_datos jsonb) returns jsonb` (`{ "id": … }`). `p_datos` tiene **la misma forma que en `crear_rutina`**, con una diferencia: cada paso puede llevar su `id`.
 
-Commit: `feat(rutinas): actualizar_rutina y edición desde Mis rutinas`
+- Un paso que llega con el `id` de un paso existente de esa rutina y el mismo origen **se conserva** (mantiene sus registros de avance).
+- Un paso existente que no llega se borra. Un paso sin `id` se crea.
+- Errores: `P0002` rutina ajena o archivada; `23514` sin pasos, más de 20 o ningún esencial.
 
-### Tarea 4.2 — Recordatorios reales de rutina
+Trabajo en el cliente:
 
-Modelo a copiar: `supabase/migrations/20260930_60_tareas_insights_y_recordatorios.sql`, líneas 142–262 (cola compartida, `reclamar_recordatorios_tareas`, `reprogramar_recordatorio_tarea`, alta en catálogo y preferencias).
+1. `rutinas.tipos.ts`: añade `id?: string` a las tres variantes de `PasoNuevoRutina`.
+2. `rutinas.servicio.ts`: extrae de `crearRutina` una función `datosARemoto(input: CrearRutinaInput)` que devuelve el objeto `p_datos`; en `pasoARemoto` añade `id: paso.id` cuando exista. Nueva función `actualizarRutina(rutinaId: string, input: CrearRutinaInput): Promise<void>` que llama `rpc('actualizar_rutina', { p_rutina_id: rutinaId, p_datos: datosARemoto(input) })`.
+3. `CrearRutinaWizard.tsx`: prop opcional `rutinaInicial?: Rutina`. Si llega, precarga todos los campos; cada paso precargado **conserva su `id`** en el estado del asistente y se envía al guardar. Al guardar llama `actualizarRutina`. Título: `rutinas.editar.titulo` (es: `Editar rutina`, en: `Edit routine`).
+4. `ListaMisRutinas.tsx`: acción "Editar" en cada rutina que abre el asistente con `rutinaInicial`.
+5. Test en `rutinas.servicio` o en una función pura: `datosARemoto` incluye `id` solo en los pasos que lo traen.
 
-1. Migración `NN_rutinas_recordatorios.sql`:
-   - `alter table privacidad.notificaciones_programadas add column rutina_id uuid references public.rutinas_items(id) on delete cascade;`
-   - Reemplaza la restricción `notificaciones_programadas_un_solo_origen` para que exija **exactamente uno** de `plan_habito_id`, `tarea_id`, `rutina_id`. Lee primero su definición real: `select pg_get_constraintdef(oid) from pg_constraint where conname='notificaciones_programadas_un_solo_origen';`
-   - Índice único `(rutina_id, fecha_local) where rutina_id is not null`.
-   - `privacidad.reclamar_recordatorios_rutinas(p_limite integer default 100)`: copia de la de tareas cambiando: tabla `rutinas_items`, hora `hora_inicio`, condición `recordatorio_activo and estado = 'activa'`, "toca hoy" según `frecuencia`/`dias_semana` de la rutina (misma expresión que usa `obtener_rutinas_hoy`), campos devueltos `rutina_id` y `titulo_rutina`, código de preferencia `'rutina_recordatorio'`.
-   - Wrapper `public.reclamar_recordatorios_rutinas` con los **mismos grants que el de tareas** (míralos en la migración 60; es para `service_role`, no para `authenticated`).
-   - `insert into public.catalogo_notificaciones (codigo, grupo, prioridad, es_proactiva, descripcion) values ('rutina_recordatorio', 'programada', 7, false, 'Recordatorio programado para una rutina.');` y el alta en `preferencias_notificacion_usuario` igual que la 60.
-2. Prueba con `rollback`, **PARADA-BD**, aplica.
-3. `supabase/functions/despachar-recordatorios-habitos/index.ts`: añade el tercer `rpc('reclamar_recordatorios_rutinas', { p_limite: 100 })` al `Promise.all`, el tipo con `rutina_id`/`titulo_rutina`, los textos (es: `Es momento de tu rutina` / `Tu rutina {titulo} te espera.`; en: `It's time for your routine` / `Your routine {titulo} is waiting.`) y la ruta `/rutinas/${rutina_id}`. Respeta `mostrar_nombre_notificacion` igual que tareas.
-4. **PARADA:** el despliegue lo hace el usuario: `npx supabase functions deploy despachar-recordatorios-habitos`.
-5. `ListaRecordatoriosRutinas.tsx`: quita la línea que avisa de que el envío no está conectado (y su clave i18n en `en` y `es`).
+Commit: `feat(rutinas): editar una rutina desde Mis rutinas`
+
+### Tarea 4.2 — Recordatorios reales de rutina (migración 84 ya escrita y ensayada)
+
+Archivo: `supabase/migrations/20261009_84_rutinas_recordatorios.sql`. Ya existen en la base:
+
+- `public.reclamar_recordatorios_rutinas(p_limite integer)`: **solo `service_role`**. Devuelve un arreglo con la misma forma que el de tareas, cambiando `tarea_id`/`titulo_tarea` por `rutina_id`/`titulo_rutina`. Avisa a la `hora_inicio` los días que toca, si la sesión de hoy no está completa.
+- `public.reprogramar_recordatorio_rutina(p_rutina_id uuid) returns void`: la llama el cliente tras cambiar la hora o apagar el recordatorio.
+- Código de catálogo `rutina_recordatorio`, con la preferencia de cada persona **apagada por defecto** (igual que tareas).
+
+Trabajo:
+
+1. `supabase/functions/despachar-recordatorios-habitos/index.ts`: añade el tercer `cliente.rpc('reclamar_recordatorios_rutinas', { p_limite: 100 })` al `Promise.all`; el tipo con `rutina_id`/`titulo_rutina`; los textos (es: `Es momento de tu rutina` / `Tu rutina {titulo} te espera.`; en: `It's time for your routine` / `Your routine {titulo} is waiting.`); y la ruta `/rutinas/${rutina_id}`. Respeta `mostrar_nombre` igual que tareas. El cierre sigue siendo `finalizar_recordatorio_habito` (sirve para cualquier origen).
+2. **PARADA:** el despliegue lo hace el usuario: `npx supabase functions deploy despachar-recordatorios-habitos`.
+3. `rutinas.servicio.ts`, en `actualizarRecordatorioRutina`: tras el `update`, llama `rpc('reprogramar_recordatorio_rutina', { p_rutina_id: rutinaId })`.
+4. Al **activar** un recordatorio de rutina (en `CrearRutinaWizard.tsx` y `ListaRecordatoriosRutinas.tsx`), enciende la preferencia global igual que lo hace `CrearTareaWizard.tsx` en su línea ~182: `void actualizarPreferenciaNotificacion('rutina_recordatorio', true).catch(() => undefined);`. Sin esto el aviso se cancela.
+5. `PerfilPantalla.tsx`: añade `rutina_recordatorio` a los dos mapas de etiquetas donde está `habito_recordatorio` (líneas ~81 y ~92), con la clave `perfil.settings.notifications.rutina_recordatorio` (es: `Recordatorios de rutinas`, en: `Routine reminders`).
+6. `ListaRecordatoriosRutinas.tsx`: quita la línea que avisa de que el envío no está conectado (y su clave i18n en `en` y `es`).
 
 Commit: `feat(rutinas): envío real de recordatorios de rutina`
 

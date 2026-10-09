@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ChevronLeft, Check, Plus, Sparkles, X } from 'lucide-react-native';
+import { ChevronLeft, Check, Crown, Plus, Sparkles, X } from 'lucide-react-native';
 import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -18,7 +18,7 @@ import { TonoDelHabito } from '../../habitos/componentes/TonoDelHabito';
 // (ver WidgetProgresoTarea.tsx), así que cubre los dos tipos sin cambios.
 import { WidgetProgresoTarea } from '../../tareas/componentes/WidgetProgresoTarea';
 import {
-  aceptarPropuestaPlan, detallarSeccionPlan, generarPlanInicial, guardarDetalleSeccionManual, marcarItemPlan,
+  aceptarPropuestaPlan, detallarSeccionPlan, ErrorAccesoAby, generarPlanInicial, guardarDetalleSeccionManual, marcarItemPlan,
   obtenerDetalleSeccion, obtenerInstanciaPropia, obtenerParticipantesPlan, obtenerPlanPorId, obtenerRamasPlan, obtenerSeccionesPlan,
 } from '../planes.servicio';
 import type { Disponibilidad, MomentoBloque, PlanRama, PlanSeccion, PropuestaDia, ValorDisponibilidad } from '../planes.tipos';
@@ -114,6 +114,17 @@ function DetallePlanPantallaContenido({ id }: { id: string }) {
     cliente.invalidateQueries({ queryKey: ['planes', 'ramas', id] });
     cliente.invalidateQueries({ queryKey: ['planes', 'participantes', id] });
     cliente.invalidateQueries({ queryKey: CLAVE_PLANES_LISTA });
+  }
+
+  if (consultaPlan.isError) {
+    return (
+      <LinearGradient colors={[esc.hoja.l99, esc.hoja.l95, esc.hoja.l91]} style={[s.raiz, { paddingTop: insets.top + 32 }]}>
+        <Pressable onPress={() => consultaPlan.refetch()} style={s.vacio}>
+          <Texto style={s.vacioTexto}>{t('planes.pantalla.errorCargar')}</Texto>
+          <Texto style={[s.vacioTexto, { color: acento, fontFamily: 'Montserrat-Bold', marginTop: 6 }]}>{t('planes.pantalla.reintentar')}</Texto>
+        </Pressable>
+      </LinearGradient>
+    );
   }
 
   if (consultaPlan.isLoading || !plan) {
@@ -431,6 +442,29 @@ function TarjetaSeccion({ esUltima, instanciaId, onInvalidar, onPedirDetalle, on
   );
 }
 
+// Mismo tratamiento para cualquier error de un paso que llama a Aby — si es
+// "no tenés Horizon", un botón directo al paywall en vez de un mensaje
+// muerto (mismo patrón que ya usa CrearPlanWizard en su paso de
+// disponibilidad); para cualquier otro error, el mensaje real del servidor.
+function ErrorAbyInline({ error, onIrAlPaywall }: { error: unknown; onIrAlPaywall: () => void }) {
+  const { acento } = useTonoMaster();
+  const { t } = useTranslation();
+  if (error instanceof ErrorAccesoAby && error.codigo === 'horizon_inactivo') {
+    return (
+      <View style={{ alignItems: 'center', gap: 10 }}>
+        <Texto style={s2.error}>{error.message}</Texto>
+        <Rebote onPress={onIrAlPaywall}>
+          <View style={{ alignItems: 'center', backgroundColor: acento, borderRadius: 999, flexDirection: 'row', gap: 6, paddingHorizontal: 16, paddingVertical: 10 }}>
+            <Crown color="#fff" size={14} />
+            <Texto style={{ color: '#fff', fontFamily: 'Montserrat-Bold', fontSize: 12 }}>{t('planes.crear.verHorizon')}</Texto>
+          </View>
+        </Rebote>
+      </View>
+    );
+  }
+  return <Texto style={s2.error}>{error instanceof Error ? error.message : t('planes.crear.errorGenerar')}</Texto>;
+}
+
 // Reclamar una rama le asigna a quien la reclama su propia instancia (si no
 // tenía una en este plan, se crea del lado del servidor) + le arma su primer
 // tramo de secciones/días con SU disponibilidad real — nunca la de quien
@@ -440,9 +474,15 @@ function TarjetaSeccion({ esUltima, instanciaId, onInvalidar, onPedirDetalle, on
 function ModalReclamarRama({ disponibilidadInicial, onCerrar, onListo, rama }: { disponibilidadInicial: Disponibilidad | null; onCerrar: () => void; onListo: () => void; rama: PlanRama | null }) {
   const { t } = useTranslation();
   const { acento } = useTonoMaster();
+  const router = useRouter();
   const [disponibilidad, setDisponibilidad] = useState<Disponibilidad>({});
   const [propuestaId, setPropuestaId] = useState<string | null>(null);
   const [propuesta, setPropuesta] = useState<{ primeraSeccionDias: readonly PropuestaDia[]; secciones: readonly { resumen: string; titulo: string }[] } | null>(null);
+
+  function irAlPaywall() {
+    onCerrar();
+    router.push({ params: { volver: '/(principal)/tareas' }, pathname: '/horizon' });
+  }
 
   // Si ya reclamó otra rama de este mismo plan, precarga SU disponibilidad
   // en vez de arrancar en blanco — es la misma persona, lo más probable es
@@ -495,7 +535,7 @@ function ModalReclamarRama({ disponibilidadInicial, onCerrar, onListo, rama }: {
                     valor={disponibilidad[momento]}
                   />
                 ))}
-                {generar.isError && <Texto style={s2.error}>{generar.error instanceof Error ? generar.error.message : t('planes.crear.errorGenerar')}</Texto>}
+                {generar.isError && <ErrorAbyInline error={generar.error} onIrAlPaywall={irAlPaywall} />}
                 <MasterButton color={acento} disabled={Object.keys(disponibilidad).length === 0 || generar.isPending} onPress={() => generar.mutate()}>
                   {generar.isPending ? t('planes.crear.generando') : t('planes.crear.generar')}
                 </MasterButton>
@@ -518,7 +558,7 @@ function ModalReclamarRama({ disponibilidadInicial, onCerrar, onListo, rama }: {
                     ))}
                   </View>
                 ))}
-                {aceptar.isError && <Texto style={s2.error}>{t('planes.crear.errorGenerar')}</Texto>}
+                {aceptar.isError && <ErrorAbyInline error={aceptar.error} onIrAlPaywall={irAlPaywall} />}
                 <MasterButton color={acento} disabled={aceptar.isPending} onPress={() => aceptar.mutate()}>
                   {aceptar.isPending ? t('tareas.pantalla.creando') : t('planes.crear.confirmar')}
                 </MasterButton>
@@ -559,6 +599,7 @@ function FilaMomentoSimple({ momento, onCambiar, valor }: { momento: MomentoBloq
 function ModalDetallarSeccion({ notaInicial, onCerrar, onListo, seccionId }: { notaInicial: string | null; onCerrar: () => void; onListo: () => void; seccionId: string | null }) {
   const { t } = useTranslation();
   const { acento } = useTonoMaster();
+  const router = useRouter();
   const [modo, setModo] = useState<'aby' | 'elegir' | 'manual' | null>(null);
   const [contexto, setContexto] = useState('');
   const [propuestaId, setPropuestaId] = useState<string | null>(null);
@@ -578,6 +619,12 @@ function ModalDetallarSeccion({ notaInicial, onCerrar, onListo, seccionId }: { n
     setPropuestaId(null);
     setPropuestaDias(null);
     setItemsManual(['', '']);
+  }
+
+  function irAlPaywall() {
+    reiniciar();
+    onCerrar();
+    router.push({ params: { volver: '/(principal)/tareas' }, pathname: '/horizon' });
   }
 
   const generar = useMutation({
@@ -633,7 +680,7 @@ function ModalDetallarSeccion({ notaInicial, onCerrar, onListo, seccionId }: { n
                 <Texto style={s2.subtitulo}>{t('planes.detalle.contextoDescripcion')}</Texto>
                 {notaInicial && <Texto style={s2.notaAyuda}>{t('planes.detalle.contextoPrecargado')}</Texto>}
                 <TextInput multiline onChangeText={setContexto} placeholder={t('planes.detalle.contextoPlaceholder')} placeholderTextColor="#9A93A8" style={s2.input} value={contexto} />
-                {generar.isError && <Texto style={s2.error}>{t('planes.crear.errorGenerar')}</Texto>}
+                {generar.isError && <ErrorAbyInline error={generar.error} onIrAlPaywall={irAlPaywall} />}
                 <MasterButton color={acento} disabled={!contexto.trim() || generar.isPending} onPress={() => generar.mutate()}>
                   {generar.isPending ? t('planes.crear.generando') : t('planes.crear.generar')}
                 </MasterButton>
@@ -653,7 +700,7 @@ function ModalDetallarSeccion({ notaInicial, onCerrar, onListo, seccionId }: { n
                     ))}
                   </View>
                 ))}
-                {aceptar.isError && <Texto style={s2.error}>{t('planes.crear.errorGenerar')}</Texto>}
+                {aceptar.isError && <ErrorAbyInline error={aceptar.error} onIrAlPaywall={irAlPaywall} />}
                 <MasterButton color={acento} disabled={aceptar.isPending} onPress={() => aceptar.mutate()}>
                   {aceptar.isPending ? t('tareas.pantalla.creando') : t('planes.crear.confirmar')}
                 </MasterButton>

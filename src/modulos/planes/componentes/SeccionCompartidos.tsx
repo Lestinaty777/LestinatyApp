@@ -125,6 +125,10 @@ function FilaPlanCompartible({ expandido, onToggle, plan }: { expandido: boolean
             </View>
             <MasterButton color={acento} onPress={compartir}>{t('planes.compartidos.compartirBoton')}</MasterButton>
           </>
+        ) : generar.isError ? (
+          <Rebote onPress={() => generar.mutate()}>
+            <Texto style={{ color: '#B64747', fontFamily: 'Montserrat-Medium', fontSize: 12 }}>{t('planes.compartidos.errorGenerarCodigo')}</Texto>
+          </Rebote>
         ) : null
       )}
     </MasterGlass>

@@ -145,6 +145,7 @@ export const recursosI18n = {
           saludo: 'Hello,', titulo: 'Plans', comprarGemas: 'Buy gems', notificaciones: 'Notifications', volverAlInicio: 'Back to home',
           misPlanes: 'My plans', vacioTitulo: 'No plans yet', vacioDescripcion: 'Create one by hand, or let Aby build it with you.',
           recordatoriosProximamente: 'Reminders for plans are coming soon.',
+          errorCargar: 'Could not load this plan.', reintentar: 'Try again',
           access: {
             progresion: { label: 'My plans', description: 'Everything, including finished plans' },
             creacion: { label: 'Create', description: 'Start a new plan' },
@@ -237,6 +238,7 @@ export const recursosI18n = {
           misPlanesTitulo: 'Your plans', sinPlanesPropios: 'You have not created a plan yet.',
           generandoCodigo: 'Generating code…', copiado: 'Copied!', copiar: 'Copy',
           compartirBoton: 'Share', mensajeInvitacion: 'Join my plan "{{titulo}}" on Lestinaty with the code {{codigo}}',
+          errorGenerarCodigo: 'Could not generate a code. Tap to retry.',
         },
       },
       tareas: {
@@ -1325,6 +1327,7 @@ export const recursosI18n = {
           saludo: 'Hola,', titulo: 'Planes', comprarGemas: 'Comprar gemas', notificaciones: 'Notificaciones', volverAlInicio: 'Volver al inicio',
           misPlanes: 'Mis planes', vacioTitulo: 'Todavía no tenés planes', vacioDescripcion: 'Creá uno a mano, o dejá que Aby lo arme con vos.',
           recordatoriosProximamente: 'Los recordatorios de planes llegan pronto.',
+          errorCargar: 'No pudimos cargar este plan.', reintentar: 'Reintentar',
           access: {
             progresion: { label: 'Mis planes', description: 'Todos, incluidos los ya terminados' },
             creacion: { label: 'Crear', description: 'Armá un plan nuevo' },
@@ -1417,6 +1420,7 @@ export const recursosI18n = {
           misPlanesTitulo: 'Tus planes', sinPlanesPropios: 'Todavía no creaste ningún plan.',
           generandoCodigo: 'Generando código…', copiado: '¡Copiado!', copiar: 'Copiar',
           compartirBoton: 'Compartir', mensajeInvitacion: 'Unite a mi plan "{{titulo}}" en Lestinaty con el código {{codigo}}',
+          errorGenerarCodigo: 'No pudimos generar un código. Tocá para reintentar.',
         },
       },
       tareas: {

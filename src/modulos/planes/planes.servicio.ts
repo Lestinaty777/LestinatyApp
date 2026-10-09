@@ -358,12 +358,12 @@ export async function generarPlanInicial(input: { cantidadRamas?: number; contex
 
 export async function detallarSeccionPlan(seccionId: string, contextoUsuario: string): Promise<ResultadoDetallarSeccionPlan> {
   const { data, error } = await obtenerClienteSupabase().functions.invoke('detallar-seccion-plan', { body: { contextoUsuario, plataforma: Platform.OS, seccionId } });
-  if (error) throw new Error('Aby no pudo detallar esta sección. Intentalo de nuevo.');
+  if (error) throw await erroAby(error, 'Aby no pudo detallar esta sección. Intentalo de nuevo.');
   return data as ResultadoDetallarSeccionPlan;
 }
 
 export async function aceptarPropuestaPlan(propuestaId: string): Promise<ResultadoAceptarPropuestaPlan> {
   const { data, error } = await obtenerClienteSupabase().functions.invoke('aceptar-propuesta-plan', { body: { propuestaId } });
-  if (error) throw new Error('No pudimos crear tu plan. Intentalo de nuevo.');
+  if (error) throw await erroAby(error, 'No pudimos crear tu plan. Intentalo de nuevo.');
   return data as ResultadoAceptarPropuestaPlan;
 }
