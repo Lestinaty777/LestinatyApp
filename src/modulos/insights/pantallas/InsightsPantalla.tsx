@@ -15,6 +15,7 @@ import { useSaldoGemas } from '../../tienda/useSaldoGemas';
 import { capacidades } from '../../../plataforma/capacidades';
 import { GaleriaWidgetsModal } from '../componentes/GaleriaWidgetsModal';
 import { SeccionProgresoDatos } from '../componentes/SeccionProgresoDatos';
+import { SeccionFranjaFuerte } from '../componentes/SeccionFranjaFuerte';
 import { elegirReflexionAby } from '../reflexionAby';
 import { SeccionPatronesTareas } from '../../tareas/componentes/SeccionPatronesTareas';
 import { SeccionRiesgoTareas } from '../../tareas/componentes/SeccionRiesgoTareas';
@@ -550,6 +551,9 @@ export function InsightsPantalla() {
               <View style={s.columna}>
                 <Animated.View entering={entradaEncadenada(10)}>
                   <SeccionDiaFuerte cargando={false} datos={panel.patrones.datos} estado={panel.patrones.estado} progreso={panel.patrones.progreso} />
+                </Animated.View>
+                <Animated.View entering={entradaEncadenada(11)}>
+                  <SeccionFranjaFuerte />
                 </Animated.View>
                 <Animated.View entering={entradaEncadenada(12)}>
                   <SeccionRiesgo cargando={false} datos={panel.riesgo.datos} estado={panel.riesgo.estado} progreso={panel.riesgo.progreso} />

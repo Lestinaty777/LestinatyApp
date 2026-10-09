@@ -171,6 +171,11 @@ export const recursosI18n = {
         verTodo: 'See all',
         verMas: 'See {{n}} more',
         completados: '{{n}} completed',
+        ajustes: {
+          titulo: 'Times of day', descripcion: 'Choose when your morning, afternoon and night begin. Today opens on the current one.',
+          empieza: '{{franja}} starts at', antes: '{{franja}} one hour earlier', despues: '{{franja}} one hour later',
+          tramo: '{{franja}} {{desde}}–{{hasta}}', guardar: 'Save times', guardando: 'Saving…', errorGuardar: 'Could not save the times.',
+        },
       },
       planes: {
         pantalla: {
@@ -811,6 +816,10 @@ export const recursosI18n = {
           needMoreHistory: 'We need more history to detect drops in activity.',
           empty: 'No habits slowed down. You are going strong.',
         },
+        franjas: {
+          titulo: 'Your best time of day', mejor: 'You get the most done in the {{franja}}.', parejo: 'Your day is evenly spread.',
+          sinDestacar: 'There is no standout time of day yet.', faltanDatos: 'We need a few more records to see when you get the most done.', cargando: 'Loading…',
+        },
         strongestDay: {
           title: 'Strongest day',
           bestDaysAre: 'Your best days are {{day}}.',
@@ -1387,6 +1396,11 @@ export const recursosI18n = {
         verTodo: 'Ver todo',
         verMas: 'Ver {{n}} más',
         completados: '{{n}} completados',
+        ajustes: {
+          titulo: 'Franjas del día', descripcion: 'Elige cuándo empiezan tu mañana, tu tarde y tu noche. Hoy se abre en la franja del momento.',
+          empieza: '{{franja}} empieza a las', antes: '{{franja}} una hora antes', despues: '{{franja}} una hora después',
+          tramo: '{{franja}} {{desde}}–{{hasta}}', guardar: 'Guardar horas', guardando: 'Guardando…', errorGuardar: 'No pudimos guardar las horas.',
+        },
       },
       planes: {
         pantalla: {
@@ -2023,6 +2037,10 @@ export const recursosI18n = {
           subtitle: 'Bajaron su actividad esta semana.',
           needMoreHistory: 'Necesitamos más historial para detectar bajones de actividad.',
           empty: 'Ningún hábito bajó el ritmo. Vas sólido.',
+        },
+        franjas: {
+          titulo: 'Tu mejor franja', mejor: 'Cumples más por la {{franja}}.', parejo: 'Tu día está repartido de forma pareja.',
+          sinDestacar: 'Todavía no hay una franja que destaque.', faltanDatos: 'Necesitamos algunos registros más para ver cuándo cumples más.', cargando: 'Cargando…',
         },
         strongestDay: {
           title: 'Día más fuerte',
