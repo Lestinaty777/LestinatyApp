@@ -93,9 +93,9 @@ Simulación de merge: los commits se unen sin conflicto. El único archivo tocad
 - Motivos del ledger (`comercio.movimientos_gemas`): `compra_iap, gasto_tienda, ajuste_soporte, recompensa_nivel, gasto_semillas, referido_nivel2, trial_horizon_bono, cofre_intermedio, cofre_final, tarea_diaria, racha_tarea, cofre_final_tarea`.
 - Claves de caché existentes: `['rutinas','lista']` (`CLAVE_RUTINAS`), `['habitos','panel']`, `['habitos','detalles-hoy']`, `CLAVE_TAREAS_HOY`, `CLAVE_TAREAS_LISTA`, `CLAVE_SALDO_GEMAS`.
 
-### 1.4 Base de datos de las fases 1 a 5: ya definida
+### 1.4 Base de datos de las fases 1 a 5, 8 y 9: ya definida
 
-Las migraciones 82 a 86 están escritas y ensayadas contra la base real dentro de una transacción con `rollback` (29 comprobaciones funcionales, todas correctas). **El agente no escribe ni modifica SQL en las fases 1 a 5: solo conecta el cliente.**
+Las migraciones 82 a 87 están escritas y ensayadas contra la base real dentro de una transacción con `rollback` (47 comprobaciones funcionales, todas correctas). **El agente no escribe ni modifica SQL en las fases 1 a 5, 8 y 9: solo conecta el cliente.**
 
 | Migración | Qué aporta | La usa |
 | --- | --- | --- |
@@ -104,12 +104,13 @@ Las migraciones 82 a 86 están escritas y ensayadas contra la base real dentro d
 | `20261009_84_rutinas_recordatorios.sql` | Cola con origen rutina, `reclamar_recordatorios_rutinas`, `reprogramar_recordatorio_rutina`, catálogo | Tarea 4.2 |
 | `20261009_85_rutinas_actualizar.sql` | `actualizar_rutina` (conserva pasos por `id`) | Tarea 4.1 |
 | `20261009_86_cerrar_reclamo_recordatorios.sql` | Corrige permisos: `reclamar_recordatorios_tareas` era ejecutable por cualquier sesión | — |
+| `20261009_87_areas_y_metas.sql` | 7 áreas del sistema y áreas propias, ampliación de `metas`, `meta_id` en hábitos, tareas, rutinas y planes, `asignar_meta`, `obtener_metas` | Fases 8 y 9 |
 
 Las aplica el usuario, en orden:
 
 ```bash
 export SUPABASE_ACCESS_TOKEN=$(grep "^SUPABASE_ACESSS_TOKEN=" .env | cut -d= -f2-)
-for n in 82_franja_habitos 83_resumen_hoy 84_rutinas_recordatorios 85_rutinas_actualizar 86_cerrar_reclamo_recordatorios; do
+for n in 82_franja_habitos 83_resumen_hoy 84_rutinas_recordatorios 85_rutinas_actualizar 86_cerrar_reclamo_recordatorios 87_areas_y_metas; do
   echo "== $n"; npx supabase db query --linked --file supabase/migrations/20261009_$n.sql || break
 done
 ```
@@ -132,14 +133,14 @@ Sin migración (lectura directa con RLS): franja de tareas (`tareas_items.franja
 | 6 | Analítica del embudo | 0 | No |
 | 6B | Primera victoria de un usuario nuevo | 3, 6 | No |
 | 7 | Plantillas premium reales | 0, 6 | Sí (solo datos) |
-| 8 | Áreas de vida + filtro en Hoy | 3 | Sí |
-| 9 | Metas reales | 8 | Sí |
+| 8 | Áreas de vida y metas: dominio, selector de meta y filtro por área en Hoy | 3 | Ya definida (87) |
+| 9 | Pantalla de Metas real | 8 | Ya definida (87) |
 | 10 | Packs por área | 7, 8, 9 | Sí (solo datos) |
 | 11 | Límites gratis/Horizon en servidor y trial | 6 | Sí |
 | 12 | Live Activities (iOS) | 4 | No |
 | 13 | Finanzas sencillas | 8, 9 | Por decidir |
 
-Las fases 0–7 (incluidas 5B y 6B) están detalladas para ejecutarse ya. Las fases 8–13 **no tienen spec**: su primera tarea es escribirlo y hacer PARADA. La sección 3 dice cuándo se retoman las fases 6–10 de la visión (modelo unificado, Aby, cooperativo, cursos, marketplace).
+Las fases 0–9 (incluidas 5B y 6B) están detalladas. Las fases 10–13 **no tienen spec**: su primera tarea es escribirlo y hacer PARADA. La sección 3 dice cuándo se retoman las fases 6–10 de la visión (modelo unificado, Aby, cooperativo, cursos, marketplace).
 
 ---
 
@@ -734,25 +735,136 @@ Commit: `feat(plantillas): primeras plantillas premium por nicho`
 
 ---
 
-## FASES 8–13 — Sin spec todavía
+## FASES 8–13
 
-Para cada una: **la primera tarea es escribir el spec** en `docs/superpowers/specs/AAAA-MM-DD-<tema>-design.md`, con las mismas secciones que `2026-10-04-rutinas-design.md` (Objetivo, Decisiones, Modelo de datos, RPCs, Interfaz, Privacidad, Pruebas, Fases, Fuera de alcance), y hacer **PARADA** para aprobación. No escribas código antes.
+Las fases 8 y 9 ya tienen la base de datos definida y sus tareas detalladas abajo. Para las fases 10 a 13: **la primera tarea es escribir el spec** en `docs/superpowers/specs/AAAA-MM-DD-<tema>-design.md`, con las mismas secciones que `2026-10-04-rutinas-design.md` (Objetivo, Decisiones, Modelo de datos, RPCs, Interfaz, Privacidad, Pruebas, Fases, Fuera de alcance), y hacer **PARADA** para aprobación. No escribas código antes.
 
-### Fase 8 — Áreas de vida + filtro en Hoy
+### Fase 8 — Áreas de vida y Metas (base de datos ya definida: migración 87)
 
-**Antes del spec de áreas hay que cerrar la puerta 1 de la sección 3** (modelo unificado de Sendero): áreas y metas añaden un enlace a las cuatro familias de tablas, y es el momento más barato para decidir si habrá una tabla común.
+Decisiones del usuario (2026-10-09), ya implementadas en `supabase/migrations/20261009_87_areas_y_metas.sql`. **No escribas ni modifiques SQL en esta fase.**
 
-Propuesta de partida para el spec:
+```text
+ÁREA  →  META  →  hábitos, tareas, rutinas y planes
+```
 
-- Tabla `areas_vida (id, usuario_id, nombre, icono_lucide, color, orden, archivada_en, created_at)` con RLS por dueño; al crear el perfil se siembran 5: Cuerpo, Mente, Estudios, Trabajo y negocio, Finanzas.
-- Columna `area_id uuid null references public.areas_vida(id) on delete set null` en `habitos_items`, `tareas_items`, `rutinas_items` y `planes_items`. Nulo = sin área; lo existente no cambia.
-- `habitos_items` no admite escritura directa: hará falta un RPC `establecer_area_habito`, con el mismo patrón de la tarea 1.1.
-- Interfaz: selector de área en los asistentes y un filtro de área en Hoy (fila de chips sobre `SelectorFranja`); `construirPlanDelDia` recibe `areaId` opcional.
-- Preguntas para el usuario: nombres definitivos, si se pueden crear áreas propias, si un elemento puede tener más de un área (propuesta: no).
+- **7 áreas del sistema** y cada persona puede crear las suyas (máximo 20):
 
-### Fase 9 — Metas reales
+  | `codigo` | Nombre | Color | Ícono |
+  | --- | --- | --- | --- |
+  | `cuerpo` | Cuerpo | rojo `#EF4444` | `Dumbbell` |
+  | `mente` | Mente | azul `#3B82F6` | `Brain` |
+  | `espiritual` | Espiritual | verde `#22C55E` | `Leaf` |
+  | `estudios` | Estudios | morado `#8B5CF6` | `BookOpen` |
+  | `trabajo` | Trabajo | amarillo `#EAB308` | `Briefcase` |
+  | `negocios_proyectos` | Negocios y proyectos | rosa `#EC4899` | `Rocket` |
+  | `finanzas` | Finanzas | naranja `#F97316` | `PiggyBank` |
 
-`src/modulos/metas/` existe pero es maqueta (`MetasListaPantalla.tsx` usa la constante `SUBTAREAS`). El spec debe definir: tabla `metas_items` (título, área, fecha objetivo, estado), cómo se enlazan hábitos, tareas, rutinas y planes a una meta, y cómo se calcula su avance sin duplicar registros. `PanelMetasPantalla.tsx` también saluda a un "Alejandro" fijo: usa el nombre del perfil igual que la tarea 3.8.
+- **Un hábito, tarea, rutina o plan pertenece como mucho a una meta** (`meta_id`, anulable). **Una meta pertenece a un área.** El área de un elemento es la de su meta; no se guarda aparte. Un elemento sin meta no tiene área.
+- **Una meta puede tener un plan fijo de días** (`duracion_dias`), opcional.
+- El avance de una meta **no se guarda**: la persona la marca como lograda. La base solo calcula en qué día va.
+
+Lo que existe en la base:
+
+| Objeto | Uso |
+| --- | --- |
+| Tabla `areas_vida` (`id, usuario_id, codigo, nombre, color, icono_lucide, orden, archivada_en`) | Lectura y escritura directa. Las del sistema tienen `usuario_id` nulo y `codigo`; no se pueden editar ni borrar. Las propias: `usuario_id` = el de la sesión, `codigo` nulo, `color` en formato `#RRGGBB`, nombre único por persona |
+| Tabla `metas` (ya existía; ampliada) con `area_id, icono_lucide, color, fecha_inicio, duracion_dias, lograda_en, orden`, `estado` en `activa / pausada / lograda / archivada` | Lectura y escritura directa (RLS por dueño). `estado = 'lograda'` exige `lograda_en` no nulo, y al revés |
+| `meta_id` en `habitos_items`, `tareas_items`, `rutinas_items`, `planes_items` | Borrar una meta deja los elementos sin meta; no los borra |
+| `public.asignar_meta(p_tipo text, p_elemento_id uuid, p_meta_id uuid)` | `p_tipo`: `'habito'`, `'tarea'`, `'rutina'` o `'plan'`. `p_meta_id` nulo = quitar la meta. Errores: `P0002` meta o elemento no encontrado, `23514` tipo inválido |
+| `public.obtener_metas(p_fecha_referencia date default null)` | Devuelve las metas no archivadas con su área, sus días y sus conteos |
+
+Forma exacta de cada elemento de `obtener_metas`:
+
+```json
+{
+  "id": "…", "titulo": "Correr 5 km", "descripcion": null, "estado": "activa",
+  "icono_lucide": null, "color": "#EF4444",
+  "fecha_inicio": "2026-09-30", "duracion_dias": 30, "dia_actual": 9, "dias_restantes": 21,
+  "lograda_en": null, "orden": 0,
+  "area": { "id": "…", "codigo": "cuerpo", "nombre": "Cuerpo", "color": "#EF4444", "icono_lucide": "Dumbbell" },
+  "conteos": { "habitos": 1, "tareas": 1, "rutinas": 0, "planes": 1 }
+}
+```
+
+`color` ya viene resuelto (el de la meta o, si no tiene, el de su área; `null` si no hay ninguno). `area` es `null` en metas sin área (las que crea el flujo antiguo de Aby). Sin `duracion_dias`, `dias_restantes` es `null` y `dia_actual` son los días transcurridos.
+
+#### Tarea 8.1 — Comprobar que la migración 87 está aplicada
+
+`select count(*) from public.areas_vida where usuario_id is null;` debe dar 7. Si falla o da otro número, **PARADA** (sección 1.4).
+
+#### Tarea 8.2 — Módulo de áreas
+
+Crea `src/modulos/areas/`: `areas.tipos.ts`, `areas.mapper.ts` (+ test, defensivo, estilo `rutinas.mapper.ts`), `areas.servicio.ts`.
+
+- `type AreaVida = { id: string; codigo: string | null; nombre: string; color: string; iconoLucide: string; orden: number; esDelSistema: boolean }`.
+- `CLAVE_AREAS = ['areas', 'lista'] as const`.
+- `obtenerAreas()`: `from('areas_vida').select('id, usuario_id, codigo, nombre, color, icono_lucide, orden').is('archivada_en', null).order('orden').order('created_at')`.
+- `crearArea({ nombre, color, iconoLucide })`: `insert` con `usuario_id` de la sesión (mira en `crearTarea` de `tareas.servicio.ts` cómo se obtiene). Si el error es `23505`, lanza un error con la clave `areas.error.duplicada`.
+- `archivarArea(id)`: `update({ archivada_en: new Date().toISOString() })`.
+- Nombre visible: función pura `nombreArea(area, t)` → si `codigo` existe, `t('areas.sistema.' + codigo)`; si no, `area.nombre`. Con test.
+- i18n `areas.sistema.*`: es `Cuerpo, Mente, Espiritual, Estudios, Trabajo, Negocios y proyectos, Finanzas`; en `Body, Mind, Spiritual, Studies, Work, Business & projects, Finances`. `areas.sinArea`: `Sin área` / `No area`. `areas.todas`: `Todas` / `All`. `areas.error.duplicada`: `Ya tienes un área con ese nombre.` / `You already have an area with that name.`
+
+Commit: `feat(areas): tipos, mapper y servicio de áreas de vida`
+
+#### Tarea 8.3 — Dominio de metas
+
+`src/modulos/metas/tipos.ts` y `metas.estado.ts` son de la maqueta. Antes de tocarlos: `grep -rn "metas/tipos\|metas.estado" src app`. Crea archivos nuevos sin romper la maqueta: `metas.tipos.ts`, `metas.mapper.ts` (+ test con respuesta válida, respuesta rota y meta sin área), `metas.servicio.ts`.
+
+- Tipos: `EstadoMeta = 'activa' | 'pausada' | 'lograda' | 'archivada'`; `TipoElementoMeta = 'habito' | 'tarea' | 'rutina' | 'plan'`; `MetaVida` con los mismos campos del JSON de arriba en camelCase (`area: AreaVidaResumen | null`).
+- `CLAVE_METAS = ['metas', 'lista'] as const`.
+- `obtenerMetas()`: `rpc('obtener_metas', { p_fecha_referencia: fechaLocalHoy() })`.
+- `crearMeta({ titulo, descripcion?, areaId, iconoLucide?, color?, duracionDias? })`: `insert` en `metas` con `usuario_id` de la sesión y **`fecha_inicio: fechaLocalHoy()`** (no dejes el valor por defecto de la base: es la fecha UTC). `areaId` es obligatorio en la interfaz.
+- `editarMeta(id, cambios)`.
+- `marcarMetaLograda(id)`: `update({ estado: 'lograda', lograda_en: new Date().toISOString() })`. `reabrirMeta(id)`: `update({ estado: 'activa', lograda_en: null })`. Siempre los dos campos juntos.
+- `archivarMeta(id)`: `update({ estado: 'archivada', lograda_en: null })`.
+- `asignarMeta(tipo, elementoId, metaId: string | null)`: `rpc('asignar_meta', { p_tipo: tipo, p_elemento_id: elementoId, p_meta_id: metaId })`.
+- Función pura con test `progresoPlazoMeta(meta)`: `null` si no hay `duracionDias`; si no, `{ dia, total, porcentaje }`.
+
+Commit: `feat(metas): tipos, mapper y servicio sobre obtener_metas`
+
+#### Tarea 8.4 — Elegir meta al crear y editar
+
+1. Componente `src/modulos/metas/componentes/SelectorMeta.tsx`: lista las metas activas agrupadas por área (encabezado con color y nombre del área), más la opción `metas.sinMeta` (es: `Sin meta` / en: `No goal`). Props: `{ valor: string | null; onCambiar: (metaId: string | null) => void }`. Usa `useQuery` con `CLAVE_METAS`. Si no hay metas, un texto `metas.selector.vacio` (es: `Aún no tienes metas. Puedes crear una desde Metas.`). No incluyas creación de metas dentro del selector.
+2. `CrearHabitoWizard.tsx`, `CrearTareaWizard.tsx` y `CrearRutinaWizard.tsx`: añade el selector en el primer paso (identidad). Es opcional. Tras crear el elemento con éxito, si se eligió meta: `await asignarMeta(tipo, idCreado, metaId)`. Si esa llamada falla, **no** deshagas la creación: muestra el aviso `metas.error.asignar` (es: `Se creó, pero no se pudo enlazar con la meta.`).
+3. Edición (`EditarHabitoFormulario.tsx`, edición de rutina de la tarea 4.1): mismo selector; al guardar, `asignarMeta` solo si cambió.
+4. Lectura del `meta_id`:
+   - Tareas: añade `meta_id` a `COLUMNAS`, `FilaTarea`, `normalizar`, `Tarea.metaId` y `TareaHoyDetalle.metaId` (y al `select` de `obtenerTareasHoy`).
+   - Hábitos: en `obtenerDetallesHabitosHoy`, el `select` de `habitos_items` pasa a `'id,tipo_meta,meta_id'` y `HabitoHoyDetalle` gana `metaId: string | null`.
+   - Rutinas: nueva función en `rutinas.servicio.ts`, `obtenerMetasDeRutinas(): Promise<Map<string, string | null>>` (`from('rutinas_items').select('id, meta_id')`), con clave `['rutinas', 'metas']`. No modifiques `obtener_rutinas_hoy`.
+5. Invalida `CLAVE_METAS` tras cualquier `asignarMeta`, crear, editar, lograr o archivar.
+
+Commit: `feat(metas): selector de meta en asistentes y edición`
+
+#### Tarea 8.5 — Filtro por área en Hoy
+
+1. `planDelDia.ts`: `ElementoHoy` gana `areaId: string | null`. `construirPlanDelDia` recibe `areaId?: string | 'sin_area' | null` (`null` o ausente = todas). El filtro de área se aplica **antes** de contar: los conteos de los botones de franja reflejan el área elegida. Tests nuevos: filtrar por un área, por `'sin_area'`, y que `null` no filtra.
+2. Los adaptadores reciben un `Map<metaId, areaId | null>` construido desde `obtenerMetas()` y resuelven `areaId` (elemento sin meta, o meta sin área → `null`).
+3. En `HoyPantalla.tsx`, sobre `SelectorFranja`, una fila horizontal con desplazamiento de chips: `areas.todas`, luego **solo las áreas que tienen algún elemento hoy**, y `areas.sinArea` si hay elementos sin área. Cada chip lleva un punto con el color del área y su nombre (`nombreArea`); el color no es el único indicador. El área elegida no se guarda entre aperturas. Si solo existiría el chip "Todas", no muestres la fila.
+4. Evento de analítica `hoy_filtro_area` con `{ area_codigo }` (`'propia'` para áreas creadas por la persona, `'sin_area'`, o el código del sistema). Añádelo a la tabla de la tarea 6.3.
+
+Commit: `feat(hoy): filtro por área de vida`
+
+Pendiente de dispositivo: crear una meta en Cuerpo, enlazarle un hábito y ver en Hoy el chip rojo "Cuerpo" que filtra; un hábito sin meta aparece bajo "Sin área".
+
+### Fase 9 — Pantalla de Metas real
+
+La base ya está (fase 8). `src/modulos/metas/pantallas/` (`MetasPantalla`, `MetasListaPantalla`, `PanelMetasPantalla`, `DetalleMetaPantalla`) son maqueta: `MetasListaPantalla.tsx` usa la constante `SUBTAREAS` y `PanelMetasPantalla.tsx` saluda a un "Alejandro" fijo.
+
+#### Tarea 9.1 — **PARADA**: dónde vive la pantalla
+
+Corre `grep -rn "MetasPantalla\|PanelMetasPantalla\|MetasListaPantalla\|DetalleMetaPantalla" app src --include=*.tsx`. Hoy no hay ninguna ruta de metas en `app/`. Muestra al usuario qué pantallas existen y pregunta: (a) si Metas será una pestaña, una ruta (`app/metas/…`) o parte de "Mi espacio"; (b) cuál de las cuatro pantallas de la maqueta conserva como diseño. No sigas sin respuesta.
+
+#### Tarea 9.2 — Lista y detalle con datos reales
+
+Con lo que el usuario decida, conservando los estilos de la pantalla elegida:
+
+- **Lista:** metas activas agrupadas por área (color y nombre del área), con título, `Día {{dia}} de {{total}}` y barra si hay plazo (`progresoPlazoMeta`), y los conteos (`2 hábitos · 1 tarea`). Secciones plegadas para pausadas y logradas. Botón de crear.
+- **Crear / editar:** título, área (obligatoria, con opción de crear un área propia: nombre, color de una paleta fija de 10 y un ícono), descripción opcional, y un interruptor "Tiene un plazo en días" que muestra el campo `duracionDias` (1–3650).
+- **Detalle:** lo que contiene la meta, por tipo. Hábitos: `from('habitos_items').select(...).eq('meta_id', id)`; igual para `tareas_items`, `rutinas_items`, `planes_items`. Cada fila navega a su pantalla. Acciones: marcar lograda, pausar, reabrir, archivar, y "Quitar de esta meta" por elemento (`asignarMeta(tipo, id, null)`).
+- Sustituye el nombre fijo por el del perfil, igual que la tarea 3.8.
+- Sin gemas, XP ni recompensas por lograr una meta en esta fase.
+
+Commit: `feat(metas): pantalla de metas con datos reales`
 
 ### Fase 10 — Packs por área
 
@@ -778,7 +890,7 @@ Las fases 6 a 10 de la visión **no se construyen en este plan**, pero cada una 
 
 | # | Fase de la visión | Qué existe ya | Condición para retomarla | Primer entregable |
 | --- | --- | --- | --- | --- |
-| 1 | Modelo unificado de Sendero y dependencias entre nodos | Cuatro familias sin modelo común: `habitos_*`, `tareas_*`, `rutinas_*`, `planes_*` (más `senderos`) | **Antes de la Fase 8 de este plan** | Spec que responda la pregunta abierta de la visión: ¿tabla `senderos` polimórfica o vistas sobre las familias? Debe incluir cómo se enlazan área y meta |
+| 1 | Modelo unificado de Sendero y dependencias entre nodos | Cuatro familias (`habitos_*`, `tareas_*`, `rutinas_*`, `planes_*`) más `senderos`. Desde la migración 87 todas comparten un enlace común: `meta_id` hacia `metas`, y de ahí al área | Cuando haga falta algo que `meta_id` no resuelve: dependencias entre nodos de familias distintas (cooperativo o cursos) | Spec que responda la pregunta abierta de la visión: ¿tabla `senderos` polimórfica o vistas sobre las familias? |
 | 2 | Aby genera rutinas | `crear_rutina(p_datos jsonb)` es un esquema destino estable; Aby ya genera Planes con propuesta privada y aceptación transaccional | Fase 4 terminada y probada en dispositivo | Spec de propuesta de rutina con el mismo flujo que Planes (Edge Function, propuesta privada, aceptar) y el tope mensual de `accesoAbyPlanes.ts` |
 | 3 | Cooperativo | Planes compartidos, instancias por persona y ramas (migraciones 72–76) | Que el usuario haya usado un plan compartido con otra persona durante la Fase 5B | Spec de dependencias entre personas ("este nodo se desbloquea cuando aquel se complete") y su RLS |
 | 4 | Cursos propios | Plantillas con gemas: contenido en servidor entregado solo a quien compró | 30 días de datos de la Fase 7 con, como mínimo, compras de al menos 2 nichos distintos y sesiones completadas de las plantillas compradas (los umbrales exactos los fija el usuario) | Spec de curso como Sendero publicado y vendido con RevenueCat (no consumible) |
@@ -803,6 +915,10 @@ Mientras no responda, usa el valor por defecto de la tabla.
 | 11 | Tabla de XP y curva de niveles | 10 / 10 / 10 / 15 XP; subir cuesta 60, 80, 100, 120… | Tareas 3.6 y 3.7 |
 | 12 | ¿El hábito da XP con cualquier avance o solo al cumplir la meta? | Con cualquier avance (`valor > 0`) | Tarea 3.6 |
 | 13 | ¿Crear un proyecto Supabase de staging? | Recomendado; sin él se sigue probando con `rollback` | Tarea 0.9 |
+| 14 | Nombre del área espiritual | "Espiritual" (código `espiritual`) | Fase 8 |
+| 15 | ¿Un elemento sin meta puede tener área? | No: el área siempre viene de la meta | Fase 8 |
+| 16 | ¿Cómo avanza una meta? | La persona la marca como lograda; la base solo cuenta los días | Fases 8 y 9 |
+| 17 | Dónde vive la pantalla de Metas | Sin decidir (bloquea la fase 9) | Tarea 9.1 |
 
 ## 5. Qué reportar al terminar cada fase
 
