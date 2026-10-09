@@ -1,11 +1,12 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Pressable, Switch, TextInput, View } from 'react-native';
 import { useMutation } from '@tanstack/react-query';
 import { Clock3 } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 
-import { MasterButton, MasterGlass, MasterIcon, RecuadroGlass, Texto } from '../../../diseno';
+import { MasterButton, MasterGlass, MasterIcon, RecuadroGlass, SelectorFranjaElemento, Texto } from '../../../diseno';
 import { TOPE_ESCALA_TEXTO_COMPACTO } from '../../../diseno/fundamentos/accesibilidad';
+import { sugerirFranjaPorHora, type FranjaDia } from '../../../compartido/utilidades/franjas';
 import { hapticSeguro } from '../../../nucleo/dispositivo/haptics';
 import { solicitarPermisoYRegistrar } from '../../../nucleo/notificaciones/oneSignal';
 import { actualizarPreferenciaNotificacion } from '../../configuracion/configuracion.servicio';
@@ -94,6 +95,13 @@ export function EditarHabitoFormulario({ colorHabito, edicionInicial, habitoId, 
       defaultValue: t(`habitos.crearWizard.iconLabels.${clave}`, { defaultValue: etiquetaPredeterminada }),
     });
   };
+
+  const etiquetasFranja = useMemo<Record<FranjaDia, string>>(() => ({
+    manana: t('franjas.manana'),
+    tarde: t('franjas.tarde'),
+    noche: t('franjas.noche'),
+    cualquier_momento: t('franjas.cualquier_momento'),
+  }), [t]);
 
   const metas: { id: SubtipoMeta; titulo: string; icono: string }[] = [
     { id: 'check', titulo: t('habitos.crearWizard.goal.checkTitle'), icono: 'tareas' },
@@ -262,6 +270,13 @@ export function EditarHabitoFormulario({ colorHabito, edicionInicial, habitoId, 
                 value={hora}
               />
             )}
+            <Texto style={{ color: '#554E68', fontFamily: 'Montserrat-Bold', fontSize: 13 }}>{t('franjas.titulo')}</Texto>
+            <SelectorFranjaElemento
+              color={colorHabito}
+              etiquetas={etiquetasFranja}
+              onCambiar={setFranja}
+              valor={franja}
+            />
             <View style={{ alignItems: 'center', flexDirection: 'row' }}>
               <Texto style={{ color: '#1A1335', flex: 1, fontFamily: 'Montserrat-Bold', fontSize: 13 }}>{t('habitos.crearWizard.reminder.includeName')}</Texto>
               <Switch value={mostrarNombre} onValueChange={(valor) => { hapticSeguro('seleccion'); setMostrarNombre(valor); }} />

@@ -5,11 +5,12 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import ReanimatedView, { Easing as EasingR, FadeIn, FadeInDown, FadeOut, interpolate, interpolateColor, useAnimatedStyle, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
 import { Check, ChevronLeft, ChevronRight, Clock3, Search, Sparkles } from 'lucide-react-native';
 import Svg, { Circle, Path } from 'react-native-svg';
-import { Boton, formatoHora12, MasterAnimation, MasterColorProvider, MasterGlass, MasterIcon, MasterSand, RecuadroGlass, SelectorHora12, TONO_ESMERALDA, Texto, crearTonoMaster, useTonoMaster } from '../../../diseno';
+import { Boton, formatoHora12, MasterAnimation, MasterColorProvider, MasterGlass, MasterIcon, MasterSand, RecuadroGlass, SelectorFranjaElemento, SelectorHora12, TONO_ESMERALDA, Texto, crearTonoMaster, useTonoMaster } from '../../../diseno';
 import { colorMasterMasCercano } from '../../../diseno/componentes/MasterChanger';
 import { TOPE_ESCALA_TEXTO_COMPACTO } from '../../../diseno/fundamentos/accesibilidad';
 import { CrearHabitoInput } from '../habitos.servicio';
 import type { TipoMetaHabito } from '../tipos';
+import { sugerirFranjaPorHora, type FranjaDia } from '../../../compartido/utilidades/franjas';
 import { DIAS_REQUERIDOS_POR_NIVEL, iconosHabitos } from '../iconosHabitos';
 import { hapticSeguro } from '../../../nucleo/dispositivo/haptics';
 import { solicitarPermisoYRegistrar } from '../../../nucleo/notificaciones/oneSignal';
@@ -215,6 +216,8 @@ export function CrearHabitoWizard({ visible, guardando, onCerrar, onCrear }: { v
   const [tipo, setTipo] = useState<CrearHabitoInput['tipoMeta']>('cantidad'), [frecuencia, setFrecuencia] = useState<CrearHabitoInput['frecuencia']>('diaria');
   const [diasSemana, setDiasSemana] = useState<number[]>([1, 2, 3, 4, 5, 6, 7]), [vecesSemana, setVecesSemana] = useState('3');
   const [recordatorio, setRecordatorio] = useState(false), [hora, setHora] = useState('08:00'), [horaPersonalizada, setHoraPersonalizada] = useState(false), [mostrar, setMostrar] = useState(false);
+  const [franja, setFranja] = useState<FranjaDia>('cualquier_momento');
+  const [franjaManual, setFranjaManual] = useState(false);
   const [iconoLucide, setIconoLucide] = useState(iconosHabitos[0].id);
   const [subtipoMeta, setSubtipoMeta] = useState<SubtipoMeta>('cantidad');
   // Semilla premium elegida (id de usuario_semillas) en vez de un tono verde
@@ -298,6 +301,12 @@ export function CrearHabitoWizard({ visible, guardando, onCerrar, onCrear }: { v
       void actualizarPreferenciaNotificacion('habito_recordatorio', true).catch(() => undefined);
     }).catch(() => setRecordatorio(false));
   }, [recordatorio]);
+  useEffect(() => {
+    if (recordatorio && !franjaManual) {
+      const sugerida = sugerirFranjaPorHora(hora);
+      if (sugerida) setFranja(sugerida);
+    }
+  }, [recordatorio, hora, franjaManual]);
   // El Modal no desmonta sus hijos al ocultarse (solo dispara la animación de
   // salida) — sin este reinicio, todo el estado del hábito anterior (título,
   // ícono, horario, recordatorio... e incluso `paso`) seguía vivo la próxima
@@ -317,6 +326,8 @@ export function CrearHabitoWizard({ visible, guardando, onCerrar, onCrear }: { v
     setRecordatorio(false);
     setHora('08:00');
     setHoraPersonalizada(false);
+    setFranja('cualquier_momento');
+    setFranjaManual(false);
     setMostrar(false);
     setIconoLucide(iconosHabitos[0].id);
     setSubtipoMeta('cantidad');
@@ -372,6 +383,12 @@ export function CrearHabitoWizard({ visible, guardando, onCerrar, onCrear }: { v
     });
   };
   const horaValida = /^([01]\d|2[0-3]):[0-5]\d$/.test(hora);
+  const etiquetasFranja = useMemo<Record<FranjaDia, string>>(() => ({
+    manana: t('franjas.manana'),
+    tarde: t('franjas.tarde'),
+    noche: t('franjas.noche'),
+    cualquier_momento: t('franjas.cualquier_momento'),
+  }), [t]);
   const puedeContinuar = plantillaId !== null && titulo.trim().length > 0 && (frecuencia !== 'dias_semana' || diasSemana.length > 0) && (frecuencia !== 'veces_semana' || Number(vecesSemana) > 0) && (!recordatorio || horaValida);
   const plantillasFiltradas = useMemo(() => buscarPlantillasHabitos(buscarPlantilla), [buscarPlantilla, i18n.language]);
   const metas: { id: SubtipoMeta; titulo: string; ejemplo: string; icono: string }[] = [
@@ -416,6 +433,7 @@ export function CrearHabitoWizard({ visible, guardando, onCerrar, onCrear }: { v
         diasSemana: frecuencia === 'dias_semana' ? diasSemana : null,
         vecesPorSemana: frecuencia === 'veces_semana' ? Math.max(1, Number(vecesSemana) || 1) : null,
         recordatorioActivo: recordatorio, horaRecordatorio: recordatorio ? hora : null, mostrarNombreNotificacion: mostrar,
+        franja,
         paqueteId: PAQUETE_GRATUITO_DEFECTO,
       });
       if (semillaSeleccionada) {
@@ -541,6 +559,16 @@ export function CrearHabitoWizard({ visible, guardando, onCerrar, onCrear }: { v
             <View style={{ flexDirection: 'row', gap: 8 }}>{['08:00', '13:00', '20:00'].map((valor) => <Rebote key={valor} estilo={{ backgroundColor: !horaPersonalizada && hora === valor ? color : '#FFFFFF', borderRadius: 13, flex: 1, paddingVertical: 10 }} onPress={() => { setHora(valor); setHoraPersonalizada(false); }}><Texto style={{ color: !horaPersonalizada && hora === valor ? '#FFFFFF' : '#1A1335', fontFamily: 'Montserrat-Bold', fontSize: 12, textAlign: 'center' }}>{formatoHora12(valor)}</Texto></Rebote>)}</View>
             <Rebote estilo={{ alignItems: 'center', backgroundColor: horaPersonalizada ? `${color}16` : '#FFFFFF', borderRadius: 14, flexDirection: 'row', gap: 9, justifyContent: 'center', paddingVertical: 12 }} onPress={() => { setHoraPersonalizada(true); setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 140); }}><Clock3 color={color} size={17} /><Texto style={{ color: '#1A1335', fontFamily: 'Montserrat-Bold', fontSize: 13 }}>{t('habitos.crearWizard.reminder.otherTime')}</Texto></Rebote>
             {horaPersonalizada && <ReanimatedView.View entering={FadeIn.duration(220)}><RecuadroGlass blur style={{ borderRadius: 16, borderWidth: 0, padding: 13 }}><Texto style={{ color: '#554E68', fontFamily: 'Montserrat-Bold', fontSize: 12, marginBottom: 10 }}>{t('habitos.crearWizard.reminder.customTime')}</Texto><SelectorHora12 hora={hora} onCambiar={setHora} /></RecuadroGlass></ReanimatedView.View>}
+            <Texto style={{ color: '#554E68', fontFamily: 'Montserrat-Bold', fontSize: 13 }}>{t('franjas.titulo')}</Texto>
+            <SelectorFranjaElemento
+              color={color}
+              etiquetas={etiquetasFranja}
+              onCambiar={(f) => {
+                setFranja(f);
+                setFranjaManual(true);
+              }}
+              valor={franja}
+            />
             <RecuadroGlass blur style={{ borderRadius: 15, borderWidth: 0, padding: 12 }}>
               <View style={{ alignItems: 'center', flexDirection: 'row' }}><View style={{ flex: 1 }}><Texto style={{ color: '#1A1335', fontFamily: 'Montserrat-Bold', fontSize: 13 }}>{t('habitos.crearWizard.reminder.includeName')}</Texto><Texto style={s.sub}>{mostrar ? t('habitos.crearWizard.reminder.notificationWithName', { title: titulo.trim() || t('habitos.crearWizard.reminder.defaultHabitName') }) : t('habitos.crearWizard.reminder.notificationWithoutName')}</Texto></View><Switch value={mostrar} onValueChange={(valor) => { hapticSeguro('seleccion'); setMostrar(valor); }} /></View>
             </RecuadroGlass>

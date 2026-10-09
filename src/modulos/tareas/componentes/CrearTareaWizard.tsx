@@ -5,9 +5,11 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import ReanimatedView, { Easing as EasingR, FadeIn, FadeInDown, FadeOut } from 'react-native-reanimated';
 import { Bell, Check, ChevronLeft, ChevronRight, Clock3, Plus, Search, Sparkles, X } from 'lucide-react-native';
 
-import { Boton, formatoHora12, MasterChip, MasterColorProvider, MasterGlass, MasterIcon, RecuadroGlass, SelectorFechaCalendario, SelectorHora12, Texto, crearTonoMaster, useTonoMaster } from '../../../diseno';
+import { Boton, formatoHora12, MasterChip, MasterColorProvider, MasterGlass, MasterIcon, RecuadroGlass, SelectorFechaCalendario, SelectorFranjaElemento, SelectorHora12, Texto, crearTonoMaster, useTonoMaster } from '../../../diseno';
 import { TOPE_ESCALA_TEXTO_COMPACTO } from '../../../diseno/fundamentos/accesibilidad';
 import { Rebote } from '../../../diseno/ui/Rebote';
+import { sugerirFranjaPorHora, type FranjaDia } from '../../../compartido/utilidades/franjas';
+import { useTranslation } from 'react-i18next';
 import { hapticSeguro } from '../../../nucleo/dispositivo/haptics';
 import { solicitarPermisoYRegistrar } from '../../../nucleo/notificaciones/oneSignal';
 import { actualizarPreferenciaNotificacion } from '../../configuracion/configuracion.servicio';
@@ -153,6 +155,8 @@ export function CrearTareaWizard({ visible, guardando, onCerrar, onCrear }: {
   const [recordatorioActivo, setRecordatorioActivo] = useState(false);
   const [hora, setHora] = useState('08:00');
   const [horaPersonalizada, setHoraPersonalizada] = useState(false);
+  const [franja, setFranja] = useState<FranjaDia>('cualquier_momento');
+  const [franjaManual, setFranjaManual] = useState(false);
   const [mostrarNombre, setMostrarNombre] = useState(true);
   const [plantillaId, setPlantillaId] = useState<string | null>(null);
   const [buscarPlantilla, setBuscarPlantilla] = useState('');
@@ -161,6 +165,8 @@ export function CrearTareaWizard({ visible, guardando, onCerrar, onCrear }: {
   const scrollRef = useRef<ScrollView>(null);
   const [tecladoVisible, setTecladoVisible] = useState(false);
   const [altoFooter, setAltoFooter] = useState(96);
+
+  const { t } = useTranslation();
 
   const layoutTeclado = calcularLayoutTecladoWizard({
     altoFooter, plataforma: Platform.OS as PlataformaTeclado, safeAreaBottom: 0, tecladoVisible,
@@ -183,6 +189,13 @@ export function CrearTareaWizard({ visible, guardando, onCerrar, onCrear }: {
     }).catch(() => setRecordatorioActivo(false));
   }, [recordatorioActivo]);
 
+  useEffect(() => {
+    if (recordatorioActivo && !franjaManual) {
+      const sugerida = sugerirFranjaPorHora(hora);
+      if (sugerida) setFranja(sugerida);
+    }
+  }, [recordatorioActivo, hora, franjaManual]);
+
   // El Modal no desmonta sus hijos al ocultarse — se reinicia TODO el estado
   // transitorio al cerrar, mismo motivo (y mismo bug evitado) que en
   // CrearHabitoWizard.
@@ -202,6 +215,8 @@ export function CrearTareaWizard({ visible, guardando, onCerrar, onCrear }: {
     setRecordatorioActivo(false);
     setHora('08:00');
     setHoraPersonalizada(false);
+    setFranja('cualquier_momento');
+    setFranjaManual(false);
     setMostrarNombre(true);
     setPlantillaId(null);
     setBuscarPlantilla('');
@@ -308,6 +323,13 @@ export function CrearTareaWizard({ visible, guardando, onCerrar, onCrear }: {
     ? (fechaVencimiento ? `Una vez · ${fechaVencimiento}` : 'Una vez, sin fecha')
     : diasSemana.length === 7 ? 'Todos los días' : `${diasSemana.length} días por semana`;
 
+  const etiquetasFranja = useMemo<Record<FranjaDia, string>>(() => ({
+    manana: t('franjas.manana'),
+    tarde: t('franjas.tarde'),
+    noche: t('franjas.noche'),
+    cualquier_momento: t('franjas.cualquier_momento'),
+  }), [t]);
+
   async function guardar() {
     setErrorCrear(null);
     setPreparando(true);
@@ -317,6 +339,7 @@ export function CrearTareaWizard({ visible, guardando, onCerrar, onCrear }: {
         diasSemana: frecuencia === 'dias_semana' ? diasSemana : null,
         fechaVencimiento: frecuencia === 'una_vez' ? fechaVencimiento : null,
         frecuencia,
+        franja,
         horaRecordatorio: recordatorioActivo ? hora : null,
         iconoLucide,
         mostrarNombreNotificacion: mostrarNombre,
@@ -600,6 +623,16 @@ export function CrearTareaWizard({ visible, guardando, onCerrar, onCrear }: {
                               </RecuadroGlass>
                             </ReanimatedView.View>
                           )}
+                          <Texto style={{ color: '#554E68', fontFamily: 'Montserrat-Bold', fontSize: 13 }}>{t('franjas.titulo')}</Texto>
+                          <SelectorFranjaElemento
+                            color={color}
+                            etiquetas={etiquetasFranja}
+                            onCambiar={(f) => {
+                              setFranja(f);
+                              setFranjaManual(true);
+                            }}
+                            valor={franja}
+                          />
                           <RecuadroGlass blur style={{ borderRadius: 15, borderWidth: 0, padding: 12 }}>
                             <View style={{ alignItems: 'center', flexDirection: 'row' }}>
                               <View style={{ flex: 1 }}>
