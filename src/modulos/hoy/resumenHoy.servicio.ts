@@ -2,7 +2,7 @@ import { fechaLocalHoy } from '../../nucleo/dispositivo/fechaLocal';
 import { obtenerClienteSupabase } from '../../servicios/base-datos/supabase';
 import { mapearResumenHoy, type ResumenHoy } from './resumenHoy.mapper';
 
-export const CLAVE_RESUMEN_HOY = ['hoy', 'resumen'] as const;
+export { CLAVE_RESUMEN_HOY } from './refrescarResumenHoy';
 
 /** Racha global, días activos de la semana y XP total (calculados en el servidor, migración 83). */
 export async function obtenerResumenHoy(): Promise<ResumenHoy> {

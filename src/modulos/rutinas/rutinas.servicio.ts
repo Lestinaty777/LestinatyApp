@@ -2,6 +2,7 @@ import { fechaLocalDe, fechaLocalHoy } from '../../nucleo/dispositivo/fechaLocal
 import { VENTANA_RACHA_RUTINA_DIAS } from './rachaRutina';
 import { obtenerClienteSupabase } from '../../servicios/base-datos/supabase';
 import { mapearResultadoCierreRutina, mapearResultadoPasoPropio, mapearRutinas } from './rutinas.mapper';
+import { refrescarResumenHoy } from '../hoy/refrescarResumenHoy';
 import { asignarMeta } from '../metas/metas.servicio';
 import { datosARemoto } from './rutinas.remoto';
 import type { CrearRutinaInput, ResultadoCierreRutina, ResultadoPasoPropio, Rutina } from './rutinas.tipos';
@@ -78,6 +79,7 @@ export async function iniciarRutina(rutinaId: string): Promise<void> {
 export async function cerrarRutinaDia(rutinaId: string): Promise<ResultadoCierreRutina> {
   const { data, error } = await obtenerClienteSupabase().rpc('cerrar_rutina_dia', { p_rutina_id: rutinaId, p_fecha_local: fechaLocalHoy() });
   if (error) throw error;
+  refrescarResumenHoy(); // una sesión completa da XP
   return mapearResultadoCierreRutina(data);
 }
 

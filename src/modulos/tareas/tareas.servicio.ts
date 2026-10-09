@@ -6,6 +6,7 @@ import { mapearFigurasTarea, mapearFiguraTareaPendiente, mapearResultadoGuardarF
 import { mapearPanelTareas } from './tareas.mapper';
 import { calcularRachaTarea, estaProgramadaEnFecha } from './tareaProgramada';
 import type { FranjaDia } from '../../compartido/utilidades/franjas';
+import { refrescarResumenHoy } from '../hoy/refrescarResumenHoy';
 import { asignarMeta } from '../metas/metas.servicio';
 import type {
   CrearTareaInput, EditarTareaInput, EstadoTarea, FiguraTareaNodo, FrecuenciaTarea, MejorRachaTarea, PanelTareas,
@@ -205,6 +206,7 @@ export async function completarTareaDia(tareaId: string, fechaLocal: string = fe
     p_tarea_id: tareaId,
   });
   if (error) throw error;
+  refrescarResumenHoy();
   const fila = data as FilaResultadoCompletarTarea;
   return { completada: fila.completada, gemasGanadas: Number(fila.gemas_ganadas), id: fila.id, racha: fila.racha === null ? null : Number(fila.racha) };
 }
@@ -228,6 +230,7 @@ export async function registrarProgresoTarea(input: { tareaId: string; fechaLoca
     p_fecha_local: input.fechaLocal, p_nota: input.nota ?? null, p_tarea_id: input.tareaId, p_valor: input.valor,
   });
   if (error) throw error;
+  refrescarResumenHoy();
   const fila = data as FilaResultadoRegistroTarea;
   return {
     fechaLocal: fila.fecha_local,
@@ -251,6 +254,7 @@ export async function registrarProgresoTarea(input: { tareaId: string; fechaLoca
 export async function registrarProgresoTareaUnica(tareaId: string, valor: number): Promise<ResultadoProgresoTareaUnica> {
   const { data, error } = await obtenerClienteSupabase().rpc('registrar_progreso_tarea_unica', { p_tarea_id: tareaId, p_valor: valor });
   if (error) throw error;
+  refrescarResumenHoy();
   const fila = data as { id: string; valor_actual: number; objetivo_valor: number; completada: boolean };
   return { completada: fila.completada, id: fila.id, objetivoValor: Number(fila.objetivo_valor), valorActual: Number(fila.valor_actual) };
 }

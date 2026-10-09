@@ -6,6 +6,7 @@ import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { ProveedoresApp } from '../src/nucleo/proveedor/ProveedoresApp';
+import { AvisosXp } from '../src/modulos/hoy/componentes/AvisosXp';
 import { AnimacionApertura } from '../src/nucleo/arranque/AnimacionApertura';
 import { inicializarPlataforma } from '../src/plataforma/inicializarPlataforma';
 
@@ -42,6 +43,8 @@ export default function LayoutRaiz() {
         <Stack.Screen name="horizon" />
         <Stack.Screen name="habitos/widgets" />
       </Stack>
+      {/* "+10 XP" y subida de nivel: encima de cualquier pantalla, sin interceptar toques. */}
+      <AvisosXp />
       {!animacionTerminada && <AnimacionApertura onTerminar={() => setAnimacionTerminada(true)} />}
     </ProveedoresApp>
   );

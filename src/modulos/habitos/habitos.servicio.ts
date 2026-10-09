@@ -14,6 +14,7 @@ import type { EdicionHabito } from './gestionDetalleHabito';
 import { DetalleHabito, HabitoResumen, MejorRachaHabito, PanelHabitos, PlanHabitoResumen, ProximoNivelHabito, ResultadoRegistroHabito, TipoMetaHabito } from './tipos';
 import { ESCALA_ESMERALDA } from '../../diseno/tema/escalaEsmeralda';
 import type { FranjaDia } from '../../compartido/utilidades/franjas';
+import { refrescarResumenHoy } from '../hoy/refrescarResumenHoy';
 import { asignarMeta } from '../metas/metas.servicio';
 
 export async function obtenerPanelHabitos(fecha?: string): Promise<PanelHabitos> {
@@ -93,6 +94,7 @@ export async function registrarProgresoHabito(input: { habitoId: string; fechaLo
   reportarRegistroANotificaciones(resultado);
   // Único punto por el que pasan todas las vías de registro; deshacer (valor 0) no cuenta.
   if (resultado.valor > 0) registrarEvento('habito_completado', { subio_nivel: resultado.subioNivel });
+  refrescarResumenHoy(); // el XP y la racha cambian con cada registro (también al deshacer)
   return resultado;
 }
 
