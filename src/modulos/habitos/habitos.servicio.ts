@@ -337,7 +337,7 @@ export async function obtenerDetallesHabitosHoy(referencia = new Date()): Promis
   const desdeRacha = fechaLocal(new Date(referencia.getTime() - VENTANA_RACHA_DIAS * 86400000));
 
   const [{ data: items, error: errorItems }, { data: planes, error: errorPlanes }, { data: registros, error: errorRegistros }] = await Promise.all([
-    supabase.from('habitos_items').select('id,tipo_meta').eq('estado', 'activo'),
+    supabase.from('habitos_items').select('id,tipo_meta,meta_id').eq('estado', 'activo'),
     supabase.from('habitos_planes').select('habito_id,nivel,frecuencia,dias_semana,objetivo_valor,desde_fecha,hasta_fecha,franja').order('desde_fecha', { ascending: false }),
     supabase.from('habitos_registros').select('habito_id,fecha_local,valor').gte('fecha_local', desdeRacha).lte('fecha_local', hoy),
   ]);
@@ -345,7 +345,7 @@ export async function obtenerDetallesHabitosHoy(referencia = new Date()): Promis
   if (errorPlanes) throw errorPlanes;
   if (errorRegistros) throw errorRegistros;
 
-  const todosItems = (items ?? []) as { id: string; tipo_meta: TipoMetaHabito }[];
+  const todosItems = (items ?? []) as { id: string; tipo_meta: TipoMetaHabito; meta_id: string | null }[];
   const todosPlanes = (planes ?? []) as (FilaPlan & { habito_id: string })[];
   const todosRegistros = (registros ?? []) as { habito_id: string; fecha_local: string; valor: number }[];
 
@@ -354,6 +354,7 @@ export async function obtenerDetallesHabitosHoy(referencia = new Date()): Promis
     const registrosItem = new Map(todosRegistros.filter((registro) => registro.habito_id === item.id).map((registro) => [registro.fecha_local, Number(registro.valor)]));
     return calcularDetalleHabitoHoy({
       habitoId: item.id,
+      metaId: item.meta_id,
       planes: planesItem,
       referencia,
       registrosPorFecha: registrosItem,

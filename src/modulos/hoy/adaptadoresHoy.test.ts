@@ -36,6 +36,7 @@ describe('adaptadoresHoy', () => {
         nivel: 1,
         racha: 2,
         franja: 'manana',
+        metaId: null,
       };
 
       const elemento = habitoAElemento(habitoBase, detalle);
@@ -47,6 +48,7 @@ describe('adaptadoresHoy', () => {
         iconoLucide: 'gota',
         color: '#00AAFF',
         franja: 'manana',
+        areaId: null,
         completado: false,
         detalle: '3/8 vasos',
       });
@@ -94,6 +96,7 @@ describe('adaptadoresHoy', () => {
         tipo: 'simple',
         frecuencia: 'una_vez',
         franja: 'tarde',
+        metaId: null,
         prioridad: null,
         columnaKanban: null,
         completada: false,
@@ -112,6 +115,7 @@ describe('adaptadoresHoy', () => {
         iconoLucide: 'bolsa',
         color: '#FFAA00',
         franja: 'tarde',
+        areaId: null,
         completado: false,
         detalle: null,
       });
@@ -127,6 +131,7 @@ describe('adaptadoresHoy', () => {
         tipo: 'checklist',
         frecuencia: 'dias_semana',
         franja: 'noche',
+        metaId: null,
         prioridad: null,
         columnaKanban: null,
         completada: true,
@@ -151,6 +156,7 @@ describe('adaptadoresHoy', () => {
         tipo: 'contador',
         frecuencia: 'dias_semana',
         franja: 'manana',
+        metaId: null,
         prioridad: null,
         columnaKanban: null,
         completada: false,
@@ -174,6 +180,7 @@ describe('adaptadoresHoy', () => {
         tipo: 'cronometro',
         frecuencia: 'dias_semana',
         franja: 'noche',
+        metaId: null,
         prioridad: null,
         columnaKanban: null,
         completada: true,
@@ -259,6 +266,7 @@ describe('adaptadoresHoy', () => {
         iconoLucide: 'sol',
         color: '#FF8800',
         franja: 'manana',
+        areaId: null,
         completado: false,
         detalle: '1 de 2 pasos',
       });
@@ -336,5 +344,22 @@ describe('resumirCategoriasHoy', () => {
   it('textoAvance devuelve "hechos/total" o vacío sin elementos', () => {
     expect(textoAvance({ hechos: 2, total: 3 })).toBe('2/3');
     expect(textoAvance({ hechos: 0, total: 0 })).toBe('');
+  });
+});
+
+describe('área de los elementos de Hoy', () => {
+  const areas = new Map<string, string | null>([['m-cuerpo', 'a-cuerpo'], ['m-sin-area', null]]);
+  const habito = { id: 'h', titulo: 'Correr', descripcion: null, iconoLucide: 'x', color: '#000000', tipoMeta: 'check' as const, unidad: null, meta: 1, valorHoy: 0, completado: false };
+  const detalle = { habitoId: 'h', diasCompletadosSemana: [], diasProgramados: [], esProgramadoHoy: true, programadoHoy: true, nivel: 1, racha: 0, franja: 'manana' as const, metaId: 'm-cuerpo' };
+
+  it('el área de un hábito es la de su meta', () => {
+    expect(habitoAElemento(habito, detalle, areas).areaId).toBe('a-cuerpo');
+  });
+
+  it('sin meta, con meta sin área o sin el mapa cargado, no tiene área', () => {
+    expect(habitoAElemento(habito, { ...detalle, metaId: null }, areas).areaId).toBeNull();
+    expect(habitoAElemento(habito, { ...detalle, metaId: 'm-sin-area' }, areas).areaId).toBeNull();
+    expect(habitoAElemento(habito, detalle).areaId).toBeNull();
+    expect(habitoAElemento(habito, undefined, areas).areaId).toBeNull();
   });
 });

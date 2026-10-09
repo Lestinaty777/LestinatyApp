@@ -193,6 +193,7 @@ describe('semanaProgramada', () => {
         programadoHoy: true,
         racha: 3,
         franja: 'cualquier_momento',
+        metaId: null,
       });
     });
 

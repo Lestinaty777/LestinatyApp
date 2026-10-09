@@ -49,6 +49,7 @@ type FilaTarea = {
   objetivo_valor: number;
   unidad: string | null;
   franja: FranjaDia;
+  meta_id: string | null;
 };
 
 function normalizar(fila: FilaTarea): Tarea {
@@ -77,10 +78,11 @@ function normalizar(fila: FilaTarea): Tarea {
     objetivoValor: Number(fila.objetivo_valor),
     unidad: fila.unidad,
     franja: fila.franja,
+    metaId: fila.meta_id,
   };
 }
 
-const COLUMNAS = 'id, titulo, descripcion, estado, tipo, prioridad, columna_kanban, fecha_vencimiento, frecuencia, dias_semana, recordatorio_activo, hora_recordatorio, mostrar_nombre_notificacion, paquete_id, color, icono_lucide, orden, created_at, completada_en, nivel, nivel_desde_fecha, objetivo_valor, unidad, franja';
+const COLUMNAS = 'id, titulo, descripcion, estado, tipo, prioridad, columna_kanban, fecha_vencimiento, frecuencia, dias_semana, recordatorio_activo, hora_recordatorio, mostrar_nombre_notificacion, paquete_id, color, icono_lucide, orden, created_at, completada_en, nivel, nivel_desde_fecha, objetivo_valor, unidad, franja, meta_id';
 
 async function usuarioActualId(): Promise<string> {
   const { data, error } = await obtenerClienteSupabase().auth.getUser();
@@ -329,13 +331,13 @@ export async function obtenerTareasHoy(referencia = new Date()): Promise<TareaHo
   const desdeRacha = fechaLocalDe(new Date(referencia.getTime() - VENTANA_RACHA_DIAS * 86400000));
 
   const [{ data: items, error: errorItems }, { data: registros, error: errorRegistros }] = await Promise.all([
-    supabase.from('tareas_items').select('id,titulo,descripcion,icono_lucide,color,tipo,frecuencia,dias_semana,fecha_vencimiento,prioridad,columna_kanban,objetivo_valor,unidad,estado,valor_actual,franja').neq('estado', 'archivada').order('orden', { ascending: true }),
+    supabase.from('tareas_items').select('id,titulo,descripcion,icono_lucide,color,tipo,frecuencia,dias_semana,fecha_vencimiento,prioridad,columna_kanban,objetivo_valor,unidad,estado,valor_actual,franja,meta_id').neq('estado', 'archivada').order('orden', { ascending: true }),
     supabase.from('tareas_registros').select('tarea_id,fecha_local,valor').gte('fecha_local', desdeRacha).lte('fecha_local', hoy),
   ]);
   if (errorItems) throw errorItems;
   if (errorRegistros) throw errorRegistros;
 
-  type FilaItemHoy = { id: string; titulo: string; descripcion: string | null; icono_lucide: string | null; color: string | null; tipo: TipoTarea; frecuencia: FrecuenciaTarea; dias_semana: number[] | null; fecha_vencimiento: string | null; prioridad: Tarea['prioridad']; columna_kanban: string | null; objetivo_valor: number; unidad: string | null; estado: EstadoTarea; valor_actual: number; franja: FranjaDia };
+  type FilaItemHoy = { id: string; titulo: string; descripcion: string | null; icono_lucide: string | null; color: string | null; tipo: TipoTarea; frecuencia: FrecuenciaTarea; dias_semana: number[] | null; fecha_vencimiento: string | null; prioridad: Tarea['prioridad']; columna_kanban: string | null; objetivo_valor: number; unidad: string | null; estado: EstadoTarea; valor_actual: number; franja: FranjaDia; meta_id: string | null };
   const todosItems = (items ?? []) as FilaItemHoy[];
   const todosRegistros = (registros ?? []) as { tarea_id: string; fecha_local: string; valor: number | null }[];
 
@@ -362,6 +364,7 @@ export async function obtenerTareasHoy(referencia = new Date()): Promise<TareaHo
         descripcion: item.descripcion,
         frecuencia: item.frecuencia,
         franja: item.franja,
+        metaId: item.meta_id,
         iconoLucide: item.icono_lucide,
         id: item.id,
         objetivoValor: item.objetivo_valor,

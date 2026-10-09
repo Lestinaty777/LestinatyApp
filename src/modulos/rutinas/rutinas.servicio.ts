@@ -94,3 +94,15 @@ export async function obtenerSesionesCompletasRutinas(referencia = new Date()): 
   if (error) throw error;
   return ((data ?? []) as { rutina_id: string; fecha_local: string }[]).map((fila) => ({ rutinaId: fila.rutina_id, fechaLocal: fila.fecha_local }));
 }
+
+export const CLAVE_METAS_DE_RUTINAS = ['rutinas', 'metas'] as const;
+
+/**
+ * Meta de cada rutina (id de rutina → id de meta o null). obtener_rutinas_hoy
+ * no la incluye, y es más simple leerla aparte que cambiar ese RPC.
+ */
+export async function obtenerMetasDeRutinas(): Promise<Map<string, string | null>> {
+  const { data, error } = await obtenerClienteSupabase().from('rutinas_items').select('id, meta_id');
+  if (error) throw error;
+  return new Map(((data ?? []) as { id: string; meta_id: string | null }[]).map((fila) => [fila.id, fila.meta_id] as const));
+}

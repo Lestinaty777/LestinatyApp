@@ -1,7 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
 
 import { obtenerDetallesHabitosHoy, obtenerPanelHabitos } from '../habitos/habitos.servicio';
-import { CLAVE_RUTINAS, obtenerRutinasHoy } from '../rutinas/rutinas.servicio';
+import { CLAVE_METAS, obtenerMetas } from '../metas/metas.servicio';
+import { CLAVE_METAS_DE_RUTINAS, CLAVE_RUTINAS, obtenerMetasDeRutinas, obtenerRutinasHoy } from '../rutinas/rutinas.servicio';
 import { CLAVE_TAREAS_HOY, obtenerTareasHoy } from '../tareas/tareas.servicio';
 
 // Las cuatro lecturas de Hoy, con las mismas claves de caché que usan las
@@ -14,6 +15,10 @@ export function useDatosHoy() {
   const tareasHoy = useQuery({ queryKey: CLAVE_TAREAS_HOY, queryFn: () => obtenerTareasHoy() });
   const rutinas = useQuery({ queryKey: CLAVE_RUTINAS, queryFn: obtenerRutinasHoy });
   const consultas = [panelHabitos, detallesHabitos, tareasHoy, rutinas];
+  // Metas y áreas solo sirven para filtrar por área: si cargan tarde o fallan,
+  // Hoy se muestra igual (todo queda "sin área"), así que no entran en cargando/error.
+  const metas = useQuery({ queryKey: CLAVE_METAS, queryFn: obtenerMetas });
+  const metasDeRutinas = useQuery({ queryKey: CLAVE_METAS_DE_RUTINAS, queryFn: obtenerMetasDeRutinas });
 
   return {
     cargando: consultas.some((consulta) => consulta.isLoading),
@@ -23,5 +28,7 @@ export function useDatosHoy() {
     detallesHabitos: detallesHabitos.data,
     tareas: tareasHoy.data,
     rutinas: rutinas.data,
+    metas: metas.data,
+    metasDeRutinas: metasDeRutinas.data,
   };
 }

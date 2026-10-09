@@ -3,7 +3,11 @@ import type { HabitoResumen } from '../habitos/tipos';
 import type { Rutina } from '../rutinas/rutinas.tipos';
 import { resumirRutina } from '../rutinas/estadoRutina';
 import type { TareaHoyDetalle } from '../tareas/tareas.tipos';
+import { areaDeElemento } from '../metas/metas.mapper';
 import type { ElementoHoy } from './planDelDia';
+
+/** Mapa meta → área vacío: mientras las metas cargan (o si fallan), nada tiene área. */
+const SIN_AREAS: ReadonlyMap<string, string | null> = new Map();
 
 /**
  * Convierte un hábito activo con su detalle de hoy a ElementoHoy.
@@ -11,6 +15,7 @@ import type { ElementoHoy } from './planDelDia';
 export function habitoAElemento(
   habito: HabitoResumen,
   detalle: HabitoHoyDetalle | undefined,
+  areas: ReadonlyMap<string, string | null> = SIN_AREAS,
 ): ElementoHoy {
   const franja = detalle?.franja ?? 'cualquier_momento';
   const completado = habito.completado;
@@ -26,6 +31,7 @@ export function habitoAElemento(
     iconoLucide: habito.iconoLucide,
     color: habito.color,
     franja,
+    areaId: areaDeElemento(detalle?.metaId, areas),
     completado,
     detalle: detalleTexto,
   };
@@ -34,7 +40,7 @@ export function habitoAElemento(
 /**
  * Convierte una tarea de hoy a ElementoHoy.
  */
-export function tareaAElemento(tarea: TareaHoyDetalle): ElementoHoy {
+export function tareaAElemento(tarea: TareaHoyDetalle, areas: ReadonlyMap<string, string | null> = SIN_AREAS): ElementoHoy {
   const completado = tarea.completada;
   const detalleTexto =
     tarea.tipo === 'simple' || tarea.tipo === 'checklist'
@@ -48,6 +54,7 @@ export function tareaAElemento(tarea: TareaHoyDetalle): ElementoHoy {
     iconoLucide: tarea.iconoLucide,
     color: tarea.color,
     franja: tarea.franja,
+    areaId: areaDeElemento(tarea.metaId, areas),
     completado,
     detalle: detalleTexto,
   };
@@ -60,6 +67,9 @@ export function tareaAElemento(tarea: TareaHoyDetalle): ElementoHoy {
 export function rutinaAElemento(
   rutina: Rutina,
   formatoPasos: (completos: number, total: number) => string,
+  /** Meta de esta rutina (obtener_rutinas_hoy no la trae) y el mapa meta → área. */
+  metaId: string | null = null,
+  areas: ReadonlyMap<string, string | null> = SIN_AREAS,
 ): ElementoHoy {
   const resumen = resumirRutina(rutina);
   const detalleTexto = formatoPasos(resumen.completos, resumen.aplican);
@@ -71,6 +81,7 @@ export function rutinaAElemento(
     iconoLucide: rutina.iconoLucide,
     color: rutina.color,
     franja: rutina.franja,
+    areaId: areaDeElemento(metaId, areas),
     completado: resumen.completa,
     detalle: detalleTexto,
   };

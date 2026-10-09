@@ -25,6 +25,8 @@ export type HabitoHoyDetalle = {
   programadoHoy: boolean;
   racha: number;
   franja: FranjaDia;
+  /** Meta a la que pertenece el hábito (como mucho una); null = sin meta. */
+  metaId: string | null;
 };
 
 export type ResultadoSemanaHabito = {
@@ -161,12 +163,14 @@ export function calcularSemanaHabito(
 
 export function calcularDetalleHabitoHoy({
   habitoId,
+  metaId,
   tipoMeta,
   planes,
   registrosPorFecha,
   referencia = new Date(),
 }: {
   habitoId: string;
+  metaId?: string | null;
   tipoMeta: TipoMetaHabito;
   planes: FilaPlanSemana[];
   registrosPorFecha: Map<string, number>;
@@ -198,5 +202,6 @@ export function calcularDetalleHabitoHoy({
     programadoHoy: semana.programadoHoy,
     racha,
     franja: planHoy?.franja ?? 'cualquier_momento',
+    metaId: metaId ?? null,
   };
 }

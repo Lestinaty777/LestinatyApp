@@ -25,6 +25,8 @@ export type Tarea = {
   tipo: TipoTarea;
   prioridad: PrioridadTarea | null;
   franja: FranjaDia;
+  /** Meta a la que pertenece (como mucho una); null = sin meta. Se cambia con asignarMeta('tarea', …). */
+  metaId: string | null;
   /** Columna del tablero Kanban — vista sobre "Mis tareas", no un tipo de tarea (ver plan). */
   columnaKanban: string | null;
   fechaVencimiento: string | null;
@@ -93,6 +95,7 @@ export type TareaHoyDetalle = {
   tipo: TipoTarea;
   frecuencia: FrecuenciaTarea;
   franja: FranjaDia;
+  metaId: string | null;
   prioridad: PrioridadTarea | null;
   columnaKanban: string | null;
   completada: boolean;

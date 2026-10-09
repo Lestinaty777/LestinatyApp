@@ -27,7 +27,10 @@ import { INTERCAMBIAR_BANDERA_Y_ARBUSTO } from '../../habitos/pruebaIntercambio'
 import { useSaldoGemas } from '../../tienda/useSaldoGemas';
 import { buscarIconoHabito } from '../../habitos/iconosHabitos';
 import { usePerfilBasico } from '../../configuracion/usePerfilBasico';
-import { construirPlanDelDia, idsDeRutinasDeHoy, type ElementoHoy } from '../planDelDia';
+import { construirPlanDelDia, idsDeRutinasDeHoy, SIN_AREA, type ElementoHoy } from '../planDelDia';
+import { nombreArea } from '../../areas/areas.mapper';
+import type { AreaVidaResumen } from '../../areas/areas.tipos';
+import { areaPorMeta } from '../../metas/metas.mapper';
 import { habitoAElemento, resumirCategoriasHoy, rutinaAElemento, tareaAElemento, textoAvance } from '../adaptadoresHoy';
 import { nivelDesdeXp } from '../nivelUsuario';
 import { detectarPrimeraVictoria, tipoDePrimeraVictoria } from '../primeraVictoria';
@@ -360,20 +363,30 @@ function TimelineHoy() {
   // Se abre en la franja del momento; no se guarda la última elección.
   const [filtro, setFiltro] = useState<FiltroFranja>(() => franjaActual(new Date(), limitesFranja));
   const [expandidas, setExpandidas] = useState<ReadonlySet<FranjaDia>>(() => new Set());
+  // Área elegida: no se guarda entre aperturas. null = todas.
+  const [areaElegida, setAreaElegida] = useState<string | typeof SIN_AREA | null>(null);
+
+  // meta → área, y los datos de cada área (salen de las propias metas: no hace falta otra consulta).
+  const areasDeMetas = useMemo(() => areaPorMeta(datos.metas ?? []), [datos.metas]);
+  const areasPorId = useMemo(() => {
+    const mapa = new Map<string, AreaVidaResumen>();
+    for (const meta of datos.metas ?? []) if (meta.area) mapa.set(meta.area.id, meta.area);
+    return mapa;
+  }, [datos.metas]);
 
   // 2. Mapear elementos y plan del día
   const plan = useMemo(() => {
     const habitosRaw = datos.habitos ?? [];
     const detallesHabitosMap = new Map((datos.detallesHabitos ?? []).map((d) => [d.habitoId, d]));
-    const habitosElementos: ElementoHoy[] = habitosRaw.map((h) => habitoAElemento(h, detallesHabitosMap.get(h.id)));
+    const habitosElementos: ElementoHoy[] = habitosRaw.map((h) => habitoAElemento(h, detallesHabitosMap.get(h.id), areasDeMetas));
 
     const tareasRaw = datos.tareas ?? [];
-    const tareasElementos: ElementoHoy[] = tareasRaw.map(tareaAElemento);
+    const tareasElementos: ElementoHoy[] = tareasRaw.map((tarea) => tareaAElemento(tarea, areasDeMetas));
 
     const rutinasRaw = datos.rutinas ?? [];
     const rutinasActivasHoy = rutinasRaw.filter((r) => r.tocaHoy && r.estado === 'activa');
     const formatoPasos = (completos: number, total: number) => t('hoy.pasos', { completos, total });
-    const rutinasElementos: ElementoHoy[] = rutinasActivasHoy.map((r) => rutinaAElemento(r, formatoPasos));
+    const rutinasElementos: ElementoHoy[] = rutinasActivasHoy.map((r) => rutinaAElemento(r, formatoPasos, datos.metasDeRutinas?.get(r.id) ?? null, areasDeMetas));
 
     const idsEnRutinas = idsDeRutinasDeHoy(rutinasRaw);
 
@@ -383,9 +396,23 @@ function TimelineHoy() {
       rutinas: rutinasElementos,
       idsEnRutinas,
       filtro,
+      areaId: areaElegida,
       expandidas,
     });
-  }, [datos.habitos, datos.detallesHabitos, datos.tareas, datos.rutinas, filtro, expandidas, t]);
+  }, [datos.habitos, datos.detallesHabitos, datos.tareas, datos.rutinas, datos.metasDeRutinas, areasDeMetas, areaElegida, filtro, expandidas, t]);
+
+  // Chips de área: "Todas", las áreas con algo hoy y "Sin área" si hay elementos sin área.
+  // Si nada tiene área todavía, la fila no aporta y no se muestra.
+  const chipsArea = useMemo(() => {
+    const conArea = plan.areasPresentes.flatMap((id) => (id && areasPorId.has(id) ? [areasPorId.get(id)!] : []));
+    if (conArea.length === 0) return [];
+    const chips: { clave: string | typeof SIN_AREA | null; color: string | null; etiqueta: string; codigo: string }[] = [
+      { clave: null, color: null, etiqueta: t('areas.todas'), codigo: 'todas' },
+      ...conArea.map((area) => ({ clave: area.id, color: area.color, etiqueta: nombreArea(area, t), codigo: area.codigo ?? 'propia' })),
+    ];
+    if (plan.areasPresentes.includes(null)) chips.push({ clave: SIN_AREA, color: null, etiqueta: t('areas.sinArea'), codigo: SIN_AREA });
+    return chips;
+  }, [plan.areasPresentes, areasPorId, t]);
 
   const etiquetasFiltro = useMemo<Record<FiltroFranja, string>>(() => ({
     manana: t('franjas.manana'),
@@ -430,6 +457,27 @@ function TimelineHoy() {
         </View>
       </View>
 
+      {chipsArea.length > 0 && (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0, marginBottom: 10 }} contentContainerStyle={{ gap: 6 }}>
+          {chipsArea.map((chip) => {
+            const activo = chip.clave === areaElegida;
+            return (
+              <Pressable
+                accessibilityLabel={t('areas.filtrar', { area: chip.etiqueta })}
+                accessibilityRole="button"
+                accessibilityState={{ selected: activo }}
+                key={String(chip.clave)}
+                onPress={() => { hapticSeguro('seleccion'); setAreaElegida(chip.clave); registrarEvento('hoy_filtro_area', { area_codigo: chip.codigo }); }}
+                style={[s.chipArea, activo && s.chipAreaActivo]}
+              >
+                {chip.color ? <View style={[s.chipAreaPunto, { backgroundColor: chip.color }]} /> : null}
+                <Texto style={[s.chipAreaTexto, activo && s.chipAreaTextoActivo]}>{chip.etiqueta}</Texto>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+      )}
+
       {/* Selector de franja */}
       <View style={{ marginBottom: 12 }}>
         <SelectorFranja
@@ -455,6 +503,13 @@ function TimelineHoy() {
           </Texto>
           <Pressable accessibilityRole="button" onPress={datos.reintentar} style={{ backgroundColor: C.moradoSuave, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 8 }}>
             <Texto style={{ color: C.morado, fontFamily: 'Montserrat-Bold', fontSize: 12 }}>{t('hoy.reintentar')}</Texto>
+          </Pressable>
+        </View>
+      ) : plan.total === 0 && areaElegida !== null ? (
+        <View style={{ alignItems: 'center', gap: 8, paddingVertical: 20 }}>
+          <Texto style={{ color: C.textoSecundario, fontFamily: 'Montserrat-Medium', fontSize: 13 }}>{t('franjas.vacia')}</Texto>
+          <Pressable accessibilityRole="button" onPress={() => setAreaElegida(null)} style={{ backgroundColor: C.moradoSuave, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 6 }}>
+            <Texto style={{ color: C.morado, fontFamily: 'Montserrat-Bold', fontSize: 12 }}>{t('areas.todas')}</Texto>
           </Pressable>
         </View>
       ) : plan.total === 0 ? (
@@ -611,6 +666,11 @@ const RADIO = 20;
 const PH = 20; // padding horizontal global
 
 const s = StyleSheet.create({
+  chipArea: { alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.72)', borderColor: 'rgba(255,255,255,0.85)', borderRadius: 16, borderWidth: 1.5, flexDirection: 'row', gap: 6, minHeight: 32, paddingHorizontal: 11, paddingVertical: 5 },
+  chipAreaActivo: { backgroundColor: '#1A1335', borderColor: '#1A1335' },
+  chipAreaPunto: { borderRadius: 5, height: 10, width: 10 },
+  chipAreaTexto: { color: '#4B4660', fontFamily: 'Montserrat-Bold', fontSize: 12 },
+  chipAreaTextoActivo: { color: '#FFFFFF' },
   primeraVictoria: { alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.86)', borderColor: '#EDE5FB', borderRadius: 16, borderWidth: 1, flexDirection: 'row', gap: 10, marginBottom: 14, marginHorizontal: 20, paddingHorizontal: 14, paddingVertical: 12 },
   primeraVictoriaTexto: { color: '#1A1335', flex: 1, fontFamily: 'Montserrat-Bold', fontSize: 13, lineHeight: 18 },
   invitacion: { alignItems: 'stretch', gap: 10, paddingVertical: 14 },

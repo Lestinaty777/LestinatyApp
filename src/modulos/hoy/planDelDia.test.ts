@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   construirPlanDelDia,
   idsDeRutinasDeHoy,
+  SIN_AREA,
   TOPE_PENDIENTES_POR_FRANJA,
   type ElementoHoy,
 } from './planDelDia';
@@ -13,6 +14,7 @@ describe('planDelDia', () => {
     id: string,
     franja: 'manana' | 'tarde' | 'noche' | 'cualquier_momento',
     completado = false,
+    areaId: string | null = null,
   ): ElementoHoy => ({
     tipo,
     id,
@@ -20,6 +22,7 @@ describe('planDelDia', () => {
     iconoLucide: null,
     color: null,
     franja,
+    areaId,
     completado,
     detalle: null,
   });
@@ -405,6 +408,43 @@ describe('planDelDia', () => {
       // h-1 (completado), h-2 (pendiente), t-1 (pendiente), r-1 (completado) => total 4, completados 2
       expect(plan.total).toBe(4);
       expect(plan.completados).toBe(2);
+    });
+  });
+  describe('filtro por área', () => {
+    const sinRutinas = { habitos: new Set<string>(), tareas: new Set<string>() };
+    const entrada = () => ({
+      habitos: [crearElemento('habito', 'h1', 'manana', false, 'a-cuerpo'), crearElemento('habito', 'h2', 'tarde', false, null)],
+      tareas: [crearElemento('tarea', 't1', 'manana', true, 'a-estudios')],
+      rutinas: [crearElemento('rutina', 'r1', 'noche', false, 'a-cuerpo')],
+      idsEnRutinas: sinRutinas,
+      filtro: 'todo' as const,
+      expandidas: new Set<never>(),
+    });
+    const ids = (plan: ReturnType<typeof construirPlanDelDia>) =>
+      plan.secciones.flatMap((seccion) => [...seccion.pendientes, ...seccion.completados]).map((e) => e.id).sort();
+
+    it('sin área (null o ausente) no filtra', () => {
+      expect(ids(construirPlanDelDia(entrada()))).toEqual(['h1', 'h2', 'r1', 't1']);
+      expect(ids(construirPlanDelDia({ ...entrada(), areaId: null }))).toEqual(['h1', 'h2', 'r1', 't1']);
+    });
+
+    it('con un área muestra solo lo de esa área, y los conteos y totales la reflejan', () => {
+      const plan = construirPlanDelDia({ ...entrada(), areaId: 'a-cuerpo' });
+      expect(ids(plan)).toEqual(['h1', 'r1']);
+      expect(plan.conteos).toEqual({ manana: 1, tarde: 0, noche: 1, todo: 2 });
+      expect(plan.total).toBe(2);
+      expect(plan.completados).toBe(0);
+    });
+
+    it("'sin_area' muestra solo lo que no tiene área", () => {
+      expect(ids(construirPlanDelDia({ ...entrada(), areaId: SIN_AREA }))).toEqual(['h2']);
+    });
+
+    it('areasPresentes lista las áreas del día sin importar el filtro, y sin contar lo que ya vive dentro de una rutina', () => {
+      const plan = construirPlanDelDia({ ...entrada(), areaId: 'a-cuerpo' });
+      expect([...plan.areasPresentes].sort()).toEqual(['a-cuerpo', 'a-estudios', null].sort());
+      const dentroDeRutina = construirPlanDelDia({ ...entrada(), idsEnRutinas: { habitos: new Set<string>(), tareas: new Set(['t1']) } });
+      expect(dentroDeRutina.areasPresentes).not.toContain('a-estudios');
     });
   });
 });
