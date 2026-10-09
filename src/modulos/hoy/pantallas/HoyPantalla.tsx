@@ -230,7 +230,7 @@ function GridCategorias() {
             onPress={() => { if (CATEGORIAS_CON_PANTALLA.has(cat.id)) router.navigate(`/${cat.id}` as any); }}
           >
             <MasterGlass colorBase={cat.color} style={s.categoriaGlass}>
-              <MasterIcon name={cat.icono} size={32} />
+              <View style={s.categoriaIcono}><MasterIcon name={cat.icono} size={42} /></View>
               <View style={s.categoriaTexto}>
                 <Texto adjustsFontSizeToFit minimumFontScale={0.8} numberOfLines={1} style={s.categoriaLabel}>{cat.label}</Texto>
                 <Texto numberOfLines={2} style={s.categoriaSubtitulo}>{cat.subtitulo}</Texto>
@@ -859,10 +859,14 @@ const s = StyleSheet.create({
   // Mismas medidas, espacios y tipografías que los accesos de HabitosPantalla
   // (accesosFila, accesoTarjeta, accesoGlass, accesoTexto, accesoEtiqueta,
   // accesoDescripcion). Lo único distinto es el color de cada tarjeta
-  // (colorBase). Si cambian allá, cambiar aquí igual.
+  // (colorBase) y el tamaño del ícono. Si cambian allá, cambiar aquí igual.
   categoriasRow: { flexDirection: 'row', gap: 6, marginBottom: 16, paddingHorizontal: PH },
   categoriaCard: { flex: 1 },
   categoriaGlass: { alignItems: 'center', borderRadius: 14, justifyContent: 'flex-start', minHeight: 100, padding: 8 },
+  // El ícono mide 42 (un 30 % más que el de Hábitos) pero ocupa el mismo hueco
+  // de 32: los 10 px extra sobresalen hacia el relleno de la tarjeta (7 arriba,
+  // 3 abajo), así la tarjeta y el texto no se mueven de sitio.
+  categoriaIcono: { alignItems: 'center', height: 32, justifyContent: 'center', overflow: 'visible', transform: [{ translateY: -2 }] },
   categoriaTexto: { alignItems: 'center', marginTop: 5, minHeight: 31, width: '100%' },
   categoriaLabel: { color: C.texto, fontFamily: 'MontserratAlternates-Bold', fontSize: 12, lineHeight: 15, textAlign: 'center' },
   categoriaSubtitulo: { color: C.textoSecundario, fontFamily: 'Montserrat-Medium', fontSize: 11, lineHeight: 14, marginTop: 1, textAlign: 'center' },
