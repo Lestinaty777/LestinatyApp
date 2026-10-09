@@ -160,6 +160,17 @@ export const recursosI18n = {
         primeraVictoria: 'First step done! Your streak starts here.',
         categorias: { estudio: 'Study', tareas: 'Tasks', rutinas: 'Routines', habitos: 'Habits', miEspacio: 'My space', mas: 'More' },
       },
+      areas: {
+        sistema: { cuerpo: 'Body', mente: 'Mind', espiritual: 'Spiritual', estudios: 'Studies', trabajo: 'Work', negocios_proyectos: 'Business & projects', finanzas: 'Finances' },
+        sinArea: 'No area', todas: 'All', filtrar: 'Filter by area: {{area}}',
+        error: { duplicada: 'You already have an area with that name.' },
+      },
+      metas: {
+        sinMeta: 'No goal', etiqueta: 'Goal', elegir: 'Which goal is it for?',
+        selector: { vacio: 'You have no goals yet. You can create one from Goals.', cargando: 'Loading your goals…', error: 'Could not load your goals.' },
+        plazo: 'Day {{dia}} of {{total}}',
+        error: { asignar: 'It was created, but could not be linked to the goal.' },
+      },
       franjas: {
         manana: 'Morning',
         tarde: 'Afternoon',
@@ -1386,6 +1397,17 @@ export const recursosI18n = {
         vacio: { titulo: 'Tu primer paso', texto: 'Empieza con algo pequeño que puedas hacer hoy.', crearHabito: 'Crear mi primer hábito', rutinaLista: 'Usar una rutina lista' },
         primeraVictoria: '¡Primer paso dado! Así empieza tu racha.',
         categorias: { estudio: 'Estudio', tareas: 'Tareas', rutinas: 'Rutinas', habitos: 'Hábitos', miEspacio: 'Mi espacio', mas: 'Más' },
+      },
+      areas: {
+        sistema: { cuerpo: 'Cuerpo', mente: 'Mente', espiritual: 'Espiritual', estudios: 'Estudios', trabajo: 'Trabajo', negocios_proyectos: 'Negocios y proyectos', finanzas: 'Finanzas' },
+        sinArea: 'Sin área', todas: 'Todas', filtrar: 'Filtrar por área: {{area}}',
+        error: { duplicada: 'Ya tienes un área con ese nombre.' },
+      },
+      metas: {
+        sinMeta: 'Sin meta', etiqueta: 'Meta', elegir: '¿Para qué meta es?',
+        selector: { vacio: 'Aún no tienes metas. Puedes crear una desde Metas.', cargando: 'Cargando tus metas…', error: 'No pudimos cargar tus metas.' },
+        plazo: 'Día {{dia}} de {{total}}',
+        error: { asignar: 'Se creó, pero no se pudo enlazar con la meta.' },
       },
       franjas: {
         manana: 'Mañana',
