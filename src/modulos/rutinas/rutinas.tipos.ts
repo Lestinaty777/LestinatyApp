@@ -78,6 +78,8 @@ export type CrearRutinaInput = {
   horaInicio?: string | null;
   recordatorioActivo?: boolean;
   mostrarNombreNotificacion?: boolean;
+  /** Meta a la que pertenece (opcional). No viaja en p_datos: se enlaza aparte con asignar_meta. */
+  metaId?: string | null;
   pasos: PasoNuevoRutina[];
 };
 

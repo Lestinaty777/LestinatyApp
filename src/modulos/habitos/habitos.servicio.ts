@@ -14,6 +14,7 @@ import type { EdicionHabito } from './gestionDetalleHabito';
 import { DetalleHabito, HabitoResumen, MejorRachaHabito, PanelHabitos, PlanHabitoResumen, ProximoNivelHabito, ResultadoRegistroHabito, TipoMetaHabito } from './tipos';
 import { ESCALA_ESMERALDA } from '../../diseno/tema/escalaEsmeralda';
 import type { FranjaDia } from '../../compartido/utilidades/franjas';
+import { asignarMeta } from '../metas/metas.servicio';
 
 export async function obtenerPanelHabitos(fecha?: string): Promise<PanelHabitos> {
   const { data, error } = await obtenerClienteSupabase().rpc('obtener_panel_habitos', { p_fecha_referencia: fecha ?? null });
@@ -95,7 +96,7 @@ export async function registrarProgresoHabito(input: { habitoId: string; fechaLo
   return resultado;
 }
 
-export type CrearHabitoInput = { titulo: string; descripcion?: string; meta: number; unidad: string; tipoMeta?: TipoMetaHabito; iconoLucide?: string; color?: string; frecuencia?: 'diaria' | 'dias_semana' | 'veces_semana'; diasSemana?: number[] | null; vecesPorSemana?: number | null; categoria?: string; dificultad?: 'minimo' | 'estandar' | 'reto'; disparador?: string; recompensa?: string; recordatorioActivo?: boolean; horaRecordatorio?: string | null; mostrarNombreNotificacion?: boolean; nivelInicial?: number; paqueteId?: string; franja?: FranjaDia };
+export type CrearHabitoInput = { titulo: string; descripcion?: string; meta: number; unidad: string; tipoMeta?: TipoMetaHabito; iconoLucide?: string; color?: string; frecuencia?: 'diaria' | 'dias_semana' | 'veces_semana'; diasSemana?: number[] | null; vecesPorSemana?: number | null; categoria?: string; dificultad?: 'minimo' | 'estandar' | 'reto'; disparador?: string; recompensa?: string; recordatorioActivo?: boolean; horaRecordatorio?: string | null; mostrarNombreNotificacion?: boolean; nivelInicial?: number; paqueteId?: string; franja?: FranjaDia; metaId?: string | null };
 
 export async function crearHabito(input: CrearHabitoInput): Promise<{ id: string; plan_id: string }> {
   const { data, error } = await obtenerClienteSupabase().rpc('crear_habito_premium', {
@@ -111,6 +112,8 @@ export async function crearHabito(input: CrearHabitoInput): Promise<{ id: string
       /* la franja es solo presentación: el hábito ya existe */
     }
   }
+  // Igual que la franja: si el hábito ya existe, no poder enlazarlo con su meta no es un fallo de creación.
+  if (input.metaId) await asignarMeta('habito', res.id, input.metaId).catch(() => undefined);
   // habitos_activos deja de ser 0: sale del journey de bienvenida al momento.
   programarSincronizacionEtiquetas();
   return res;

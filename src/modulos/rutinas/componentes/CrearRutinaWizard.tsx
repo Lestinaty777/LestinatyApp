@@ -11,6 +11,7 @@ import { buscarIconoHabito } from '../../habitos/iconosHabitos';
 import type { HabitoResumen } from '../../habitos/tipos';
 import type { Tarea } from '../../tareas/tareas.tipos';
 import { usePerfilBasico } from '../../configuracion/usePerfilBasico';
+import { SelectorMeta } from '../../metas/componentes/SelectorMeta';
 import { leerObjetivo } from '../formatoRutina';
 import type { PlantillaRutina } from '../plantillasRutinas';
 import { MAX_PASOS_RUTINA, type CrearRutinaInput, type FrecuenciaRutina, type ModoPasoPropio, type PasoNuevoRutina, type PasoRutina, type Rutina } from '../rutinas.tipos';
@@ -84,6 +85,7 @@ export function CrearRutinaWizard({ color, guardando, habitos, onCerrar, onCrear
   const [hora, setHora] = useState('08:00');
   const [mostrarNombre, setMostrarNombre] = useState(true);
   const [error, setError] = useState(false);
+  const [metaId, setMetaId] = useState<string | null>(null);
 
   // Cada vez que se abre, arranca limpio, desde la plantilla elegida o desde la rutina que se edita.
   useEffect(() => {
@@ -91,6 +93,7 @@ export function CrearRutinaWizard({ color, guardando, habitos, onCerrar, onCrear
     setEtapaIndice(0);
     setError(false);
     setAgregando(null);
+    setMetaId(null);
     if (rutinaInicial) {
       setFrecuencia(rutinaInicial.frecuencia);
       setDias(rutinaInicial.diasSemana?.length ? rutinaInicial.diasSemana : [1, 2, 3, 4, 5]);
@@ -163,6 +166,8 @@ export function CrearRutinaWizard({ color, guardando, habitos, onCerrar, onCrear
     try {
       await onCrear({
         titulo: titulo.trim(), franja, iconoLucide: iconoId, color,
+        // Al editar no se toca la meta desde aquí (se cambia desde Metas).
+        ...(rutinaInicial ? {} : { metaId }),
         frecuencia, diasSemana: frecuencia === 'dias_semana' ? [...dias].sort((a, b) => a - b) : null,
         horaInicio: recordatorio ? hora : null, recordatorioActivo: recordatorio, mostrarNombreNotificacion: mostrarNombre,
         pasos: pasos.map(aPasoNuevo),
@@ -200,6 +205,7 @@ export function CrearRutinaWizard({ color, guardando, habitos, onCerrar, onCrear
                   <View style={estilos.chips}>
                     {FRANJAS_ELEGIBLES.map((opcion) => <MasterChip activo={franja === opcion} key={opcion} onPress={() => setFranja(opcion)} texto={t(`rutinas.franjas.${opcion}`)} />)}
                   </View>
+                  {rutinaInicial ? null : <SelectorMeta color={color} onCambiar={setMetaId} valor={metaId} />}
                   <View style={estilos.iconos}>
                     {ICONOS_RUTINA.map((id) => {
                       const icono = buscarIconoHabito(id);

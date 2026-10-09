@@ -12,6 +12,7 @@ import { CrearHabitoInput } from '../habitos.servicio';
 import type { TipoMetaHabito } from '../tipos';
 import { sugerirFranjaPorHora, type FranjaDia } from '../../../compartido/utilidades/franjas';
 import { usePerfilBasico } from '../../configuracion/usePerfilBasico';
+import { SelectorMeta } from '../../metas/componentes/SelectorMeta';
 import { DIAS_REQUERIDOS_POR_NIVEL, iconosHabitos } from '../iconosHabitos';
 import { hapticSeguro } from '../../../nucleo/dispositivo/haptics';
 import { solicitarPermisoYRegistrar } from '../../../nucleo/notificaciones/oneSignal';
@@ -219,6 +220,7 @@ export function CrearHabitoWizard({ visible, guardando, onCerrar, onCrear }: { v
   const [recordatorio, setRecordatorio] = useState(false), [hora, setHora] = useState('08:00'), [horaPersonalizada, setHoraPersonalizada] = useState(false), [mostrar, setMostrar] = useState(false);
   const [franja, setFranja] = useState<FranjaDia>('cualquier_momento');
   const [franjaManual, setFranjaManual] = useState(false);
+  const [metaId, setMetaId] = useState<string | null>(null);
   const { limitesFranja } = usePerfilBasico();
   const [iconoLucide, setIconoLucide] = useState(iconosHabitos[0].id);
   const [subtipoMeta, setSubtipoMeta] = useState<SubtipoMeta>('cantidad');
@@ -330,6 +332,7 @@ export function CrearHabitoWizard({ visible, guardando, onCerrar, onCrear }: { v
     setHoraPersonalizada(false);
     setFranja('cualquier_momento');
     setFranjaManual(false);
+    setMetaId(null);
     setMostrar(false);
     setIconoLucide(iconosHabitos[0].id);
     setSubtipoMeta('cantidad');
@@ -436,6 +439,7 @@ export function CrearHabitoWizard({ visible, guardando, onCerrar, onCrear }: { v
         vecesPorSemana: frecuencia === 'veces_semana' ? Math.max(1, Number(vecesSemana) || 1) : null,
         recordatorioActivo: recordatorio, horaRecordatorio: recordatorio ? hora : null, mostrarNombreNotificacion: mostrar,
         franja,
+        metaId,
         paqueteId: PAQUETE_GRATUITO_DEFECTO,
       });
       if (semillaSeleccionada) {
@@ -571,6 +575,7 @@ export function CrearHabitoWizard({ visible, guardando, onCerrar, onCrear }: { v
               }}
               valor={franja}
             />
+            <SelectorMeta color={color} onCambiar={setMetaId} valor={metaId} />
             <RecuadroGlass blur style={{ borderRadius: 15, borderWidth: 0, padding: 12 }}>
               <View style={{ alignItems: 'center', flexDirection: 'row' }}><View style={{ flex: 1 }}><Texto style={{ color: '#1A1335', fontFamily: 'Montserrat-Bold', fontSize: 13 }}>{t('habitos.crearWizard.reminder.includeName')}</Texto><Texto style={s.sub}>{mostrar ? t('habitos.crearWizard.reminder.notificationWithName', { title: titulo.trim() || t('habitos.crearWizard.reminder.defaultHabitName') }) : t('habitos.crearWizard.reminder.notificationWithoutName')}</Texto></View><Switch value={mostrar} onValueChange={(valor) => { hapticSeguro('seleccion'); setMostrar(valor); }} /></View>
             </RecuadroGlass>

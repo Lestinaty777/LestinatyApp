@@ -2,6 +2,7 @@ import { fechaLocalDe, fechaLocalHoy } from '../../nucleo/dispositivo/fechaLocal
 import { VENTANA_RACHA_RUTINA_DIAS } from './rachaRutina';
 import { obtenerClienteSupabase } from '../../servicios/base-datos/supabase';
 import { mapearResultadoCierreRutina, mapearResultadoPasoPropio, mapearRutinas } from './rutinas.mapper';
+import { asignarMeta } from '../metas/metas.servicio';
 import { datosARemoto } from './rutinas.remoto';
 import type { CrearRutinaInput, ResultadoCierreRutina, ResultadoPasoPropio, Rutina } from './rutinas.tipos';
 
@@ -24,6 +25,8 @@ export async function crearRutina(input: CrearRutinaInput): Promise<string> {
   if (error) throw error;
   const id = (data as { id?: unknown } | null)?.id;
   if (typeof id !== 'string') throw new Error('Rutinas: crear_rutina no devolvió un id.');
+  // La rutina ya existe: no poder enlazarla con su meta no es un fallo de creación.
+  if (input.metaId) await asignarMeta('rutina', id, input.metaId).catch(() => undefined);
   return id;
 }
 

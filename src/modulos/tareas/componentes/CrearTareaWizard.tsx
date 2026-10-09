@@ -10,6 +10,7 @@ import { TOPE_ESCALA_TEXTO_COMPACTO } from '../../../diseno/fundamentos/accesibi
 import { Rebote } from '../../../diseno/ui/Rebote';
 import { sugerirFranjaPorHora, type FranjaDia } from '../../../compartido/utilidades/franjas';
 import { usePerfilBasico } from '../../configuracion/usePerfilBasico';
+import { SelectorMeta } from '../../metas/componentes/SelectorMeta';
 import { useTranslation } from 'react-i18next';
 import { hapticSeguro } from '../../../nucleo/dispositivo/haptics';
 import { solicitarPermisoYRegistrar } from '../../../nucleo/notificaciones/oneSignal';
@@ -158,6 +159,7 @@ export function CrearTareaWizard({ visible, guardando, onCerrar, onCrear }: {
   const [horaPersonalizada, setHoraPersonalizada] = useState(false);
   const [franja, setFranja] = useState<FranjaDia>('cualquier_momento');
   const [franjaManual, setFranjaManual] = useState(false);
+  const [metaId, setMetaId] = useState<string | null>(null);
   const { limitesFranja } = usePerfilBasico();
   const [mostrarNombre, setMostrarNombre] = useState(true);
   const [plantillaId, setPlantillaId] = useState<string | null>(null);
@@ -219,6 +221,7 @@ export function CrearTareaWizard({ visible, guardando, onCerrar, onCrear }: {
     setHoraPersonalizada(false);
     setFranja('cualquier_momento');
     setFranjaManual(false);
+    setMetaId(null);
     setMostrarNombre(true);
     setPlantillaId(null);
     setBuscarPlantilla('');
@@ -342,6 +345,7 @@ export function CrearTareaWizard({ visible, guardando, onCerrar, onCrear }: {
         fechaVencimiento: frecuencia === 'una_vez' ? fechaVencimiento : null,
         frecuencia,
         franja,
+        metaId,
         horaRecordatorio: recordatorioActivo ? hora : null,
         iconoLucide,
         mostrarNombreNotificacion: mostrarNombre,
@@ -635,6 +639,7 @@ export function CrearTareaWizard({ visible, guardando, onCerrar, onCrear }: {
                             }}
                             valor={franja}
                           />
+                          <SelectorMeta color={color} onCambiar={setMetaId} valor={metaId} />
                           <RecuadroGlass blur style={{ borderRadius: 15, borderWidth: 0, padding: 12 }}>
                             <View style={{ alignItems: 'center', flexDirection: 'row' }}>
                               <View style={{ flex: 1 }}>

@@ -6,6 +6,7 @@ import { mapearFigurasTarea, mapearFiguraTareaPendiente, mapearResultadoGuardarF
 import { mapearPanelTareas } from './tareas.mapper';
 import { calcularRachaTarea, estaProgramadaEnFecha } from './tareaProgramada';
 import type { FranjaDia } from '../../compartido/utilidades/franjas';
+import { asignarMeta } from '../metas/metas.servicio';
 import type {
   CrearTareaInput, EditarTareaInput, EstadoTarea, FiguraTareaNodo, FrecuenciaTarea, MejorRachaTarea, PanelTareas,
   PlanTareaResumen, ResultadoCompletarTarea, ResultadoGuardarFiguraTarea, ResultadoProgresoTareaUnica, ResultadoRegistroTarea, SubitemTarea, Tarea, TareaHoyDetalle, TipoTarea, TrazoFigura,
@@ -275,6 +276,7 @@ export type CrearTareaPremiumInput = {
   paqueteId?: string | null;
   nivelInicial?: number;
   franja?: FranjaDia;
+  metaId?: string | null;
 };
 
 export async function crearTareaPremium(input: CrearTareaPremiumInput): Promise<{ id: string }> {
@@ -302,6 +304,8 @@ export async function crearTareaPremium(input: CrearTareaPremiumInput): Promise<
     await obtenerClienteSupabase().from('tareas_items').update({ franja: input.franja }).eq('id', id);
     /* la franja es solo presentación: la tarea ya existe */
   }
+  // La tarea ya existe: no poder enlazarla con su meta no es un fallo de creación.
+  if (input.metaId) await asignarMeta('tarea', id, input.metaId).catch(() => undefined);
   return { id };
 }
 
