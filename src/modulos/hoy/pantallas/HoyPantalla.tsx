@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import {
@@ -30,6 +30,7 @@ import { usePerfilBasico } from '../../configuracion/usePerfilBasico';
 import { construirPlanDelDia, idsDeRutinasDeHoy, type ElementoHoy } from '../planDelDia';
 import { habitoAElemento, resumirCategoriasHoy, rutinaAElemento, tareaAElemento, textoAvance } from '../adaptadoresHoy';
 import { nivelDesdeXp } from '../nivelUsuario';
+import { detectarPrimeraVictoria, tipoDePrimeraVictoria } from '../primeraVictoria';
 import { RESUMEN_HOY_VACIO, indiceDiaSemana } from '../resumenHoy.mapper';
 import { CLAVE_RESUMEN_HOY, obtenerResumenHoy } from '../resumenHoy.servicio';
 import { useDatosHoy } from '../useDatosHoy';
@@ -315,6 +316,38 @@ function IconoElementoVisual({ id, color, size = 16 }: { id?: string | null; col
   return icono ? <MasterIcon name={icono.id} size={size} /> : <Sparkles color={color} size={size} />;
 }
 
+// ─── Primera victoria ────────────────────────────────────────────────────────
+// Se muestra una sola vez, cuando el XP de la cuenta pasa de 0 a más de 0
+// dentro de esta sesión (ver primeraVictoria.ts).
+function AvisoPrimeraVictoria() {
+  const { t } = useTranslation();
+  const datos = useDatosHoy();
+  const { data: resumen } = useQuery({ queryKey: CLAVE_RESUMEN_HOY, queryFn: obtenerResumenHoy });
+  const xpAnterior = useRef<number | undefined>(undefined);
+  const disparada = useRef(false);
+  const [visible, setVisible] = useState(false);
+  const xpActual = resumen?.xpTotal;
+
+  useEffect(() => {
+    if (detectarPrimeraVictoria(xpAnterior.current, xpActual, disparada.current)) {
+      disparada.current = true;
+      setVisible(true);
+      hapticSeguro('confirmacion');
+      const avance = resumirCategoriasHoy({ habitos: datos.habitos ?? [], tareas: datos.tareas ?? [], rutinas: datos.rutinas ?? [] });
+      registrarEvento('primera_victoria', { tipo: tipoDePrimeraVictoria(avance) });
+    }
+    xpAnterior.current = xpActual;
+  }, [xpActual, datos.habitos, datos.tareas, datos.rutinas]);
+
+  if (!visible) return null;
+  return (
+    <View accessibilityLiveRegion="polite" style={s.primeraVictoria}>
+      <Sparkles color={C.morado} size={18} />
+      <Texto style={s.primeraVictoriaTexto}>{t('hoy.primeraVictoria')}</Texto>
+    </View>
+  );
+}
+
 // ─── Timeline "Hoy" (Columna izquierda) ──────────────────────────────────────
 function TimelineHoy() {
   const tema = useAssetsPaqueteTema();
@@ -424,12 +457,32 @@ function TimelineHoy() {
             <Texto style={{ color: C.morado, fontFamily: 'Montserrat-Bold', fontSize: 12 }}>{t('hoy.reintentar')}</Texto>
           </Pressable>
         </View>
+      ) : plan.total === 0 ? (
+        // Cuenta sin nada para hoy: en vez de una lista vacía, una invitación a dar el primer paso.
+        <View style={s.invitacion}>
+          <Texto style={s.invitacionTitulo}>{t('hoy.vacio.titulo')}</Texto>
+          <Texto style={s.invitacionTexto}>{t('hoy.vacio.texto')}</Texto>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => { hapticSeguro('seleccion'); router.navigate({ pathname: '/habitos', params: { abrirCreacion: '1' } } as never); }}
+            style={[s.invitacionBoton, { backgroundColor: C.morado }]}
+          >
+            <Texto style={[s.invitacionBotonTexto, { color: '#FFFFFF' }]}>{t('hoy.vacio.crearHabito')}</Texto>
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => { hapticSeguro('seleccion'); router.navigate('/senderos' as never); }}
+            style={[s.invitacionBoton, { backgroundColor: C.moradoSuave }]}
+          >
+            <Texto style={[s.invitacionBotonTexto, { color: C.morado }]}>{t('hoy.vacio.rutinaLista')}</Texto>
+          </Pressable>
+        </View>
       ) : plan.secciones.length === 0 ? (
         <View style={{ alignItems: 'center', gap: 8, paddingVertical: 20 }}>
           <Texto style={{ color: C.textoSecundario, fontFamily: 'Montserrat-Medium', fontSize: 13 }}>
-            {plan.total === 0 ? t('hoy.sinNada') : t('franjas.vacia')}
+            {t('franjas.vacia')}
           </Texto>
-          {filtro !== 'todo' && plan.total > 0 && (
+          {filtro !== 'todo' && (
             <Pressable onPress={() => setFiltro('todo')} style={{ backgroundColor: C.moradoSuave, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 6 }}>
               <Texto style={{ color: C.morado, fontFamily: 'Montserrat-Bold', fontSize: 12 }}>{t('franjas.verTodo')}</Texto>
             </Pressable>
@@ -538,6 +591,7 @@ export function HoyPantalla() {
           <AuroraBoreal />
           <HeaderHoy />
           <HeroSection />
+          <AvisoPrimeraVictoria />
           <GridCategorias />
           {/* CardSendero oculta a propósito por ahora — se vuelve a mostrar más adelante. */}
 
@@ -557,6 +611,13 @@ const RADIO = 20;
 const PH = 20; // padding horizontal global
 
 const s = StyleSheet.create({
+  primeraVictoria: { alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.86)', borderColor: '#EDE5FB', borderRadius: 16, borderWidth: 1, flexDirection: 'row', gap: 10, marginBottom: 14, marginHorizontal: 20, paddingHorizontal: 14, paddingVertical: 12 },
+  primeraVictoriaTexto: { color: '#1A1335', flex: 1, fontFamily: 'Montserrat-Bold', fontSize: 13, lineHeight: 18 },
+  invitacion: { alignItems: 'stretch', gap: 10, paddingVertical: 14 },
+  invitacionTitulo: { color: '#1A1335', fontFamily: 'MontserratAlternates-Bold', fontSize: 18, textAlign: 'center' },
+  invitacionTexto: { color: '#7B7494', fontFamily: 'Montserrat-Medium', fontSize: 13, lineHeight: 18, marginBottom: 4, textAlign: 'center' },
+  invitacionBoton: { alignItems: 'center', borderRadius: 14, minHeight: 44, justifyContent: 'center', paddingHorizontal: 16, paddingVertical: 10 },
+  invitacionBotonTexto: { fontFamily: 'Montserrat-Bold', fontSize: 14 },
   raiz: {
     flex: 1,
     backgroundColor: C.fondo,

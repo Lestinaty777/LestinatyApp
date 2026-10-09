@@ -155,7 +155,9 @@ export const recursosI18n = {
         nivel: 'Level {{nivel}}', xp: '{{actual}}/{{requerido}} XP',
         tipo: { habito: 'Habit', tarea: 'Task', rutina: 'Routine' },
         pasos: '{{completos}} of {{total}} steps',
-        errorCargar: 'Could not load your day.', reintentar: 'Retry', sinNada: 'Nothing scheduled for today.',
+        errorCargar: 'Could not load your day.', reintentar: 'Retry',
+        vacio: { titulo: 'Your first step', texto: 'Start with something small you can do today.', crearHabito: 'Create my first habit', rutinaLista: 'Use a ready-made routine' },
+        primeraVictoria: 'First step done! Your streak starts here.',
         categorias: { estudio: 'Study', tareas: 'Tasks', rutinas: 'Routines', habitos: 'Habits', miEspacio: 'My space', mas: 'More' },
       },
       franjas: {
@@ -1380,7 +1382,9 @@ export const recursosI18n = {
         nivel: 'Nivel {{nivel}}', xp: '{{actual}}/{{requerido}} XP',
         tipo: { habito: 'Hábito', tarea: 'Tarea', rutina: 'Rutina' },
         pasos: '{{completos}} de {{total}} pasos',
-        errorCargar: 'No pudimos cargar tu día.', reintentar: 'Reintentar', sinNada: 'No tienes nada programado para hoy.',
+        errorCargar: 'No pudimos cargar tu día.', reintentar: 'Reintentar',
+        vacio: { titulo: 'Tu primer paso', texto: 'Empieza con algo pequeño que puedas hacer hoy.', crearHabito: 'Crear mi primer hábito', rutinaLista: 'Usar una rutina lista' },
+        primeraVictoria: '¡Primer paso dado! Así empieza tu racha.',
         categorias: { estudio: 'Estudio', tareas: 'Tareas', rutinas: 'Rutinas', habitos: 'Hábitos', miEspacio: 'Mi espacio', mas: 'Más' },
       },
       franjas: {
