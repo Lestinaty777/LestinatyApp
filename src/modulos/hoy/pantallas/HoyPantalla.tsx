@@ -230,7 +230,7 @@ function GridCategorias() {
             onPress={() => { if (CATEGORIAS_CON_PANTALLA.has(cat.id)) router.navigate(`/${cat.id}` as any); }}
           >
             <MasterGlass colorBase={cat.color} style={s.categoriaGlass}>
-              <MasterIcon name={cat.icono} size={32} />
+              <MasterIcon name={cat.icono} size={42} />
               <View style={s.categoriaTexto}>
                 <Texto adjustsFontSizeToFit minimumFontScale={0.8} numberOfLines={1} style={s.categoriaLabel}>{cat.label}</Texto>
                 <Texto numberOfLines={2} style={s.categoriaSubtitulo}>{cat.subtitulo}</Texto>
@@ -863,7 +863,7 @@ const s = StyleSheet.create({
     marginBottom: 16,
   },
   categoriaCard: { flex: 1 },
-  categoriaGlass: { alignItems: 'center', borderRadius: 14, justifyContent: 'flex-start', minHeight: 100, padding: 8 },
+  categoriaGlass: { alignItems: 'center', borderRadius: 14, justifyContent: 'flex-start', minHeight: 110, padding: 8 },
   categoriaTexto: { alignItems: 'center', marginTop: 5, minHeight: 31, width: '100%' },
   categoriaLabel: {
     fontFamily: 'MontserratAlternates-Bold',
