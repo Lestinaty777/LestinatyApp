@@ -1,4 +1,6 @@
-import { useSaldoGemas } from '../../tienda/useSaldoGemas';
+import { useMemo, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import {
   Image,
   Pressable,
@@ -10,21 +12,24 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import {
   Check,
-  Droplets,
-  Dumbbell,
-  Leaf,
-  Pencil,
   Play,
-  FolderOpen,
-  BookOpen,
+  Sparkles,
 } from 'lucide-react-native';
 
-import { RecuadroGlass, Texto, MasterIcon } from '../../../diseno';
+import { RecuadroGlass, SelectorFranja, Skeleton, Texto, MasterIcon } from '../../../diseno';
+import { franjaActual, type FiltroFranja, type FranjaDia } from '../../../compartido/utilidades/franjas';
 import { hapticSeguro } from '../../../nucleo/dispositivo/haptics';
 import { AuroraBoreal } from '../componentes/AuroraBoreal';
 import { ESCALA_ESMERALDA } from '../../../diseno/tema/escalaEsmeralda';
 import { useAssetsPaqueteTema } from '../../habitos/usePaqueteTema';
 import { INTERCAMBIAR_BANDERA_Y_ARBUSTO } from '../../habitos/pruebaIntercambio';
+import { useSaldoGemas } from '../../tienda/useSaldoGemas';
+import { buscarIconoHabito } from '../../habitos/iconosHabitos';
+import { obtenerPanelHabitos, obtenerDetallesHabitosHoy } from '../../habitos/habitos.servicio';
+import { obtenerTareasHoy, CLAVE_TAREAS_HOY } from '../../tareas/tareas.servicio';
+import { obtenerRutinasHoy, CLAVE_RUTINAS } from '../../rutinas/rutinas.servicio';
+import { construirPlanDelDia, idsDeRutinasDeHoy, type ElementoHoy } from '../planDelDia';
+import { habitoAElemento, tareaAElemento, rutinaAElemento } from '../adaptadoresHoy';
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // Paleta de colores del mockup (tema lila / morado claro)
@@ -77,42 +82,9 @@ function obtenerSaludo(): string {
 const DIAS_SEMANA = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
 const RACHA_CHECKS = [true, true, true, true, true, false, false]; // L-D
 
-type Categoria = {
-  id: string;
-  label: string;
-  progreso: string;
-  color: string;
-  colorSuave: string;
-  icono: any; // require(...) o null para placeholder
-};
 
-const CATEGORIAS: Categoria[] = [
-  { id: 'estudio',  label: 'Estudio',  progreso: '2/4', color: C.morado,  colorSuave: C.moradoSuave, icono: 'hoy/estudio' },
-  { id: 'tareas',   label: 'Tareas',   progreso: '3/5', color: C.naranja, colorSuave: C.naranjaSuave, icono: 'hoy/tareas' },
-  { id: 'rutinas',  label: 'Rutinas',  progreso: '1/3', color: C.rojo,    colorSuave: C.rojoSuave, icono: 'hoy/rutinas' },
-  { id: 'habitos',  label: 'Hábitos',  progreso: '2/4', color: C.verde,   colorSuave: C.verdeSuave, icono: 'hoy/habitos' },
-  { id: 'mi-espacio', label: 'Mi espacio', progreso: '', color: C.morado, colorSuave: C.moradoSuave, icono: 'hoy/metas' },
-  { id: 'mas',      label: 'Más',      progreso: '',    color: '#7B7494', colorSuave: '#EDE5FB', icono: 'hoy/mas' },
-];
 
-type EstadoTarea = 'completado' | 'activo' | 'pendiente';
-type Tarea = {
-  id: string;
-  titulo: string;
-  subtitulo: string;
-  estado: EstadoTarea;
-  color: string;
-  colorSuave: string;
-};
 
-const TAREAS_HOY: Tarea[] = [
-  { id: '1', titulo: 'Leer 10 páginas',   subtitulo: 'Estudio · 15 min',    estado: 'completado', color: ESCALA_ESMERALDA.jade.l70, colorSuave: ESCALA_ESMERALDA.jade.l95 },
-  { id: '2', titulo: 'Ejercicio 30 min',  subtitulo: 'Salud · 30 min',      estado: 'completado', color: ESCALA_ESMERALDA.jade.l70, colorSuave: ESCALA_ESMERALDA.jade.l95 },
-  { id: '3', titulo: 'Practicar dibujo',  subtitulo: 'Estudio · 20 min',    estado: 'activo',     color: C.morado,  colorSuave: C.moradoSuave },
-  { id: '4', titulo: 'Beber agua',        subtitulo: 'Salud · Diario',      estado: 'pendiente',  color: '#3B82F6', colorSuave: '#DBEAFE' },
-  { id: '5', titulo: 'Organizar espacio', subtitulo: 'Personal · 10 min',   estado: 'pendiente',  color: '#F59E0B', colorSuave: '#FEF3C7' },
-  { id: '6', titulo: 'Meditación 5 min',  subtitulo: 'Bienestar · 5 min',   estado: 'pendiente',  color: ESCALA_ESMERALDA.jade.l70, colorSuave: ESCALA_ESMERALDA.jade.l95 },
-];
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // Componentes Internos
@@ -231,7 +203,15 @@ function HeroSection() {
 // contra una ruta que no existe (expo-router la marcaría "Unmatched Route").
 const CATEGORIAS_CON_PANTALLA = new Set(['tareas', 'habitos']);
 
-function GridCategorias() {
+function GridCategorias({
+  habitosProgreso,
+  rutinasProgreso,
+  tareasProgreso,
+}: {
+  habitosProgreso: string;
+  rutinasProgreso: string;
+  tareasProgreso: string;
+}) {
   const router = useRouter();
 
   function obtenerAnchoProgreso(progreso: string) {
@@ -241,9 +221,18 @@ function GridCategorias() {
     return (parseInt(act) / parseInt(max)) * 100;
   }
 
+  const categorias = useMemo(() => [
+    { id: 'estudio', label: 'Estudio', progreso: '', color: C.morado, colorSuave: C.moradoSuave, icono: 'hoy/estudio' },
+    { id: 'tareas', label: 'Tareas', progreso: tareasProgreso, color: C.naranja, colorSuave: C.naranjaSuave, icono: 'hoy/tareas' },
+    { id: 'rutinas', label: 'Rutinas', progreso: rutinasProgreso, color: C.rojo, colorSuave: C.rojoSuave, icono: 'hoy/rutinas' },
+    { id: 'habitos', label: 'Hábitos', progreso: habitosProgreso, color: C.verde, colorSuave: C.verdeSuave, icono: 'hoy/habitos' },
+    { id: 'mi-espacio', label: 'Mi espacio', progreso: '', color: C.morado, colorSuave: C.moradoSuave, icono: 'hoy/metas' },
+    { id: 'mas', label: 'Más', progreso: '', color: '#7B7494', colorSuave: '#EDE5FB', icono: 'hoy/mas' },
+  ], [habitosProgreso, rutinasProgreso, tareasProgreso]);
+
   return (
     <View style={s.categoriasRow}>
-      {CATEGORIAS.map((cat) => (
+      {categorias.map((cat) => (
         <Pressable
           key={cat.id}
           onPress={() => {
@@ -318,84 +307,276 @@ function CardSendero() {
   );
 }
 
+function IconoElementoVisual({ id, color, size = 16 }: { id?: string | null; color: string; size?: number }) {
+  const icono = buscarIconoHabito(id);
+  return icono ? <MasterIcon name={icono.id} size={size} /> : <Sparkles color={color} size={size} />;
+}
+
 // ─── Timeline "Hoy" (Columna izquierda) ──────────────────────────────────────
-function TimelineHoy() {
+function TimelineHoy({
+  onPlanesActualizados,
+}: {
+  onPlanesActualizados?: (datos: { habitos: string; rutinas: string; tareas: string }) => void;
+}) {
   const tema = useAssetsPaqueteTema();
+  const { t } = useTranslation();
+  const router = useRouter();
+
+  const [filtro, setFiltro] = useState<FiltroFranja>(() => franjaActual());
+  const [expandidas, setExpandidas] = useState<ReadonlySet<FranjaDia>>(() => new Set());
+
+  // 1. Cuatro consultas compartiendo cache con sus pantallas respectivas
+  const consultaPanelHabitos = useQuery({ queryKey: ['habitos', 'panel'], queryFn: () => obtenerPanelHabitos() });
+  const consultaDetallesHabitos = useQuery({ queryKey: ['habitos', 'detalles-hoy'], queryFn: () => obtenerDetallesHabitosHoy() });
+  const consultaTareasHoy = useQuery({ queryKey: CLAVE_TAREAS_HOY, queryFn: () => obtenerTareasHoy() });
+  const consultaRutinasHoy = useQuery({ queryKey: CLAVE_RUTINAS, queryFn: obtenerRutinasHoy });
+
+  const cargando =
+    consultaPanelHabitos.isLoading ||
+    consultaDetallesHabitos.isLoading ||
+    consultaTareasHoy.isLoading ||
+    consultaRutinasHoy.isLoading;
+
+  const error =
+    consultaPanelHabitos.isError ||
+    consultaDetallesHabitos.isError ||
+    consultaTareasHoy.isError ||
+    consultaRutinasHoy.isError;
+
+  const refetchTodo = () => {
+    consultaPanelHabitos.refetch();
+    consultaDetallesHabitos.refetch();
+    consultaTareasHoy.refetch();
+    consultaRutinasHoy.refetch();
+  };
+
+  // 2. Mapear elementos y plan del día
+  const plan = useMemo(() => {
+    const habitosRaw = consultaPanelHabitos.data?.hoy.datos ?? [];
+    const detallesHabitosMap = new Map((consultaDetallesHabitos.data ?? []).map((d) => [d.habitoId, d]));
+    const habitosElementos: ElementoHoy[] = habitosRaw.map((h) => habitoAElemento(h, detallesHabitosMap.get(h.id)));
+
+    const tareasRaw = consultaTareasHoy.data ?? [];
+    const tareasElementos: ElementoHoy[] = tareasRaw.map(tareaAElemento);
+
+    const rutinasRaw = consultaRutinasHoy.data ?? [];
+    const rutinasActivasHoy = rutinasRaw.filter((r) => r.tocaHoy && r.estado === 'activa');
+    const formatoPasos = (completos: number, total: number) => `${completos} de ${total} pasos`;
+    const rutinasElementos: ElementoHoy[] = rutinasActivasHoy.map((r) => rutinaAElemento(r, formatoPasos));
+
+    const idsEnRutinas = idsDeRutinasDeHoy(rutinasRaw);
+
+    return construirPlanDelDia({
+      habitos: habitosElementos,
+      tareas: tareasElementos,
+      rutinas: rutinasElementos,
+      idsEnRutinas,
+      filtro,
+      expandidas,
+    });
+  }, [
+    consultaPanelHabitos.data,
+    consultaDetallesHabitos.data,
+    consultaTareasHoy.data,
+    consultaRutinasHoy.data,
+    filtro,
+    expandidas,
+  ]);
+
+  // Actualizar avances de categorías
+  useMemo(() => {
+    if (!onPlanesActualizados) return;
+    const habitosRaw = consultaPanelHabitos.data?.hoy.datos ?? [];
+    const habitosCompletos = habitosRaw.filter((h) => h.completado).length;
+    const habitosProgreso = habitosRaw.length > 0 ? `${habitosCompletos}/${habitosRaw.length}` : '';
+
+    const tareasRaw = consultaTareasHoy.data ?? [];
+    const tareasCompletas = tareasRaw.filter((t) => t.completada).length;
+    const tareasProgreso = tareasRaw.length > 0 ? `${tareasCompletas}/${tareasRaw.length}` : '';
+
+    const rutinasRaw = consultaRutinasHoy.data ?? [];
+    const rutinasActivasHoy = rutinasRaw.filter((r) => r.tocaHoy && r.estado === 'activa');
+    const rutinasCompletas = rutinasActivasHoy.filter((r) => r.pasos.filter((p) => p.aplica).every((p) => p.completo) && r.pasos.some((p) => p.aplica)).length;
+    const rutinasProgreso = rutinasActivasHoy.length > 0 ? `${rutinasCompletas}/${rutinasActivasHoy.length}` : '';
+
+    onPlanesActualizados({
+      habitos: habitosProgreso,
+      rutinas: rutinasProgreso,
+      tareas: tareasProgreso,
+    });
+  }, [
+    consultaPanelHabitos.data,
+    consultaTareasHoy.data,
+    consultaRutinasHoy.data,
+    onPlanesActualizados,
+  ]);
+
+  const etiquetasFiltro = useMemo<Record<FiltroFranja, string>>(() => ({
+    manana: t('franjas.manana'),
+    tarde: t('franjas.tarde'),
+    noche: t('franjas.noche'),
+    todo: t('franjas.todo'),
+  }), [t]);
+
+  const etiquetaAccesible = (f: FiltroFranja, n: number) =>
+    t('franjas.pendientes', { franja: etiquetasFiltro[f], n });
+
+  const alternarExpandida = (franja: FranjaDia) => {
+    setExpandidas((prev) => {
+      const nuevo = new Set(prev);
+      nuevo.add(franja);
+      return nuevo;
+    });
+  };
+
+  const tocarElemento = (item: ElementoHoy) => {
+    hapticSeguro('seleccion');
+    if (item.tipo === 'habito') {
+      router.push(`/habitos/${item.id}` as any);
+    } else if (item.tipo === 'tarea') {
+      router.navigate('/tareas');
+    } else if (item.tipo === 'rutina') {
+      router.push(`/rutinas/${item.id}` as any);
+    }
+  };
+
   return (
     <RecuadroGlass style={s.timelineGlass}>
       {/* Header dentro del contenedor glass */}
       <View style={s.timelineHeader}>
-        {/* PRUEBA TEMPORAL: ver pruebaIntercambio.ts */}
         <Image
           source={INTERCAMBIAR_BANDERA_Y_ARBUSTO ? tema.arbusto : require('../../../../assets/icons/hoy/hoy.png')}
           style={{ width: INTERCAMBIAR_BANDERA_Y_ARBUSTO ? 44 : 32, height: INTERCAMBIAR_BANDERA_Y_ARBUSTO ? 44 : 32, resizeMode: 'contain' }}
         />
         <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6, flex: 1, paddingBottom: 2 }}>
           <Texto style={s.timelineTitulo}>Hoy</Texto>
-          <Texto style={s.timelineContador}>4/6 completadas</Texto>
+          <Texto style={s.timelineContador}>
+            {plan.completados}/{plan.total} {t('franjas.completados', { n: plan.completados })}
+          </Texto>
         </View>
       </View>
 
-      <ScrollView
-        nestedScrollEnabled
-        showsVerticalScrollIndicator={false}
-        style={s.timelineScroll}
-      >
-        <View style={{ position: 'relative', paddingVertical: 4 }}>
-          {/* LÍNEA CONTINUA DE FONDO PARA TODO EL TIMELINE */}
-          <View style={s.timelineLineaContinua} />
+      {/* Selector de franja */}
+      <View style={{ marginBottom: 12 }}>
+        <SelectorFranja
+          color={C.morado}
+          conteos={plan.conteos}
+          etiquetaAccesible={etiquetaAccesible}
+          etiquetas={etiquetasFiltro}
+          onCambiar={setFiltro}
+          valor={filtro}
+        />
+      </View>
 
-          {TAREAS_HOY.map((tarea) => {
-            return (
-              <View key={tarea.id} style={s.timelineItem}>
-                {/* Columna del nodo */}
-                <View style={s.timelineNodoCol}>
-                  {/* Nodo estado */}
-                  {tarea.estado === 'completado' && (
-                    <View style={[s.timelineNodo, { backgroundColor: C.verde }]}>  
-                      <Check color="#FFFFFF" size={10} strokeWidth={3} />
-                    </View>
-                  )}
-                  {tarea.estado === 'activo' && (
-                    <View style={[s.timelineNodo, { backgroundColor: C.morado }]}>
-                      <Play color="#FFFFFF" size={8} fill="#FFFFFF" />
-                    </View>
-                  )}
-                  {tarea.estado === 'pendiente' && (
-                    <View style={s.timelineNodoVacio} />
-                  )}
-                </View>
-
-                {/* Contenido tarea */}
-                <View
-                  style={[
-                    s.timelineTareaContenido,
-                    tarea.estado === 'activo' && s.timelineTareaActiva,
-                  ]}
-                >
-                  <View style={[s.timelineTareaIcono, { backgroundColor: tarea.colorSuave }]}>
-                    {tarea.id === '1' && <BookOpen color={tarea.color} size={14} />}
-                    {tarea.id === '2' && <Dumbbell color={tarea.color} size={14} />}
-                    {tarea.id === '3' && <Pencil color={tarea.color} size={14} />}
-                    {tarea.id === '4' && <Droplets color={tarea.color} size={14} />}
-                    {tarea.id === '5' && <FolderOpen color={tarea.color} size={14} />}
-                    {tarea.id === '6' && <Leaf color={tarea.color} size={14} />}
-                  </View>
-                  <View style={s.timelineTareaTextos}>
-                    <Texto style={s.timelineTareaTitulo} numberOfLines={1}>{tarea.titulo}</Texto>
-                    <Texto style={s.timelineTareaSub} numberOfLines={1}>{tarea.subtitulo}</Texto>
-                  </View>
-                  {tarea.estado === 'activo' && (
-                    <View style={s.timelinePlayBtn}>
-                      <Play color="#FFFFFF" size={10} fill="#FFFFFF" />
-                    </View>
-                  )}
-                </View>
-              </View>
-            );
-          })}
+      {cargando ? (
+        <View style={{ gap: 10, paddingVertical: 12 }}>
+          <Skeleton alto={44} radio={10} />
+          <Skeleton alto={44} radio={10} />
+          <Skeleton alto={44} radio={10} />
         </View>
-      </ScrollView>
+      ) : error ? (
+        <View style={{ alignItems: 'center', gap: 8, paddingVertical: 16 }}>
+          <Texto style={{ color: C.rojo, fontFamily: 'Montserrat-Bold', fontSize: 13 }}>
+            {t('habitos.pantalla.loadError', { defaultValue: 'No se pudo cargar el plan de hoy' })}
+          </Texto>
+          <Pressable onPress={refetchTodo} style={{ backgroundColor: C.moradoSuave, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 8 }}>
+            <Texto style={{ color: C.morado, fontFamily: 'Montserrat-Bold', fontSize: 12 }}>Reintentar</Texto>
+          </Pressable>
+        </View>
+      ) : plan.secciones.length === 0 ? (
+        <View style={{ alignItems: 'center', gap: 8, paddingVertical: 20 }}>
+          <Texto style={{ color: C.textoSecundario, fontFamily: 'Montserrat-Medium', fontSize: 13 }}>
+            {t('franjas.vacia')}
+          </Texto>
+          {filtro !== 'todo' && (
+            <Pressable onPress={() => setFiltro('todo')} style={{ backgroundColor: C.moradoSuave, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 6 }}>
+              <Texto style={{ color: C.morado, fontFamily: 'Montserrat-Bold', fontSize: 12 }}>{t('franjas.verTodo')}</Texto>
+            </Pressable>
+          )}
+        </View>
+      ) : (
+        <ScrollView
+          nestedScrollEnabled
+          showsVerticalScrollIndicator={false}
+          style={s.timelineScroll}
+        >
+          <View style={{ position: 'relative', paddingVertical: 4 }}>
+            <View style={s.timelineLineaContinua} />
+
+            {plan.secciones.map((seccion) => {
+              const nombreFranja =
+                seccion.franja === 'manana'
+                  ? t('franjas.manana')
+                  : seccion.franja === 'tarde'
+                    ? t('franjas.tarde')
+                    : seccion.franja === 'noche'
+                      ? t('franjas.noche')
+                      : t('franjas.cualquier_momento');
+
+              return (
+                <View key={seccion.franja} style={{ marginBottom: 12 }}>
+                  {filtro === 'todo' && (
+                    <View style={{ marginBottom: 6, paddingLeft: 30 }}>
+                      <Texto style={{ color: C.textoSecundario, fontFamily: 'Montserrat-Bold', fontSize: 11, textTransform: 'uppercase' }}>
+                        {nombreFranja}
+                      </Texto>
+                    </View>
+                  )}
+
+                  {seccion.pendientes.map((item) => {
+                    const colorElemento = item.color || (item.tipo === 'habito' ? C.verde : item.tipo === 'tarea' ? C.naranja : C.rojo);
+                    const etiquetaTipo = item.tipo === 'habito' ? 'Hábito' : item.tipo === 'tarea' ? 'Tarea' : 'Rutina';
+
+                    return (
+                      <Pressable key={`${item.tipo}-${item.id}`} onPress={() => tocarElemento(item)} style={s.timelineItem}>
+                        <View style={s.timelineNodoCol}>
+                          <View style={s.timelineNodoVacio} />
+                        </View>
+
+                        <View style={s.timelineTareaContenido}>
+                          <View style={[s.timelineTareaIcono, { backgroundColor: `${colorElemento}20` }]}>
+                            <IconoElementoVisual color={colorElemento} id={item.iconoLucide} size={14} />
+                          </View>
+                          <View style={s.timelineTareaTextos}>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                              <Texto style={s.timelineTareaTitulo} numberOfLines={1}>{item.titulo}</Texto>
+                              <View style={{ backgroundColor: `${colorElemento}18`, borderRadius: 4, paddingHorizontal: 4, paddingVertical: 1 }}>
+                                <Texto style={{ color: colorElemento, fontFamily: 'Montserrat-Bold', fontSize: 7 }}>{etiquetaTipo}</Texto>
+                              </View>
+                            </View>
+                            {item.detalle && (
+                              <Texto style={s.timelineTareaSub} numberOfLines={1}>{item.detalle}</Texto>
+                            )}
+                          </View>
+                        </View>
+                      </Pressable>
+                    );
+                  })}
+
+                  {seccion.pendientesOcultos > 0 && (
+                    <Pressable
+                      onPress={() => alternarExpandida(seccion.franja)}
+                      style={{ alignSelf: 'flex-start', marginLeft: 30, marginTop: 4, paddingVertical: 4 }}
+                    >
+                      <Texto style={{ color: C.morado, fontFamily: 'Montserrat-Bold', fontSize: 11 }}>
+                        {t('franjas.verMas', { n: seccion.pendientesOcultos })}
+                      </Texto>
+                    </Pressable>
+                  )}
+
+                  {seccion.completados.length > 0 && (
+                    <View style={{ marginLeft: 30, marginTop: 4 }}>
+                      <Texto style={{ color: C.textoSecundario, fontFamily: 'MontserratAlternates-Medium', fontSize: 10 }}>
+                        {t('franjas.completados', { n: seccion.completados.length })}
+                      </Texto>
+                    </View>
+                  )}
+                </View>
+              );
+            })}
+          </View>
+        </ScrollView>
+      )}
     </RecuadroGlass>
   );
 }
@@ -405,6 +586,11 @@ function TimelineHoy() {
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 export function HoyPantalla() {
   const insets = useSafeAreaInsets();
+  const [progresosCategorias, setProgresosCategorias] = useState({
+    habitos: '',
+    rutinas: '',
+    tareas: '',
+  });
 
   return (
     <View style={s.raiz}>
@@ -416,11 +602,15 @@ export function HoyPantalla() {
           <AuroraBoreal />
           <HeaderHoy />
           <HeroSection />
-          <GridCategorias />
+          <GridCategorias
+            habitosProgreso={progresosCategorias.habitos}
+            rutinasProgreso={progresosCategorias.rutinas}
+            tareasProgreso={progresosCategorias.tareas}
+          />
           {/* CardSendero oculta a propósito por ahora — se vuelve a mostrar más adelante. */}
 
           <View style={s.timelineContenedor}>
-            <TimelineHoy />
+            <TimelineHoy onPlanesActualizados={setProgresosCategorias} />
           </View>
         </View>
       </ScrollView>

@@ -22,6 +22,8 @@ import type {
 
 const VENTANA_RACHA_DIAS = 130;
 
+export const CLAVE_TAREAS_HOY = ['tareas', 'hoy'] as const;
+
 type FilaTarea = {
   id: string;
   titulo: string;
