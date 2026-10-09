@@ -17,7 +17,7 @@ function metaPaso(paso: PasoRutina): string | null {
   return `${paso.objetivoValor} ${unidad}`.trim();
 }
 
-export function TarjetaRutinaHoy({ color, onAlternarPaso, onEmpezar, pasoEnCursoId, rutina }: {
+export function TarjetaRutinaHoy({ color, onAlternarPaso, onEmpezar, pasoEnCursoId, racha = 0, rutina }: {
   /** Acento del módulo (Ignate): el avance y los checks lo usan. */
   color: string;
   /** Solo se llama para pasos propios; los de hábito y tarea se completan desde su pantalla. */
@@ -25,6 +25,8 @@ export function TarjetaRutinaHoy({ color, onAlternarPaso, onEmpezar, pasoEnCurso
   /** Abre la sesión guiada. */
   onEmpezar: (rutina: Rutina) => void;
   pasoEnCursoId: string | null;
+  /** Días seguidos (de los que tocaba) con la sesión completa; se muestra desde 2. */
+  racha?: number;
   rutina: Rutina;
 }) {
   const { t } = useTranslation();
@@ -60,6 +62,7 @@ export function TarjetaRutinaHoy({ color, onAlternarPaso, onEmpezar, pasoEnCurso
                     ? t('rutinas.tarjeta.completa')
                     : t('rutinas.tarjeta.avance', { completed: resumen.requeridosCompletos, total: resumen.requeridos })}
               </Texto>
+              {racha >= 2 ? <Texto style={[estilos.meta, { color }]}>{t('rutinas.racha', { count: racha })}</Texto> : null}
             </View>
           </View>
           {resumen.completa ? (

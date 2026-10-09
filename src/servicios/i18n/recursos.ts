@@ -63,6 +63,7 @@ export const recursosI18n = {
       },
       rutinas: {
         enRutina: 'In {{nombre}}',
+        racha_one: '{{count}}-day streak', racha_other: '{{count}}-day streak',
         pantalla: {
           titulo: 'Routines', frase: 'Do it in order. Keep it simple.', volverAlInicio: 'Back to home', comprarGemas: 'Buy gems', notificaciones: 'Notifications',
           cargando: 'Loading…', errorCargar: 'Could not load your routines. Tap to retry.',
@@ -1277,6 +1278,7 @@ export const recursosI18n = {
       },
       rutinas: {
         enRutina: 'En {{nombre}}',
+        racha_one: '{{count}} día seguido', racha_other: '{{count}} días seguidos',
         pantalla: {
           titulo: 'Rutinas', frase: 'Hacelo en orden. Hacelo simple.', volverAlInicio: 'Volver a Inicio', comprarGemas: 'Comprar gemas', notificaciones: 'Notificaciones',
           cargando: 'Cargando…', errorCargar: 'No pudimos cargar tus rutinas. Tocá para reintentar.',

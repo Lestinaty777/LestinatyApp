@@ -22,6 +22,7 @@ import { obtenerTareas } from '../../tareas/tareas.servicio';
 import { CLAVE_SALDO_GEMAS, useSaldoGemas } from '../../tienda/useSaldoGemas';
 import { CrearRutinaWizard } from '../componentes/CrearRutinaWizard';
 import { prepararAvisosDeRutina } from '../recordatorioRutina';
+import { useRachasRutinas } from '../useRachasRutinas';
 import { ListaMisRutinas } from '../componentes/ListaMisRutinas';
 import { ListaRecordatoriosRutinas } from '../componentes/ListaRecordatoriosRutinas';
 import { ListaRutinasHoy } from '../componentes/ListaRutinasHoy';
@@ -94,6 +95,7 @@ function RutinasPantallaContenido() {
   const pasoProximo = proxima ? siguientePaso(proxima.pasos) : null;
 
   const assets = useMemo(() => obtenerAssetsPaquete(PAQUETE_RUTINAS), []);
+  const rachas = useRachasRutinas(rutinasHoy);
   const refrescar = () => cliente.invalidateQueries({ queryKey: CLAVE_RUTINAS });
 
   // Si la rutina lleva recordatorio, se piden el permiso y la preferencia sin frenar el guardado.
@@ -313,6 +315,7 @@ function RutinasPantallaContenido() {
                         onAlternarPaso={(_rutina, paso) => { if (paso.origen === 'propio' && paso.aplica) alternarPaso.mutate({ paso }); }}
                         onEmpezar={(r) => router.push({ pathname: '/rutinas/[id]', params: { id: r.id } })}
                         pasoEnCursoId={pasoEnCursoId}
+                        rachas={rachas}
                         rutinas={visibles}
                       />
                     )}

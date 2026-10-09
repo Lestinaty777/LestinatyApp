@@ -1,4 +1,5 @@
-import { fechaLocalHoy } from '../../nucleo/dispositivo/fechaLocal';
+import { fechaLocalDe, fechaLocalHoy } from '../../nucleo/dispositivo/fechaLocal';
+import { VENTANA_RACHA_RUTINA_DIAS } from './rachaRutina';
 import { obtenerClienteSupabase } from '../../servicios/base-datos/supabase';
 import { mapearResultadoCierreRutina, mapearResultadoPasoPropio, mapearRutinas } from './rutinas.mapper';
 import { datosARemoto } from './rutinas.remoto';
@@ -75,4 +76,21 @@ export async function cerrarRutinaDia(rutinaId: string): Promise<ResultadoCierre
   const { data, error } = await obtenerClienteSupabase().rpc('cerrar_rutina_dia', { p_rutina_id: rutinaId, p_fecha_local: fechaLocalHoy() });
   if (error) throw error;
   return mapearResultadoCierreRutina(data);
+}
+
+export const CLAVE_RACHAS_RUTINAS = ['rutinas', 'rachas'] as const;
+
+/**
+ * Sesiones completas recientes (rutinas_registros con completada_en), para la
+ * racha de cada rutina. Lectura directa: RLS ya limita a lo propio.
+ */
+export async function obtenerSesionesCompletasRutinas(referencia = new Date()): Promise<{ rutinaId: string; fechaLocal: string }[]> {
+  const desde = fechaLocalDe(new Date(referencia.getTime() - VENTANA_RACHA_RUTINA_DIAS * 86400000));
+  const { data, error } = await obtenerClienteSupabase()
+    .from('rutinas_registros')
+    .select('rutina_id, fecha_local')
+    .not('completada_en', 'is', null)
+    .gte('fecha_local', desde);
+  if (error) throw error;
+  return ((data ?? []) as { rutina_id: string; fecha_local: string }[]).map((fila) => ({ rutinaId: fila.rutina_id, fechaLocal: fila.fecha_local }));
 }
