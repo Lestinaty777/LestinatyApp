@@ -13,9 +13,9 @@ en ningún plugin instalado (verificado: `rg -n "AppTrackingTransparency|request
 
 | Proveedor | Qué recibe | Para qué | Vinculado a identidad | Tracking | Retención / borrado |
 |---|---|---|---|---|---|
-| **Supabase** | Email, contraseña (hasheada), hábitos, progreso, gemas, cofres, zona horaria, subscription ID de push, estado de compras | Backend completo: auth, datos de la app, RLS por usuario | Sí (es la identidad de la cuenta) | No | Borrado inmediato y real al eliminar cuenta (`privacidad.eliminar_cuenta_propia`, verificado con usuarios desechables) |
+| **Supabase** | Email, contraseña (hasheada), hábitos, tareas, rutinas, planes, metas y áreas propias, progreso, gemas, cofres, zona horaria, horas de inicio de cada franja del día, subscription ID de push, estado de compras | Backend completo: auth, datos de la app, RLS por usuario | Sí (es la identidad de la cuenta) | No | Borrado inmediato y real al eliminar cuenta (`privacidad.eliminar_cuenta_propia`, verificado con usuarios desechables) |
 | **RevenueCat** | `app_user_id` (= `auth.uid()` de Supabase), estado de compra/suscripción, product ID | Validar y sincronizar compras/suscripciones entre Apple/Google y el backend | Sí | No | Gestionado por RevenueCat; el backend solo guarda el resultado (saldo, entitlement activo) |
-| **OneSignal** | Subscription ID de push, plataforma (ios/android), permiso nativo | Enviar recordatorios de hábitos que el usuario programa explícitamente | Indirectamente (subscription ID, no email) | No | Se solicita solo tras acción contextual (activar un recordatorio), nunca al abrir la app |
+| **OneSignal** | Subscription ID de push, plataforma (ios/android), permiso nativo | Enviar recordatorios de hábitos, tareas y rutinas que el usuario programa explícitamente | Indirectamente (subscription ID, no email) | No | Se solicita solo tras acción contextual (activar un recordatorio), nunca al abrir la app |
 | **Apple App Store / Google Play** | Datos de pago (tarjeta, Apple ID/Google account) | Procesar el cobro de compras/suscripciones | Gestionado por Apple/Google | No | Lestinaty nunca ve ni almacena datos de pago |
 | **Vercel** | IP y datos técnicos estándar de acceso web | Hosting de lestinaty.com (marketing, privacidad, términos, soporte) — no aplica al tráfico de la app móvil | No | No | Estándar de hosting, fuera del alcance de la app |
 
@@ -31,7 +31,7 @@ de variables de entorno reales).
 
 - **Contact Info → Email Address**: sí, vinculado a la identidad, usado para funcionalidad de la app (cuenta).
 - **Identifiers → User ID**: sí (`auth.uid()`), vinculado a la identidad.
-- **User Content → Other User Content**: hábitos, progreso, notas — vinculado a la identidad, usado para funcionalidad de la app.
+- **User Content → Other User Content**: hábitos, tareas, rutinas, planes, metas, progreso, notas — vinculado a la identidad, usado para funcionalidad de la app.
 - **Purchases → Purchase History**: sí, vinculado a la identidad (gestionado vía RevenueCat), usado para funcionalidad de la app.
 - **Identifiers → Device ID**: subscription ID de OneSignal — vinculado a la identidad, usado para funcionalidad de la app (notificaciones).
 - **Diagnostics**: ninguno recolectado actualmente (sin Sentry/Crashlytics/similar integrado).
