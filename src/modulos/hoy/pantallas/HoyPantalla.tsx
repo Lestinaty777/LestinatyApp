@@ -93,16 +93,16 @@ function HeaderHoy() {
   const { t } = useTranslation();
   const { data: saldoGemas } = useSaldoGemas();
   const { limitesFranja, nombreVisible } = usePerfilBasico();
+  const saludo = t(`hoy.saludo.${franjaActual(new Date(), limitesFranja)}`);
   return (
     <View style={s.header}>
       <View style={s.headerIzq}>
-        <Texto style={s.headerSaludo}>{t(`hoy.saludo.${franjaActual(new Date(), limitesFranja)}`)}</Texto>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-          {nombreVisible ? <Texto numberOfLines={1} style={s.headerNombre}>{nombreVisible}</Texto> : null}
-          <Image
-            source={require('../../../../assets/icons/hoy/saludo.png')}
-            style={{ width: 28, height: 28, resizeMode: 'contain' }}
-          />
+        {/* Misma cabecera que Hábitos, Tareas, Rutinas y Metas: ícono a la izquierda, título en negritas y la frase debajo. */}
+        <View style={s.headerTituloFila}>
+          <Image source={require('../../../../assets/icons/hoy/saludo.png')} style={s.headerIcono} />
+          <Texto adjustsFontSizeToFit minimumFontScale={0.75} numberOfLines={1} style={s.headerSaludo}>
+            {nombreVisible ? t('hoy.saludoConNombre', { saludo, nombre: nombreVisible }) : saludo}
+          </Texto>
         </View>
         <Texto style={s.headerFrase}>{t('hoy.frase')}</Texto>
       </View>
@@ -658,27 +658,11 @@ const s = StyleSheet.create({
     paddingHorizontal: PH,
     marginBottom: 16,
   },
-  headerIzq: {
-    width: '45%',
-  },
-  headerSaludo: {
-    fontFamily: 'MontserratAlternates-Medium',
-    fontSize: 14,
-    color: '#4B4B4B', // Gris carbón no tan oscuro
-  },
-  headerNombre: {
-    fontFamily: 'Montserrat-Bold',
-    fontSize: 22, // Un poco más pequeño
-    color: C.texto,
-    lineHeight: 26,
-  },
-  headerFrase: {
-    fontFamily: 'MontserratAlternates-Medium',
-    fontSize: 8, // Mucho más pequeño
-    color: '#5A5A5A', // Gris carbón (un pelín más suave para jerarquía)
-    marginTop: 4,
-    lineHeight: 12,
-  },
+  headerIzq: { width: '55%' },
+  headerTituloFila: { alignItems: 'center', flexDirection: 'row', gap: 6 },
+  headerIcono: { height: 28, resizeMode: 'contain', width: 28 },
+  headerSaludo: { color: C.texto, flexShrink: 1, fontFamily: 'MontserratAlternates-Bold', fontSize: 22, lineHeight: 26 },
+  headerFrase: { color: '#5A5A5A', fontFamily: 'MontserratAlternates-Medium', fontSize: 10, lineHeight: 13, marginTop: 3 },
   headerDer: {
     flexDirection: 'row',
     alignItems: 'center',

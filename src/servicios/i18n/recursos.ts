@@ -146,7 +146,7 @@ export const recursosI18n = {
       },
       hoy: {
         titulo: 'Today', contador: '{{hechos}}/{{total}} done', comprarGemas: 'Buy gems',
-        saludo: { manana: 'Good morning,', tarde: 'Good afternoon,', noche: 'Good evening,' },
+        saludo: { manana: 'Good morning', tarde: 'Good afternoon', noche: 'Good evening' }, saludoConNombre: '{{saludo}}, {{nombre}}',
         frase: 'Discipline today, freedom tomorrow.',
         racha: {
           titulo: 'Current streak', dias_one: '{{count}} day', dias_other: '{{count}} days',
@@ -1423,7 +1423,7 @@ export const recursosI18n = {
       },
       hoy: {
         titulo: 'Hoy', contador: '{{hechos}}/{{total}} completadas', comprarGemas: 'Comprar gemas',
-        saludo: { manana: 'Buenos días,', tarde: 'Buenas tardes,', noche: 'Buenas noches,' },
+        saludo: { manana: 'Buenos días', tarde: 'Buenas tardes', noche: 'Buenas noches' }, saludoConNombre: '{{saludo}}, {{nombre}}',
         frase: 'Disciplina hoy, libertad mañana.',
         racha: {
           titulo: 'Racha actual', dias_one: '{{count}} día', dias_other: '{{count}} días',
