@@ -12,18 +12,18 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect, useRouter } from 'expo-router';
 import {
   Check,
+  ChevronRight,
   Play,
   Sparkles,
 } from 'lucide-react-native';
 
-import { MasterGlass, Rebote, RecuadroGlass, SelectorFranja, Skeleton, Texto, MasterIcon } from '../../../diseno';
+import { conAlfa, ICONOS_FRANJA, MasterGlass, MasterIcon, MasterIconBg, MasterProgressbar, Rebote, RecuadroGlass, SelectorFranja, Skeleton, Texto, useEscala } from '../../../diseno';
 import { franjaActual, type FiltroFranja, type FranjaDia } from '../../../compartido/utilidades/franjas';
 import { hapticSeguro } from '../../../nucleo/dispositivo/haptics';
 import { registrarEvento } from '../../../servicios/analitica/posthog';
 import { AuroraBoreal } from '../componentes/AuroraBoreal';
-import { ESCALA_ESMERALDA } from '../../../diseno/tema/escalaEsmeralda';
+import { ESCALA_ESMERALDA, type EscalaMaster } from '../../../diseno/tema/escalaEsmeralda';
 import { useAssetsPaqueteTema } from '../../habitos/usePaqueteTema';
-import { INTERCAMBIAR_BANDERA_Y_ARBUSTO } from '../../habitos/pruebaIntercambio';
 import { useSaldoGemas } from '../../tienda/useSaldoGemas';
 import { buscarIconoHabito } from '../../habitos/iconosHabitos';
 import { usePerfilBasico } from '../../configuracion/usePerfilBasico';
@@ -280,11 +280,6 @@ function CardSendero() {
   );
 }
 
-function IconoElementoVisual({ id, color, size = 16 }: { id?: string | null; color: string; size?: number }) {
-  const icono = buscarIconoHabito(id);
-  return icono ? <MasterIcon name={icono.id} size={size} /> : <Sparkles color={color} size={size} />;
-}
-
 // ─── Primera victoria ────────────────────────────────────────────────────────
 // Se muestra una sola vez, cuando el XP de la cuenta pasa de 0 a más de 0
 // dentro de esta sesión (ver primeraVictoria.ts).
@@ -320,6 +315,8 @@ function AvisoPrimeraVictoria() {
 // ─── Timeline "Hoy" (Columna izquierda) ──────────────────────────────────────
 function TimelineHoy() {
   const tema = useAssetsPaqueteTema();
+  const esc = useEscala();
+  const h = useEstilosSeccionHoy();
   const { t } = useTranslation();
   const router = useRouter();
   const { limitesFranja } = usePerfilBasico();
@@ -409,17 +406,29 @@ function TimelineHoy() {
     }
   };
 
+  // Primer pendiente de toda la lista visible: es el que lleva el nodo "activo", como en Hábitos.
+  const claveActiva = (() => {
+    const primero = plan.secciones.flatMap((seccion) => seccion.pendientes)[0];
+    return primero ? `${primero.tipo}-${primero.id}` : null;
+  })();
+  const porcentaje = plan.total > 0 ? Math.round((plan.completados * 100) / plan.total) : 0;
+  const ultimaSeccion = plan.secciones[plan.secciones.length - 1];
+
   return (
-    <RecuadroGlass style={s.timelineGlass}>
-      {/* Header dentro del contenedor glass */}
-      <View style={s.timelineHeader}>
-        <Image
-          source={INTERCAMBIAR_BANDERA_Y_ARBUSTO ? tema.arbusto : require('../../../../assets/icons/hoy/hoy.png')}
-          style={{ width: INTERCAMBIAR_BANDERA_Y_ARBUSTO ? 44 : 32, height: INTERCAMBIAR_BANDERA_Y_ARBUSTO ? 44 : 32, resizeMode: 'contain' }}
-        />
-        <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6, flex: 1, paddingBottom: 2 }}>
-          <Texto style={s.timelineTitulo}>{t('hoy.titulo')}</Texto>
-          <Texto style={s.timelineContador}>{t('hoy.contador', { hechos: plan.completados, total: plan.total })}</Texto>
+    <MasterGlass style={h.panel}>
+      {/* Mismo encabezado que la sección "Hoy" de Hábitos: arbusto del tema, título, avance y barra. */}
+      <View style={h.encabezado}>
+        <View style={h.encabezadoFila}>
+          {/* Imagen normal, no `fuente`: el arbusto ya es el arte del paquete y no debe rotarse otra vez con el tema. */}
+          <MasterIconBg size={70}><Image resizeMode="contain" source={tema.arbusto} style={{ height: 58, width: 58 }} /></MasterIconBg>
+          <View style={{ flex: 1 }}>
+            <Texto style={h.encabezadoTitulo}>{t('hoy.titulo')}</Texto>
+            <Texto style={h.encabezadoCompletadas}>{t('hoy.contador', { hechos: plan.completados, total: plan.total })}</Texto>
+            <View style={h.encabezadoProgresoFila}>
+              <MasterProgressbar altura={10} porcentaje={porcentaje} style={{ flex: 1 }} />
+              <Texto style={h.encabezadoPorcentaje}>{porcentaje}%</Texto>
+            </View>
+          </View>
         </View>
       </View>
 
@@ -444,10 +453,10 @@ function TimelineHoy() {
         </ScrollView>
       )}
 
-      {/* Selector de franja */}
-      <View style={{ marginBottom: 12 }}>
+      {/* Franjas: un ícono por cada una (amanecer, sol, luna, lista) con sus pendientes. */}
+      <View style={{ marginBottom: 14 }}>
         <SelectorFranja
-          color={C.morado}
+          color={esc.jade.l50}
           conteos={plan.conteos}
           etiquetaAccesible={etiquetaAccesible}
           etiquetas={etiquetasFiltro}
@@ -457,25 +466,23 @@ function TimelineHoy() {
       </View>
 
       {cargando ? (
-        <View style={{ gap: 10, paddingVertical: 12 }}>
-          <Skeleton alto={44} radio={10} />
-          <Skeleton alto={44} radio={10} />
-          <Skeleton alto={44} radio={10} />
+        <View style={{ gap: 10, paddingVertical: 4 }}>
+          <Skeleton alto={48} radio={14} />
+          <Skeleton alto={48} radio={14} />
+          <Skeleton alto={48} radio={14} />
         </View>
       ) : error ? (
-        <View style={{ alignItems: 'center', gap: 8, paddingVertical: 16 }}>
-          <Texto style={{ color: C.rojo, fontFamily: 'Montserrat-Bold', fontSize: 13 }}>
-            {t('hoy.errorCargar')}
-          </Texto>
-          <Pressable accessibilityRole="button" onPress={datos.reintentar} style={{ backgroundColor: C.moradoSuave, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 8 }}>
-            <Texto style={{ color: C.morado, fontFamily: 'Montserrat-Bold', fontSize: 12 }}>{t('hoy.reintentar')}</Texto>
+        <View style={h.estado}>
+          <Texto style={h.estadoError}>{t('hoy.errorCargar')}</Texto>
+          <Pressable accessibilityRole="button" onPress={datos.reintentar} style={h.estadoBoton}>
+            <Texto style={h.estadoBotonTexto}>{t('hoy.reintentar')}</Texto>
           </Pressable>
         </View>
       ) : plan.total === 0 && areaElegida !== null ? (
-        <View style={{ alignItems: 'center', gap: 8, paddingVertical: 20 }}>
-          <Texto style={{ color: C.textoSecundario, fontFamily: 'Montserrat-Medium', fontSize: 13 }}>{t('franjas.vacia')}</Texto>
-          <Pressable accessibilityRole="button" onPress={() => setAreaElegida(null)} style={{ backgroundColor: C.moradoSuave, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 6 }}>
-            <Texto style={{ color: C.morado, fontFamily: 'Montserrat-Bold', fontSize: 12 }}>{t('areas.todas')}</Texto>
+        <View style={h.estado}>
+          <Texto style={h.estadoTexto}>{t('franjas.vacia')}</Texto>
+          <Pressable accessibilityRole="button" onPress={() => setAreaElegida(null)} style={h.estadoBoton}>
+            <Texto style={h.estadoBotonTexto}>{t('areas.todas')}</Texto>
           </Pressable>
         </View>
       ) : plan.total === 0 ? (
@@ -486,114 +493,137 @@ function TimelineHoy() {
           <Pressable
             accessibilityRole="button"
             onPress={() => { hapticSeguro('seleccion'); router.navigate({ pathname: '/habitos', params: { abrirCreacion: '1' } } as never); }}
-            style={[s.invitacionBoton, { backgroundColor: C.morado }]}
+            style={[s.invitacionBoton, { backgroundColor: esc.jade.l50 }]}
           >
             <Texto style={[s.invitacionBotonTexto, { color: '#FFFFFF' }]}>{t('hoy.vacio.crearHabito')}</Texto>
           </Pressable>
           <Pressable
             accessibilityRole="button"
             onPress={() => { hapticSeguro('seleccion'); router.navigate('/rutinas' as never); }}
-            style={[s.invitacionBoton, { backgroundColor: C.moradoSuave }]}
+            style={[s.invitacionBoton, { backgroundColor: conAlfa(esc.jade.l50, 0.12) }]}
           >
-            <Texto style={[s.invitacionBotonTexto, { color: C.morado }]}>{t('hoy.vacio.rutinaLista')}</Texto>
+            <Texto style={[s.invitacionBotonTexto, { color: esc.jade.l34 }]}>{t('hoy.vacio.rutinaLista')}</Texto>
           </Pressable>
         </View>
       ) : plan.secciones.length === 0 ? (
-        <View style={{ alignItems: 'center', gap: 8, paddingVertical: 20 }}>
-          <Texto style={{ color: C.textoSecundario, fontFamily: 'Montserrat-Medium', fontSize: 13 }}>
-            {t('franjas.vacia')}
-          </Texto>
+        <View style={h.estado}>
+          <Texto style={h.estadoTexto}>{t('franjas.vacia')}</Texto>
           {filtro !== 'todo' && (
-            <Pressable onPress={() => setFiltro('todo')} style={{ backgroundColor: C.moradoSuave, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 6 }}>
-              <Texto style={{ color: C.morado, fontFamily: 'Montserrat-Bold', fontSize: 12 }}>{t('franjas.verTodo')}</Texto>
+            <Pressable accessibilityRole="button" onPress={() => setFiltro('todo')} style={h.estadoBoton}>
+              <Texto style={h.estadoBotonTexto}>{t('franjas.verTodo')}</Texto>
             </Pressable>
           )}
         </View>
       ) : (
-        <ScrollView
-          nestedScrollEnabled
-          showsVerticalScrollIndicator={false}
-          style={s.timelineScroll}
-        >
-          <View style={{ position: 'relative', paddingVertical: 4 }}>
-            <View style={s.timelineLineaContinua} />
+        <View>
+          {plan.secciones.map((seccion) => {
+            const IconoFranja = seccion.franja === 'cualquier_momento' ? null : ICONOS_FRANJA[seccion.franja];
+            const esUltimaSeccion = seccion === ultimaSeccion;
+            return (
+              <View key={seccion.franja} style={{ marginBottom: esUltimaSeccion ? 0 : 8 }}>
+                {filtro === 'todo' && (
+                  <View style={h.seccionFila}>
+                    {IconoFranja ? <IconoFranja color={esc.musgo.l49} size={14} strokeWidth={2.4} /> : null}
+                    <Texto style={h.seccionTitulo}>{t(`franjas.${seccion.franja}`)}</Texto>
+                  </View>
+                )}
 
-            {plan.secciones.map((seccion) => {
-              const nombreFranja =
-                seccion.franja === 'manana'
-                  ? t('franjas.manana')
-                  : seccion.franja === 'tarde'
-                    ? t('franjas.tarde')
-                    : seccion.franja === 'noche'
-                      ? t('franjas.noche')
-                      : t('franjas.cualquier_momento');
-
-              return (
-                <View key={seccion.franja} style={{ marginBottom: 12 }}>
-                  {filtro === 'todo' && (
-                    <View style={{ marginBottom: 6, paddingLeft: 30 }}>
-                      <Texto style={{ color: C.textoSecundario, fontFamily: 'Montserrat-Bold', fontSize: 11, textTransform: 'uppercase' }}>
-                        {nombreFranja}
-                      </Texto>
-                    </View>
-                  )}
-
-                  {seccion.pendientes.map((item) => {
-                    const colorElemento = item.color || (item.tipo === 'habito' ? C.verde : item.tipo === 'tarea' ? C.naranja : C.rojo);
-                    const etiquetaTipo = t(`hoy.tipo.${item.tipo}`);
-
-                    return (
-                      <Pressable accessibilityLabel={`${etiquetaTipo}: ${item.titulo}`} accessibilityRole="button" key={`${item.tipo}-${item.id}`} onPress={() => tocarElemento(item)} style={s.timelineItem}>
-                        <View style={s.timelineNodoCol}>
-                          <View style={s.timelineNodoVacio} />
+                {seccion.pendientes.map((item, indice) => {
+                  const clave = `${item.tipo}-${item.id}`;
+                  const esActivo = clave === claveActiva;
+                  const esUltimo = indice === seccion.pendientes.length - 1;
+                  const icono = buscarIconoHabito(item.iconoLucide);
+                  const tipo = t(`hoy.tipo.${item.tipo}`);
+                  return (
+                    <View key={clave} style={h.filaContenedor}>
+                      <View style={h.nodoColumna}>
+                        <View style={[h.nodo, esActivo ? h.nodoActivo : h.nodoPendiente]}>
+                          {esActivo ? <Play color="#FFFFFF" fill="#FFFFFF" size={10} /> : null}
                         </View>
-
-                        <View style={s.timelineTareaContenido}>
-                          <View style={[s.timelineTareaIcono, { backgroundColor: `${colorElemento}20` }]}>
-                            <IconoElementoVisual color={colorElemento} id={item.iconoLucide} size={14} />
+                        {!esUltimo && <View style={h.nodoLinea} />}
+                      </View>
+                      <Pressable accessibilityLabel={`${tipo}: ${item.titulo}`} accessibilityRole="button" onPress={() => tocarElemento(item)} style={h.filaTarjetaContenedor}>
+                        <MasterGlass style={h.filaTarjeta}>
+                          <View style={{ flex: 1 }}>
+                            <Texto numberOfLines={1} style={h.filaTitulo}>{item.titulo}</Texto>
+                            <Texto numberOfLines={1} style={h.filaSubtitulo}>{item.detalle ? `${tipo} · ${item.detalle}` : tipo}</Texto>
                           </View>
-                          <View style={s.timelineTareaTextos}>
-                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
-                              <Texto style={s.timelineTareaTitulo} numberOfLines={1}>{item.titulo}</Texto>
-                              <View style={{ backgroundColor: `${colorElemento}18`, borderRadius: 4, paddingHorizontal: 4, paddingVertical: 1 }}>
-                                <Texto style={{ color: colorElemento, fontFamily: 'Montserrat-Bold', fontSize: 9 }}>{etiquetaTipo}</Texto>
-                              </View>
-                            </View>
-                            {item.detalle && (
-                              <Texto style={s.timelineTareaSub} numberOfLines={1}>{item.detalle}</Texto>
-                            )}
-                          </View>
+                          <MasterGlass style={h.filaChevron}><ChevronRight color={esc.jade.l34} size={16} /></MasterGlass>
+                        </MasterGlass>
+                        {/* El ícono flota fuera del MasterGlass (que recorta su contenido) y se asoma arriba y abajo, igual que en Hábitos. */}
+                        <View pointerEvents="none" style={h.filaIconoFlotante}>
+                          <MasterIconBg fuente={icono?.fuente} size={48}>{!icono && <Sparkles color={esc.jade.l34} size={20} />}</MasterIconBg>
                         </View>
                       </Pressable>
-                    );
-                  })}
-
-                  {seccion.pendientesOcultos > 0 && (
-                    <Pressable
-                      onPress={() => alternarExpandida(seccion.franja)}
-                      style={{ alignSelf: 'flex-start', marginLeft: 30, marginTop: 4, paddingVertical: 4 }}
-                    >
-                      <Texto style={{ color: C.morado, fontFamily: 'Montserrat-Bold', fontSize: 11 }}>
-                        {t('franjas.verMas', { n: seccion.pendientesOcultos })}
-                      </Texto>
-                    </Pressable>
-                  )}
-
-                  {seccion.completados.length > 0 && (
-                    <View style={{ marginLeft: 30, marginTop: 4 }}>
-                      <Texto style={{ color: C.textoSecundario, fontFamily: 'MontserratAlternates-Medium', fontSize: 10 }}>
-                        {t('franjas.completados', { n: seccion.completados.length })}
-                      </Texto>
                     </View>
-                  )}
-                </View>
-              );
-            })}
-          </View>
-        </ScrollView>
+                  );
+                })}
+
+                {seccion.pendientesOcultos > 0 && (
+                  <Pressable accessibilityRole="button" onPress={() => alternarExpandida(seccion.franja)} style={h.verMas}>
+                    <Texto style={h.verMasTexto}>{t('franjas.verMas', { n: seccion.pendientesOcultos })}</Texto>
+                  </Pressable>
+                )}
+
+                {seccion.completados.length > 0 && (
+                  <View style={h.completadosFila}>
+                    <View style={[h.nodo, h.nodoCompletado, h.nodoChico]}><Check color="#FFFFFF" size={11} strokeWidth={3} /></View>
+                    <Texto style={h.completadosTexto}>{t('franjas.completados', { n: seccion.completados.length })}</Texto>
+                  </View>
+                )}
+              </View>
+            );
+          })}
+        </View>
       )}
-    </RecuadroGlass>
+    </MasterGlass>
   );
+}
+
+// Estilos de la sección "Hoy": los mismos valores que la sección "Hoy" de
+// HabitosPantalla (panel, encabezadoHoy*, nodo*, filaHoy*), con la escala del
+// tema activo. Si cambian allá, cambiar aquí igual.
+const crearEstilosSeccionHoy = (esc: EscalaMaster) => StyleSheet.create({
+  panel: { borderRadius: 22, padding: 15 },
+  encabezado: { marginBottom: 14 },
+  encabezadoFila: { alignItems: 'center', flexDirection: 'row', gap: 12 },
+  encabezadoTitulo: { color: esc.jade.l34, fontFamily: 'MontserratAlternates-Bold', fontSize: 26, lineHeight: 34 },
+  encabezadoCompletadas: { color: esc.musgo.l49, fontFamily: 'Montserrat-Bold', fontSize: 13, marginTop: 2 },
+  encabezadoProgresoFila: { alignItems: 'center', flexDirection: 'row', gap: 10, marginTop: 0 },
+  encabezadoPorcentaje: { color: esc.jade.l34, fontFamily: 'MontserratAlternates-Bold', fontSize: 13, minWidth: 36, textAlign: 'right' },
+  seccionFila: { alignItems: 'center', flexDirection: 'row', gap: 5, marginBottom: 8, marginTop: 2 },
+  seccionTitulo: { color: esc.musgo.l49, fontFamily: 'Montserrat-Bold', fontSize: 11, letterSpacing: 0.4, textTransform: 'uppercase' },
+  filaContenedor: { flexDirection: 'row' },
+  nodoColumna: { alignItems: 'center', marginRight: 10, width: 28 },
+  nodo: { alignItems: 'center', borderRadius: 14, height: 28, justifyContent: 'center', width: 28, zIndex: 1 },
+  nodoChico: { borderRadius: 10, height: 20, width: 20 },
+  nodoCompletado: { backgroundColor: esc.jade.l50 },
+  nodoActivo: { backgroundColor: esc.jade.l50 },
+  nodoPendiente: { backgroundColor: '#FFFFFF', borderColor: conAlfa(esc.jade.l34, 0.25), borderWidth: 2 },
+  nodoLinea: { backgroundColor: conAlfa(esc.jade.l34, 0.2), bottom: -8, position: 'absolute', top: 28, width: 2 },
+  filaTarjetaContenedor: { flex: 1, marginBottom: 9, position: 'relative' },
+  filaTarjeta: { alignItems: 'center', borderRadius: 14, flexDirection: 'row', gap: 8, paddingLeft: 66, paddingRight: 6, paddingVertical: 6 },
+  filaTitulo: { color: esc.hoja.l19, fontFamily: 'Montserrat-Bold', fontSize: 13, lineHeight: 15 },
+  filaSubtitulo: { color: esc.musgo.l49, fontFamily: 'Montserrat-Medium', fontSize: 10, lineHeight: 12, marginTop: 0 },
+  filaChevron: { alignItems: 'center', borderRadius: 14, height: 28, justifyContent: 'center', width: 28 },
+  filaIconoFlotante: { left: 6, marginTop: -24, position: 'absolute', top: '50%', zIndex: 2 },
+  verMas: { alignSelf: 'flex-start', marginBottom: 6, marginLeft: 38, paddingVertical: 4 },
+  verMasTexto: { color: esc.jade.l34, fontFamily: 'Montserrat-Bold', fontSize: 12 },
+  completadosFila: { alignItems: 'center', flexDirection: 'row', gap: 14, marginBottom: 6, marginLeft: 4 },
+  completadosTexto: { color: esc.musgo.l49, fontFamily: 'Montserrat-Medium', fontSize: 12 },
+  estado: { alignItems: 'center', gap: 8, paddingVertical: 16 },
+  estadoTexto: { color: esc.musgo.l49, fontFamily: 'Montserrat-Medium', fontSize: 13, textAlign: 'center' },
+  estadoError: { color: '#DC2626', fontFamily: 'Montserrat-Bold', fontSize: 13, textAlign: 'center' },
+  estadoBoton: { backgroundColor: conAlfa(esc.jade.l50, 0.12), borderRadius: 12, paddingHorizontal: 14, paddingVertical: 8 },
+  estadoBotonTexto: { color: esc.jade.l34, fontFamily: 'Montserrat-Bold', fontSize: 12 },
+});
+
+const estilosSeccionHoyPorEscala = new WeakMap<EscalaMaster, ReturnType<typeof crearEstilosSeccionHoy>>();
+function useEstilosSeccionHoy() {
+  const esc = useEscala();
+  let valor = estilosSeccionHoyPorEscala.get(esc);
+  if (!valor) { valor = crearEstilosSeccionHoy(esc); estilosSeccionHoyPorEscala.set(esc, valor); }
+  return valor;
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -929,116 +959,6 @@ const s = StyleSheet.create({
     paddingHorizontal: PH,
   },
 
-  // ─── Timeline ──────────────────────────────────────
-  timelineGlass: {
-    backgroundColor: C.glass,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: C.glassBorde,
-    padding: 10,
-  },
-  timelineHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginBottom: 10,
-  },
-  timelineTitulo: {
-    fontFamily: 'Montserrat-Bold',
-    fontSize: 18,
-    color: C.texto,
-  },
-  timelineContador: {
-    fontFamily: 'MontserratAlternates-Medium',
-    fontSize: 8,
-    color: C.textoSecundario,
-  },
-  timelineScroll: {
-    maxHeight: 320,
-  },
-  timelineItem: {
-    flexDirection: 'row',
-    marginBottom: 8,
-    paddingVertical: 3,
-  },
-  timelineNodoCol: {
-    width: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 6,
-  },
-  timelineLineaContinua: {
-    position: 'absolute',
-    top: 24, // Inicia en el centro del primer nodo
-    bottom: 24, // Termina en el centro del último nodo
-    left: 10, // Mitad del ancho del timelineNodoCol (22 / 2 = 11, pero ajustado visualmente a 10)
-    width: 2,
-    backgroundColor: C.barraFondo,
-    borderRadius: 1,
-  },
-  timelineNodo: {
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  timelineNodoVacio: {
-    width: 14,
-    height: 14,
-    borderRadius: 7,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 2,
-    borderColor: '#c8c8c8',
-  },
-  timelineTareaContenido: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.5)',
-    borderRadius: 10,
-    paddingHorizontal: 6,
-    paddingVertical: 6,
-    gap: 5,
-  },
-  timelineTareaActiva: {
-    backgroundColor: C.moradoSuave,
-    borderWidth: 1,
-    borderColor: C.moradoMedio,
-  },
-  timelineTareaIcono: {
-    width: 26,
-    height: 26,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  timelineTareaTextos: {
-    flex: 1,
-  },
-  timelineTareaTitulo: {
-    fontFamily: 'Montserrat-Bold',
-    fontSize: 8,
-    color: C.texto,
-    lineHeight: 11,
-  },
-  timelineTareaSub: {
-    fontFamily: 'MontserratAlternates-Medium',
-    fontSize: 7,
-    color: C.textoSecundario,
-    lineHeight: 9,
-  },
-  timelinePlayBtn: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: C.morado,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  timelineMore: {
-    padding: 2,
-  },
 });
 
 // ─── Utilidad de sombra ──────────────────────────────
