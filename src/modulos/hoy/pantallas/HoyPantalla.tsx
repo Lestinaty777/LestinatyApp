@@ -31,7 +31,7 @@ import { construirPlanDelDia, idsDeRutinasDeHoy, SIN_AREA, type ElementoHoy } fr
 import { nombreArea } from '../../areas/areas.mapper';
 import type { AreaVidaResumen } from '../../areas/areas.tipos';
 import { areaPorMeta } from '../../metas/metas.mapper';
-import { habitoAElemento, resumirCategoriasHoy, rutinaAElemento, tareaAElemento, textoAvance } from '../adaptadoresHoy';
+import { habitoAElemento, resumirCategoriasHoy, rutinaAElemento, tareaAElemento } from '../adaptadoresHoy';
 import { nivelDesdeXp } from '../nivelUsuario';
 import { detectarPrimeraVictoria, tipoDePrimeraVictoria } from '../primeraVictoria';
 import { RESUMEN_HOY_VACIO, indiceDiaSemana } from '../resumenHoy.mapper';
@@ -213,28 +213,13 @@ const CATEGORIAS_CON_PANTALLA = new Set(['tareas', 'rutinas', 'habitos', 'metas'
 function GridCategorias() {
   const router = useRouter();
   const { t } = useTranslation();
-  const datos = useDatosHoy();
-  const avance = useMemo(
-    () => resumirCategoriasHoy({ habitos: datos.habitos ?? [], tareas: datos.tareas ?? [], rutinas: datos.rutinas ?? [] }),
-    [datos.habitos, datos.tareas, datos.rutinas],
-  );
-  const habitosProgreso = textoAvance(avance.habitos);
-  const rutinasProgreso = textoAvance(avance.rutinas);
-  const tareasProgreso = textoAvance(avance.tareas);
-
-  function obtenerAnchoProgreso(progreso: string) {
-    if (!progreso) return 0;
-    const [act, max] = progreso.split('/');
-    if (!act || !max) return 0;
-    return (parseInt(act) / parseInt(max)) * 100;
-  }
 
   const categorias = useMemo(() => [
-    { id: 'tareas', label: t('hoy.categorias.tareas'), subtitulo: t('hoy.categoriasSubtitulos.tareas'), progreso: tareasProgreso, color: C.amarillo, icono: 'hoy/tareas' },
-    { id: 'rutinas', label: t('hoy.categorias.rutinas'), subtitulo: t('hoy.categoriasSubtitulos.rutinas'), progreso: rutinasProgreso, color: C.rojo, icono: 'hoy/rutinas' },
-    { id: 'habitos', label: t('hoy.categorias.habitos'), subtitulo: t('hoy.categoriasSubtitulos.habitos'), progreso: habitosProgreso, color: C.verde, icono: 'hoy/habitos' },
-    { id: 'metas', label: t('hoy.categorias.metas'), subtitulo: t('hoy.categoriasSubtitulos.metas'), progreso: '', color: C.azul, icono: 'hoy/metas' },
-  ], [habitosProgreso, rutinasProgreso, tareasProgreso, t]);
+    { id: 'tareas', label: t('hoy.categorias.tareas'), subtitulo: t('hoy.categoriasSubtitulos.tareas'), color: C.amarillo, icono: 'hoy/tareas' },
+    { id: 'rutinas', label: t('hoy.categorias.rutinas'), subtitulo: t('hoy.categoriasSubtitulos.rutinas'), color: C.rojo, icono: 'hoy/rutinas' },
+    { id: 'habitos', label: t('hoy.categorias.habitos'), subtitulo: t('hoy.categoriasSubtitulos.habitos'), color: C.verde, icono: 'hoy/habitos' },
+    { id: 'metas', label: t('hoy.categorias.metas'), subtitulo: t('hoy.categoriasSubtitulos.metas'), color: C.azul, icono: 'hoy/metas' },
+  ], [t]);
 
   return (
     <View style={s.categoriasRow}>
@@ -249,14 +234,6 @@ function GridCategorias() {
               <View style={s.categoriaTexto}>
                 <Texto adjustsFontSizeToFit minimumFontScale={0.8} numberOfLines={1} style={s.categoriaLabel}>{cat.label}</Texto>
                 <Texto numberOfLines={2} style={s.categoriaSubtitulo}>{cat.subtitulo}</Texto>
-                {cat.progreso !== '' && (
-                  <View style={s.categoriaAvance}>
-                    <View style={s.categoriaBarraFondo}>
-                      <View style={[s.categoriaBarraRelleno, { backgroundColor: cat.color, width: `${obtenerAnchoProgreso(cat.progreso)}%` }]} />
-                    </View>
-                    <Texto style={s.categoriaProgreso}>{cat.progreso}</Texto>
-                  </View>
-                )}
               </View>
             </MasterGlass>
           </Rebote>
@@ -886,7 +863,7 @@ const s = StyleSheet.create({
     marginBottom: 16,
   },
   categoriaCard: { flex: 1 },
-  categoriaGlass: { alignItems: 'center', borderRadius: 14, justifyContent: 'flex-start', minHeight: 116, padding: 8 },
+  categoriaGlass: { alignItems: 'center', borderRadius: 14, justifyContent: 'flex-start', minHeight: 100, padding: 8 },
   categoriaTexto: { alignItems: 'center', marginTop: 5, minHeight: 31, width: '100%' },
   categoriaLabel: {
     fontFamily: 'MontserratAlternates-Bold',
@@ -904,25 +881,6 @@ const s = StyleSheet.create({
     // Siempre el alto de dos líneas, aunque el texto quepa en una: así las cuatro tarjetas quedan alineadas.
     minHeight: 28,
     textAlign: 'center',
-  },
-  categoriaAvance: { alignItems: 'center', flexDirection: 'row', gap: 4, marginTop: 5, width: '100%' },
-  categoriaProgreso: {
-    fontFamily: 'Montserrat-Medium',
-    fontSize: 9,
-    color: C.textoTenue,
-    lineHeight: 11,
-  },
-  categoriaBarraFondo: {
-    flex: 1,
-    height: 2,
-    borderRadius: 1,
-    backgroundColor: 'rgba(26,19,53,0.08)',
-    overflow: 'hidden',
-  },
-  categoriaBarraRelleno: {
-    height: 2,
-    borderRadius: 1,
-    opacity: 0.75,
   },
 
   // ─── Sendero Card ──────────────────────────────────
