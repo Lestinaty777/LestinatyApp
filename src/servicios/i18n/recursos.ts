@@ -140,6 +140,20 @@ export const recursosI18n = {
           d1: 'M', d2: 'T', d3: 'W', d4: 'T', d5: 'F', d6: 'S', d7: 'S',
         },
       },
+      franjas: {
+        manana: 'Morning',
+        tarde: 'Afternoon',
+        noche: 'Night',
+        cualquier_momento: 'Any time',
+        todo: 'All',
+        titulo: 'What time of day?',
+        sugerida: 'Suggested from the reminder time',
+        pendientes: '{{franja}}, {{n}} pending',
+        vacia: 'Nothing pending in this slot',
+        verTodo: 'See all',
+        verMas: 'See {{n}} more',
+        completados: '{{n}} completed',
+      },
       planes: {
         pantalla: {
           saludo: 'Hello,', titulo: 'Plans', comprarGemas: 'Buy gems', notificaciones: 'Notifications', volverAlInicio: 'Back to home',
@@ -1321,6 +1335,20 @@ export const recursosI18n = {
           resumenPasos_one: '{{count}} paso', resumenPasos_other: '{{count}} pasos',
           d1: 'L', d2: 'M', d3: 'X', d4: 'J', d5: 'V', d6: 'S', d7: 'D',
         },
+      },
+      franjas: {
+        manana: 'Mañana',
+        tarde: 'Tarde',
+        noche: 'Noche',
+        cualquier_momento: 'Sin franja',
+        todo: 'Todo',
+        titulo: '¿En qué momento del día?',
+        sugerida: 'Sugerida por la hora del recordatorio',
+        pendientes: '{{franja}}, {{n}} pendientes',
+        vacia: 'Nada pendiente en esta franja',
+        verTodo: 'Ver todo',
+        verMas: 'Ver {{n}} más',
+        completados: '{{n}} completados',
       },
       planes: {
         pantalla: {
