@@ -50,9 +50,9 @@ Todo lo de esta sección está comprobado contra la base real y el repositorio. 
 
 ### 1.1 Dónde estamos
 
-- Rama `mejoras`. **Hechas las fases 0 a 6B y la parte de dominio, selector y filtro de la Fase 8** (tareas 8.1 a 8.5).
+- Rama `mejoras`. **Hechas las fases 0 a 6B, la 8 y la 9** (pantalla de Metas).
 - **Migraciones 01 a 88 aplicadas en la base real.** La **89** (`20261009_89_tareas_quitar_routine_id.sql`) está escrita y ensayada, **pendiente de aplicar** por el usuario.
-- 109 archivos de test y 686 tests en verde; `npm run typecheck` limpio.
+- 111 archivos de test y 700 tests en verde; `npm run typecheck` limpio.
 - Nada de lo construido en las fases 2 a 8 se ha visto correr en un dispositivo: **todo está pendiente de prueba visual** (ver sección 1.5).
 
 Numeración de migraciones (para no confundirse: los documentos antiguos usan otros números):
@@ -90,8 +90,9 @@ Numeración de migraciones (para no confundirse: los documentos antiguos usan ot
 | Analítica del embudo | Hecho (Fase 6). No envía nada hasta que exista `EXPO_PUBLIC_POSTHOG_KEY`; además exige el permiso de analítica de cada persona |
 | Invitación en Hoy vacío y primera victoria | Hecho (Fase 6B) |
 | Áreas y metas: dominio, `SelectorMeta` al crear, filtro por área en Hoy | Hecho (tareas 8.2 a 8.5). `SelectorMeta` no se muestra mientras la persona no tenga metas |
-| Pantalla de Metas (crear, listar, detalle) | **Falta** (Fase 9): bloqueada por la decisión 17. Hasta entonces no hay forma de crear una meta desde la app |
-| Cambiar la meta de algo ya creado | **Falta**: irá en el detalle de la meta (Fase 9) |
+| Pantalla de Metas | Hecho (Fase 9). Ruta `app/(principal)/metas.tsx`, se entra desde la tarjeta "Metas" de Hoy. Tema Celesthia (azul). Arriba las áreas como filtro; cuatro pestañas: Mis metas, Crear, Logradas, Áreas |
+| Cambiar la meta de algo ya creado | Hecho: al abrir una meta, "Añadir o quitar contenido" |
+| Pantallas de maqueta de Metas (`PanelMetasPantalla`, `MetasListaPantalla`, `DetalleMetaPantalla`, `tipos.ts`, `metas.estado.ts`) | Sin uso desde la Fase 9. No se borraron: decide el usuario |
 | Edición de tarea con franja | **Falta**: no existe formulario de edición de tareas |
 | Plantillas premium reales | **Falta** (Fase 7): necesita contenido aprobado por el usuario |
 | Packs, límites y trial en servidor, Live Activities | **Falta y sin spec** (Fases 10 a 13) |
@@ -216,7 +217,6 @@ Si crees que necesitas otra tabla, columna o RPC, **PARADA** y explícalo: lo m�
 | 2 | `npx supabase functions deploy despachar-recordatorios-habitos` | Sin esto no salen los recordatorios de rutina (los de hábitos y tareas siguen funcionando) |
 | 3 | Aplicar la migración 89, después de instalar la app nueva | Limpieza; no bloquea nada |
 | 4 | Crear un proyecto en PostHog y poner `EXPO_PUBLIC_POSTHOG_KEY` en `.env`; añadir PostHog al inventario de privacidad antes de publicar | Sin clave la analítica no envía nada |
-| 5 | Decidir dónde vive la pantalla de Metas (decisión 17) | Desbloquea la Fase 9 |
 | 6 | Aprobar contenido y precio de las plantillas premium (decisión 6) | Desbloquea la Fase 7 |
 | 7 | Usar la app dos semanas y llenar `docs/fricciones.md` | Fase 5B: esa lista ordena lo que sigue |
 
@@ -229,6 +229,7 @@ Qué probar en dispositivo, en orden:
 5. **Ajustes → Franjas del día:** mover las horas y ver que Hoy abre en la franja correcta.
 6. **Insights → Tu mejor franja:** con menos de 7 registros muestra la barra de "faltan datos".
 7. **Cuenta nueva:** Hoy muestra "Tu primer paso"; al completar el primer hábito aparece el aviso una vez.
+8. **Metas:** entrar desde la tarjeta de Hoy; crear una meta en Cuerpo con plazo de 30 días; abrirla y añadirle un hábito; filtrar por área arriba; marcarla lograda y verla en Logradas; crear un área propia en la pestaña Áreas. Después, en Hoy debe aparecer el chip rojo "Cuerpo" y, al crear un hábito, la pregunta "¿Para qué meta es?".
 
 ---
 
@@ -247,13 +248,13 @@ Qué probar en dispositivo, en orden:
 | 6B | Primera victoria de un usuario nuevo | 3, 6 | **Hecha** |
 | 7 | Plantillas premium reales | 0, 6 | Sí (solo datos) |
 | 8 | Áreas de vida y metas: dominio, selector de meta y filtro por área en Hoy | 3 | **Hecha** (el cambio de meta al editar pasa a la Fase 9) |
-| 9 | Pantalla de Metas real | 8 | Ya definida (87) |
+| 9 | Pantalla de Metas real | 8 | **Hecha** |
 | 10 | Packs por área | 7, 8, 9 | Sí (solo datos) |
 | 11 | Límites gratis/Horizon en servidor y trial | 6 | Sí |
 | 12 | Live Activities (iOS) | 4 | No |
 | 13 | Finanzas sencillas | 8, 9 | Por decidir |
 
-Las fases 0 a 6B y la 8 están hechas. **Lo siguiente es la Fase 9 (pantalla de Metas), que espera la decisión 17, y la Fase 7, que espera la decisión 6.** Las fases 1–9 (incluidas 5B y 6B) están detalladas. Las fases 10–13 **no tienen spec**: su primera tarea es escribirlo y hacer PARADA. La sección 3 dice cuándo se retoman las fases 6–10 de la visión (modelo unificado, Aby, cooperativo, cursos, marketplace).
+Las fases 0 a 6B, la 8 y la 9 están hechas. **Lo siguiente es la Fase 7, que espera la decisión 6 (contenido de las plantillas premium), y la pausa de uso real (5B).** Las fases 1–9 (incluidas 5B y 6B) están detalladas. Las fases 10–13 **no tienen spec**: su primera tarea es escribirlo y hacer PARADA. La sección 3 dice cuándo se retoman las fases 6–10 de la visión (modelo unificado, Aby, cooperativo, cursos, marketplace).
 
 ---
 
@@ -967,7 +968,7 @@ Mientras no responda, usa el valor por defecto de la tabla.
 | 14 | Nombre del área espiritual | "Espiritual" (código `espiritual`) | Fase 8 |
 | 15 | ¿Un elemento sin meta puede tener área? | No: el área siempre viene de la meta | Fase 8 |
 | 16 | ¿Cómo avanza una meta? | La persona la marca como lograda; la base solo cuenta los días | Fases 8 y 9 |
-| 17 | Dónde vive la pantalla de Metas | Sin decidir (bloquea la fase 9) | Tarea 9.1 |
+| 17 | Dónde vive la pantalla de Metas | **Decidido (2026-10-10):** pantalla propia como Hábitos y Tareas, con las áreas arriba como filtro y cuatro pestañas; tema Celesthia | Fase 9 |
 
 ## 5. Qué reportar al terminar cada fase
 
