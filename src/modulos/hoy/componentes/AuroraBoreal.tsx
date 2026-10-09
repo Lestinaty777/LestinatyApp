@@ -18,7 +18,7 @@ import {
 import { useEscala } from '../../../diseno/tema/MasterColorContext';
 import { conAlfa } from '../../../diseno/tema/masterColor';
 
-export type TemaAurora = 'morado' | 'amarillo' | 'verde' | 'grafito' | 'rojo';
+export type TemaAurora = 'morado' | 'amarillo' | 'verde' | 'grafito' | 'rojo' | 'azul';
 
 interface Props {
   tema?: TemaAurora;
@@ -93,6 +93,13 @@ export function AuroraBoreal({ tema = 'morado' }: Props) {
               l2: ['rgba(248, 113, 113, 0.7)', 'rgba(254, 202, 202, 0.1)'],
               l3: ['rgba(185, 28, 28, 0.6)', 'rgba(248, 113, 113, 0)'],
             }
+          : tema === 'azul'
+            ? {
+                // Azul Celesthia (#01B0CF): fondo de Metas.
+                l1: ['rgba(1, 176, 207, 0.8)', 'rgba(125, 220, 240, 0.2)'],
+                l2: ['rgba(56, 198, 224, 0.7)', 'rgba(186, 236, 247, 0.1)'],
+                l3: ['rgba(2, 132, 170, 0.6)', 'rgba(1, 176, 207, 0)'],
+              }
           : {
         l1: ['rgba(124, 58, 237, 0.8)', 'rgba(192, 132, 252, 0.2)'],
         l2: ['rgba(167, 139, 250, 0.7)', 'rgba(216, 180, 254, 0.1)'],

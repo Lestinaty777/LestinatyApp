@@ -92,6 +92,12 @@ export default function LayoutPrincipal() {
         name="tareas"
         options={{ href: null }}
       />
+      {/* Mismo criterio que "habitos" y "tareas": se llega desde el hub de Hoy,
+          no es un destino de la barra, pero la barra persiste mientras se usa. */}
+      <Tabs.Screen
+        name="metas"
+        options={{ href: null }}
+      />
       <Tabs.Screen
         name="senderos"
         options={{ title: 'Senderos' }}

@@ -6,7 +6,6 @@ import { describe, expect, it } from 'vitest';
 const raiz = process.cwd();
 
 const rutasRetiradas = [
-  'app/(principal)/metas.tsx',
   'app/(principal)/mi-espacio.tsx',
   'app/(principal)/vista-paquete.tsx',
   'app/metas-lista/index.tsx',
@@ -16,6 +15,10 @@ const rutasRetiradas = [
   'app/senderos/analisis.tsx',
   'app/senderos/leccion.tsx',
   'app/senderos/mision.tsx',
+  // 'app/(principal)/metas.tsx' salió de esta lista a propósito, igual que
+  // Tareas: Metas dejó de ser el mock que este test bloqueaba y ahora es una
+  // pantalla real sobre public.metas y areas_vida (src/modulos/metas/,
+  // migración 87). Las otras rutas viejas de metas siguen retiradas.
   // 'app/tareas/index.tsx' salió de esta lista a propósito: Tareas dejó de
   // ser el mock "Próximamente" que este test bloqueaba y se está
   // reconstruyendo como una pantalla real (rama mejoras, ver
@@ -36,7 +39,7 @@ describe('superficie de rutas del release de hábitos', () => {
     const layoutPrincipal = leer('app/(principal)/_layout.tsx');
 
     expect(layoutRaiz).not.toMatch(/senderos\/(analisis|leccion|\[id\])|metas\/\[id\]/);
-    expect(layoutPrincipal).not.toMatch(/name="(metas|mi-espacio)"/);
+    expect(layoutPrincipal).not.toMatch(/name="mi-espacio"/);
   });
 
   it('no conserva un layout de configuración sin pantallas', () => {

@@ -1,5 +1,6 @@
 import { fechaLocalHoy } from '../../nucleo/dispositivo/fechaLocal';
 import { obtenerClienteSupabase } from '../../servicios/base-datos/supabase';
+import type { ElementoDeMeta } from './metas.logica';
 import { mapearMetas } from './metas.mapper';
 import type { CrearMetaInput, EditarMetaInput, MetaVida, TipoElementoMeta } from './metas.tipos';
 
@@ -67,4 +68,30 @@ export const archivarMeta = (metaId: string) => cambiarEstado(metaId, 'archivada
 export async function asignarMeta(tipo: TipoElementoMeta, elementoId: string, metaId: string | null): Promise<void> {
   const { error } = await obtenerClienteSupabase().rpc('asignar_meta', { p_tipo: tipo, p_elemento_id: elementoId, p_meta_id: metaId });
   if (error) throw error;
+}
+
+export const CLAVE_ELEMENTOS_DE_METAS = ['metas', 'elementos'] as const;
+
+/**
+ * Todo lo que la persona puede poner dentro de una meta, con la meta que ya
+ * tiene: hábitos activos, tareas y rutinas sin archivar, y planes propios.
+ * Lectura directa (RLS limita a lo propio). Si una de las cuatro falla, se
+ * devuelve lo de las demás: una lista parcial es mejor que ninguna.
+ */
+export async function obtenerElementosDeMetas(): Promise<ElementoDeMeta[]> {
+  const supabase = obtenerClienteSupabase();
+  const { data: sesion } = await supabase.auth.getUser();
+  const usuarioId = sesion.user?.id;
+  if (!usuarioId) throw new Error('Metas: se necesita una sesión.');
+  const [habitos, tareas, rutinas, planes] = await Promise.all([
+    supabase.from('habitos_items').select('id, titulo, meta_id').eq('estado', 'activo').order('created_at', { ascending: true }),
+    supabase.from('tareas_items').select('id, titulo, meta_id').neq('estado', 'archivada').order('orden', { ascending: true }),
+    supabase.from('rutinas_items').select('id, titulo, meta_id').neq('estado', 'archivada').order('created_at', { ascending: true }),
+    // Solo planes propios: en uno compartido por otra persona no se puede poner una meta.
+    supabase.from('planes_items').select('id, titulo, meta_id').eq('usuario_id', usuarioId).order('created_at', { ascending: true }),
+  ]);
+  if (habitos.error && tareas.error && rutinas.error && planes.error) throw habitos.error;
+  type Fila = { id: string; titulo: string; meta_id: string | null };
+  const de = (tipo: ElementoDeMeta['tipo'], filas: unknown) => ((filas ?? []) as Fila[]).map((fila): ElementoDeMeta => ({ tipo, id: fila.id, titulo: fila.titulo, metaId: fila.meta_id }));
+  return [...de('habito', habitos.data), ...de('tarea', tareas.data), ...de('rutina', rutinas.data), ...de('plan', planes.data)];
 }
