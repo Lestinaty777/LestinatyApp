@@ -12,7 +12,7 @@ import type { HabitoResumen } from '../../habitos/tipos';
 import type { Tarea } from '../../tareas/tareas.tipos';
 import { leerObjetivo } from '../formatoRutina';
 import type { PlantillaRutina } from '../plantillasRutinas';
-import { MAX_PASOS_RUTINA, type CrearRutinaInput, type FrecuenciaRutina, type ModoPasoPropio, type PasoNuevoRutina } from '../rutinas.tipos';
+import { MAX_PASOS_RUTINA, type CrearRutinaInput, type FrecuenciaRutina, type ModoPasoPropio, type PasoNuevoRutina, type PasoRutina, type Rutina } from '../rutinas.tipos';
 
 const C = { texto: '#1A1335', tenue: '#7B7494', campo: '#FFFFFF', borde: '#E4DDF0', error: '#DC2626' };
 const HORA_VALIDA = /^([01]\d|2[0-3]):[0-5]\d$/;
@@ -23,10 +23,20 @@ const MODOS: readonly ModoPasoPropio[] = ['simple', 'cronometro', 'contador'];
 const ETAPAS = ['identidad', 'pasos', 'programacion', 'revision'] as const;
 type Etapa = (typeof ETAPAS)[number];
 
+/** `id` = id del paso en el servidor, solo al editar una rutina existente (se conserva con sus registros). */
 type BorradorPaso =
-  | { clave: string; esencial: boolean; origen: 'habito'; habitoId: string; titulo: string }
-  | { clave: string; esencial: boolean; origen: 'tarea'; tareaId: string; titulo: string }
-  | { clave: string; esencial: boolean; origen: 'propio'; titulo: string; modo: ModoPasoPropio; objetivo: string; unidad: string };
+  | { clave: string; id?: string; esencial: boolean; origen: 'habito'; habitoId: string; titulo: string }
+  | { clave: string; id?: string; esencial: boolean; origen: 'tarea'; tareaId: string; titulo: string }
+  | { clave: string; id?: string; esencial: boolean; origen: 'propio'; titulo: string; modo: ModoPasoPropio; objetivo: string; unidad: string };
+
+/** Paso de una rutina existente → borrador editable. null si el paso no se puede representar (no debería ocurrir). */
+function borradorDesdePaso(paso: PasoRutina, clave: string): BorradorPaso | null {
+  const comun = { clave, id: paso.id, esencial: paso.esencial };
+  if (paso.origen === 'habito') return paso.habitoId ? { ...comun, origen: 'habito', habitoId: paso.habitoId, titulo: paso.titulo } : null;
+  if (paso.origen === 'tarea') return paso.tareaId ? { ...comun, origen: 'tarea', tareaId: paso.tareaId, titulo: paso.titulo } : null;
+  if (paso.modo === 'checklist') return null;
+  return { ...comun, origen: 'propio', titulo: paso.titulo, modo: paso.modo, objetivo: paso.objetivoValor ? String(paso.objetivoValor) : '', unidad: paso.unidad ?? '' };
+}
 
 function borradorValido(paso: BorradorPaso): boolean {
   if (paso.origen !== 'propio') return true;
@@ -35,15 +45,16 @@ function borradorValido(paso: BorradorPaso): boolean {
 }
 
 function aPasoNuevo(paso: BorradorPaso): PasoNuevoRutina {
-  if (paso.origen === 'habito') return { origen: 'habito', habitoId: paso.habitoId, esencial: paso.esencial };
-  if (paso.origen === 'tarea') return { origen: 'tarea', tareaId: paso.tareaId, esencial: paso.esencial };
+  const id = paso.id ? { id: paso.id } : {};
+  if (paso.origen === 'habito') return { ...id, origen: 'habito', habitoId: paso.habitoId, esencial: paso.esencial };
+  if (paso.origen === 'tarea') return { ...id, origen: 'tarea', tareaId: paso.tareaId, esencial: paso.esencial };
   return {
-    origen: 'propio', titulo: paso.titulo.trim(), modo: paso.modo, esencial: paso.esencial,
+    ...id, origen: 'propio', titulo: paso.titulo.trim(), modo: paso.modo, esencial: paso.esencial,
     ...(paso.modo === 'simple' ? {} : { objetivoValor: leerObjetivo(paso.objetivo) ?? 1, unidad: paso.unidad.trim() || (paso.modo === 'cronometro' ? 'min' : undefined) }),
   };
 }
 
-export function CrearRutinaWizard({ color, guardando, habitos, onCerrar, onCrear, plantilla, tareas, visible }: {
+export function CrearRutinaWizard({ color, guardando, habitos, onCerrar, onCrear, plantilla, rutinaInicial = null, tareas, visible }: {
   color: string;
   guardando: boolean;
   habitos: readonly HabitoResumen[];
@@ -51,6 +62,8 @@ export function CrearRutinaWizard({ color, guardando, habitos, onCerrar, onCrear
   onCrear: (input: CrearRutinaInput) => Promise<void>;
   /** Si viene (y está desbloqueada), el asistente arranca con todo cargado y se puede cambiar. */
   plantilla: PlantillaRutina | null;
+  /** Si viene, el asistente edita esa rutina: arranca con sus datos y `onCrear` debe guardarla en vez de crear otra. */
+  rutinaInicial?: Rutina | null;
   tareas: readonly Tarea[];
   visible: boolean;
 }) {
@@ -70,12 +83,27 @@ export function CrearRutinaWizard({ color, guardando, habitos, onCerrar, onCrear
   const [mostrarNombre, setMostrarNombre] = useState(true);
   const [error, setError] = useState(false);
 
-  // Cada vez que se abre, arranca limpio o desde la plantilla elegida.
+  // Cada vez que se abre, arranca limpio, desde la plantilla elegida o desde la rutina que se edita.
   useEffect(() => {
     if (!visible) return;
     setEtapaIndice(0);
     setError(false);
     setAgregando(null);
+    if (rutinaInicial) {
+      setFrecuencia(rutinaInicial.frecuencia);
+      setDias(rutinaInicial.diasSemana?.length ? rutinaInicial.diasSemana : [1, 2, 3, 4, 5]);
+      setRecordatorio(rutinaInicial.recordatorioActivo);
+      setHora(rutinaInicial.horaInicio ?? '08:00');
+      setMostrarNombre(rutinaInicial.mostrarNombreNotificacion);
+      setTitulo(rutinaInicial.titulo);
+      setFranja(rutinaInicial.franja);
+      setIconoId(rutinaInicial.iconoLucide);
+      setPasos([...rutinaInicial.pasos].sort((a, b) => a.orden - b.orden).flatMap((paso) => {
+        const borrador = borradorDesdePaso(paso, nuevaClave());
+        return borrador ? [borrador] : [];
+      }));
+      return;
+    }
     setFrecuencia('diaria');
     setDias([1, 2, 3, 4, 5]);
     setRecordatorio(false);
@@ -88,7 +116,7 @@ export function CrearRutinaWizard({ color, guardando, habitos, onCerrar, onCrear
       clave: nuevaClave(), esencial: paso.esencial !== false, origen: 'propio', titulo: paso.titulo, modo: paso.modo,
       objetivo: paso.objetivoValor ? String(paso.objetivoValor) : '', unidad: paso.unidad ?? '',
     })));
-  }, [visible, plantilla]);
+  }, [visible, plantilla, rutinaInicial]);
 
   const etapa: Etapa = ETAPAS[etapaIndice];
   const horaValida = HORA_VALIDA.test(hora);
@@ -160,6 +188,7 @@ export function CrearRutinaWizard({ color, guardando, habitos, onCerrar, onCrear
             </View>
 
             <ScrollView contentContainerStyle={estilos.contenido} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+              {rutinaInicial ? <Texto style={estilos.ayuda}>{t('rutinas.editar.titulo')}</Texto> : null}
               <Texto accessibilityRole="header" style={estilos.titulo}>{tituloEtapa}</Texto>
 
               {etapa === 'identidad' && (
@@ -320,7 +349,7 @@ export function CrearRutinaWizard({ color, guardando, habitos, onCerrar, onCrear
                     </Texto>
                     {pasos.map((paso, indice) => <Texto key={paso.clave} numberOfLines={1} style={estilos.resumenPaso}>{indice + 1}. {paso.titulo.trim()}</Texto>)}
                   </MasterGlass>
-                  {error ? <Texto style={estilos.error}>{t('rutinas.crear.errorCrear')}</Texto> : null}
+                  {error ? <Texto style={estilos.error}>{t(rutinaInicial ? 'rutinas.editar.error' : 'rutinas.crear.errorCrear')}</Texto> : null}
                 </View>
               )}
             </ScrollView>
@@ -329,7 +358,7 @@ export function CrearRutinaWizard({ color, guardando, habitos, onCerrar, onCrear
               {etapaIndice > 0 ? <View style={{ flex: 1 }}><Boton color={color} onPress={() => setEtapaIndice((actual) => actual - 1)} variante="secundario">{t('rutinas.crear.atras')}</Boton></View> : null}
               <View style={{ flex: 2 }}>
                 <Boton color={color} disabled={!puedeContinuar || guardando} onPress={() => (esUltima ? void crear() : setEtapaIndice((actual) => actual + 1))} variante="sendero">
-                  {esUltima ? (guardando ? t('rutinas.crear.creando') : t('rutinas.crear.crear')) : t('rutinas.crear.siguiente')}
+                  {esUltima ? (rutinaInicial ? (guardando ? t('rutinas.editar.guardando') : t('rutinas.editar.guardar')) : (guardando ? t('rutinas.crear.creando') : t('rutinas.crear.crear'))) : t('rutinas.crear.siguiente')}
                 </Boton>
               </View>
             </View>

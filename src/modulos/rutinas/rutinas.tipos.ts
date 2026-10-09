@@ -57,10 +57,15 @@ export type Rutina = {
   pasos: PasoRutina[];
 };
 
+/**
+ * `id` solo al editar: el id de un paso que ya existe en la rutina. El servidor
+ * (actualizar_rutina, migración 85) conserva ese paso con sus registros en vez
+ * de borrarlo y crearlo de nuevo.
+ */
 export type PasoNuevoRutina =
-  | { origen: 'habito'; habitoId: string; esencial?: boolean }
-  | { origen: 'tarea'; tareaId: string; esencial?: boolean }
-  | { origen: 'propio'; titulo: string; modo: ModoPasoPropio; objetivoValor?: number; unidad?: string; esencial?: boolean };
+  | { id?: string; origen: 'habito'; habitoId: string; esencial?: boolean }
+  | { id?: string; origen: 'tarea'; tareaId: string; esencial?: boolean }
+  | { id?: string; origen: 'propio'; titulo: string; modo: ModoPasoPropio; objetivoValor?: number; unidad?: string; esencial?: boolean };
 
 export type CrearRutinaInput = {
   titulo: string;

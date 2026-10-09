@@ -1,4 +1,4 @@
-import { Archive, Sparkles } from 'lucide-react-native';
+import { Archive, Pencil, Sparkles } from 'lucide-react-native';
 import { Alert, Pressable, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
@@ -9,7 +9,7 @@ import type { Rutina } from '../rutinas.tipos';
 
 const C = { texto: '#1A1335', tenue: '#7B7494' };
 
-export function ListaMisRutinas({ onArchivar, rutinas }: { onArchivar: (rutina: Rutina) => void; rutinas: readonly Rutina[] }) {
+export function ListaMisRutinas({ onArchivar, onEditar, rutinas }: { onArchivar: (rutina: Rutina) => void; onEditar: (rutina: Rutina) => void; rutinas: readonly Rutina[] }) {
   const { t } = useTranslation();
   if (rutinas.length === 0) return <Texto style={estilos.vacio}>{t('rutinas.misRutinas.vacio')}</Texto>;
 
@@ -34,6 +34,9 @@ export function ListaMisRutinas({ onArchivar, rutinas }: { onArchivar: (rutina: 
               <Texto numberOfLines={1} style={estilos.titulo}>{rutina.titulo}</Texto>
               <Texto numberOfLines={2} style={estilos.meta}>{partes.join(' · ')}</Texto>
             </View>
+            <Pressable accessibilityLabel={t('rutinas.misRutinas.editar', { titulo: rutina.titulo })} accessibilityRole="button" hitSlop={10} onPress={() => onEditar(rutina)} style={estilos.archivar}>
+              <Pencil color={C.tenue} size={18} />
+            </Pressable>
             <Pressable accessibilityLabel={t('rutinas.misRutinas.archivarTitulo', { titulo: rutina.titulo })} accessibilityRole="button" hitSlop={10} onPress={() => confirmarArchivar(rutina)} style={estilos.archivar}>
               <Archive color={C.tenue} size={18} />
             </Pressable>
