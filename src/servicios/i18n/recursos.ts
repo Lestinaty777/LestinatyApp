@@ -159,7 +159,7 @@ export const recursosI18n = {
         vacio: { titulo: 'Your first step', texto: 'Start with something small you can do today.', crearHabito: 'Create my first habit', rutinaLista: 'Use a ready-made routine' },
         primeraVictoria: 'First step done! Your streak starts here.',
         categorias: { tareas: 'Tasks', rutinas: 'Routines', habitos: 'Habits', metas: 'Goals' },
-        categoriasSubtitulos: { tareas: 'Your to-dos', rutinas: 'Step by step', habitos: 'Day by day', metas: 'Your direction' },
+        categoriasSubtitulos: { tareas: 'Your to-dos for today', rutinas: 'Sessions step by step', habitos: 'Consistency day by day', metas: 'Where your areas lead' },
       },
       areas: {
         sistema: { cuerpo: 'Body', mente: 'Mind', espiritual: 'Spiritual', estudios: 'Studies', trabajo: 'Work', negocios_proyectos: 'Business & projects', finanzas: 'Finances' },
@@ -1436,7 +1436,7 @@ export const recursosI18n = {
         vacio: { titulo: 'Tu primer paso', texto: 'Empieza con algo pequeño que puedas hacer hoy.', crearHabito: 'Crear mi primer hábito', rutinaLista: 'Usar una rutina lista' },
         primeraVictoria: '¡Primer paso dado! Así empieza tu racha.',
         categorias: { tareas: 'Tareas', rutinas: 'Rutinas', habitos: 'Hábitos', metas: 'Metas' },
-        categoriasSubtitulos: { tareas: 'Tus pendientes', rutinas: 'Paso a paso', habitos: 'Día a día', metas: 'Tu rumbo' },
+        categoriasSubtitulos: { tareas: 'Tus pendientes de hoy', rutinas: 'Sesiones paso a paso', habitos: 'Constancia día a día', metas: 'El rumbo de tus áreas' },
       },
       areas: {
         sistema: { cuerpo: 'Cuerpo', mente: 'Mente', espiritual: 'Espiritual', estudios: 'Estudios', trabajo: 'Trabajo', negocios_proyectos: 'Negocios y proyectos', finanzas: 'Finanzas' },

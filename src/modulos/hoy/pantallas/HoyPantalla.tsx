@@ -248,7 +248,7 @@ function GridCategorias() {
               <MasterIcon name={cat.icono} size={32} />
               <View style={s.categoriaTexto}>
                 <Texto adjustsFontSizeToFit minimumFontScale={0.8} numberOfLines={1} style={s.categoriaLabel}>{cat.label}</Texto>
-                <Texto numberOfLines={1} style={s.categoriaSubtitulo}>{cat.subtitulo}</Texto>
+                <Texto numberOfLines={2} style={s.categoriaSubtitulo}>{cat.subtitulo}</Texto>
                 {cat.progreso !== '' && (
                   <View style={s.categoriaAvance}>
                     <View style={s.categoriaBarraFondo}>
@@ -886,7 +886,7 @@ const s = StyleSheet.create({
     marginBottom: 16,
   },
   categoriaCard: { flex: 1 },
-  categoriaGlass: { alignItems: 'center', borderRadius: 14, justifyContent: 'flex-start', minHeight: 100, padding: 8 },
+  categoriaGlass: { alignItems: 'center', borderRadius: 14, justifyContent: 'flex-start', minHeight: 116, padding: 8 },
   categoriaTexto: { alignItems: 'center', marginTop: 5, minHeight: 31, width: '100%' },
   categoriaLabel: {
     fontFamily: 'MontserratAlternates-Bold',
@@ -901,6 +901,8 @@ const s = StyleSheet.create({
     color: C.textoSecundario,
     marginTop: 1,
     lineHeight: 14,
+    // Siempre el alto de dos líneas, aunque el texto quepa en una: así las cuatro tarjetas quedan alineadas.
+    minHeight: 28,
     textAlign: 'center',
   },
   categoriaAvance: { alignItems: 'center', flexDirection: 'row', gap: 4, marginTop: 5, width: '100%' },
