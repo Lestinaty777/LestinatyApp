@@ -1,0 +1,928 @@
+# Plan maestro — Franjas, Rutinas, Hoy unificado y estrategia
+
+Fecha: 2026-10-09. Rama: `mejoras`. Este documento es **la única fuente de órdenes** para el agente que ejecuta (Gemini u otro). Está escrito para seguirse literalmente, tarea por tarea, en orden.
+
+Documentos de origen (leerlos solo cuando una tarea lo pida; este plan ya los resume):
+
+| Documento | Ruta |
+| --- | --- |
+| Visión | `docs/vision/lestinaty-vision.md` |
+| Estrategia y monetización | `docs/vision/estrategia-y-monetizacion.md` |
+| Plan anterior (franjas y rutinas) | `docs/superpowers/plans/2026-10-04-franjas-y-rutinas.md` |
+| Spec franjas | `docs/superpowers/specs/2026-10-04-franjas-del-dia-design.md` |
+| Spec rutinas | `docs/superpowers/specs/2026-10-04-rutinas-design.md` |
+| Spec plantillas con gemas | `docs/superpowers/specs/2026-10-04-plantillas-rutinas-design.md` |
+| Spec sesión guiada | `docs/superpowers/specs/2026-10-05-sesion-guiada-rutinas-design.md` |
+
+> Cuatro de esos archivos **no existen en la copia local hasta completar la Fase 0** (solo están en `origin/mejoras`).
+
+---
+
+## 0. Reglas para el agente (obligatorias)
+
+1. **Ejecuta las tareas en orden.** No empieces una tarea si la anterior no pasó su verificación.
+2. **No inventes.** Si un archivo, función o columna que este plan nombra no existe o es distinto, **detente y pregunta**. No lo sustituyas por otra cosa.
+3. **Antes de editar un archivo, léelo completo.** Copia el estilo que ya tiene (nombres en español, comentarios, formato).
+4. **Verificación antes de cada commit:** `npm run typecheck && npm test`. Ambos deben terminar sin errores. Si fallan, arregla antes de seguir; nunca borres ni desactives un test para que pase.
+5. **Un commit por tarea**, con el mensaje exacto que indica la tarea. No hagas `git push` salvo que la tarea lo diga.
+6. **PARADA** significa: detente, muestra al usuario lo que se indica y espera su respuesta. No continúes por tu cuenta.
+7. **Base de datos real:** tiene datos de usuarios reales (9 perfiles, 35 hábitos). Solo se aplica SQL en una tarea marcada **PARADA-BD**, con confirmación del usuario. Las consultas de solo lectura (`select`) sí se pueden correr libremente.
+8. **Nunca** uses `supabase db push` ni `supabase migration list` (el historial de migraciones de este proyecto no está sincronizado; no sirven). Se usa siempre:
+   ```bash
+   export SUPABASE_ACCESS_TOKEN=$(grep "^SUPABASE_ACESSS_TOKEN=" .env | cut -d= -f2-)   # el typo ACESSS es real
+   npx supabase db query --linked "select 1"                 # consulta suelta
+   npx supabase db query --linked --file ruta/al/archivo.sql # archivo
+   ```
+9. **Migraciones:** siempre aditivas, envueltas en `begin; … commit;`, nombre `AAAAMMDD_NN_descripcion.sql` con `NN` = siguiente número libre (`ls supabase/migrations | tail -3`). Nunca edites una migración ya aplicada: crea una nueva.
+10. **Checks SQL con columnas anulables:** `check (char_length(x) between 1 and 80)` deja pasar `null`. Añade siempre `x is not null and …`.
+11. **Seguridad:** identidad siempre por `auth.uid()`; ningún RPC recibe `usuario_id` del cliente; toda tabla nueva con RLS; funciones con `set search_path = ''`; `revoke all … from public, anon` y `grant execute … to authenticated`.
+12. **Textos de interfaz:** todo texto visible va en `src/servicios/i18n/recursos.ts`, en **las dos** secciones (`en.translation`, línea ~2, y `es.translation`, línea ~1081), con las mismas claves. Añade al final del bloque del módulo; no reordenes el archivo.
+13. **Rutas:** no crees `app/rutinas/index.tsx` (lo prohíbe `src/nucleo/navegacion/superficieRelease.test.ts`). La lista de Rutinas vive como pestaña de `SenderosPantalla`.
+14. **La app no se puede abrir desde la terminal** (es nativa: Skia, widgets). Nada visual se da por verificado: al terminar cada fase con interfaz, escribe en tu resumen "pendiente de prueba en dispositivo" y qué probar.
+15. **Fuera de alcance, no lo construyas aunque los documentos lo mencionen:** gemas por completar rutina, rutinas compartidas, rutinas dentro de planes, Aby generando rutinas, bloques de plan dentro de Hoy, marketplace, cursos, pagos a creadores, modelo unificado de Sendero, cambios a `planes_bloques.momento`.
+
+---
+
+## 1. Estado real verificado (2026-10-09)
+
+Verificado contra el repositorio local, `origin/mejoras` y la base de datos real.
+
+### 1.1 Hay dos líneas de trabajo sin unir
+
+| Dónde | Qué contiene | ¿En la base real? |
+| --- | --- | --- |
+| **Local, sin commitear** | Planes fase 11–12 (disponibilidad, nota de sección, ítems tipados, compartidos, ramas). 20 archivos modificados, 10 nuevos. Migraciones locales `69`–`76`. | **Sí**, las 8 aplicadas (`planes_ramas` existe, etc.) |
+| **`origin/mejoras`, 10 commits por delante** | Franjas (lógica + migración), Rutinas completas (backend, pantalla, asistente, plantillas con gemas, sesión guiada), los 4 documentos que faltan en local. Migraciones `69`–`73`. | **No**: no existe ninguna tabla `rutinas_*` ni `plantillas_*`, ni el dominio `franja_dia`, ni columnas `franja` |
+
+**Problema:** las dos líneas usan los mismos números de migración 69–73 para cosas distintas. Las locales (Planes) ya están aplicadas, así que **se renumeran las del remoto** (Rutinas) a 77–81.
+
+Simulación de merge: los commits se unen sin conflicto. El único archivo tocado por ambos lados es `src/servicios/i18n/recursos.ts` (el cambio local empieza en la línea ~65 y el remoto inserta en la ~61): puede dar conflicto de texto, se resuelve conservando ambos bloques.
+
+### 1.2 Qué está hecho (en `origin/mejoras`) y qué falta
+
+| Pieza | Estado |
+| --- | --- |
+| `src/compartido/utilidades/franjas.ts` (`franjaDeHora`, `franjaActual`, `sugerirFranjaPorHora`, `limitesValidos`, `agruparPorFranja`, `filtrarPorFranja`, `contarPendientesPorFiltro`) | Hecho, con tests |
+| `src/diseno/componentes/SelectorFranja.tsx` (4 botones de filtro) | Hecho |
+| Tablas y RPCs de Rutinas, plantillas y sesión | SQL escrito, **sin aplicar** |
+| `src/modulos/rutinas/` (pantalla, asistente, plantillas, sesión guiada, `app/rutinas/[id].tsx`) | Hecho, **sin probar en dispositivo** |
+| `franja` en tipos/servicios de Tarea y Hábito | **Falta** |
+| Selector de franja en `CrearHabitoWizard`, `CrearTareaWizard` y edición | **Falta** |
+| Hoy unificado | **Falta.** `HoyPantalla.tsx` es hoy una maqueta: `TimelineHoy` pinta la constante `TAREAS_HOY` y `GridCategorias` usa progresos fijos |
+| Cabecera de Hoy (nombre, racha, nivel y XP) | **Falta.** Muestra "Alejandro", "3 Días" y "Nivel 4 · 95/120 XP" fijos. No existe ningún concepto de XP ni de racha global en la base ni en el código |
+| Rutina dibujada como camino de nodos | **Falta** (el spec de Rutinas lo pide; hoy es una lista) |
+| Guía hacia la primera victoria de un usuario nuevo | **Falta** |
+| Etiqueta "en Rutina X" y `SelectorFranja` en Hábitos y Tareas | **Falta** |
+| `actualizar_rutina` y editar una rutina | **Falta** |
+| Envío real del recordatorio de rutina | **Falta** (se guarda hora y activo, nadie lo envía) |
+| Racha de sesiones de rutina | **Falta** |
+| Borrar `tareas_items.routine_id` | **Falta** |
+| Ajustes de límites de franja, insights por franja | **Falta** |
+| Analítica | **Falta.** `src/servicios/analitica/posthog.ts` es un stub que no envía nada; `posthogKey` está vacío |
+| Plantillas premium reales | **Falta** (solo hay 4 gratuitas en la migración) |
+| Áreas de vida, Metas reales, packs, trial y límites en servidor, Live Activities | **Falta y sin spec** |
+
+### 1.3 Datos del esquema real que usarás
+
+- `habitos_planes`: el rol `authenticated` solo tiene `SELECT`. Toda escritura pasa por funciones `security definer` del esquema `privacidad` con wrapper en `public`. No tiene triggers.
+- `tareas_items`: `authenticated` tiene `SELECT, INSERT, UPDATE, DELETE` (RLS por dueño).
+- `perfiles_usuario`: `authenticated` tiene `SELECT, UPDATE`.
+- `habitos_items.usuario_id` es la columna de dueño.
+- Cola de recordatorios: `privacidad.notificaciones_programadas` con columnas `plan_habito_id`, `tarea_id` y la restricción `notificaciones_programadas_un_solo_origen`.
+- `catalogo_notificaciones` activos: `habito_recordatorio`, `tarea_recordatorio`.
+- Motivos del ledger (`comercio.movimientos_gemas`): `compra_iap, gasto_tienda, ajuste_soporte, recompensa_nivel, gasto_semillas, referido_nivel2, trial_horizon_bono, cofre_intermedio, cofre_final, tarea_diaria, racha_tarea, cofre_final_tarea`.
+- Claves de caché existentes: `['rutinas','lista']` (`CLAVE_RUTINAS`), `['habitos','panel']`, `['habitos','detalles-hoy']`, `CLAVE_TAREAS_HOY`, `CLAVE_TAREAS_LISTA`, `CLAVE_SALDO_GEMAS`.
+
+---
+
+## 2. Mapa de fases
+
+| Fase | Resultado | Depende de | ¿Toca la base real? |
+| --- | --- | --- | --- |
+| 0 | Una sola rama con todo, migraciones renumeradas y aplicadas | — | Sí |
+| 1 | Hábitos y tareas guardan y leen su franja | 0 | Sí |
+| 2 | Selector de franja al crear y editar | 1 | No |
+| 3 | Hoy unificado con datos reales y cabecera funcional (racha, nivel, XP) | 1 | Sí |
+| 4 | Rutinas: editar, recordatorios reales, racha, camino visual, limpieza | 0 | Sí |
+| 5 | Ajustes de horas de franja e insights por franja | 1 | No |
+| 5B | **Pausa de uso real (2 semanas)** y lista de fricciones | 5 | No |
+| 6 | Analítica del embudo | 0 | No |
+| 6B | Primera victoria de un usuario nuevo | 3, 6 | No |
+| 7 | Plantillas premium reales | 0, 6 | Sí (solo datos) |
+| 8 | Áreas de vida + filtro en Hoy | 3 | Sí |
+| 9 | Metas reales | 8 | Sí |
+| 10 | Packs por área | 7, 8, 9 | Sí (solo datos) |
+| 11 | Límites gratis/Horizon en servidor y trial | 6 | Sí |
+| 12 | Live Activities (iOS) | 4 | No |
+| 13 | Finanzas sencillas | 8, 9 | Por decidir |
+
+Las fases 0–7 (incluidas 5B y 6B) están detalladas para ejecutarse ya. Las fases 8–13 **no tienen spec**: su primera tarea es escribirlo y hacer PARADA. La sección 3 dice cuándo se retoman las fases 6–10 de la visión (modelo unificado, Aby, cooperativo, cursos, marketplace).
+
+---
+
+## FASE 0 — Unir el trabajo y poner la base al día
+
+### Tarea 0.1 — Guardar el trabajo local de Planes
+
+1. `git status --short`. Debe listar los archivos de Planes (ver sección 1.1). Confirma que `.env` **no** aparece.
+2. `npm run typecheck && npm test`. Si falla, **PARADA** y muestra el error (es trabajo del usuario, no lo arregles sin preguntar).
+3. `git add -A`
+4. Commit: `feat(planes): disponibilidad, ítems tipados, planes compartidos y ramas (migraciones 69-76)`
+
+### Tarea 0.2 — Traer `origin/mejoras`
+
+1. `git fetch origin`
+2. `git merge origin/mejoras --no-ff --no-commit`
+3. Si hay conflicto en `src/servicios/i18n/recursos.ts`: conserva **los dos** bloques completos (el local de Planes y el remoto de Rutinas) dentro del mismo objeto, en `en` y en `es`. No borres ninguna clave. En cualquier otro archivo con conflicto: **PARADA**.
+4. No hagas commit todavía; sigue con 0.3.
+
+### Tarea 0.3 — Renumerar las migraciones de Rutinas
+
+1. Ejecuta exactamente:
+   ```bash
+   cd supabase/migrations
+   git mv 20261004_69_franjas_del_dia.sql     20261009_77_franjas_del_dia.sql
+   git mv 20261004_70_rutinas_nucleo.sql      20261009_78_rutinas_nucleo.sql
+   git mv 20261004_71_rutinas_rpcs.sql        20261009_79_rutinas_rpcs.sql
+   git mv 20261004_72_plantillas_rutinas.sql  20261009_80_plantillas_rutinas.sql
+   git mv 20261005_73_rutinas_sesion.sql      20261009_81_rutinas_sesion.sql
+   cd ../..
+   ```
+2. Dentro de esos 5 archivos y de `supabase/tests/09_franjas_rutinas.sql`, `10_plantillas_rutinas.sql`, `11_sesion_rutinas.sql`, cambia **solo en comentarios** los números viejos por los nuevos (69→77, 70→78, 71→79, 72→80, 73→81). No toques SQL ejecutable.
+3. Busca referencias en código y documentos: `grep -rnE "migraci[oó]n (69|70|71|72|73)|2026100[45]_(69|70|71|72|73)_(franjas|rutinas|plantillas)" src docs supabase`. Corrige las que se refieran a franjas/rutinas/plantillas/sesión. **No** cambies las que se refieran a Planes (disponibilidad, nota, ítems tipados, compartidos, resumen).
+4. `ls supabase/migrations | tail -14` debe mostrar 69–76 de Planes y 77–81 de franjas/rutinas, sin números repetidos.
+5. `npm run typecheck && npm test`.
+6. Commit (cierra el merge): `merge: une Planes (69-76) con Franjas y Rutinas, renumeradas a 77-81`
+
+### Tarea 0.4 — Comprobar la base antes de aplicar (solo lectura)
+
+Corre esta consulta y guarda la salida:
+
+```sql
+select
+  (select count(*) from pg_type t join pg_namespace n on n.oid=t.typnamespace where n.nspname='public' and t.typname='franja_dia') as dominio_franja,
+  (select count(*) from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relkind='r' and (c.relname like 'rutinas%' or c.relname like 'plantillas%')) as tablas_rutinas,
+  (select pg_get_constraintdef(oid) from pg_constraint where conname='movimientos_gemas_motivo_check') as motivos;
+```
+
+Resultado esperado: `dominio_franja = 0`, `tablas_rutinas = 0`, y `motivos` con exactamente los 12 motivos de la sección 1.3. Abre `20261009_80_plantillas_rutinas.sql` y comprueba que su lista de motivos es **esos 12 más `gasto_plantilla_rutina`**. Si la base tiene algún motivo que la migración no incluye, **PARADA** (aplicarla lo borraría).
+
+### Tarea 0.5 — Aplicar migraciones 77–81 — **PARADA-BD**
+
+Muestra al usuario la salida de 0.4 y pide confirmación. Con el sí, una por una y en orden; si una falla, detente (cada archivo es una transacción, no queda a medias):
+
+```bash
+export SUPABASE_ACCESS_TOKEN=$(grep "^SUPABASE_ACESSS_TOKEN=" .env | cut -d= -f2-)
+for n in 77_franjas_del_dia 78_rutinas_nucleo 79_rutinas_rpcs 80_plantillas_rutinas 81_rutinas_sesion; do
+  echo "== $n"; npx supabase db query --linked --file supabase/migrations/20261009_$n.sql || break
+done
+```
+
+### Tarea 0.6 — Verificar lo aplicado (solo lectura)
+
+```sql
+select
+  (select count(*) from information_schema.columns where table_schema='public' and column_name='franja' and table_name in ('habitos_planes','tareas_items','rutinas_items')) as cols_franja,          -- 3
+  (select count(*) from information_schema.columns where table_schema='public' and table_name='perfiles_usuario' and column_name like 'franja_%') as cols_limites,                                  -- 3
+  (select count(*) from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relkind='r' and c.relname like 'rutinas%') as tablas_rutinas,                         -- 4
+  (select count(*) from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relkind='r' and c.relname like 'plantillas_rutinas%') as tablas_plantillas,           -- 3
+  (select count(*) from public.plantillas_rutinas) as plantillas,                                                                                                                                   -- 4
+  (select count(*) from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname in ('obtener_rutinas_hoy','crear_rutina','completar_paso_propio_rutina','iniciar_rutina','cerrar_rutina_dia','obtener_plantillas_rutinas','comprar_plantilla_rutina','franja_de_hora')) as funciones, -- 8
+  (select count(*) from public.habitos_planes where franja <> 'cualquier_momento') as habitos_con_franja,                                                                                           -- 0
+  (select count(*) from information_schema.columns where table_schema='public' and table_name='rutinas_pasos' and column_name='esencial') as col_esencial;                                          -- 1
+```
+
+Si algún número no coincide con el comentario: **PARADA**.
+
+### Tarea 0.7 — Pruebas SQL de humo (las hace el usuario) — **PARADA**
+
+Los tres archivos `supabase/tests/09|10|11_*.sql` usan comandos de `psql` (`\gset`, `\echo`) y `psql` **no está instalado** en esta máquina. Pide al usuario:
+
+1. `sudo pacman -S postgresql` (trae `psql`).
+2. Copiar la cadena de conexión del panel de Supabase (Project Settings → Database → Connection string, modo sesión) en la variable `DATABASE_URL`.
+3. Correr, en orden: `psql "$DATABASE_URL" -f supabase/tests/09_franjas_rutinas.sql`, luego `10_…`, luego `11_…`. Hacen `rollback`, no dejan datos.
+
+Si el usuario prefiere no hacerlo ahora, anótalo como pendiente y continúa.
+
+### Tarea 0.8 — Subir
+
+`git push origin mejoras`. Después, **PARADA**: pide al usuario que abra la app, vaya a Senderos → Rutinas, cree una rutina, use una plantilla y haga una sesión completa. Anota lo que reporte.
+
+### Tarea 0.9 — Base de pruebas (recomendada) — **PARADA**
+
+Hoy todo SQL nuevo se prueba contra la base real con `rollback`. Propón al usuario crear un segundo proyecto de Supabase ("staging") y aplicar ahí las migraciones 01–81 en orden. Si acepta: a partir de aquí, cada **PARADA-BD** se prueba primero en staging (aplicar de verdad, no `rollback`) y después en la real. Si no acepta, sigue con el método de `rollback` y deja anotado el riesgo en tu resumen.
+
+---
+
+## FASE 1 — Franja en los datos de hábitos y tareas
+
+Objetivo: que cada hábito y cada tarea pueda guardar y devolver su franja. Sin interfaz todavía.
+
+Decisión de diseño (no la cambies): **no se reescriben** `crear_habito_premium` (20 parámetros) ni `actualizar_habito_desde_detalle`. Se añade un RPC pequeño que cambia la franja del plan vigente y un trigger que hace que un plan nuevo herede la franja del anterior. Es más seguro que tocar funciones grandes con datos reales.
+
+### Tarea 1.1 — Migración `NN_franja_habitos.sql` (NN = siguiente libre, hoy 82)
+
+Antes de escribirla, abre `supabase/migrations/20260920_42_gestion_detalle_habito.sql` y copia **su forma exacta** de: wrapper `public` → función `privacidad`, `revoke`, `grant`. Contenido:
+
+```sql
+begin;
+
+-- Un plan nuevo (al editar un hábito se versiona el plan) hereda la franja del plan anterior.
+create or replace function public.habitos_planes_heredar_franja()
+returns trigger language plpgsql set search_path = '' as $$
+declare v_franja public.franja_dia;
+begin
+  if new.franja = 'cualquier_momento' then
+    select p.franja into v_franja
+    from public.habitos_planes p
+    where p.habito_id = new.habito_id
+    order by p.desde_fecha desc, p.created_at desc
+    limit 1;
+    if v_franja is not null then new.franja := v_franja; end if;
+  end if;
+  return new;
+end $$;
+revoke all on function public.habitos_planes_heredar_franja() from public, anon, authenticated;
+
+create trigger habitos_planes_heredar_franja
+  before insert on public.habitos_planes
+  for each row execute function public.habitos_planes_heredar_franja();
+
+-- Cambia la franja del plan más reciente de un hábito propio.
+create or replace function privacidad.establecer_franja_habito(p_habito_id uuid, p_franja text)
+returns void language plpgsql security definer set search_path = '' as $$
+declare
+  v_usuario uuid := auth.uid();
+  v_plan uuid;
+begin
+  if v_usuario is null then raise exception 'Sesión requerida.' using errcode = 'insufficient_privilege'; end if;
+  if p_franja is null or p_franja not in ('manana', 'tarde', 'noche', 'cualquier_momento') then
+    raise exception 'Franja inválida.' using errcode = 'check_violation';
+  end if;
+  select p.id into v_plan
+  from public.habitos_planes p
+  join public.habitos_items h on h.id = p.habito_id
+  where p.habito_id = p_habito_id and h.usuario_id = v_usuario
+  order by p.desde_fecha desc, p.created_at desc
+  limit 1;
+  if v_plan is null then raise exception 'Hábito no encontrado.' using errcode = 'no_data_found'; end if;
+  update public.habitos_planes set franja = p_franja::public.franja_dia where id = v_plan;
+end $$;
+
+create or replace function public.establecer_franja_habito(p_habito_id uuid, p_franja text)
+returns void language sql security invoker set search_path = '' as $$
+  select privacidad.establecer_franja_habito(p_habito_id, p_franja);
+$$;
+
+revoke all on function privacidad.establecer_franja_habito(uuid, text) from public, anon;
+revoke all on function public.establecer_franja_habito(uuid, text) from public, anon;
+grant execute on function privacidad.establecer_franja_habito(uuid, text) to authenticated;
+grant execute on function public.establecer_franja_habito(uuid, text) to authenticated;
+
+commit;
+```
+
+Si la migración 42 usa otra forma de grants para el par `public`/`privacidad`, usa la de la 42.
+
+### Tarea 1.2 — Probar la migración sin dejar rastro, luego aplicarla — **PARADA-BD**
+
+1. Copia el archivo a tu carpeta temporal, cambia el `commit;` final por `rollback;` y córrelo con `db query --linked --file`. Debe terminar sin error.
+2. Muestra el resultado al usuario y pide confirmación.
+3. Aplica el archivo original.
+4. Verifica: `select count(*) from pg_trigger where tgname='habitos_planes_heredar_franja';` → 1.
+
+Commit: `feat(franjas): franja de hábito por RPC y herencia entre planes (migración NN)`
+
+### Tarea 1.3 — Tareas: tipo, servicio y lectura
+
+Archivos: `src/modulos/tareas/tareas.tipos.ts`, `src/modulos/tareas/tareas.servicio.ts`.
+
+1. En `tareas.tipos.ts`: importa `FranjaDia` de `../../compartido/utilidades/franjas`. Añade `franja: FranjaDia;` a `Tarea` y a `TareaHoyDetalle`. Añade `franja?: FranjaDia;` a `CrearTareaInput`.
+2. En `tareas.servicio.ts`:
+   - `FilaTarea`: añade `franja: FranjaDia;`.
+   - `normalizar`: añade `franja: fila.franja,`.
+   - Constante `COLUMNAS` (línea ~80): añade `, franja` al final del string.
+   - `crearTarea`: en el objeto del `insert`, añade `franja: input.franja ?? 'cualquier_momento',`.
+   - `editarTarea`: añade `if (input.franja !== undefined) cambios.franja = input.franja;`.
+   - `CrearTareaPremiumInput`: añade `franja?: FranjaDia;`. En `crearTareaPremium`, **después** de obtener el `id` del RPC y solo si `input.franja` existe y no es `'cualquier_momento'`, ejecuta `await obtenerClienteSupabase().from('tareas_items').update({ franja: input.franja }).eq('id', id)` y lanza el error si lo hay. No cambies los parámetros del RPC `crear_tarea_premium`.
+   - `obtenerTareasHoy`: añade `franja` al `select` de `tareas_items`, al tipo `FilaItemHoy` y al objeto devuelto.
+3. Arregla todos los errores de `npm run typecheck` (tests y objetos que construyen `Tarea` o `TareaHoyDetalle`: añade `franja: 'cualquier_momento'`).
+
+Commit: `feat(franjas): franja en tipos y servicio de tareas`
+
+### Tarea 1.4 — Hábitos: tipo, servicio y lectura
+
+Archivos: `src/modulos/habitos/semanaProgramada.ts`, `habitos.servicio.ts`, `tipos.ts`, `gestionDetalleHabito.ts`.
+
+1. `semanaProgramada.ts`: en `FilaPlanSemana` añade `franja?: FranjaDia;`. En `HabitoHoyDetalle` añade `franja: FranjaDia;`. En `calcularDetalleHabitoHoy`, toma la franja del plan vigente hoy (el mismo plan que la función ya usa para decidir si está programado); si no hay plan, `'cualquier_momento'`. Añade un test en `semanaProgramada.test.ts`: plan con `franja: 'tarde'` → detalle con `franja: 'tarde'`; sin plan → `'cualquier_momento'`.
+2. `habitos.servicio.ts`:
+   - `obtenerDetallesHabitosHoy`: añade `franja` al `select` de `habitos_planes`.
+   - `obtenerDetalleHabito`: lee cómo arma `programacion`; añade `franja` al select del plan y devuélvela en `programacion.franja`.
+   - Nueva función:
+     ```ts
+     export async function establecerFranjaHabito(habitoId: string, franja: FranjaDia): Promise<void> {
+       const { error } = await obtenerClienteSupabase().rpc('establecer_franja_habito', { p_habito_id: habitoId, p_franja: franja });
+       if (error) throw error;
+     }
+     ```
+   - `CrearHabitoInput`: añade `franja?: FranjaDia`. En `crearHabito`, tras recibir `{ id, plan_id }`, si `input.franja` existe y no es `'cualquier_momento'`, llama `await establecerFranjaHabito(id, input.franja)`.
+   - `actualizarHabitoDesdeDetalle`: tras el RPC existente, llama `await establecerFranjaHabito(habitoId, edicion.franja)`.
+3. `tipos.ts`: en `DetalleHabito.programacion` añade `franja: FranjaDia`.
+4. `gestionDetalleHabito.ts`: añade `franja: FranjaDia` a `EdicionHabito` y en `normalizarEdicionHabito` copia `programacion.franja`. Actualiza `gestionDetalleHabito.test.ts`.
+
+Commit: `feat(franjas): franja en tipos y servicio de hábitos`
+
+---
+
+## FASE 2 — Selector de franja al crear y editar
+
+### Tarea 2.1 — Componente `SelectorFranjaElemento`
+
+Crea `src/diseno/componentes/SelectorFranjaElemento.tsx` y expórtalo en `src/diseno/componentes/index.ts`. Es distinto de `SelectorFranja` (ese **filtra** con Mañana/Tarde/Noche/Todo; este **elige** la franja de un elemento).
+
+- Props: `{ color: string; etiquetas: Record<FranjaDia, string>; onCambiar: (franja: FranjaDia) => void; valor: FranjaDia }`.
+- Cuatro botones en el orden de `FRANJAS_ORDEN`. Copia la estructura y estilos de `SelectorFranja.tsx` (sin el contador). `accessibilityRole="radio"` y `accessibilityState={{ selected }}`.
+- Sin textos propios: las etiquetas llegan por props.
+
+Claves i18n nuevas (en `en` y `es`), bajo un bloque `franjas`:
+
+| Clave | es | en |
+| --- | --- | --- |
+| `franjas.manana` | Mañana | Morning |
+| `franjas.tarde` | Tarde | Afternoon |
+| `franjas.noche` | Noche | Night |
+| `franjas.cualquier_momento` | Sin franja | Any time |
+| `franjas.todo` | Todo | All |
+| `franjas.titulo` | ¿En qué momento del día? | What time of day? |
+| `franjas.sugerida` | Sugerida por la hora del recordatorio | Suggested from the reminder time |
+| `franjas.pendientes` | {{franja}}, {{n}} pendientes | {{franja}}, {{n}} pending |
+| `franjas.vacia` | Nada pendiente en esta franja | Nothing pending in this slot |
+| `franjas.verTodo` | Ver todo | See all |
+| `franjas.verMas` | Ver {{n}} más | See {{n}} more |
+| `franjas.completados` | {{n}} completados | {{n}} completed |
+
+Si el módulo de Rutinas ya definió claves equivalentes, **reutilízalas** en vez de duplicar (busca `Mañana` en `recursos.ts`).
+
+Commit: `feat(franjas): SelectorFranjaElemento y textos`
+
+### Tarea 2.2 — `CrearHabitoWizard`
+
+Archivo: `src/modulos/habitos/componentes/CrearHabitoWizard.tsx` (586 líneas; léelo entero primero).
+
+1. Estado nuevo: `const [franja, setFranja] = useState<FranjaDia>('cualquier_momento'); const [franjaManual, setFranjaManual] = useState(false);`
+2. En el paso de recordatorio (`paso === 4`), debajo del selector de hora, pinta el título `t('franjas.titulo')` y `<SelectorFranjaElemento … onCambiar={(f) => { setFranja(f); setFranjaManual(true); }} />`.
+3. Sugerencia: un `useEffect` que, cuando `recordatorio` es `true`, cambia `hora` y `franjaManual` es `false`, hace `const s = sugerirFranjaPorHora(hora); if (s) setFranja(s);`. Si `franjaManual` es `true`, nunca se pisa.
+4. Donde se arma el objeto para `onCrear` (línea ~418), añade `franja`.
+5. Si existe una función que reinicia el estado al cerrar, reinicia también `franja` y `franjaManual`.
+
+### Tarea 2.3 — `CrearTareaWizard`
+
+Archivo: `src/modulos/tareas/componentes/CrearTareaWizard.tsx` (662 líneas). Mismos 5 pasos que 2.2, en el paso donde está `SelectorHora12` (línea ~599), y añadiendo `franja` al objeto de creación (línea ~320).
+
+### Tarea 2.4 — Edición
+
+1. `src/modulos/habitos/componentes/EditarHabitoFormulario.tsx`: añade `SelectorFranjaElemento` ligado a `edicion.franja`, junto a los campos de recordatorio.
+2. Edición de tarea: busca dónde se llama `editarTarea(` en `src/modulos/tareas` (`grep -rn "editarTarea(" src`). Si hay formulario de edición, añade ahí el selector. Si no existe formulario de edición de tarea, **no lo crees**: anótalo como pendiente en tu resumen.
+
+Verificación de la fase: `npm run typecheck && npm test`. Commit: `feat(franjas): selector de franja en asistentes y edición de hábitos y tareas`
+
+Pendiente de dispositivo: crear un hábito con recordatorio a las 7:00 (debe sugerir Mañana), cambiar a Noche a mano, mover la hora (no debe cambiar), guardar, editar y ver Noche.
+
+---
+
+## FASE 3 — Hoy unificado
+
+Objetivo: `HoyPantalla` deja de mostrar la lista falsa `TAREAS_HOY` y muestra hábitos, tareas y rutinas reales por franja. Se conservan el encabezado, el hero, la cuadrícula y **todos los estilos y colores** actuales de la pantalla.
+
+### Tarea 3.1 — Función pura `construirPlanDelDia`
+
+Crea `src/modulos/hoy/planDelDia.ts` y `src/modulos/hoy/planDelDia.test.ts`. **Escribe primero los tests.**
+
+```ts
+import type { FiltroFranja, FranjaDia } from '../../compartido/utilidades/franjas';
+
+export const TOPE_PENDIENTES_POR_FRANJA = 5;
+
+export type ElementoHoy = {
+  tipo: 'habito' | 'tarea' | 'rutina';
+  id: string;
+  titulo: string;
+  iconoLucide: string | null;
+  color: string | null;
+  franja: FranjaDia;
+  completado: boolean;
+  /** Texto corto de avance ya calculado, p. ej. "2 de 5 pasos" o "3/8 vasos"; null si no aplica. */
+  detalle: string | null;
+};
+
+export type SeccionHoy = {
+  franja: FranjaDia;
+  pendientes: ElementoHoy[];      // como máximo `tope`, salvo que la franja esté expandida
+  pendientesOcultos: number;      // cuántos pendientes quedaron fuera por el tope
+  completados: ElementoHoy[];
+};
+
+export type PlanDelDia = {
+  secciones: SeccionHoy[];                       // solo las franjas visibles para el filtro, sin secciones vacías
+  conteos: Record<FiltroFranja, number>;         // pendientes por botón (siempre de todo el día)
+  total: number;
+  completados: number;
+};
+
+export function construirPlanDelDia(entrada: {
+  habitos: ElementoHoy[];
+  tareas: ElementoHoy[];
+  rutinas: ElementoHoy[];
+  /** Ids de hábitos y tareas que son paso de una rutina que toca hoy: no se muestran sueltos. */
+  idsEnRutinas: { habitos: ReadonlySet<string>; tareas: ReadonlySet<string> };
+  filtro: FiltroFranja;
+  expandidas: ReadonlySet<FranjaDia>;
+  tope?: number;
+}): PlanDelDia
+```
+
+Reglas (cada una con su test):
+
+1. Un hábito o tarea cuyo id está en `idsEnRutinas` **no aparece** (ni cuenta).
+2. Orden de secciones: `manana`, `tarde`, `noche`, `cualquier_momento`.
+3. Filtro `manana`/`tarde`/`noche`: una sola sección, la de esa franja. Filtro `todo`: las cuatro.
+4. Los elementos `cualquier_momento` solo aparecen con filtro `todo`.
+5. `conteos`: pendientes de cada franja; `conteos.todo` = todos los pendientes, incluidos los sin franja. No dependen del filtro activo.
+6. Dentro de una sección, los pendientes mantienen el orden de entrada: rutinas, luego hábitos, luego tareas.
+7. Si hay más de `tope` pendientes y la franja no está en `expandidas`: se devuelven `tope` y `pendientesOcultos` = el resto. Si está expandida: todos y `pendientesOcultos = 0`.
+8. Una sección sin pendientes ni completados no se devuelve.
+9. `total` y `completados` cuentan todo el día tras quitar los duplicados de la regla 1.
+
+Añade en el mismo archivo `idsDeRutinasDeHoy(rutinas: Rutina[])`: devuelve `{ habitos, tareas }` con los `habitoId`/`tareaId` de los pasos de las rutinas con `tocaHoy === true` y `estado === 'activa'`. Con test.
+
+Commit: `feat(hoy): construirPlanDelDia con tests`
+
+### Tarea 3.2 — Adaptadores
+
+En `src/modulos/hoy/adaptadoresHoy.ts` (+ test), tres funciones puras que convierten a `ElementoHoy`:
+
+- `habitoAElemento(habito: HabitoResumen, detalle: HabitoHoyDetalle | undefined)`: `franja = detalle?.franja ?? 'cualquier_momento'`; `completado = habito.completado`; `detalle` = `null` si `tipoMeta === 'check'`, si no `` `${valorHoy}/${meta} ${unidad ?? ''}`.trim() ``.
+- `tareaAElemento(tarea: TareaHoyDetalle)`: `completado = tarea.completada`; `detalle` = `null` si `tipo` es `simple` o `checklist`, si no `` `${valorHoy}/${objetivoValor} ${unidad ?? ''}`.trim() ``.
+- `rutinaAElemento(rutina: Rutina)`: usa `resumirRutina` de `src/modulos/rutinas/estadoRutina.ts` (lee su tipo `ResumenRutina` y usa sus campos reales) para `completado` y para `detalle` = "n de m pasos". El texto "de … pasos" entra como parámetro ya traducido; no pongas texto fijo en la función.
+
+Para saber **qué hábitos tocan hoy**, haz exactamente lo que hace `HabitosPantalla.tsx` para alimentar `TimelineHabitosHoy` (línea ~245): la misma fuente (`consulta.data.hoy.datos`) y el mismo filtro. No inventes otro criterio.
+
+Commit: `feat(hoy): adaptadores de hábito, tarea y rutina`
+
+### Tarea 3.3 — Conectar `HoyPantalla`
+
+Archivo: `src/modulos/hoy/pantallas/HoyPantalla.tsx` (897 líneas; léelo entero).
+
+1. En `TimelineHoy`, añade cuatro consultas con las **mismas claves** que usan sus pantallas (para compartir caché):
+   - `useQuery({ queryKey: ['habitos', 'panel'], queryFn: () => obtenerPanelHabitos() })`
+   - `useQuery({ queryKey: ['habitos', 'detalles-hoy'], queryFn: () => obtenerDetallesHabitosHoy() })`
+   - `useQuery({ queryKey: CLAVE_TAREAS_HOY, queryFn: () => obtenerTareasHoy() })` (importa la clave de donde la importa `TareasPantalla.tsx`)
+   - `useQuery({ queryKey: CLAVE_RUTINAS, queryFn: obtenerRutinasHoy })`
+2. Estado: `filtro` (inicial `franjaActual()`; no se guarda entre aperturas) y `expandidas` (`Set<FranjaDia>` vacío).
+3. Con `useMemo`, arma los `ElementoHoy` con los adaptadores (rutinas: solo `tocaHoy && estado === 'activa'`) y llama `construirPlanDelDia`.
+4. Encima de la lista, `<SelectorFranja color={C.morado} conteos={plan.conteos} … />` con las etiquetas `franjas.*` y `etiquetaAccesible` usando `franjas.pendientes`.
+5. Sustituye `TAREAS_HOY.map(...)` por el recorrido de `plan.secciones`. Con filtro `todo`, cada sección lleva un encabezado con el nombre de la franja. **Reutiliza los mismos estilos de fila** (`s.timelineItem`, `s.timelineNodoCol`, `s.timelineNodo`, `s.timelineTareaContenido`, etc.). El ícono de cada fila: usa el mismo componente que usa `HabitosPantalla` (`IconoHabitoVisual` / `buscarIconoHabito`) con `iconoLucide`; añade junto al título un indicador pequeño del tipo (hábito, tarea o rutina) que no dependa solo del color.
+6. Tras los pendientes de cada sección: si `pendientesOcultos > 0`, un botón `t('franjas.verMas', { n })` que añade la franja a `expandidas`. Si hay completados, una sola línea `t('franjas.completados', { n })`.
+7. Sección vacía por filtro: texto `t('franjas.vacia')` y botón `t('franjas.verTodo')` que pone `filtro = 'todo'`.
+8. `s.timelineContador`: `` `${plan.completados}/${plan.total}` `` con el texto existente traducido.
+9. Al tocar una fila: hábito → `router.push('/habitos/' + id)`; tarea → `router.navigate('/tareas')`; rutina → `router.push('/rutinas/' + id)`. **No** completes nada desde Hoy en esta tarea.
+10. Estados: cargando (usa `Skeleton` de `src/diseno/componentes`), error (texto + reintentar con `refetch`), y sin nada para hoy.
+11. Borra la constante `TAREAS_HOY`, el tipo local `Tarea`/`EstadoTarea` y los imports de íconos que queden sin uso.
+12. `GridCategorias`: sustituye los progresos fijos de `tareas`, `habitos` y `rutinas` por `completados/total` reales de cada tipo. Deja `estudio` sin progreso (`''`). No cambies `CATEGORIAS_CON_PANTALLA`.
+
+No toques `HeaderHoy` ni `HeroSection` en esta tarea: se hacen funcionales en las tareas 3.6 a 3.8.
+
+Commit: `feat(hoy): plan del día unificado con hábitos, tareas y rutinas por franja`
+
+### Tarea 3.4 — "En Rutina X" y filtro en Hábitos y Tareas
+
+1. En `src/modulos/rutinas/estadoRutina.ts` añade (con test) `rutinasPorOrigen(rutinas: Rutina[]): { habitos: Map<string, string[]>; tareas: Map<string, string[]> }` (id → títulos de las rutinas activas que lo contienen).
+2. `HabitosPantalla.tsx` (`FilaHabitoHoy`, `TarjetaHabito`) y `TimelineTareasHoy.tsx`: si el elemento está en alguna rutina, muestra bajo el título `t('rutinas.enRutina', { nombre })` (es: `En {{nombre}}`, en: `In {{nombre}}`; con varias, la primera y `+n`).
+3. En la vista "hoy" de ambas pantallas, añade `SelectorFranja` con `contarPendientesPorFiltro` y `filtrarPorFranja`. Filtro inicial: `'todo'` (aquí no se abre en la franja actual, para no esconder nada en la pantalla de gestión).
+
+Commit: `feat(franjas): etiqueta de rutina y filtro de franja en Hábitos y Tareas`
+
+### Tarea 3.5 — Completar desde Hoy (opcional; solo si el usuario lo pide) — **PARADA**
+
+Pregunta al usuario si quiere marcar como hecho desde Hoy con un toque. Si sí, usa **solo** servicios que ya existen: para hábito `registrarProgresoHabito({ habitoId, fechaLocal: fechaLocalHoy(), valor: meta })`; para tarea, la misma decisión que toma `resolverCompletadoExterno` en `src/modulos/rutinas/sesionRutina.ts`. Tras completar, invalida las claves de `CLAVES_TRAS_PASO` (`sesionRutina.servicio.ts`). No escribas lógica de gemas ni niveles en el cliente.
+
+### Tarea 3.6 — Migración `NN_resumen_hoy.sql`: racha global y XP
+
+Definiciones (decisiones 10, 11 y 12 de la sección 4; no las cambies sin preguntar):
+
+- **Día activo:** fecha local con al menos una acción: un registro de hábito con `valor > 0`, un registro de tarea, una tarea `una_vez` marcada `hecha`, un paso propio de rutina registrado, o una sesión de rutina completa.
+- **Racha global:** días activos consecutivos terminando hoy; si hoy todavía no hay acción, terminando ayer (hoy no rompe la racha hasta que acabe el día).
+- **XP:** se **calcula**, no se guarda (una sola fuente de verdad: los registros). No da gemas ni desbloquea nada; es solo visual.
+
+| Acción | XP |
+| --- | --- |
+| Registro de hábito con `valor > 0` (uno por hábito y día) | 10 |
+| Registro de tarea recurrente (uno por tarea y día) | 10 |
+| Tarea `una_vez` en estado `hecha` | 10 |
+| Sesión de rutina completa (`rutinas_registros.completada_en` no nulo) | 15 |
+
+Los pasos de hábito o tarea dentro de una rutina ya suman por su propio registro; los pasos propios no suman aparte (los cubre la sesión).
+
+Contenido de la migración:
+
+```sql
+begin;
+
+-- Fechas locales con al menos una acción del usuario en sesión.
+create or replace function public.dias_activos_usuario(p_desde date, p_hasta date, p_zona text)
+returns setof date language sql stable security invoker set search_path = '' as $$
+  select fecha_local from public.habitos_registros
+    where usuario_id = auth.uid() and valor > 0 and fecha_local between p_desde and p_hasta
+  union
+  select fecha_local from public.tareas_registros
+    where usuario_id = auth.uid() and fecha_local between p_desde and p_hasta
+  union
+  select (completada_en at time zone p_zona)::date from public.tareas_items
+    where usuario_id = auth.uid() and frecuencia = 'una_vez' and estado = 'hecha' and completada_en is not null
+      and (completada_en at time zone p_zona)::date between p_desde and p_hasta
+  union
+  select fecha_local from public.rutinas_pasos_registros
+    where usuario_id = auth.uid() and fecha_local between p_desde and p_hasta
+  union
+  select fecha_local from public.rutinas_registros
+    where usuario_id = auth.uid() and completada_en is not null and fecha_local between p_desde and p_hasta;
+$$;
+
+create or replace function public.obtener_resumen_hoy(p_fecha_referencia date default null)
+returns jsonb language plpgsql stable security invoker set search_path = '' as $$
+declare
+  v_usuario uuid := auth.uid();
+  v_zona text;
+  v_fecha date;
+  v_lunes date;
+  v_racha integer;
+  v_semana jsonb;
+  v_xp bigint;
+begin
+  if v_usuario is null then raise exception 'Sesión requerida.' using errcode = 'insufficient_privilege'; end if;
+  select zona_horaria into v_zona from public.perfiles_usuario where id = v_usuario;
+  v_zona := coalesce(v_zona, 'UTC');
+  v_fecha := coalesce(p_fecha_referencia, (now() at time zone v_zona)::date);
+  v_lunes := v_fecha - (extract(isodow from v_fecha)::int - 1);
+
+  with dias as (
+    select d from public.dias_activos_usuario(v_fecha - 400, v_fecha, v_zona) as d
+  ), islas as (
+    select d, d - (row_number() over (order by d))::int as grupo from dias
+  ), ancla as (
+    select case when exists (select 1 from dias where d = v_fecha) then v_fecha else v_fecha - 1 end as f
+  )
+  select count(*) into v_racha from islas
+  where grupo = (select i.grupo from islas i, ancla a where i.d = a.f);
+
+  select coalesce(jsonb_agg(extract(isodow from d)::int order by d), '[]'::jsonb) into v_semana
+  from public.dias_activos_usuario(v_lunes, v_fecha, v_zona) as d;
+
+  select
+      10 * (select count(*) from public.habitos_registros where usuario_id = v_usuario and valor > 0)
+    + 10 * (select count(*) from public.tareas_registros where usuario_id = v_usuario)
+    + 10 * (select count(*) from public.tareas_items where usuario_id = v_usuario and frecuencia = 'una_vez' and estado = 'hecha')
+    + 15 * (select count(*) from public.rutinas_registros where usuario_id = v_usuario and completada_en is not null)
+  into v_xp;
+
+  return jsonb_build_object(
+    'fecha', v_fecha,
+    'racha', coalesce(v_racha, 0),
+    'dias_activos_semana', v_semana,   -- isodow: 1 = lunes … 7 = domingo
+    'xp_total', coalesce(v_xp, 0)
+  );
+end $$;
+
+revoke all on function public.dias_activos_usuario(date, date, text) from public, anon;
+revoke all on function public.obtener_resumen_hoy(date) from public, anon;
+grant execute on function public.dias_activos_usuario(date, date, text) to authenticated;
+grant execute on function public.obtener_resumen_hoy(date) to authenticated;
+
+commit;
+```
+
+Antes de aplicar, confirma con una consulta que existen las columnas usadas (`habitos_registros.usuario_id/valor/fecha_local`, `tareas_registros.usuario_id/fecha_local`, `tareas_items.completada_en/estado/frecuencia`, `rutinas_pasos_registros.usuario_id/fecha_local`, `rutinas_registros.completada_en/fecha_local`). Prueba con `rollback`, **PARADA-BD**, aplica. Verificación: `select public.obtener_resumen_hoy();` falla con "Sesión requerida" al correrlo sin sesión (es lo esperado); añade al final de `supabase/tests/11_sesion_rutinas.sql` un bloque que, como usuario de prueba, inserte registros en tres días seguidos y compruebe `racha = 3` y el `xp_total` esperado.
+
+Commit: `feat(hoy): RPC obtener_resumen_hoy con racha global y XP calculado`
+
+### Tarea 3.7 — Nivel a partir del XP (función pura)
+
+Crea `src/modulos/hoy/nivelUsuario.ts` y su test. **Tests primero.**
+
+```ts
+/** XP necesario para pasar del nivel n al n+1: 60, 80, 100, 120… */
+export function xpParaSubir(nivel: number): number { return 40 + 20 * nivel; }
+
+export type NivelUsuario = { nivel: number; xpEnNivel: number; xpRequerido: number; porcentaje: number };
+
+export function nivelDesdeXp(xpTotal: number): NivelUsuario
+```
+
+`nivelDesdeXp` empieza en nivel 1 y va restando `xpParaSubir(nivel)` mientras alcance. `porcentaje` = `Math.round(xpEnNivel / xpRequerido * 100)`. XP negativo, `NaN` o no finito se trata como 0.
+
+Casos obligatorios del test: `0 → nivel 1, 0/60`; `59 → nivel 1, 59/60`; `60 → nivel 2, 0/80`; `240 → nivel 4, 0/120`; `335 → nivel 4, 95/120, 79 %`; `-5 → nivel 1, 0/60`.
+
+En el mismo módulo, `src/modulos/hoy/resumenHoy.servicio.ts`:
+
+```ts
+export const CLAVE_RESUMEN_HOY = ['hoy', 'resumen'] as const;
+export type ResumenHoy = { racha: number; diasActivosSemana: number[]; xpTotal: number };
+export async function obtenerResumenHoy(): Promise<ResumenHoy>   // rpc('obtener_resumen_hoy', { p_fecha_referencia: fechaLocalHoy() })
+```
+
+con un mapper defensivo (`mapearResumenHoy(crudo: unknown)`, con test de respuesta válida y respuesta rota) en el estilo de `src/modulos/rutinas/rutinas.mapper.ts`.
+
+Commit: `feat(hoy): nivel de usuario desde XP y servicio de resumen`
+
+### Tarea 3.8 — Cabecera y hero de Hoy con datos reales
+
+Archivo: `src/modulos/hoy/pantallas/HoyPantalla.tsx`. No cambies estilos, tamaños ni imágenes; solo los datos.
+
+1. **Nombre.** En `HeaderHoy`, `useQuery({ queryKey: ['configuracion', 'usuario'], queryFn: () => cargarConfiguracion() })` (misma clave que `PerfilPantalla`). Sustituye `Alejandro` por `configuracion.perfil.nombreVisible` (comprueba la forma real del tipo en `configuracion.tipos.ts`). Si está vacío o cargando, no muestres nombre ni la coma.
+2. **Saludo.** Sustituye el texto fijo `Hola,` por la franja actual: claves `hoy.saludo.manana` (es: `Buenos días,` / en: `Good morning,`), `hoy.saludo.tarde` (`Buenas tardes,` / `Good afternoon,`), `hoy.saludo.noche` (`Buenas noches,` / `Good evening,`), usando `franjaActual()` con los límites del perfil cuando exista la tarea 5.1 (hasta entonces, los de por defecto). Borra la función local `obtenerSaludo`. La frase "Disciplina hoy, libertad mañana." pasa a la clave `hoy.frase`.
+3. **Racha.** En `HeroSection`, `useQuery({ queryKey: CLAVE_RESUMEN_HOY, queryFn: obtenerResumenHoy })`. `3 Días` → `t('hoy.racha.dias', { count: resumen.racha })` (es: `{{count}} día` / `{{count}} días`; en: `{{count}} day` / `{{count}} days`; usa el plural de i18next como ya lo haga el archivo). Los checks de la semana: sustituye `RACHA_CHECKS[i]` por `resumen.diasActivosSemana.includes(i + 1)`. El día resaltado deja de ser el fijo `i === 3`: es el de hoy (`(new Date().getDay() + 6) % 7`). Borra `RACHA_CHECKS`.
+4. **Nivel y XP.** `const n = nivelDesdeXp(resumen.xpTotal)`. `Nivel 4` → `t('hoy.nivel', { nivel: n.nivel })` (es: `Nivel {{nivel}}` / en: `Level {{nivel}}`); `95/120 XP` → `` `${n.xpEnNivel}/${n.xpRequerido} XP` ``; ancho de la barra → `` `${n.porcentaje}%` ``.
+5. **Cargando o error:** racha `0`, todos los días vacíos, nivel 1 con `0/60`. Nunca muestres los números de la maqueta.
+6. **Refresco.** La racha y el XP deben moverse al completar algo. Añade `CLAVE_RESUMEN_HOY` a `CLAVES_TRAS_PASO` (`src/modulos/rutinas/sesionRutina.servicio.ts`) y a las invalidaciones que ya hacen `HabitosPantalla.tsx` (líneas ~302–306) y `TareasPantalla.tsx` (líneas ~146–148 y ~238–243) tras completar. No añadas invalidaciones en otros sitios.
+7. Accesibilidad: la tarjeta de racha con `accessibilityLabel` = `t('hoy.racha.accesible', { count })` (es: `Racha actual: {{count}} días`).
+
+Commit: `feat(hoy): cabecera funcional con nombre, racha global, nivel y XP`
+
+Pendiente de dispositivo (fase 3): con una cuenta nueva, Hoy muestra racha 0 y Nivel 1 · 0/60 XP; completar un hábito sube 10 XP y marca el día de hoy en la semana; el nombre es el del perfil. Además: abrir Hoy por la tarde y ver seleccionada "Tarde"; un hábito que está dentro de una rutina de hoy no sale suelto; con 7 pendientes en una franja salen 5 y "Ver 2 más"; lo sin franja solo en "Todo".
+
+---
+
+## FASE 4 — Rutinas: lo que quedó pendiente
+
+### Tarea 4.1 — `actualizar_rutina` y edición
+
+1. Migración nueva `NN_rutinas_actualizar.sql`: `public.actualizar_rutina(p_rutina_id uuid, p_datos jsonb) returns jsonb`. Abre `20261009_81_rutinas_sesion.sql`, copia la función `crear_rutina` completa y adáptala:
+   - Comprueba primero que la rutina existe y es del usuario (`usuario_id = auth.uid()`); si no, `no_data_found`.
+   - `update public.rutinas_items` con los mismos campos que `crear_rutina` inserta.
+   - `delete from public.rutinas_pasos where rutina_id = p_rutina_id` y vuelve a insertar los pasos con **las mismas validaciones** (máx. 20, orden contiguo, al menos un esencial, propietario).
+   - Mismo `security`, `search_path`, `revoke` y `grant` que `crear_rutina`.
+   - Limitación conocida que debes dejar escrita en un comentario del SQL: al reemplazar los pasos, los registros de hoy de pasos **propios** (`rutinas_pasos_registros`) se pierden por el `on delete cascade`.
+2. Prueba con `rollback`, **PARADA-BD**, aplica.
+3. `rutinas.servicio.ts`: `actualizarRutina(rutinaId, input: CrearRutinaInput)` reutilizando el mismo armado de `p_datos` que `crearRutina` (extrae una función `datosARemoto(input)` y úsala en ambas).
+4. `CrearRutinaWizard.tsx`: prop opcional `rutinaInicial?: Rutina`. Si llega, precarga todos los campos y al guardar llama `actualizarRutina`. Título del asistente: `rutinas.editar.titulo` (es: `Editar rutina`, en: `Edit routine`).
+5. `ListaMisRutinas.tsx`: acción "Editar" en cada rutina que abre el asistente con `rutinaInicial`.
+6. Añade un bloque a `supabase/tests/11_sesion_rutinas.sql` que pruebe: actualizar rutina ajena falla; actualizar sin esenciales falla; actualizar cambia título y pasos.
+
+Commit: `feat(rutinas): actualizar_rutina y edición desde Mis rutinas`
+
+### Tarea 4.2 — Recordatorios reales de rutina
+
+Modelo a copiar: `supabase/migrations/20260930_60_tareas_insights_y_recordatorios.sql`, líneas 142–262 (cola compartida, `reclamar_recordatorios_tareas`, `reprogramar_recordatorio_tarea`, alta en catálogo y preferencias).
+
+1. Migración `NN_rutinas_recordatorios.sql`:
+   - `alter table privacidad.notificaciones_programadas add column rutina_id uuid references public.rutinas_items(id) on delete cascade;`
+   - Reemplaza la restricción `notificaciones_programadas_un_solo_origen` para que exija **exactamente uno** de `plan_habito_id`, `tarea_id`, `rutina_id`. Lee primero su definición real: `select pg_get_constraintdef(oid) from pg_constraint where conname='notificaciones_programadas_un_solo_origen';`
+   - Índice único `(rutina_id, fecha_local) where rutina_id is not null`.
+   - `privacidad.reclamar_recordatorios_rutinas(p_limite integer default 100)`: copia de la de tareas cambiando: tabla `rutinas_items`, hora `hora_inicio`, condición `recordatorio_activo and estado = 'activa'`, "toca hoy" según `frecuencia`/`dias_semana` de la rutina (misma expresión que usa `obtener_rutinas_hoy`), campos devueltos `rutina_id` y `titulo_rutina`, código de preferencia `'rutina_recordatorio'`.
+   - Wrapper `public.reclamar_recordatorios_rutinas` con los **mismos grants que el de tareas** (míralos en la migración 60; es para `service_role`, no para `authenticated`).
+   - `insert into public.catalogo_notificaciones (codigo, grupo, prioridad, es_proactiva, descripcion) values ('rutina_recordatorio', 'programada', 7, false, 'Recordatorio programado para una rutina.');` y el alta en `preferencias_notificacion_usuario` igual que la 60.
+2. Prueba con `rollback`, **PARADA-BD**, aplica.
+3. `supabase/functions/despachar-recordatorios-habitos/index.ts`: añade el tercer `rpc('reclamar_recordatorios_rutinas', { p_limite: 100 })` al `Promise.all`, el tipo con `rutina_id`/`titulo_rutina`, los textos (es: `Es momento de tu rutina` / `Tu rutina {titulo} te espera.`; en: `It's time for your routine` / `Your routine {titulo} is waiting.`) y la ruta `/rutinas/${rutina_id}`. Respeta `mostrar_nombre_notificacion` igual que tareas.
+4. **PARADA:** el despliegue lo hace el usuario: `npx supabase functions deploy despachar-recordatorios-habitos`.
+5. `ListaRecordatoriosRutinas.tsx`: quita la línea que avisa de que el envío no está conectado (y su clave i18n en `en` y `es`).
+
+Commit: `feat(rutinas): envío real de recordatorios de rutina`
+
+### Tarea 4.3 — Racha de sesiones
+
+1. En `src/modulos/rutinas/rachaRutina.ts` (+ test), función pura `calcularRachaRutina(fechasCompletadas: ReadonlySet<string>, rutina: Pick<Rutina, 'frecuencia' | 'diasSemana'>, hoy: string): number`: días consecutivos hacia atrás **en los que la rutina tocaba** y tiene sesión completa. Un día que no tocaba no rompe ni suma. Si hoy toca y aún no está completa, hoy no rompe la racha. Usa `src/modulos/tareas/tareaProgramada.ts` como referencia de estilo.
+2. Servicio `obtenerFechasCompletadasRutinas(desde: string)`: `select rutina_id, fecha_local from rutinas_registros where completada_en is not null and fecha_local >= desde` (RLS ya limita al dueño). Ventana: 120 días.
+3. Muestra la racha en `TarjetaRutinaHoy.tsx` (`rutinas.racha`, es: `{{n}} días seguidos`, en: `{{n}}-day streak`) solo si es ≥ 2.
+
+Commit: `feat(rutinas): racha de sesiones completas`
+
+### Tarea 4.4 — Borrar `routine_id`
+
+1. `grep -rnE "routine_id|routineId" src app supabase/functions`. Debe salir solo en `tareas.tipos.ts` y `tareas.servicio.ts`. Si sale en otro sitio, **PARADA**.
+2. Quita `routineId`/`routine_id` de `Tarea`, `CrearTareaInput`, `FilaTarea`, `normalizar`, `COLUMNAS`, `crearTarea` y `editarTarea`. `npm run typecheck && npm test`. Commit: `refactor(tareas): quitar routineId del cliente`.
+3. Migración `NN_tareas_quitar_routine_id.sql`: `alter table public.tareas_items drop column routine_id;`. Antes: `select count(*) from public.tareas_items where routine_id is not null;` debe ser 0; si no, **PARADA**. **PARADA-BD**, aplica. **El paso 2 debe estar publicado en la app que usa el usuario antes de aplicar el 3**; pregunta.
+
+Commit: `chore(tareas): migración que elimina routine_id`
+
+### Tarea 4.5 — Documentación de datos
+
+Añade las tablas `rutinas_items`, `rutinas_pasos`, `rutinas_pasos_registros`, `rutinas_registros`, `plantillas_rutinas`, `plantillas_rutinas_contenido`, `plantillas_rutinas_compradas` y las columnas de franja a `supabase/privacidad-schema.md` y `docs/app-store/privacy-inventory.md`, siguiendo el formato de las filas de `tareas_items`. Commit: `docs(privacidad): tablas de rutinas, plantillas y franjas`
+
+### Tarea 4.6 — La rutina como camino de nodos
+
+La visión pide que el progreso se vea como un camino, no como una lista. Hazla **después** de la 4.5.
+
+1. Crea `src/modulos/rutinas/construirNodosRutina.ts` (+ test), espejo de `src/modulos/tareas/construirNodosPasos.ts`, que recibe `pasos: PasoRutina[]` y los textos ya traducidos, y devuelve `NodoMapaSendero[]`:
+   - Orden por `orden`. Un paso con `aplica === false` no genera nodo.
+   - `completo` → `'completado'` (ícono `Check`); el primer paso sin completar → `'activo'` (`Play`); el resto → `'bloqueado'` (`Lock`).
+   - `subtitulo`: "Paso n de m", más la marca de opcional cuando `esencial === false`.
+   - Un **nodo final de destino** (`id: 'destino'`): `'completado'` si todos los pasos esenciales que aplican están completos; si no, `'bloqueado'`.
+   - Tests: orden, paso que no aplica, primer pendiente activo, destino con esenciales completos y opcionales pendientes, rutina sin pasos aplicables.
+2. Busca qué componente dibuja hoy un `NodoMapaSendero[]` para el checklist de tareas: `grep -rn "NodoMapaSendero" src --include=*.tsx`. Reutiliza **ese mismo componente** con el paquete `PAQUETE_RUTINAS` / `COLOR_PAQUETE_RUTINAS` de `temaRutinas.ts`. Si para reutilizarlo hay que modificarlo en más de ~30 líneas o cambiar su comportamiento para Tareas: **PARADA** y explica qué haría falta.
+3. En `SesionRutinaPantalla.tsx`: en la fase `'preparar'`, muestra el camino encima de la vista previa de pasos; en la fase `'fin'`, muestra el camino con su estado final (destino completado si la sesión quedó completa) y dispara `hapticSeguro` de éxito una sola vez. No crees animaciones nuevas.
+4. En `TarjetaRutinaHoy.tsx` no cambies nada (la tarjeta sigue compacta).
+
+Commit: `feat(rutinas): la sesión muestra la rutina como camino de nodos`
+
+Pendiente de dispositivo: el camino se ve bien con 1, 5 y 20 pasos; el contraste sobre el rojo Ignate es legible.
+
+---
+
+## FASE 5 — Ajustes de franjas e insights
+
+### Tarea 5.1 — Límites de franja del perfil
+
+1. `src/modulos/configuracion/configuracion.servicio.ts`: `obtenerLimitesFranja(): Promise<LimitesFranja>` (`select franja_manana_desde, franja_tarde_desde, franja_noche_desde from perfiles_usuario` del usuario actual; mira en `cargarConfiguracion` cómo obtiene el id) y `actualizarLimitesFranja(limites)` que valida con `limitesValidos` antes del `update`.
+2. Hook `src/modulos/configuracion/useLimitesFranja.ts`: `useQuery` con clave `['configuracion', 'limitesFranja']`, valor por defecto `LIMITES_FRANJA_DEFECTO`.
+3. Sustituye las llamadas `franjaActual()` y `sugerirFranjaPorHora(hora)` de las fases 2 y 3 para que reciban los límites del hook.
+4. En `src/modulos/direccion/pantallas/PerfilPantalla.tsx`, dentro de la sección de ajustes, una fila "Franjas del día" que abre una `HojaDeslizante` con tres selectores de hora entera (0–23) y vista previa (`Mañana 5:00–12:00`, `Tarde 12:00–19:00`, `Noche 19:00–5:00`). Guardar deshabilitado si `limitesValidos` es `false`, con el texto `franjas.ajustes.ordenInvalido` (es: `La mañana debe empezar antes que la tarde, y la tarde antes que la noche.`).
+
+Commit: `feat(franjas): ajustes de horas de franja`
+
+### Tarea 5.2 — Insights por franja
+
+1. Función pura `src/modulos/insights/insightsFranjas.ts` (+ test): recibe `{ completadoEn: string }[]` (ISO), `limites` y zona horaria; devuelve el conteo por `FranjaConcreta` y la franja con más completados (o `null` si hay menos de 7 registros). Usa `franjaDeHora` con la hora local.
+2. Datos: `tareas_registros` y `habitos_registros` de los últimos 30 días. Comprueba primero qué columna de fecha-hora tienen (`select column_name from information_schema.columns where table_name in ('habitos_registros','tareas_registros')`). Si alguna tabla no tiene marca de hora, usa solo la que sí y dilo en tu resumen.
+3. Muestra una tarjeta en `InsightsPantalla.tsx` con el mismo componente de sección que las demás: "Cumples más por la {{franja}}", o el estado "en observación" con menos de 7 registros.
+
+Commit: `feat(insights): en qué franja cumples más`
+
+---
+
+## FASE 5B — Pausa de uso real (dos semanas) — **PARADA larga**
+
+Viene de la estrategia (sección 10): la lista de fricciones del propio fundador ordena el trabajo mejor que cualquier plan. **Al terminar la Fase 5 el agente deja de construir.**
+
+### Tarea 5B.1 — Preparar la pausa
+
+1. Crea `docs/fricciones.md` con esta tabla vacía y nada más:
+   ```markdown
+   # Fricciones de uso real
+
+   | Fecha | Pantalla | Qué intentaba hacer | Qué estorbó o faltó | Gravedad (1 molesta · 2 frena · 3 impide) |
+   | --- | --- | --- | --- | --- |
+   ```
+2. Escribe al usuario el resumen de todo lo pendiente de probar en dispositivo de las fases 0–5 (una lista por fase).
+3. Commit: `docs: plantilla de fricciones de uso real`. `git push origin mejoras`.
+4. **PARADA.** Tareas del usuario durante dos semanas: usar la app a diario (plan de marketing en Planes, tareas de escuela y trabajo, hábitos, rutinas con sesión guiada); anotar cada fricción en `docs/fricciones.md`; hablar con 5 a 10 personas del público objetivo ("¿cómo organizas esto hoy?", "¿qué te frustra?"); escribir el mensaje de la app y abrir el grupo de TestFlight.
+
+### Tarea 5B.2 — Al volver
+
+1. Lee `docs/fricciones.md`.
+2. Agrupa las fricciones por pantalla y ordénalas por gravedad y repetición.
+3. Propón al usuario: (a) qué fricciones de gravedad 2 y 3 se arreglan **antes** de la Fase 6, como tareas concretas con archivo y verificación; (b) si el orden de las fases 6 a 13 debe cambiar.
+4. **PARADA.** No sigas hasta que el usuario apruebe el orden. Actualiza este documento con lo aprobado.
+
+---
+
+## FASE 6 — Analítica del embudo
+
+Hoy `registrarEvento` no envía nada. Se implementa con la API HTTP de PostHog (sin dependencia nativa, sin recompilar la app).
+
+### Tarea 6.1 — **PARADA** (usuario)
+
+Pide al usuario la clave del proyecto de PostHog y el host (`https://us.i.posthog.com` o `https://eu.i.posthog.com`). Lee `src/nucleo/configuracion/entorno.ts` para ver cómo se cargan las demás claves y carga `posthogKey` y `posthogHost` igual. Sin clave, todo debe seguir funcionando sin enviar nada.
+
+### Tarea 6.2 — Implementar `registrarEvento`
+
+`src/servicios/analitica/posthog.ts` (+ test con `fetch` inyectado):
+
+- `registrarEvento(nombre, propiedades?)`: si no hay clave, no hace nada. Si hay, `POST {host}/capture/` con JSON `{ api_key, event: nombre, distinct_id, properties, timestamp }`. `distinct_id` = id del usuario de Supabase (si no hay sesión, no envía). Nunca lanza: los errores de red se ignoran.
+- Prohibido enviar títulos, descripciones, notas o cualquier texto escrito por la persona. Solo ids, tipos, números y booleanos.
+
+### Tarea 6.3 — Eventos (lista cerrada; no añadas otros)
+
+| Evento | Dónde se dispara | Propiedades |
+| --- | --- | --- |
+| `habito_creado` | éxito de `crearHabito` | `tipo_meta`, `frecuencia`, `franja`, `con_recordatorio` |
+| `habito_completado` | éxito de `registrarProgresoHabito` cuando queda completo | `subio_nivel` |
+| `tarea_creada` | éxito de crear tarea | `tipo`, `frecuencia`, `franja` |
+| `tarea_completada` | éxito de completar tarea | `tipo` |
+| `rutina_creada` | éxito de `crearRutina` | `num_pasos`, `franja`, `desde_plantilla` |
+| `sesion_rutina_iniciada` | éxito de `iniciarRutina` | `minutos_disponibles` |
+| `sesion_rutina_cerrada` | respuesta de `cerrarRutinaDia` | `completa`, `requeridos`, `requeridos_completos` |
+| `plantilla_vista` | abrir `ModalCompraPlantilla` | `plantilla_id`, `precio_gemas` |
+| `plantilla_comprada` | éxito de `comprar_plantilla_rutina` | `plantilla_id`, `precio_gemas` |
+| `paywall_visto` | montar `HorizonPaywallPantalla` | `origen` |
+| `hoy_filtro_franja` | cambio de filtro en Hoy | `filtro` |
+| `primera_victoria` | ver tarea 6B.2 | `tipo` (`habito`, `tarea` o `rutina`) |
+
+Dispara cada evento en el `onSuccess` de la mutación o tras el `await` correspondiente, nunca dentro de los servicios. Commit: `feat(analitica): eventos del embudo con PostHog`
+
+---
+
+## FASE 6B — Primera victoria
+
+La estrategia dice que la primera sesión decide si alguien se queda. Objetivo: que una cuenta nueva complete su primera acción el primer día. Ya existe un punto de partida: `RegaloBienvenidaPantalla` puede encender `CLAVE_ABRIR_CREACION_HABITO` y `HabitosPantalla` abre el asistente al montarse (lee `src/modulos/onboarding/onboarding.servicio.ts`).
+
+### Tarea 6B.1 — Hoy vacío que invita a empezar
+
+En `HoyPantalla.tsx`, cuando el plan del día tiene `total === 0` y las consultas ya cargaron, en lugar de la lista vacía muestra una tarjeta (`RecuadroGlass`, estilos existentes) con:
+
+- Título `hoy.vacio.titulo` (es: `Tu primer paso` / en: `Your first step`) y texto `hoy.vacio.texto` (es: `Empieza con algo pequeño que puedas hacer hoy.` / en: `Start with something small you can do today.`).
+- Botón `hoy.vacio.crearHabito` (es: `Crear mi primer hábito`): enciende `CLAVE_ABRIR_CREACION_HABITO` con `queryClient.setQueryData(...)` **igual que lo hace `RegaloBienvenidaPantalla`** y navega a `/habitos`.
+- Botón `hoy.vacio.rutinaLista` (es: `Usar una rutina lista`): navega a `/senderos`. `SenderosPantalla` no acepta hoy una pestaña inicial por parámetro; no se lo añadas en esta tarea.
+
+### Tarea 6B.2 — Detectar y celebrar la primera victoria
+
+1. La señal es el XP: una cuenta sin ninguna acción tiene `xpTotal === 0`. Crea el hook `src/modulos/hoy/usePrimeraVictoria.ts` que observa `CLAVE_RESUMEN_HOY` y, cuando `xpTotal` pasa de `0` a mayor que `0` **dentro de la misma sesión de la app**, devuelve `true` una sola vez.
+2. En ese momento: `registrarEvento('primera_victoria', { tipo })` y un `Banner` (componente de `src/diseno/componentes`) en Hoy con `hoy.primeraVictoria` (es: `¡Primer paso dado! Así empieza tu racha.` / en: `First step done! Your streak starts here.`). `tipo` se deduce de qué contador del plan del día pasó a tener un completado; si no se puede deducir, envía `tipo: 'desconocido'`.
+3. La lógica de "pasó de 0 a mayor que 0, solo una vez" va en una función pura con test (`detectarPrimeraVictoria(anterior: number | undefined, actual: number | undefined, yaDisparada: boolean)`); `undefined` (cargando) nunca dispara.
+
+Commit: `feat(hoy): invitación inicial y celebración de la primera victoria`
+
+Pendiente de dispositivo: con una cuenta nueva, Hoy muestra la invitación; tras completar el primer hábito aparece el aviso una sola vez y la racha pasa a 1.
+
+---
+
+## FASE 7 — Plantillas premium reales
+
+### Tarea 7.1 — **PARADA** (decisión de producto)
+
+Propón al usuario 4 plantillas (una por nicho: cuerpo, estudio, trabajo, finanzas), todas a **100 gemas**, cada una con 4–6 pasos propios (`simple`, `cronometro` o `contador`; sin hábitos ni tareas). Contenido general: nada de dietas, cantidades de dinero ni consejos médicos o financieros. Espera su aprobación o sus cambios.
+
+### Tarea 7.2 — Cargar
+
+Escribe `supabase/datos/plantillas_premium_2026_10.sql` con los `insert` en `plantillas_rutinas` y `plantillas_rutinas_contenido`, siguiendo exactamente el ejemplo comentado al inicio de `20261009_80_plantillas_rutinas.sql`. Prueba con `rollback`, **PARADA-BD**, aplica. Verifica con `select id, precio_gemas, num_pasos, duracion_min from public.plantillas_rutinas order by orden;`.
+
+Commit: `feat(plantillas): primeras plantillas premium por nicho`
+
+---
+
+## FASES 8–13 — Sin spec todavía
+
+Para cada una: **la primera tarea es escribir el spec** en `docs/superpowers/specs/AAAA-MM-DD-<tema>-design.md`, con las mismas secciones que `2026-10-04-rutinas-design.md` (Objetivo, Decisiones, Modelo de datos, RPCs, Interfaz, Privacidad, Pruebas, Fases, Fuera de alcance), y hacer **PARADA** para aprobación. No escribas código antes.
+
+### Fase 8 — Áreas de vida + filtro en Hoy
+
+**Antes del spec de áreas hay que cerrar la puerta 1 de la sección 3** (modelo unificado de Sendero): áreas y metas añaden un enlace a las cuatro familias de tablas, y es el momento más barato para decidir si habrá una tabla común.
+
+Propuesta de partida para el spec:
+
+- Tabla `areas_vida (id, usuario_id, nombre, icono_lucide, color, orden, archivada_en, created_at)` con RLS por dueño; al crear el perfil se siembran 5: Cuerpo, Mente, Estudios, Trabajo y negocio, Finanzas.
+- Columna `area_id uuid null references public.areas_vida(id) on delete set null` en `habitos_items`, `tareas_items`, `rutinas_items` y `planes_items`. Nulo = sin área; lo existente no cambia.
+- `habitos_items` no admite escritura directa: hará falta un RPC `establecer_area_habito`, con el mismo patrón de la tarea 1.1.
+- Interfaz: selector de área en los asistentes y un filtro de área en Hoy (fila de chips sobre `SelectorFranja`); `construirPlanDelDia` recibe `areaId` opcional.
+- Preguntas para el usuario: nombres definitivos, si se pueden crear áreas propias, si un elemento puede tener más de un área (propuesta: no).
+
+### Fase 9 — Metas reales
+
+`src/modulos/metas/` existe pero es maqueta (`MetasListaPantalla.tsx` usa la constante `SUBTAREAS`). El spec debe definir: tabla `metas_items` (título, área, fecha objetivo, estado), cómo se enlazan hábitos, tareas, rutinas y planes a una meta, y cómo se calcula su avance sin duplicar registros. `PanelMetasPantalla.tsx` también saluda a un "Alejandro" fijo: usa el nombre del perfil igual que la tarea 3.8.
+
+### Fase 10 — Packs por área
+
+Sin código nuevo: un pack es una plantilla de rutina premium + un texto de arranque para el asistente de Planes + una meta sugerida. Requiere fases 7, 8 y 9.
+
+### Fase 11 — Límites gratis/Horizon y trial
+
+Decisiones abiertas que el usuario debe cerrar antes del spec: cuántas rutinas activas gratis (1 o 2), qué tipos de tarea son de Horizon, duración del trial (14 días propuestos) y generaciones de Aby en trial (3 propuestas), qué pasa con `trial_horizon_bono` de la migración 41. Reglas fijas: los límites se comprueban **en el servidor** (modelo: `supabase/functions/_shared/accesoAbyPlanes.ts`); lo creado durante el trial se pausa, nunca se borra. Nota: ese archivo tiene un bypass temporal para Android que hay que retirar cuando exista el producto en Play Store.
+
+### Fase 12 — Live Activities (iOS)
+
+En una rama aparte (`live-activities`). Necesita un Mac con Xcode y un iPhone real: **no la empieces sin confirmar con el usuario que los tiene**. Alcance v1: cronómetro del paso actual de la sesión guiada; sin cambio automático de paso con la app cerrada.
+
+### Fase 13 — Finanzas sencillas
+
+Solo si tras usar las fases anteriores sigue haciendo falta. Límite fijo: metas y hábitos de ahorro con contadores; nada de cuentas, bancos ni consejos financieros.
+
+---
+
+## 3. Puertas hacia el resto de la visión
+
+Las fases 6 a 10 de la visión **no se construyen en este plan**, pero cada una tiene una condición escrita para retomarla. Cuando una condición se cumpla, el agente lo avisa y hace **PARADA**; no empieza por su cuenta.
+
+| # | Fase de la visión | Qué existe ya | Condición para retomarla | Primer entregable |
+| --- | --- | --- | --- | --- |
+| 1 | Modelo unificado de Sendero y dependencias entre nodos | Cuatro familias sin modelo común: `habitos_*`, `tareas_*`, `rutinas_*`, `planes_*` (más `senderos`) | **Antes de la Fase 8 de este plan** | Spec que responda la pregunta abierta de la visión: ¿tabla `senderos` polimórfica o vistas sobre las familias? Debe incluir cómo se enlazan área y meta |
+| 2 | Aby genera rutinas | `crear_rutina(p_datos jsonb)` es un esquema destino estable; Aby ya genera Planes con propuesta privada y aceptación transaccional | Fase 4 terminada y probada en dispositivo | Spec de propuesta de rutina con el mismo flujo que Planes (Edge Function, propuesta privada, aceptar) y el tope mensual de `accesoAbyPlanes.ts` |
+| 3 | Cooperativo | Planes compartidos, instancias por persona y ramas (migraciones 72–76) | Que el usuario haya usado un plan compartido con otra persona durante la Fase 5B | Spec de dependencias entre personas ("este nodo se desbloquea cuando aquel se complete") y su RLS |
+| 4 | Cursos propios | Plantillas con gemas: contenido en servidor entregado solo a quien compró | 30 días de datos de la Fase 7 con, como mínimo, compras de al menos 2 nichos distintos y sesiones completadas de las plantillas compradas (los umbrales exactos los fija el usuario) | Spec de curso como Sendero publicado y vendido con RevenueCat (no consumible) |
+| 5 | Marketplace | Nada | Solo tras validar la puerta 4 con cursos propios y con algún creador invitado | No se planifica todavía |
+
+## 4. Decisiones que debe tomar el usuario
+
+Mientras no responda, usa el valor por defecto de la tabla.
+
+| # | Decisión | Por defecto | Afecta a |
+| --- | --- | --- | --- |
+| 1 | Tope de pendientes por franja en Hoy | 5 | Fase 3 |
+| 2 | Horas por defecto de las franjas | 5 / 12 / 19 | Fases 1, 5 |
+| 3 | ¿Completar con un toque desde Hoy? | No (solo navegar) | Tarea 3.5 |
+| 4 | ¿Filtro inicial "Todo" en Hábitos y Tareas? | Sí | Tarea 3.4 |
+| 5 | Proveedor de analítica | PostHog por HTTP | Fase 6 |
+| 6 | Contenido y precio de plantillas premium | 4 plantillas a 100 gemas | Fase 7 |
+| 7 | Rutinas activas gratis | Sin decidir (bloquea fase 11) | Fase 11 |
+| 8 | Duración del trial y generaciones de Aby | Sin decidir (bloquea fase 11) | Fase 11 |
+| 9 | Licencia (`main` BUSL-1.1 vs `mejoras` propietaria) | Sin decidir (bloquea fusionar a `main`) | Fusión |
+| 10 | Qué cuenta como día activo y cómo se calcula la racha global | Cualquier acción cuenta; hoy sin acción no rompe la racha hasta que acabe el día | Tarea 3.6 |
+| 11 | Tabla de XP y curva de niveles | 10 / 10 / 10 / 15 XP; subir cuesta 60, 80, 100, 120… | Tareas 3.6 y 3.7 |
+| 12 | ¿El hábito da XP con cualquier avance o solo al cumplir la meta? | Con cualquier avance (`valor > 0`) | Tarea 3.6 |
+| 13 | ¿Crear un proyecto Supabase de staging? | Recomendado; sin él se sigue probando con `rollback` | Tarea 0.9 |
+
+## 5. Qué reportar al terminar cada fase
+
+1. Lista de commits (hash y mensaje).
+2. Resultado de `npm run typecheck` y `npm test` (número de archivos y tests).
+3. Migraciones aplicadas a la base real, con la salida de su consulta de verificación.
+4. Qué no se pudo verificar (interfaz, cronómetro, notificaciones) y los pasos exactos para probarlo en dispositivo.
+5. Cualquier punto donde el plan no coincidió con el código y qué se hizo.
