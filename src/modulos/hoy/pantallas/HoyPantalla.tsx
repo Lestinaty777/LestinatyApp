@@ -16,7 +16,7 @@ import {
   Sparkles,
 } from 'lucide-react-native';
 
-import { RecuadroGlass, SelectorFranja, Skeleton, Texto, MasterIcon } from '../../../diseno';
+import { MasterGlass, Rebote, RecuadroGlass, SelectorFranja, Skeleton, Texto, MasterIcon } from '../../../diseno';
 import { franjaActual, type FiltroFranja, type FranjaDia } from '../../../compartido/utilidades/franjas';
 import { hapticSeguro } from '../../../nucleo/dispositivo/haptics';
 import { registrarEvento } from '../../../servicios/analitica/posthog';
@@ -60,6 +60,7 @@ const C = {
   verde: ESCALA_ESMERALDA.jade.l70,
   verdeSuave: ESCALA_ESMERALDA.jade.l95,
   naranja: '#F59E0B',
+  amarillo: '#FACC15',
   naranjaSuave: '#FEF3C7',
   rojo: '#EF4444',
   rojoSuave: '#FEE2E2',
@@ -204,10 +205,10 @@ function HeroSection() {
 }
 
 // ─── Grid de Categorías ──────────────────────────────────────────────────────
-// Solo estas dos categorías tienen pantalla real hoy — el resto (Estudio,
-// Rutinas, Mi espacio, Más) siguen siendo placeholder: navegar ahí rompería
-// contra una ruta que no existe (expo-router la marcaría "Unmatched Route").
-const CATEGORIAS_CON_PANTALLA = new Set(['tareas', 'habitos']);
+// Tareas, Hábitos y Metas tienen ruta propia. Rutinas vive como pestaña de
+// Senderos (no hay ruta /rutinas): navegar ahí rompería contra una ruta que
+// no existe (expo-router la marcaría "Unmatched Route").
+const CATEGORIAS_CON_PANTALLA = new Set(['tareas', 'habitos', 'metas']);
 
 function GridCategorias() {
   const router = useRouter();
@@ -229,51 +230,36 @@ function GridCategorias() {
   }
 
   const categorias = useMemo(() => [
-    { id: 'estudio', label: t('hoy.categorias.estudio'), progreso: '', color: C.morado, colorSuave: C.moradoSuave, icono: 'hoy/estudio' },
-    { id: 'tareas', label: t('hoy.categorias.tareas'), progreso: tareasProgreso, color: C.naranja, colorSuave: C.naranjaSuave, icono: 'hoy/tareas' },
-    { id: 'rutinas', label: t('hoy.categorias.rutinas'), progreso: rutinasProgreso, color: C.rojo, colorSuave: C.rojoSuave, icono: 'hoy/rutinas' },
-    { id: 'habitos', label: t('hoy.categorias.habitos'), progreso: habitosProgreso, color: C.verde, colorSuave: C.verdeSuave, icono: 'hoy/habitos' },
-    { id: 'mi-espacio', label: t('hoy.categorias.miEspacio'), progreso: '', color: C.morado, colorSuave: C.moradoSuave, icono: 'hoy/metas' },
-    { id: 'mas', label: t('hoy.categorias.mas'), progreso: '', color: '#7B7494', colorSuave: '#EDE5FB', icono: 'hoy/mas' },
+    { id: 'tareas', label: t('hoy.categorias.tareas'), progreso: tareasProgreso, color: C.amarillo, icono: 'hoy/tareas' },
+    { id: 'rutinas', label: t('hoy.categorias.rutinas'), progreso: rutinasProgreso, color: C.rojo, icono: 'hoy/rutinas' },
+    { id: 'habitos', label: t('hoy.categorias.habitos'), progreso: habitosProgreso, color: C.verde, icono: 'hoy/habitos' },
+    { id: 'metas', label: t('hoy.categorias.metas'), progreso: '', color: C.azul, icono: 'hoy/metas' },
   ], [habitosProgreso, rutinasProgreso, tareasProgreso, t]);
 
   return (
     <View style={s.categoriasRow}>
       {categorias.map((cat) => (
-        <Pressable
-          key={cat.id}
-          onPress={() => {
-            hapticSeguro('seleccion');
-            if (CATEGORIAS_CON_PANTALLA.has(cat.id)) router.navigate(`/${cat.id}` as any);
-          }}
-          style={({ pressed }) => [
-            s.categoriaCard,
-            pressed && { opacity: 0.8, transform: [{ scale: 0.95 }] },
-          ]}
-        >
-          <RecuadroGlass style={s.categoriaGlass}>
-            <View style={[s.categoriaIcono, !cat.icono && { backgroundColor: cat.colorSuave }]}>
-              {cat.icono && (
-                <MasterIcon name={cat.icono} size={38} />
-              )}
-            </View>
-            <Texto style={s.categoriaLabel} numberOfLines={1}>{cat.label}</Texto>
-            
-            {cat.progreso !== '' && (
-              <>
-                <Texto style={s.categoriaProgreso}>{cat.progreso}</Texto>
-                <View style={s.categoriaBarraFondo}>
-                  <View 
-                    style={[
-                      s.categoriaBarraRelleno, 
-                      { backgroundColor: cat.color, width: `${obtenerAnchoProgreso(cat.progreso)}%` }
-                    ]} 
-                  />
-                </View>
-              </>
-            )}
-          </RecuadroGlass>
-        </Pressable>
+        <View key={cat.id} style={s.categoriaCard}>
+          <Rebote
+            accessibilityLabel={cat.label}
+            onPress={() => { if (CATEGORIAS_CON_PANTALLA.has(cat.id)) router.navigate(`/${cat.id}` as any); }}
+          >
+            <MasterGlass colorBase={cat.color} style={s.categoriaGlass}>
+              <MasterIcon name={cat.icono} size={32} />
+              <View style={s.categoriaTexto}>
+                <Texto adjustsFontSizeToFit minimumFontScale={0.8} numberOfLines={1} style={s.categoriaLabel}>{cat.label}</Texto>
+                {cat.progreso !== '' && (
+                  <>
+                    <Texto style={s.categoriaProgreso}>{cat.progreso}</Texto>
+                    <View style={s.categoriaBarraFondo}>
+                      <View style={[s.categoriaBarraRelleno, { backgroundColor: cat.color, width: `${obtenerAnchoProgreso(cat.progreso)}%` }]} />
+                    </View>
+                  </>
+                )}
+              </View>
+            </MasterGlass>
+          </Rebote>
+        </View>
       ))}
     </View>
   );
@@ -894,52 +880,33 @@ const s = StyleSheet.create({
   // ─── Categorías ─────────────────────────────────────
   categoriasRow: {
     flexDirection: 'row',
+    gap: 6,
     paddingHorizontal: PH,
-    paddingBottom: 4,
     marginBottom: 16,
-    justifyContent: 'space-between',
-    alignItems: 'flex-end', // Esto ancla la tarjeta 'Más' abajo junto con las demás
   },
-  categoriaCard: {
-    width: '15.8%',
-  },
-  categoriaGlass: {
-    alignItems: 'center',
-    paddingHorizontal: 2,
-    paddingVertical: 6,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: C.glassBorde,
-    backgroundColor: C.glass,
-  },
-  categoriaIcono: {
-    width: 40,
-    height: 40,
-    borderRadius: 7,
-    alignItems: 'center',
-    justifyContent: 'flex-end', // Alinea los assets a la par en la parte inferior
-    marginBottom: 1,
-  },
+  categoriaCard: { flex: 1 },
+  categoriaGlass: { alignItems: 'center', borderRadius: 14, justifyContent: 'flex-start', minHeight: 100, padding: 8 },
+  categoriaTexto: { alignItems: 'center', marginTop: 5, minHeight: 31, width: '100%' },
   categoriaLabel: {
-    fontFamily: 'Montserrat-Bold',
-    fontSize: 8,
+    fontFamily: 'MontserratAlternates-Bold',
+    fontSize: 12,
     color: C.texto,
     textAlign: 'center',
-    lineHeight: 10,
+    lineHeight: 15,
   },
   categoriaProgreso: {
-    fontFamily: 'Montserrat-Bold',
-    fontSize: 7,
-    color: C.textoTenue,
-    marginTop: 3,
-    lineHeight: 9,
+    fontFamily: 'Montserrat-Medium',
+    fontSize: 11,
+    color: C.textoSecundario,
+    marginTop: 1,
+    lineHeight: 14,
   },
   categoriaBarraFondo: {
-    width: '90%',
+    width: '80%',
     height: 3,
     borderRadius: 1.5,
-    backgroundColor: C.barraFondo,
-    marginTop: 3,
+    backgroundColor: 'rgba(26,19,53,0.10)',
+    marginTop: 4,
   },
   categoriaBarraRelleno: {
     height: 3,
