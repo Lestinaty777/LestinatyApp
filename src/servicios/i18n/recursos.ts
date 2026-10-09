@@ -100,6 +100,7 @@ export const recursosI18n = {
         },
         sesion: {
           volver: 'Back', noEncontrada: 'We could not find this routine.',
+          camino: { destino: 'Session complete', completado: '{{titulo}}: done', activo: '{{titulo}}: up next', bloqueado: '{{titulo}}: pending' },
           preparar: {
             titulo: 'Before you start', tiempoTitulo: 'How much time do you have?', opcionCompleta: 'Full', opcionMinutos: '{{count}} min',
             resumen_one: '{{count}} step · about {{minutos}} min', resumen_other: '{{count}} steps · about {{minutos}} min',
@@ -1315,6 +1316,7 @@ export const recursosI18n = {
         },
         sesion: {
           volver: 'Volver', noEncontrada: 'No encontramos esta rutina.',
+          camino: { destino: 'Sesión completa', completado: '{{titulo}}: hecho', activo: '{{titulo}}: es el siguiente', bloqueado: '{{titulo}}: pendiente' },
           preparar: {
             titulo: 'Antes de empezar', tiempoTitulo: '¿Cuánto tiempo tenés?', opcionCompleta: 'Completa', opcionMinutos: '{{count}} min',
             resumen_one: '{{count}} paso · unos {{minutos}} min', resumen_other: '{{count}} pasos · unos {{minutos}} min',

@@ -14,6 +14,8 @@ import { TonoDelHabito } from '../../habitos/componentes/TonoDelHabito';
 import { buscarIconoHabito } from '../../habitos/iconosHabitos';
 import { obtenerAssetsPaquete } from '../../senderos/algoritmo/registroPaquetesArbol';
 import { ControlPaso } from '../componentes/sesion/ControlesPaso';
+import { CaminoRutina } from '../componentes/sesion/CaminoRutina';
+import { construirNodosRutina, type NodoRutina } from '../construirNodosRutina';
 import { cerrarRutinaDia, CLAVE_RUTINAS, iniciarRutina, obtenerRutinasHoy } from '../rutinas.servicio';
 import type { PasoRutina, ResultadoCierreRutina } from '../rutinas.tipos';
 import { OPCIONES_MINUTOS_SESION, planearSesion } from '../sesionRutina';
@@ -138,6 +140,8 @@ function SesionContenido({ id }: { id: string }) {
     </LinearGradient>
   );
 
+  const etiquetaNodo = (nodo: NodoRutina) => t(`rutinas.sesion.camino.${nodo.estado}`, { titulo: nodo.titulo });
+
   if (consulta.isLoading) return marco(<Texto style={estilos.centro}>{t('rutinas.pantalla.cargando')}</Texto>);
   if (consulta.isError) return marco(<Pressable accessibilityRole="button" onPress={() => consulta.refetch()}><Texto style={[estilos.centro, { color: C.error }]}>{t('rutinas.pantalla.errorCargar')}</Texto></Pressable>);
   if (!rutina || !plan) return marco(<Texto style={estilos.centro}>{t('rutinas.sesion.noEncontrada')}</Texto>);
@@ -172,13 +176,13 @@ function SesionContenido({ id }: { id: string }) {
             <Texto style={estilos.subtitulo}>{t('rutinas.sesion.preparar.resumen', { count: plan.pasos.length, minutos: plan.minutosTotal })}</Texto>
             {plan.excede ? <Texto style={estilos.aviso}>{t('rutinas.sesion.preparar.excede')}</Texto> : null}
             <MasterGlass style={estilos.lista}>
-              {plan.pasos.map((paso, i) => (
-                <View key={paso.id} style={estilos.filaPaso}>
-                  <View style={estilos.orden}><Texto style={estilos.ordenTexto}>{i + 1}</Texto></View>
-                  <Texto numberOfLines={1} style={estilos.filaTitulo}>{paso.titulo}</Texto>
-                  <Texto style={[estilos.etiqueta, paso.esencial && { color: acento }]}>{paso.esencial ? t('rutinas.sesion.preparar.esencial') : t('rutinas.sesion.preparar.opcional')}</Texto>
-                </View>
-              ))}
+              {/* El camino de hoy: lo ya hecho más lo que entra en el tiempo elegido, con la meta al final. */}
+              <CaminoRutina
+                color={acento}
+                etiquetaAccesible={etiquetaNodo}
+                etiquetaOpcional={t('rutinas.sesion.preparar.opcional')}
+                nodos={construirNodosRutina(rutina.pasos.filter((paso) => paso.completo || plan.pasos.some((elegido) => elegido.id === paso.id)), t('rutinas.sesion.camino.destino'))}
+              />
             </MasterGlass>
             {plan.omitidos.length > 0 ? <Texto style={estilos.ayuda}>{t('rutinas.sesion.preparar.omitidos', { lista: plan.omitidos.map((p) => p.titulo).join(', ') })}</Texto> : null}
             <MasterButton color={acento} onPress={empezar}>{t('rutinas.sesion.preparar.empezar')}</MasterButton>
@@ -239,6 +243,9 @@ function SesionContenido({ id }: { id: string }) {
           <Texto accessibilityRole="header" style={estilos.titulo}>{completa ? t('rutinas.sesion.fin.tituloCompleta') : t('rutinas.sesion.fin.tituloParcial')}</Texto>
           <Texto style={estilos.centro}>{completa ? t('rutinas.sesion.fin.textoCompleta') : t('rutinas.sesion.fin.textoParcial')}</Texto>
           {duracionMin.current > 0 ? <Texto style={estilos.ayuda}>{t('rutinas.sesion.fin.tiempo', { minutos: duracionMin.current })}</Texto> : null}
+          <MasterGlass style={[estilos.lista, { alignSelf: 'stretch' }]}>
+            <CaminoRutina color={acento} etiquetaAccesible={etiquetaNodo} etiquetaOpcional={t('rutinas.sesion.preparar.opcional')} nodos={construirNodosRutina(rutina.pasos, t('rutinas.sesion.camino.destino'))} />
+          </MasterGlass>
           {!completa && pendientes.length > 0 ? <MasterButton color={acento} onPress={retomarPendientes}>{t('rutinas.sesion.fin.retomar')}</MasterButton> : null}
           <MasterButton color={acento} onPress={salir}>{t('rutinas.sesion.fin.cerrar')}</MasterButton>
         </>
