@@ -79,7 +79,7 @@ Numeración de migraciones (para no confundirse: los documentos antiguos usan ot
 | `src/compartido/utilidades/franjas.ts` (`franjaDeHora`, `franjaActual`, `sugerirFranjaPorHora`, `limitesValidos`, `agruparPorFranja`, `filtrarPorFranja`, `contarPendientesPorFiltro`) | Hecho, con tests |
 | `src/diseno/componentes/SelectorFranja.tsx` (4 botones de filtro) | Hecho |
 | `src/modulos/rutinas/` (pantalla, asistente, plantillas, sesión guiada, `app/rutinas/[id].tsx`) | Hecho, **sin probar en dispositivo** |
-| `franja` en tipos/servicios de Tarea y Hábito | **Falta** (Fase 1) |
+| `franja` en tipos/servicios de Tarea y Hábito | Hecho (Fase 1) |
 | Selector de franja en `CrearHabitoWizard`, `CrearTareaWizard` y edición | **Falta** (Fase 2) |
 | Hoy unificado | **Falta** (Fase 3). `HoyPantalla.tsx` es una maqueta: `TimelineHoy` pinta la constante `TAREAS_HOY` y `GridCategorias` usa progresos fijos |
 | Cabecera de Hoy (nombre, racha, nivel y XP) | **Falta** (Fase 3). Muestra "Alejandro", "3 Días" y "Nivel 4 · 95/120 XP" fijos |
@@ -208,7 +208,7 @@ done
 | Fase | Resultado | Depende de | ¿Toca la base real? |
 | --- | --- | --- | --- |
 | 0 | Una sola rama con todo, migraciones renumeradas y aplicadas | — | **Hecha** |
-| 1 | Hábitos y tareas guardan y leen su franja | 0 | Ya definida (82) |
+| 1 | Hábitos y tareas guardan y leen su franja | 0 | **Hecha** |
 | 2 | Selector de franja al crear y editar | 1 | No |
 | 3 | Hoy unificado con datos reales y cabecera funcional (racha, nivel, XP) | 1 | Ya definida (83) |
 | 4 | Rutinas: editar, recordatorios reales, racha, camino visual, limpieza | 0 | Ya definida (84, 85); falta borrar `routine_id` |
@@ -224,7 +224,7 @@ done
 | 12 | Live Activities (iOS) | 4 | No |
 | 13 | Finanzas sencillas | 8, 9 | Por decidir |
 
-La Fase 0 está hecha; **empieza por la Fase 1**. Las fases 1–9 (incluidas 5B y 6B) están detalladas. Las fases 10–13 **no tienen spec**: su primera tarea es escribirlo y hacer PARADA. La sección 3 dice cuándo se retoman las fases 6–10 de la visión (modelo unificado, Aby, cooperativo, cursos, marketplace).
+Las fases 0 y 1 están hechas; **empieza por la Fase 2 (tarea 2.0)**. Las fases 1–9 (incluidas 5B y 6B) están detalladas. Las fases 10–13 **no tienen spec**: su primera tarea es escribirlo y hacer PARADA. La sección 3 dice cuándo se retoman las fases 6–10 de la visión (modelo unificado, Aby, cooperativo, cursos, marketplace).
 
 ---
 
@@ -245,7 +245,9 @@ Quedan tres pendientes **del usuario** (no bloquean la Fase 1; recuérdaselos en
 
 ---
 
-## FASE 1 — Franja en los datos de hábitos y tareas
+## FASE 1 — Franja en los datos de hábitos y tareas — **HECHA y revisada (2026-10-09)**
+
+Commits `53b1fde` y `6415b5d`. Revisada contra este plan: cumple las tareas 1.3 y 1.4. No la repitas. Queda un ajuste, que es la tarea 2.0.
 
 Objetivo: que cada hábito y cada tarea pueda guardar y devolver su franja. Sin interfaz todavía.
 
@@ -306,6 +308,17 @@ Commit: `feat(franjas): franja en tipos y servicio de hábitos`
 ---
 
 ## FASE 2 — Selector de franja al crear y editar
+
+### Tarea 2.0 — Que un fallo al guardar la franja no parezca un fallo al crear
+
+Hoy, en `crearHabito` (`habitos.servicio.ts`) y `crearTareaPremium` (`tareas.servicio.ts`), si el hábito o la tarea **ya se creó** y falla el segundo paso (guardar la franja), la función lanza el error. El asistente mostraría "no se pudo crear" aunque sí se creó, y la persona podría crearlo dos veces.
+
+1. En `crearHabito`: envuelve `await establecerFranjaHabito(res.id, input.franja)` en `try { … } catch { /* la franja es solo presentación: el hábito ya existe */ }`.
+2. En `crearTareaPremium`: no lances `errorFranja`; ignóralo con el mismo comentario.
+3. **No** cambies `actualizarHabitoDesdeDetalle` ni `editarTarea`: al editar, un fallo sí debe verse (la persona está cambiando justo eso).
+4. `npm run typecheck && npm test`.
+
+Commit: `fix(franjas): un fallo al guardar la franja no interrumpe la creación`
 
 ### Tarea 2.1 — Componente `SelectorFranjaElemento`
 
