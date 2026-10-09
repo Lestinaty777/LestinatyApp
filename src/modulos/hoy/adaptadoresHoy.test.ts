@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
   habitoAElemento,
+  resumirCategoriasHoy,
   tareaAElemento,
+  textoAvance,
   rutinaAElemento,
 } from './adaptadoresHoy';
 import type { HabitoResumen } from '../habitos/tipos';
@@ -308,5 +310,31 @@ describe('adaptadoresHoy', () => {
       expect(elemento.completado).toBe(true);
       expect(elemento.detalle).toBe('1/1 pasos');
     });
+  });
+});
+
+describe('resumirCategoriasHoy', () => {
+  const paso = (completo: boolean, esencial = true) => ({
+    id: `p-${Math.random()}`, orden: 1, origen: 'propio' as const, habitoId: null, tareaId: null, tareaTipo: null, tareaFrecuencia: null,
+    esencial, titulo: 'Paso', iconoLucide: null, color: null, modo: 'simple' as const, objetivoValor: null, unidad: null, aplica: true, completo, valor: null,
+  });
+
+  it('cuenta hechos y total por tipo; una rutina es hecha con sus esenciales, y solo cuentan las activas que tocan hoy', () => {
+    const avance = resumirCategoriasHoy({
+      habitos: [{ completado: true }, { completado: false }, { completado: true }],
+      tareas: [{ completada: false }],
+      rutinas: [
+        { estado: 'activa', tocaHoy: true, pasos: [paso(true), paso(false, false)] },
+        { estado: 'activa', tocaHoy: true, pasos: [paso(false)] },
+        { estado: 'activa', tocaHoy: false, pasos: [paso(true)] },
+        { estado: 'pausada', tocaHoy: true, pasos: [paso(true)] },
+      ],
+    });
+    expect(avance).toEqual({ habitos: { hechos: 2, total: 3 }, tareas: { hechos: 0, total: 1 }, rutinas: { hechos: 1, total: 2 } });
+  });
+
+  it('textoAvance devuelve "hechos/total" o vacío sin elementos', () => {
+    expect(textoAvance({ hechos: 2, total: 3 })).toBe('2/3');
+    expect(textoAvance({ hechos: 0, total: 0 })).toBe('');
   });
 });

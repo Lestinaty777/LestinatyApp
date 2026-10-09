@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { estaPendienteHoy, resumirDiaRutinas, resumirPasos, siguientePaso } from './estadoRutina';
+import { estaPendienteHoy, resumirDiaRutinas, resumirPasos, rutinasPorOrigen, siguientePaso } from './estadoRutina';
 import type { PasoRutina, Rutina } from './rutinas.tipos';
 
 function paso(sobrescribir: Partial<PasoRutina> = {}): PasoRutina {
@@ -101,5 +101,33 @@ describe('siguientePaso', () => {
 
   it('null si no queda nada por hacer', () => {
     expect(siguientePaso([paso({ completo: true })])).toBeNull();
+  });
+});
+
+describe('rutinasPorOrigen', () => {
+  function rutinaCompleta(titulo: string, pasos: PasoRutina[], sobrescribir: Partial<Rutina> = {}): Rutina {
+    return {
+      id: titulo, titulo, descripcion: null, franja: 'manana', iconoLucide: 'sol', color: '#90010D', estado: 'activa', frecuencia: 'diaria', diasSemana: null,
+      horaInicio: null, recordatorioActivo: false, mostrarNombreNotificacion: true, tocaHoy: true, sesionIniciadaEn: null, sesionCompletadaEn: null, pasos, ...sobrescribir,
+    };
+  }
+
+  it('agrupa los títulos de las rutinas activas por hábito y por tarea', () => {
+    const { habitos, tareas } = rutinasPorOrigen([
+      rutinaCompleta('Mañana', [paso({ origen: 'habito', habitoId: 'h-agua' }), paso({ id: 'b', origen: 'tarea', tareaId: 't-correo' }), paso({ id: 'c' })]),
+      rutinaCompleta('Noche', [paso({ origen: 'habito', habitoId: 'h-agua' })], { tocaHoy: false }),
+    ]);
+    expect(habitos.get('h-agua')).toEqual(['Mañana', 'Noche']);
+    expect(tareas.get('t-correo')).toEqual(['Mañana']);
+    expect(habitos.size).toBe(1);
+    expect(tareas.size).toBe(1);
+  });
+
+  it('ignora rutinas pausadas o archivadas', () => {
+    const { habitos } = rutinasPorOrigen([
+      rutinaCompleta('Pausada', [paso({ origen: 'habito', habitoId: 'h-1' })], { estado: 'pausada' }),
+      rutinaCompleta('Archivada', [paso({ origen: 'habito', habitoId: 'h-1' })], { estado: 'archivada' }),
+    ]);
+    expect(habitos.size).toBe(0);
   });
 });

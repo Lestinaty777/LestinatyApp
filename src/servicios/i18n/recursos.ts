@@ -62,6 +62,7 @@ export const recursosI18n = {
         updatePassword: 'Could not update the password.',
       },
       rutinas: {
+        enRutina: 'In {{nombre}}',
         pantalla: {
           titulo: 'Routines', frase: 'Do it in order. Keep it simple.', volverAlInicio: 'Back to home', comprarGemas: 'Buy gems', notificaciones: 'Notifications',
           cargando: 'Loading…', errorCargar: 'Could not load your routines. Tap to retry.',
@@ -139,6 +140,20 @@ export const recursosI18n = {
           resumenPasos_one: '{{count}} step', resumenPasos_other: '{{count}} steps',
           d1: 'M', d2: 'T', d3: 'W', d4: 'T', d5: 'F', d6: 'S', d7: 'S',
         },
+      },
+      hoy: {
+        titulo: 'Today', contador: '{{hechos}}/{{total}} done', comprarGemas: 'Buy gems',
+        saludo: { manana: 'Good morning,', tarde: 'Good afternoon,', noche: 'Good evening,' },
+        frase: 'Discipline today, freedom tomorrow.',
+        racha: {
+          titulo: 'Current streak', dias_one: '{{count}} day', dias_other: '{{count}} days',
+          accesible_one: 'Current streak: {{count}} day', accesible_other: 'Current streak: {{count}} days',
+        },
+        nivel: 'Level {{nivel}}', xp: '{{actual}}/{{requerido}} XP',
+        tipo: { habito: 'Habit', tarea: 'Task', rutina: 'Routine' },
+        pasos: '{{completos}} of {{total}} steps',
+        errorCargar: 'Could not load your day.', reintentar: 'Retry', sinNada: 'Nothing scheduled for today.',
+        categorias: { estudio: 'Study', tareas: 'Tasks', rutinas: 'Routines', habitos: 'Habits', miEspacio: 'My space', mas: 'More' },
       },
       franjas: {
         manana: 'Morning',
@@ -1258,6 +1273,7 @@ export const recursosI18n = {
         updatePassword: 'No se pudo actualizar la contrasena.',
       },
       rutinas: {
+        enRutina: 'En {{nombre}}',
         pantalla: {
           titulo: 'Rutinas', frase: 'Hacelo en orden. Hacelo simple.', volverAlInicio: 'Volver a Inicio', comprarGemas: 'Comprar gemas', notificaciones: 'Notificaciones',
           cargando: 'Cargando…', errorCargar: 'No pudimos cargar tus rutinas. Tocá para reintentar.',
@@ -1335,6 +1351,20 @@ export const recursosI18n = {
           resumenPasos_one: '{{count}} paso', resumenPasos_other: '{{count}} pasos',
           d1: 'L', d2: 'M', d3: 'X', d4: 'J', d5: 'V', d6: 'S', d7: 'D',
         },
+      },
+      hoy: {
+        titulo: 'Hoy', contador: '{{hechos}}/{{total}} completadas', comprarGemas: 'Comprar gemas',
+        saludo: { manana: 'Buenos días,', tarde: 'Buenas tardes,', noche: 'Buenas noches,' },
+        frase: 'Disciplina hoy, libertad mañana.',
+        racha: {
+          titulo: 'Racha actual', dias_one: '{{count}} día', dias_other: '{{count}} días',
+          accesible_one: 'Racha actual: {{count}} día', accesible_other: 'Racha actual: {{count}} días',
+        },
+        nivel: 'Nivel {{nivel}}', xp: '{{actual}}/{{requerido}} XP',
+        tipo: { habito: 'Hábito', tarea: 'Tarea', rutina: 'Rutina' },
+        pasos: '{{completos}} de {{total}} pasos',
+        errorCargar: 'No pudimos cargar tu día.', reintentar: 'Reintentar', sinNada: 'No tienes nada programado para hoy.',
+        categorias: { estudio: 'Estudio', tareas: 'Tareas', rutinas: 'Rutinas', habitos: 'Hábitos', miEspacio: 'Mi espacio', mas: 'Más' },
       },
       franjas: {
         manana: 'Mañana',

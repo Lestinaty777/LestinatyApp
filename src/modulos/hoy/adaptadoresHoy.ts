@@ -75,3 +75,24 @@ export function rutinaAElemento(
     detalle: detalleTexto,
   };
 }
+
+export type AvanceCategoria = { hechos: number; total: number };
+
+/** Avance del día por tipo, para la cuadrícula de categorías de Hoy. Una rutina cuenta como hecha con la misma regla que su sesión (pasos esenciales). */
+export function resumirCategoriasHoy(entrada: {
+  habitos: readonly Pick<HabitoResumen, 'completado'>[];
+  tareas: readonly Pick<TareaHoyDetalle, 'completada'>[];
+  rutinas: readonly Pick<Rutina, 'pasos' | 'tocaHoy' | 'estado'>[];
+}): { habitos: AvanceCategoria; tareas: AvanceCategoria; rutinas: AvanceCategoria } {
+  const rutinasHoy = entrada.rutinas.filter((rutina) => rutina.tocaHoy && rutina.estado === 'activa');
+  return {
+    habitos: { hechos: entrada.habitos.filter((habito) => habito.completado).length, total: entrada.habitos.length },
+    tareas: { hechos: entrada.tareas.filter((tarea) => tarea.completada).length, total: entrada.tareas.length },
+    rutinas: { hechos: rutinasHoy.filter((rutina) => resumirRutina(rutina).completa).length, total: rutinasHoy.length },
+  };
+}
+
+/** "2/5", o cadena vacía si no hay nada de ese tipo hoy. */
+export function textoAvance(avance: AvanceCategoria): string {
+  return avance.total > 0 ? `${avance.hechos}/${avance.total}` : '';
+}

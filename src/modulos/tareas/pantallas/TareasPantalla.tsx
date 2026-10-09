@@ -240,6 +240,7 @@ function TareasPantallaContenido({ modulo, setModulo }: { modulo: 'planes' | 'ta
       cliente.invalidateQueries({ queryKey: ['tareas', 'tarea', tarea.id] });
       cliente.invalidateQueries({ queryKey: ['tareas', 'registros-nivel', tarea.id] });
       cliente.invalidateQueries({ queryKey: ['tareas', 'figuras', tarea.id] });
+      cliente.invalidateQueries({ queryKey: ['hoy', 'resumen'] });
       if ('gemasGanadas' in resultado && resultado.gemasGanadas > 0) cliente.invalidateQueries({ queryKey: CLAVE_SALDO_GEMAS });
     },
     onError: (error) => {

@@ -37,4 +37,5 @@ export const CLAVES_TRAS_PASO = [
   ['tareas', 'hoy'],
   ['tareas', 'lista'],
   ['tienda', 'saldoGemas'],
+  ['hoy', 'resumen'],
 ] as const;

@@ -1,4 +1,5 @@
 import { obtenerClienteSupabase } from '../../servicios/base-datos/supabase';
+import { LIMITES_FRANJA_DEFECTO, limitesValidos, type LimitesFranja } from '../../compartido/utilidades/franjas';
 import { zonaHorariaDispositivo } from '../../nucleo/dispositivo/fechaLocal';
 import {
   AceptacionLegal,
@@ -187,3 +188,46 @@ export async function obtenerDocumentosLegales(): Promise<DocumentoLegal[]> {
 }
 
 export type { AceptacionLegal };
+
+// ─── Perfil básico: lo mínimo que necesitan Hoy y los asistentes ────────────
+// cargarConfiguracion() hace siete consultas (permisos, documentos legales,
+// notificaciones…). Para saludar por el nombre y saber a qué hora empieza cada
+// franja basta una fila de perfiles_usuario.
+export const CLAVE_PERFIL_BASICO = ['configuracion', 'perfilBasico'] as const;
+
+export type PerfilBasico = { nombreVisible: string; limitesFranja: LimitesFranja };
+
+export function normalizarPerfilBasico(fila: {
+  nombre_visible?: string | null; franja_manana_desde?: number | null; franja_tarde_desde?: number | null; franja_noche_desde?: number | null;
+} | null | undefined): PerfilBasico {
+  const limites: LimitesFranja = {
+    mananaDesde: Number(fila?.franja_manana_desde ?? LIMITES_FRANJA_DEFECTO.mananaDesde),
+    tardeDesde: Number(fila?.franja_tarde_desde ?? LIMITES_FRANJA_DEFECTO.tardeDesde),
+    nocheDesde: Number(fila?.franja_noche_desde ?? LIMITES_FRANJA_DEFECTO.nocheDesde),
+  };
+  return {
+    nombreVisible: (fila?.nombre_visible ?? '').trim(),
+    limitesFranja: limitesValidos(limites) ? limites : LIMITES_FRANJA_DEFECTO,
+  };
+}
+
+export async function obtenerPerfilBasico(): Promise<PerfilBasico> {
+  const { data, error } = await obtenerClienteSupabase()
+    .from('perfiles_usuario')
+    .select('nombre_visible, franja_manana_desde, franja_tarde_desde, franja_noche_desde')
+    .single();
+  if (error) throw error;
+  return normalizarPerfilBasico(data);
+}
+
+/** Guarda a qué hora empieza cada franja. La noche cruza medianoche hasta el inicio de la mañana. */
+export async function actualizarLimitesFranja(limites: LimitesFranja): Promise<LimitesFranja> {
+  if (!limitesValidos(limites)) throw new Error('Configuración: los límites de franja no son válidos.');
+  const usuario = await obtenerUsuarioActual();
+  const { error } = await obtenerClienteSupabase()
+    .from('perfiles_usuario')
+    .update({ franja_manana_desde: limites.mananaDesde, franja_tarde_desde: limites.tardeDesde, franja_noche_desde: limites.nocheDesde })
+    .eq('id', usuario.id);
+  if (error) throw error;
+  return limites;
+}

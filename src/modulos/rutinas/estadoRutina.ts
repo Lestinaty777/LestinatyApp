@@ -65,3 +65,32 @@ export function resumirDiaRutinas(rutinas: readonly Pick<Rutina, 'pasos' | 'toca
 export function siguientePaso(pasos: readonly PasoRutina[]): PasoRutina | null {
   return [...pasos].sort((a, b) => a.orden - b.orden).find((paso) => paso.aplica && !paso.completo) ?? null;
 }
+
+/**
+ * Devuelve un mapa de hábitos y tareas apuntando a los títulos de las rutinas activas que los contienen.
+ */
+export function rutinasPorOrigen(rutinas: readonly Rutina[]): {
+  habitos: Map<string, string[]>;
+  tareas: Map<string, string[]>;
+} {
+  const habitos = new Map<string, string[]>();
+  const tareas = new Map<string, string[]>();
+
+  for (const rutina of rutinas) {
+    if (rutina.estado !== 'activa') continue;
+    for (const paso of rutina.pasos) {
+      if (paso.origen === 'habito' && paso.habitoId) {
+        const lista = habitos.get(paso.habitoId) ?? [];
+        lista.push(rutina.titulo);
+        habitos.set(paso.habitoId, lista);
+      } else if (paso.origen === 'tarea' && paso.tareaId) {
+        const lista = tareas.get(paso.tareaId) ?? [];
+        lista.push(rutina.titulo);
+        tareas.set(paso.tareaId, lista);
+      }
+    }
+  }
+
+  return { habitos, tareas };
+}
+

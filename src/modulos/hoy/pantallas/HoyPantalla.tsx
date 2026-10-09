@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import {
@@ -9,7 +9,7 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import {
   Check,
   Play,
@@ -25,11 +25,13 @@ import { useAssetsPaqueteTema } from '../../habitos/usePaqueteTema';
 import { INTERCAMBIAR_BANDERA_Y_ARBUSTO } from '../../habitos/pruebaIntercambio';
 import { useSaldoGemas } from '../../tienda/useSaldoGemas';
 import { buscarIconoHabito } from '../../habitos/iconosHabitos';
-import { obtenerPanelHabitos, obtenerDetallesHabitosHoy } from '../../habitos/habitos.servicio';
-import { obtenerTareasHoy, CLAVE_TAREAS_HOY } from '../../tareas/tareas.servicio';
-import { obtenerRutinasHoy, CLAVE_RUTINAS } from '../../rutinas/rutinas.servicio';
+import { usePerfilBasico } from '../../configuracion/usePerfilBasico';
 import { construirPlanDelDia, idsDeRutinasDeHoy, type ElementoHoy } from '../planDelDia';
-import { habitoAElemento, tareaAElemento, rutinaAElemento } from '../adaptadoresHoy';
+import { habitoAElemento, resumirCategoriasHoy, rutinaAElemento, tareaAElemento, textoAvance } from '../adaptadoresHoy';
+import { nivelDesdeXp } from '../nivelUsuario';
+import { RESUMEN_HOY_VACIO, indiceDiaSemana } from '../resumenHoy.mapper';
+import { CLAVE_RESUMEN_HOY, obtenerResumenHoy } from '../resumenHoy.servicio';
+import { useDatosHoy } from '../useDatosHoy';
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // Paleta de colores del mockup (tema lila / morado claro)
@@ -69,18 +71,7 @@ const C = {
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // Helpers
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-function obtenerSaludo(): string {
-  const h = new Date().getHours();
-  if (h < 12) return 'Buenos días';
-  if (h < 19) return 'Buenas tardes';
-  return 'Buenas noches';
-}
-
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// Datos mock
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 const DIAS_SEMANA = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
-const RACHA_CHECKS = [true, true, true, true, true, false, false]; // L-D
 
 
 
@@ -93,23 +84,25 @@ const RACHA_CHECKS = [true, true, true, true, true, false, false]; // L-D
 // ─── Header ──────────────────────────────────────────────────────────────────
 function HeaderHoy() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { data: saldoGemas } = useSaldoGemas();
+  const { limitesFranja, nombreVisible } = usePerfilBasico();
   return (
     <View style={s.header}>
       <View style={s.headerIzq}>
-        <Texto style={s.headerSaludo}>Hola,</Texto>
+        <Texto style={s.headerSaludo}>{t(`hoy.saludo.${franjaActual(new Date(), limitesFranja)}`)}</Texto>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-          <Texto style={s.headerNombre}>Alejandro</Texto>
+          {nombreVisible ? <Texto numberOfLines={1} style={s.headerNombre}>{nombreVisible}</Texto> : null}
           <Image
             source={require('../../../../assets/icons/hoy/saludo.png')}
             style={{ width: 28, height: 28, resizeMode: 'contain' }}
           />
         </View>
-        <Texto style={s.headerFrase}>Disciplina hoy, libertad mañana.</Texto>
+        <Texto style={s.headerFrase}>{t('hoy.frase')}</Texto>
       </View>
 
       <View style={s.headerDer}>
-        <Pressable accessibilityLabel="Comprar gemas" onPress={() => router.push('/tienda')} style={s.statPill}>
+        <Pressable accessibilityLabel={t('hoy.comprarGemas')} onPress={() => router.push('/tienda')} style={s.statPill}>
           <Image
             source={require('../../../../assets/icons/hoy/gemas.png')}
             style={{ width: 22, height: 22, resizeMode: 'contain' }}
@@ -131,12 +124,20 @@ function HeaderHoy() {
 
 // ─── Hero Section (Racha, Nivel, Ilustración) ────────────────────────────────
 function HeroSection() {
+  const { t } = useTranslation();
+  // Mientras carga o si falla: racha 0, semana vacía y nivel 1. Nunca números inventados.
+  const { data: resumen = RESUMEN_HOY_VACIO, refetch } = useQuery({ queryKey: CLAVE_RESUMEN_HOY, queryFn: obtenerResumenHoy });
+  // Hoy es una pestaña que queda montada: al volver de completar algo en otra
+  // pantalla, la racha y el XP se vuelven a pedir (es una sola llamada barata).
+  useFocusEffect(useCallback(() => { void refetch(); }, [refetch]));
+  const nivel = nivelDesdeXp(resumen.xpTotal);
+  const indiceHoy = indiceDiaSemana(new Date());
   return (
     <View style={s.heroRow}>
       {/* Columna Izquierda: Racha y Nivel */}
       <View style={s.heroColIzq}>
         <RecuadroGlass style={s.rachaCard}>
-          <View style={s.rachaTop}>
+          <View accessibilityLabel={t('hoy.racha.accesible', { count: resumen.racha })} accessible style={s.rachaTop}>
             <View style={s.rachaIcono}>
               <Image 
                 source={require('../../../../assets/icons/hoy/racha.png')}
@@ -144,15 +145,15 @@ function HeroSection() {
               />
             </View>
             <View>
-              <Texto style={s.rachaLabel}>Racha actual</Texto>
-              <Texto style={s.rachaDias}>3 Días</Texto>
+              <Texto style={s.rachaLabel}>{t('hoy.racha.titulo')}</Texto>
+              <Texto style={s.rachaDias}>{t('hoy.racha.dias', { count: resumen.racha })}</Texto>
             </View>
           </View>
           <View style={s.rachaSemana}>
             {DIAS_SEMANA.map((dia, i) => (
               <View key={i} style={s.rachaDiaCol}>
-                <Texto style={[s.rachaDiaLetra, i === 3 && s.rachaDiaActivo]}>{dia}</Texto>
-                {RACHA_CHECKS[i] ? (
+                <Texto style={[s.rachaDiaLetra, i === indiceHoy && s.rachaDiaActivo]}>{dia}</Texto>
+                {resumen.diasActivosSemana.includes(i + 1) ? (
                   <View style={s.rachaCheck}>
                     <Check color="#FFFFFF" size={10} strokeWidth={3} />
                   </View>
@@ -173,11 +174,11 @@ function HeroSection() {
           </View>
           <View style={s.nivelInfo}>
             <View style={s.nivelTextoRow}>
-              <Texto style={s.nivelLabel}>Nivel 4</Texto>
-              <Texto style={s.nivelXP}>95/120 XP</Texto>
+              <Texto style={s.nivelLabel}>{t('hoy.nivel', { nivel: nivel.nivel })}</Texto>
+              <Texto style={s.nivelXP}>{t('hoy.xp', { actual: nivel.xpEnNivel, requerido: nivel.xpRequerido })}</Texto>
             </View>
             <View style={s.nivelBarraFondo}>
-              <View style={[s.nivelBarraRelleno, { width: '79%' }]} />
+              <View style={[s.nivelBarraRelleno, { width: `${nivel.porcentaje}%` }]} />
             </View>
           </View>
         </RecuadroGlass>
@@ -203,16 +204,17 @@ function HeroSection() {
 // contra una ruta que no existe (expo-router la marcaría "Unmatched Route").
 const CATEGORIAS_CON_PANTALLA = new Set(['tareas', 'habitos']);
 
-function GridCategorias({
-  habitosProgreso,
-  rutinasProgreso,
-  tareasProgreso,
-}: {
-  habitosProgreso: string;
-  rutinasProgreso: string;
-  tareasProgreso: string;
-}) {
+function GridCategorias() {
   const router = useRouter();
+  const { t } = useTranslation();
+  const datos = useDatosHoy();
+  const avance = useMemo(
+    () => resumirCategoriasHoy({ habitos: datos.habitos ?? [], tareas: datos.tareas ?? [], rutinas: datos.rutinas ?? [] }),
+    [datos.habitos, datos.tareas, datos.rutinas],
+  );
+  const habitosProgreso = textoAvance(avance.habitos);
+  const rutinasProgreso = textoAvance(avance.rutinas);
+  const tareasProgreso = textoAvance(avance.tareas);
 
   function obtenerAnchoProgreso(progreso: string) {
     if (!progreso) return 0;
@@ -222,13 +224,13 @@ function GridCategorias({
   }
 
   const categorias = useMemo(() => [
-    { id: 'estudio', label: 'Estudio', progreso: '', color: C.morado, colorSuave: C.moradoSuave, icono: 'hoy/estudio' },
-    { id: 'tareas', label: 'Tareas', progreso: tareasProgreso, color: C.naranja, colorSuave: C.naranjaSuave, icono: 'hoy/tareas' },
-    { id: 'rutinas', label: 'Rutinas', progreso: rutinasProgreso, color: C.rojo, colorSuave: C.rojoSuave, icono: 'hoy/rutinas' },
-    { id: 'habitos', label: 'Hábitos', progreso: habitosProgreso, color: C.verde, colorSuave: C.verdeSuave, icono: 'hoy/habitos' },
-    { id: 'mi-espacio', label: 'Mi espacio', progreso: '', color: C.morado, colorSuave: C.moradoSuave, icono: 'hoy/metas' },
-    { id: 'mas', label: 'Más', progreso: '', color: '#7B7494', colorSuave: '#EDE5FB', icono: 'hoy/mas' },
-  ], [habitosProgreso, rutinasProgreso, tareasProgreso]);
+    { id: 'estudio', label: t('hoy.categorias.estudio'), progreso: '', color: C.morado, colorSuave: C.moradoSuave, icono: 'hoy/estudio' },
+    { id: 'tareas', label: t('hoy.categorias.tareas'), progreso: tareasProgreso, color: C.naranja, colorSuave: C.naranjaSuave, icono: 'hoy/tareas' },
+    { id: 'rutinas', label: t('hoy.categorias.rutinas'), progreso: rutinasProgreso, color: C.rojo, colorSuave: C.rojoSuave, icono: 'hoy/rutinas' },
+    { id: 'habitos', label: t('hoy.categorias.habitos'), progreso: habitosProgreso, color: C.verde, colorSuave: C.verdeSuave, icono: 'hoy/habitos' },
+    { id: 'mi-espacio', label: t('hoy.categorias.miEspacio'), progreso: '', color: C.morado, colorSuave: C.moradoSuave, icono: 'hoy/metas' },
+    { id: 'mas', label: t('hoy.categorias.mas'), progreso: '', color: '#7B7494', colorSuave: '#EDE5FB', icono: 'hoy/mas' },
+  ], [habitosProgreso, rutinasProgreso, tareasProgreso, t]);
 
   return (
     <View style={s.categoriasRow}>
@@ -313,55 +315,30 @@ function IconoElementoVisual({ id, color, size = 16 }: { id?: string | null; col
 }
 
 // ─── Timeline "Hoy" (Columna izquierda) ──────────────────────────────────────
-function TimelineHoy({
-  onPlanesActualizados,
-}: {
-  onPlanesActualizados?: (datos: { habitos: string; rutinas: string; tareas: string }) => void;
-}) {
+function TimelineHoy() {
   const tema = useAssetsPaqueteTema();
   const { t } = useTranslation();
   const router = useRouter();
+  const { limitesFranja } = usePerfilBasico();
+  const datos = useDatosHoy();
+  const { cargando, error } = datos;
 
-  const [filtro, setFiltro] = useState<FiltroFranja>(() => franjaActual());
+  // Se abre en la franja del momento; no se guarda la última elección.
+  const [filtro, setFiltro] = useState<FiltroFranja>(() => franjaActual(new Date(), limitesFranja));
   const [expandidas, setExpandidas] = useState<ReadonlySet<FranjaDia>>(() => new Set());
-
-  // 1. Cuatro consultas compartiendo cache con sus pantallas respectivas
-  const consultaPanelHabitos = useQuery({ queryKey: ['habitos', 'panel'], queryFn: () => obtenerPanelHabitos() });
-  const consultaDetallesHabitos = useQuery({ queryKey: ['habitos', 'detalles-hoy'], queryFn: () => obtenerDetallesHabitosHoy() });
-  const consultaTareasHoy = useQuery({ queryKey: CLAVE_TAREAS_HOY, queryFn: () => obtenerTareasHoy() });
-  const consultaRutinasHoy = useQuery({ queryKey: CLAVE_RUTINAS, queryFn: obtenerRutinasHoy });
-
-  const cargando =
-    consultaPanelHabitos.isLoading ||
-    consultaDetallesHabitos.isLoading ||
-    consultaTareasHoy.isLoading ||
-    consultaRutinasHoy.isLoading;
-
-  const error =
-    consultaPanelHabitos.isError ||
-    consultaDetallesHabitos.isError ||
-    consultaTareasHoy.isError ||
-    consultaRutinasHoy.isError;
-
-  const refetchTodo = () => {
-    consultaPanelHabitos.refetch();
-    consultaDetallesHabitos.refetch();
-    consultaTareasHoy.refetch();
-    consultaRutinasHoy.refetch();
-  };
 
   // 2. Mapear elementos y plan del día
   const plan = useMemo(() => {
-    const habitosRaw = consultaPanelHabitos.data?.hoy.datos ?? [];
-    const detallesHabitosMap = new Map((consultaDetallesHabitos.data ?? []).map((d) => [d.habitoId, d]));
+    const habitosRaw = datos.habitos ?? [];
+    const detallesHabitosMap = new Map((datos.detallesHabitos ?? []).map((d) => [d.habitoId, d]));
     const habitosElementos: ElementoHoy[] = habitosRaw.map((h) => habitoAElemento(h, detallesHabitosMap.get(h.id)));
 
-    const tareasRaw = consultaTareasHoy.data ?? [];
+    const tareasRaw = datos.tareas ?? [];
     const tareasElementos: ElementoHoy[] = tareasRaw.map(tareaAElemento);
 
-    const rutinasRaw = consultaRutinasHoy.data ?? [];
+    const rutinasRaw = datos.rutinas ?? [];
     const rutinasActivasHoy = rutinasRaw.filter((r) => r.tocaHoy && r.estado === 'activa');
-    const formatoPasos = (completos: number, total: number) => `${completos} de ${total} pasos`;
+    const formatoPasos = (completos: number, total: number) => t('hoy.pasos', { completos, total });
     const rutinasElementos: ElementoHoy[] = rutinasActivasHoy.map((r) => rutinaAElemento(r, formatoPasos));
 
     const idsEnRutinas = idsDeRutinasDeHoy(rutinasRaw);
@@ -374,42 +351,7 @@ function TimelineHoy({
       filtro,
       expandidas,
     });
-  }, [
-    consultaPanelHabitos.data,
-    consultaDetallesHabitos.data,
-    consultaTareasHoy.data,
-    consultaRutinasHoy.data,
-    filtro,
-    expandidas,
-  ]);
-
-  // Actualizar avances de categorías
-  useMemo(() => {
-    if (!onPlanesActualizados) return;
-    const habitosRaw = consultaPanelHabitos.data?.hoy.datos ?? [];
-    const habitosCompletos = habitosRaw.filter((h) => h.completado).length;
-    const habitosProgreso = habitosRaw.length > 0 ? `${habitosCompletos}/${habitosRaw.length}` : '';
-
-    const tareasRaw = consultaTareasHoy.data ?? [];
-    const tareasCompletas = tareasRaw.filter((t) => t.completada).length;
-    const tareasProgreso = tareasRaw.length > 0 ? `${tareasCompletas}/${tareasRaw.length}` : '';
-
-    const rutinasRaw = consultaRutinasHoy.data ?? [];
-    const rutinasActivasHoy = rutinasRaw.filter((r) => r.tocaHoy && r.estado === 'activa');
-    const rutinasCompletas = rutinasActivasHoy.filter((r) => r.pasos.filter((p) => p.aplica).every((p) => p.completo) && r.pasos.some((p) => p.aplica)).length;
-    const rutinasProgreso = rutinasActivasHoy.length > 0 ? `${rutinasCompletas}/${rutinasActivasHoy.length}` : '';
-
-    onPlanesActualizados({
-      habitos: habitosProgreso,
-      rutinas: rutinasProgreso,
-      tareas: tareasProgreso,
-    });
-  }, [
-    consultaPanelHabitos.data,
-    consultaTareasHoy.data,
-    consultaRutinasHoy.data,
-    onPlanesActualizados,
-  ]);
+  }, [datos.habitos, datos.detallesHabitos, datos.tareas, datos.rutinas, filtro, expandidas, t]);
 
   const etiquetasFiltro = useMemo<Record<FiltroFranja, string>>(() => ({
     manana: t('franjas.manana'),
@@ -449,10 +391,8 @@ function TimelineHoy({
           style={{ width: INTERCAMBIAR_BANDERA_Y_ARBUSTO ? 44 : 32, height: INTERCAMBIAR_BANDERA_Y_ARBUSTO ? 44 : 32, resizeMode: 'contain' }}
         />
         <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6, flex: 1, paddingBottom: 2 }}>
-          <Texto style={s.timelineTitulo}>Hoy</Texto>
-          <Texto style={s.timelineContador}>
-            {plan.completados}/{plan.total} {t('franjas.completados', { n: plan.completados })}
-          </Texto>
+          <Texto style={s.timelineTitulo}>{t('hoy.titulo')}</Texto>
+          <Texto style={s.timelineContador}>{t('hoy.contador', { hechos: plan.completados, total: plan.total })}</Texto>
         </View>
       </View>
 
@@ -477,18 +417,18 @@ function TimelineHoy({
       ) : error ? (
         <View style={{ alignItems: 'center', gap: 8, paddingVertical: 16 }}>
           <Texto style={{ color: C.rojo, fontFamily: 'Montserrat-Bold', fontSize: 13 }}>
-            {t('habitos.pantalla.loadError', { defaultValue: 'No se pudo cargar el plan de hoy' })}
+            {t('hoy.errorCargar')}
           </Texto>
-          <Pressable onPress={refetchTodo} style={{ backgroundColor: C.moradoSuave, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 8 }}>
-            <Texto style={{ color: C.morado, fontFamily: 'Montserrat-Bold', fontSize: 12 }}>Reintentar</Texto>
+          <Pressable accessibilityRole="button" onPress={datos.reintentar} style={{ backgroundColor: C.moradoSuave, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 8 }}>
+            <Texto style={{ color: C.morado, fontFamily: 'Montserrat-Bold', fontSize: 12 }}>{t('hoy.reintentar')}</Texto>
           </Pressable>
         </View>
       ) : plan.secciones.length === 0 ? (
         <View style={{ alignItems: 'center', gap: 8, paddingVertical: 20 }}>
           <Texto style={{ color: C.textoSecundario, fontFamily: 'Montserrat-Medium', fontSize: 13 }}>
-            {t('franjas.vacia')}
+            {plan.total === 0 ? t('hoy.sinNada') : t('franjas.vacia')}
           </Texto>
-          {filtro !== 'todo' && (
+          {filtro !== 'todo' && plan.total > 0 && (
             <Pressable onPress={() => setFiltro('todo')} style={{ backgroundColor: C.moradoSuave, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 6 }}>
               <Texto style={{ color: C.morado, fontFamily: 'Montserrat-Bold', fontSize: 12 }}>{t('franjas.verTodo')}</Texto>
             </Pressable>
@@ -525,10 +465,10 @@ function TimelineHoy({
 
                   {seccion.pendientes.map((item) => {
                     const colorElemento = item.color || (item.tipo === 'habito' ? C.verde : item.tipo === 'tarea' ? C.naranja : C.rojo);
-                    const etiquetaTipo = item.tipo === 'habito' ? 'Hábito' : item.tipo === 'tarea' ? 'Tarea' : 'Rutina';
+                    const etiquetaTipo = t(`hoy.tipo.${item.tipo}`);
 
                     return (
-                      <Pressable key={`${item.tipo}-${item.id}`} onPress={() => tocarElemento(item)} style={s.timelineItem}>
+                      <Pressable accessibilityLabel={`${etiquetaTipo}: ${item.titulo}`} accessibilityRole="button" key={`${item.tipo}-${item.id}`} onPress={() => tocarElemento(item)} style={s.timelineItem}>
                         <View style={s.timelineNodoCol}>
                           <View style={s.timelineNodoVacio} />
                         </View>
@@ -541,7 +481,7 @@ function TimelineHoy({
                             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
                               <Texto style={s.timelineTareaTitulo} numberOfLines={1}>{item.titulo}</Texto>
                               <View style={{ backgroundColor: `${colorElemento}18`, borderRadius: 4, paddingHorizontal: 4, paddingVertical: 1 }}>
-                                <Texto style={{ color: colorElemento, fontFamily: 'Montserrat-Bold', fontSize: 7 }}>{etiquetaTipo}</Texto>
+                                <Texto style={{ color: colorElemento, fontFamily: 'Montserrat-Bold', fontSize: 9 }}>{etiquetaTipo}</Texto>
                               </View>
                             </View>
                             {item.detalle && (
@@ -586,11 +526,6 @@ function TimelineHoy({
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 export function HoyPantalla() {
   const insets = useSafeAreaInsets();
-  const [progresosCategorias, setProgresosCategorias] = useState({
-    habitos: '',
-    rutinas: '',
-    tareas: '',
-  });
 
   return (
     <View style={s.raiz}>
@@ -602,15 +537,11 @@ export function HoyPantalla() {
           <AuroraBoreal />
           <HeaderHoy />
           <HeroSection />
-          <GridCategorias
-            habitosProgreso={progresosCategorias.habitos}
-            rutinasProgreso={progresosCategorias.rutinas}
-            tareasProgreso={progresosCategorias.tareas}
-          />
+          <GridCategorias />
           {/* CardSendero oculta a propósito por ahora — se vuelve a mostrar más adelante. */}
 
           <View style={s.timelineContenedor}>
-            <TimelineHoy onPlanesActualizados={setProgresosCategorias} />
+            <TimelineHoy />
           </View>
         </View>
       </ScrollView>
