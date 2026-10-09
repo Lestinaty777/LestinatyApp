@@ -299,8 +299,8 @@ export async function crearTareaPremium(input: CrearTareaPremiumInput): Promise<
   if (error) throw error;
   const id = (data as { id: string }).id;
   if (input.franja && input.franja !== 'cualquier_momento') {
-    const { error: errorFranja } = await obtenerClienteSupabase().from('tareas_items').update({ franja: input.franja }).eq('id', id);
-    if (errorFranja) throw errorFranja;
+    await obtenerClienteSupabase().from('tareas_items').update({ franja: input.franja }).eq('id', id);
+    /* la franja es solo presentación: la tarea ya existe */
   }
   return { id };
 }

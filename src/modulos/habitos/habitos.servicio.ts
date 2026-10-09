@@ -102,7 +102,11 @@ export async function crearHabito(input: CrearHabitoInput): Promise<{ id: string
   if (error) throw error;
   const res = data as { id: string; plan_id: string };
   if (input.franja && input.franja !== 'cualquier_momento') {
-    await establecerFranjaHabito(res.id, input.franja);
+    try {
+      await establecerFranjaHabito(res.id, input.franja);
+    } catch {
+      /* la franja es solo presentación: el hábito ya existe */
+    }
   }
   // habitos_activos deja de ser 0: sale del journey de bienvenida al momento.
   programarSincronizacionEtiquetas();
