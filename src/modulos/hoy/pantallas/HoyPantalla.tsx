@@ -867,7 +867,8 @@ const s = StyleSheet.create({
   // de 32: los 10 px extra sobresalen hacia el relleno de la tarjeta (7 arriba,
   // 3 abajo), así la tarjeta y el texto no se mueven de sitio.
   categoriaIcono: { alignItems: 'center', height: 32, justifyContent: 'center', overflow: 'visible', transform: [{ translateY: -2 }] },
-  categoriaTexto: { alignItems: 'center', marginTop: 5, minHeight: 31, width: '100%' },
+  // marginTop 1 en vez del 5 de Hábitos: el ícono más grande ya trae su propio aire, y con 5 el título quedaba lejos.
+  categoriaTexto: { alignItems: 'center', marginTop: 1, minHeight: 31, width: '100%' },
   categoriaLabel: { color: C.texto, fontFamily: 'MontserratAlternates-Bold', fontSize: 12, lineHeight: 15, textAlign: 'center' },
   categoriaSubtitulo: { color: C.textoSecundario, fontFamily: 'Montserrat-Medium', fontSize: 11, lineHeight: 14, marginTop: 1, textAlign: 'center' },
 
