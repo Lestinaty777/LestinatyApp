@@ -137,6 +137,7 @@ function HeroSection() {
   // pantalla, la racha y el XP se vuelven a pedir (es una sola llamada barata).
   useFocusEffect(useCallback(() => { void refetch(); }, [refetch]));
   const nivel = nivelDesdeXp(resumen.xpTotal);
+  const temaElegido = useAssetsPaqueteTema();
   const indiceHoy = indiceDiaSemana(new Date());
   return (
     <View style={s.heroRow}>
@@ -193,8 +194,9 @@ function HeroSection() {
       {/* Columna Derecha: Ilustración cuadrada */}
       <View style={s.heroColDer}>
         <View style={s.ilustracionContenedor}>
+          {/* El árbol del tema elegido en Ajustes: con Sakura, el árbol de Sakura. Hoy es la pantalla que se personaliza. */}
           <Image
-            source={require('../../../../assets/ilustraciones/hoy/fondos/fondo.png')}
+            source={temaElegido.arbol}
             style={{ width: '100%', height: '100%' }}
             resizeMode="cover"
           />
@@ -607,7 +609,8 @@ export function HoyPantalla() {
         showsVerticalScrollIndicator={false}
       >
         <View style={{ paddingTop: insets.top + 32, flex: 1 }}>
-          <AuroraBoreal />
+          {/* Sigue el tema que la persona eligió en Ajustes (la escala del tema activo). */}
+          <AuroraBoreal tema="verde" />
           <HeaderHoy />
           <HeroSection />
           <AvisoPrimeraVictoria />

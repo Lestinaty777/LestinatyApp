@@ -8,7 +8,7 @@ import { useEffect, useState } from 'react';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, { Easing, FadeIn, FadeOut, runOnJS, useAnimatedStyle, useSharedValue, withDelay, withRepeat, withSequence, withSpring, withTiming, type SharedValue } from 'react-native-reanimated';
 
-import { Boton, entradaEncadenada, MasterAnimation, MasterGlass, MasterIcon, MasterIconBg, MasterProgressbar, Rebote, SelectorFranja, Skeleton, Texto } from '../../../diseno';
+import { Boton, entradaEncadenada, MasterAnimation, MasterColorProvider, MasterGlass, MasterIcon, MasterIconBg, MasterProgressbar, Rebote, SelectorFranja, Skeleton, Texto, TONO_ESMERALDA } from '../../../diseno';
 import { useFiltroFranja } from '../../../compartido/utilidades/useFiltroFranja';
 import { useEtiquetasRutina } from '../../rutinas/useEtiquetasRutina';
 import { hapticSeguro } from '../../../nucleo/dispositivo/haptics';
@@ -73,7 +73,20 @@ const ACCESOS = [
   { id: 'progresion', nombreIcono: 'progreso' }, { id: 'creacion', nombreIcono: 'idea' }, { id: 'recordatorios', nombreIcono: 'reloj' }, { id: 'insights', nombreIcono: 'estadistica' },
 ] as const;
 
+// Hábitos tiene tema fijo: Esmeralda, igual que Tareas es Golden, Planes
+// Aurelia, Rutinas Ignate y Metas Celesthia. El tema que la persona elige en
+// Ajustes ya no cambia esta pantalla (ni su árbol ni su aurora): eso lo hace
+// Hoy. Cada tarjeta de hábito sigue con el color de SU paquete, porque
+// TonoDelHabito se anida por dentro y manda en su propio árbol.
 export function HabitosPantalla() {
+  return (
+    <MasterColorProvider tono={TONO_ESMERALDA}>
+      <HabitosPantallaContenido />
+    </MasterColorProvider>
+  );
+}
+
+function HabitosPantallaContenido() {
   const tema = useAssetsPaqueteTema();
   const esc = useEscala();
   const s = useEstilosS();

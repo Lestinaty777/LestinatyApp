@@ -18,6 +18,10 @@ import {
 import { useEscala } from '../../../diseno/tema/MasterColorContext';
 import { conAlfa } from '../../../diseno/tema/masterColor';
 
+/**
+ * 'verde' no es un verde fijo: usa la escala del tema activo (useEscala), así que sigue el color del paquete
+ * que mande en ese punto del árbol. Los demás son colores fijos.
+ */
 export type TemaAurora = 'morado' | 'amarillo' | 'verde' | 'grafito' | 'rojo' | 'azul';
 
 interface Props {
