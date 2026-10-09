@@ -5,6 +5,7 @@ import { asignarSemillaTarea } from '../tienda/gemas.servicio';
 import { mapearFigurasTarea, mapearFiguraTareaPendiente, mapearResultadoGuardarFiguraTarea } from './figuraTarea.mapper';
 import { mapearPanelTareas } from './tareas.mapper';
 import { calcularRachaTarea, estaProgramadaEnFecha } from './tareaProgramada';
+import type { FranjaDia } from '../../compartido/utilidades/franjas';
 import type {
   CrearTareaInput, EditarTareaInput, EstadoTarea, FiguraTareaNodo, FrecuenciaTarea, MejorRachaTarea, PanelTareas,
   PlanTareaResumen, ResultadoCompletarTarea, ResultadoGuardarFiguraTarea, ResultadoProgresoTareaUnica, ResultadoRegistroTarea, SubitemTarea, Tarea, TareaHoyDetalle, TipoTarea, TrazoFigura,
@@ -46,6 +47,7 @@ type FilaTarea = {
   nivel_desde_fecha: string;
   objetivo_valor: number;
   unidad: string | null;
+  franja: FranjaDia;
 };
 
 function normalizar(fila: FilaTarea): Tarea {
@@ -74,10 +76,11 @@ function normalizar(fila: FilaTarea): Tarea {
     nivelDesdeFecha: fila.nivel_desde_fecha,
     objetivoValor: Number(fila.objetivo_valor),
     unidad: fila.unidad,
+    franja: fila.franja,
   };
 }
 
-const COLUMNAS = 'id, titulo, descripcion, estado, tipo, prioridad, columna_kanban, fecha_vencimiento, frecuencia, dias_semana, recordatorio_activo, hora_recordatorio, mostrar_nombre_notificacion, routine_id, paquete_id, color, icono_lucide, orden, created_at, completada_en, nivel, nivel_desde_fecha, objetivo_valor, unidad';
+const COLUMNAS = 'id, titulo, descripcion, estado, tipo, prioridad, columna_kanban, fecha_vencimiento, frecuencia, dias_semana, recordatorio_activo, hora_recordatorio, mostrar_nombre_notificacion, routine_id, paquete_id, color, icono_lucide, orden, created_at, completada_en, nivel, nivel_desde_fecha, objetivo_valor, unidad, franja';
 
 async function usuarioActualId(): Promise<string> {
   const { data, error } = await obtenerClienteSupabase().auth.getUser();
@@ -136,6 +139,7 @@ export async function crearTarea(input: CrearTareaInput): Promise<Tarea> {
       tipo: input.tipo ?? 'simple',
       titulo: input.titulo.trim(),
       usuario_id: usuarioId,
+      franja: input.franja ?? 'cualquier_momento',
     })
     .select(COLUMNAS)
     .single();
@@ -157,6 +161,7 @@ export async function editarTarea(tareaId: string, input: EditarTareaInput): Pro
   if (input.horaRecordatorio !== undefined) cambios.hora_recordatorio = input.horaRecordatorio;
   if (input.mostrarNombreNotificacion !== undefined) cambios.mostrar_nombre_notificacion = input.mostrarNombreNotificacion;
   if (input.routineId !== undefined) cambios.routine_id = input.routineId;
+  if (input.franja !== undefined) cambios.franja = input.franja;
 
   const { data, error } = await obtenerClienteSupabase().from('tareas_items').update(cambios).eq('id', tareaId).select(COLUMNAS).single();
   if (error) throw error;
@@ -269,6 +274,7 @@ export type CrearTareaPremiumInput = {
   mostrarNombreNotificacion?: boolean;
   paqueteId?: string | null;
   nivelInicial?: number;
+  franja?: FranjaDia;
 };
 
 export async function crearTareaPremium(input: CrearTareaPremiumInput): Promise<{ id: string }> {
@@ -291,7 +297,12 @@ export async function crearTareaPremium(input: CrearTareaPremiumInput): Promise<
     p_unidad: input.unidad ?? null,
   });
   if (error) throw error;
-  return data as { id: string };
+  const id = (data as { id: string }).id;
+  if (input.franja && input.franja !== 'cualquier_momento') {
+    const { error: errorFranja } = await obtenerClienteSupabase().from('tareas_items').update({ franja: input.franja }).eq('id', id);
+    if (errorFranja) throw errorFranja;
+  }
+  return { id };
 }
 
 // ─── Panel de insights ──────────────────────────────────────────────────
@@ -320,13 +331,13 @@ export async function obtenerTareasHoy(referencia = new Date()): Promise<TareaHo
   const desdeRacha = fechaLocalDe(new Date(referencia.getTime() - VENTANA_RACHA_DIAS * 86400000));
 
   const [{ data: items, error: errorItems }, { data: registros, error: errorRegistros }] = await Promise.all([
-    supabase.from('tareas_items').select('id,titulo,descripcion,icono_lucide,color,tipo,frecuencia,dias_semana,fecha_vencimiento,prioridad,columna_kanban,objetivo_valor,unidad,estado,valor_actual').neq('estado', 'archivada').order('orden', { ascending: true }),
+    supabase.from('tareas_items').select('id,titulo,descripcion,icono_lucide,color,tipo,frecuencia,dias_semana,fecha_vencimiento,prioridad,columna_kanban,objetivo_valor,unidad,estado,valor_actual,franja').neq('estado', 'archivada').order('orden', { ascending: true }),
     supabase.from('tareas_registros').select('tarea_id,fecha_local,valor').gte('fecha_local', desdeRacha).lte('fecha_local', hoy),
   ]);
   if (errorItems) throw errorItems;
   if (errorRegistros) throw errorRegistros;
 
-  type FilaItemHoy = { id: string; titulo: string; descripcion: string | null; icono_lucide: string | null; color: string | null; tipo: TipoTarea; frecuencia: FrecuenciaTarea; dias_semana: number[] | null; fecha_vencimiento: string | null; prioridad: Tarea['prioridad']; columna_kanban: string | null; objetivo_valor: number; unidad: string | null; estado: EstadoTarea; valor_actual: number };
+  type FilaItemHoy = { id: string; titulo: string; descripcion: string | null; icono_lucide: string | null; color: string | null; tipo: TipoTarea; frecuencia: FrecuenciaTarea; dias_semana: number[] | null; fecha_vencimiento: string | null; prioridad: Tarea['prioridad']; columna_kanban: string | null; objetivo_valor: number; unidad: string | null; estado: EstadoTarea; valor_actual: number; franja: FranjaDia };
   const todosItems = (items ?? []) as FilaItemHoy[];
   const todosRegistros = (registros ?? []) as { tarea_id: string; fecha_local: string; valor: number | null }[];
 
@@ -352,6 +363,7 @@ export async function obtenerTareasHoy(referencia = new Date()): Promise<TareaHo
         completada,
         descripcion: item.descripcion,
         frecuencia: item.frecuencia,
+        franja: item.franja,
         iconoLucide: item.icono_lucide,
         id: item.id,
         objetivoValor: item.objetivo_valor,

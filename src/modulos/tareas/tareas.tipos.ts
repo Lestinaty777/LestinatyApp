@@ -1,3 +1,5 @@
+import type { FranjaDia } from '../../compartido/utilidades/franjas';
+
 export type EstadoTarea = 'pendiente' | 'hecha' | 'archivada';
 
 export type PrioridadTarea =
@@ -22,6 +24,7 @@ export type Tarea = {
   estado: EstadoTarea;
   tipo: TipoTarea;
   prioridad: PrioridadTarea | null;
+  franja: FranjaDia;
   /** Columna del tablero Kanban — vista sobre "Mis tareas", no un tipo de tarea (ver plan). */
   columnaKanban: string | null;
   fechaVencimiento: string | null;
@@ -69,6 +72,7 @@ export type CrearTareaInput = {
   paqueteId?: string | null;
   color?: string | null;
   iconoLucide?: string | null;
+  franja?: FranjaDia;
 };
 
 export type EditarTareaInput = Partial<CrearTareaInput>;
@@ -91,6 +95,7 @@ export type TareaHoyDetalle = {
   color: string | null;
   tipo: TipoTarea;
   frecuencia: FrecuenciaTarea;
+  franja: FranjaDia;
   prioridad: PrioridadTarea | null;
   columnaKanban: string | null;
   completada: boolean;
