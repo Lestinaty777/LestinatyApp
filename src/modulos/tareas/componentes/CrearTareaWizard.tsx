@@ -9,6 +9,7 @@ import { Boton, formatoHora12, MasterChip, MasterColorProvider, MasterGlass, Mas
 import { TOPE_ESCALA_TEXTO_COMPACTO } from '../../../diseno/fundamentos/accesibilidad';
 import { Rebote } from '../../../diseno/ui/Rebote';
 import { sugerirFranjaPorHora, type FranjaDia } from '../../../compartido/utilidades/franjas';
+import { usePerfilBasico } from '../../configuracion/usePerfilBasico';
 import { useTranslation } from 'react-i18next';
 import { hapticSeguro } from '../../../nucleo/dispositivo/haptics';
 import { solicitarPermisoYRegistrar } from '../../../nucleo/notificaciones/oneSignal';
@@ -157,6 +158,7 @@ export function CrearTareaWizard({ visible, guardando, onCerrar, onCrear }: {
   const [horaPersonalizada, setHoraPersonalizada] = useState(false);
   const [franja, setFranja] = useState<FranjaDia>('cualquier_momento');
   const [franjaManual, setFranjaManual] = useState(false);
+  const { limitesFranja } = usePerfilBasico();
   const [mostrarNombre, setMostrarNombre] = useState(true);
   const [plantillaId, setPlantillaId] = useState<string | null>(null);
   const [buscarPlantilla, setBuscarPlantilla] = useState('');
@@ -191,10 +193,10 @@ export function CrearTareaWizard({ visible, guardando, onCerrar, onCrear }: {
 
   useEffect(() => {
     if (recordatorioActivo && !franjaManual) {
-      const sugerida = sugerirFranjaPorHora(hora);
+      const sugerida = sugerirFranjaPorHora(hora, limitesFranja);
       if (sugerida) setFranja(sugerida);
     }
-  }, [recordatorioActivo, hora, franjaManual]);
+  }, [recordatorioActivo, hora, franjaManual, limitesFranja]);
 
   // El Modal no desmonta sus hijos al ocultarse — se reinicia TODO el estado
   // transitorio al cerrar, mismo motivo (y mismo bug evitado) que en

@@ -21,6 +21,7 @@ import { obtenerAssetsPaquete } from '../../senderos/algoritmo/registroPaquetesA
 import { obtenerTareas } from '../../tareas/tareas.servicio';
 import { CLAVE_SALDO_GEMAS, useSaldoGemas } from '../../tienda/useSaldoGemas';
 import { CrearRutinaWizard } from '../componentes/CrearRutinaWizard';
+import { usePerfilBasico } from '../../configuracion/usePerfilBasico';
 import { prepararAvisosDeRutina } from '../recordatorioRutina';
 import { useRachasRutinas } from '../useRachasRutinas';
 import { ListaMisRutinas } from '../componentes/ListaMisRutinas';
@@ -66,7 +67,8 @@ function RutinasPantallaContenido() {
   // Arranca en la franja de "ahora" y no se guarda: el botón existe para
   // mostrar lo que toca en este momento. Tampoco cambia solo si la persona
   // eligió otra a mano.
-  const [filtro, setFiltro] = useState<FiltroFranja>(() => franjaActual());
+  const { limitesFranja } = usePerfilBasico();
+  const [filtro, setFiltro] = useState<FiltroFranja>(() => franjaActual(new Date(), limitesFranja));
   const [crearAbierto, setCrearAbierto] = useState(false);
   const [plantilla, setPlantilla] = useState<PlantillaRutina | null>(null);
   const [rutinaEditando, setRutinaEditando] = useState<Rutina | null>(null);

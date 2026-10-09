@@ -11,6 +11,7 @@ import { TOPE_ESCALA_TEXTO_COMPACTO } from '../../../diseno/fundamentos/accesibi
 import { CrearHabitoInput } from '../habitos.servicio';
 import type { TipoMetaHabito } from '../tipos';
 import { sugerirFranjaPorHora, type FranjaDia } from '../../../compartido/utilidades/franjas';
+import { usePerfilBasico } from '../../configuracion/usePerfilBasico';
 import { DIAS_REQUERIDOS_POR_NIVEL, iconosHabitos } from '../iconosHabitos';
 import { hapticSeguro } from '../../../nucleo/dispositivo/haptics';
 import { solicitarPermisoYRegistrar } from '../../../nucleo/notificaciones/oneSignal';
@@ -218,6 +219,7 @@ export function CrearHabitoWizard({ visible, guardando, onCerrar, onCrear }: { v
   const [recordatorio, setRecordatorio] = useState(false), [hora, setHora] = useState('08:00'), [horaPersonalizada, setHoraPersonalizada] = useState(false), [mostrar, setMostrar] = useState(false);
   const [franja, setFranja] = useState<FranjaDia>('cualquier_momento');
   const [franjaManual, setFranjaManual] = useState(false);
+  const { limitesFranja } = usePerfilBasico();
   const [iconoLucide, setIconoLucide] = useState(iconosHabitos[0].id);
   const [subtipoMeta, setSubtipoMeta] = useState<SubtipoMeta>('cantidad');
   // Semilla premium elegida (id de usuario_semillas) en vez de un tono verde
@@ -303,10 +305,10 @@ export function CrearHabitoWizard({ visible, guardando, onCerrar, onCrear }: { v
   }, [recordatorio]);
   useEffect(() => {
     if (recordatorio && !franjaManual) {
-      const sugerida = sugerirFranjaPorHora(hora);
+      const sugerida = sugerirFranjaPorHora(hora, limitesFranja);
       if (sugerida) setFranja(sugerida);
     }
-  }, [recordatorio, hora, franjaManual]);
+  }, [recordatorio, hora, franjaManual, limitesFranja]);
   // El Modal no desmonta sus hijos al ocultarse (solo dispara la animación de
   // salida) — sin este reinicio, todo el estado del hábito anterior (título,
   // ícono, horario, recordatorio... e incluso `paso`) seguía vivo la próxima

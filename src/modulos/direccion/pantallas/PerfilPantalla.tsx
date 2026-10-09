@@ -44,6 +44,7 @@ import { hapticSeguro } from '../../../nucleo/dispositivo/haptics';
 import { useHorizon } from '../../../nucleo/compras/useHorizon';
 import { restaurarHorizon } from '../../../nucleo/compras/horizon';
 import { AuroraBoreal } from '../../hoy/componentes/AuroraBoreal';
+import { SeccionFranjasDia } from '../componentes/SeccionFranjasDia';
 import { SeccionTemaColor } from '../componentes/SeccionTemaColor';
 import { useSaldoGemas } from '../../tienda/useSaldoGemas';
 import {
@@ -396,6 +397,7 @@ export function PerfilPantalla() {
         nombreVisible: nuevoNombre,
       });
       await clienteQuery.invalidateQueries({ queryKey: ['configuracion', 'usuario'] });
+      await clienteQuery.invalidateQueries({ queryKey: ['configuracion', 'perfilBasico'] });
       setEditandoNombre(false);
       hapticSeguro('confirmacion');
     } catch {
@@ -1003,6 +1005,11 @@ export function PerfilPantalla() {
                   </Animated.View>
 
                   {/* 1. Notificaciones y Avisos */}
+                  <Animated.View entering={entradaEncadenada(1)} style={s.grupoAjustes}>
+                    <Texto style={s.grupoAjustesTitulo}>{t('franjas.ajustes.titulo')}</Texto>
+                    <SeccionFranjasDia />
+                  </Animated.View>
+
                   <Animated.View entering={entradaEncadenada(1)} style={s.grupoAjustes}>
                     <Texto style={s.grupoAjustesTitulo}>{t('perfil.settings.notificationsGroup')}</Texto>
                     <MasterGlass style={s.tarjetaAjustes}>

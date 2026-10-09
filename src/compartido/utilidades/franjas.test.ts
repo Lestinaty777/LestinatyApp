@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-  agruparPorFranja, contarPendientesPorFiltro, filtrarPorFranja, franjaActual, franjaDeHora, limitesValidos,
-  LIMITES_FRANJA_DEFECTO, sugerirFranjaPorHora, type FranjaDia,
+  agruparPorFranja, contarPendientesPorFiltro, filtrarPorFranja, formatoHoraEntera, franjaActual, franjaDeHora, limitesValidos,
+  LIMITES_FRANJA_DEFECTO, moverLimite, sugerirFranjaPorHora, tramosDelDia, type FranjaDia,
 } from './franjas';
 
 describe('franjaDeHora', () => {
@@ -97,5 +97,33 @@ describe('contarPendientesPorFiltro', () => {
 
   it('devuelve ceros si no hay elementos', () => {
     expect(contarPendientesPorFiltro([], () => true)).toEqual({ manana: 0, tarde: 0, noche: 0, todo: 0 });
+  });
+});
+
+describe('tramosDelDia, formatoHoraEntera y moverLimite', () => {
+  it('describe los tres tramos; la noche termina donde empieza la mañana', () => {
+    expect(tramosDelDia()).toEqual([
+      { franja: 'manana', desde: 5, hasta: 12 }, { franja: 'tarde', desde: 12, hasta: 19 }, { franja: 'noche', desde: 19, hasta: 5 },
+    ]);
+    expect(tramosDelDia({ mananaDesde: 7, tardeDesde: 13, nocheDesde: 21 })[2]).toEqual({ franja: 'noche', desde: 21, hasta: 7 });
+  });
+
+  it('formatea la hora entera', () => {
+    expect(formatoHoraEntera(5)).toBe('5:00');
+    expect(formatoHoraEntera(19)).toBe('19:00');
+  });
+
+  it('mueve un límite una hora si el resultado sigue siendo válido', () => {
+    expect(moverLimite(LIMITES_FRANJA_DEFECTO, 'mananaDesde', 1)).toEqual({ mananaDesde: 6, tardeDesde: 12, nocheDesde: 19 });
+    expect(moverLimite(LIMITES_FRANJA_DEFECTO, 'nocheDesde', -1)).toEqual({ mananaDesde: 5, tardeDesde: 12, nocheDesde: 18 });
+  });
+
+  it('no se mueve si rompería el orden o saldría de 0–23', () => {
+    const pegados = { mananaDesde: 11, tardeDesde: 12, nocheDesde: 13 };
+    expect(moverLimite(pegados, 'mananaDesde', 1)).toBe(pegados);
+    expect(moverLimite(pegados, 'tardeDesde', -1)).toBe(pegados);
+    expect(moverLimite(pegados, 'tardeDesde', 1)).toBe(pegados);
+    expect(moverLimite({ mananaDesde: 0, tardeDesde: 12, nocheDesde: 23 }, 'mananaDesde', -1)).toEqual({ mananaDesde: 0, tardeDesde: 12, nocheDesde: 23 });
+    expect(moverLimite({ mananaDesde: 0, tardeDesde: 12, nocheDesde: 23 }, 'nocheDesde', 1)).toEqual({ mananaDesde: 0, tardeDesde: 12, nocheDesde: 23 });
   });
 });

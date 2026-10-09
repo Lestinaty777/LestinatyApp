@@ -68,3 +68,29 @@ export function contarPendientesPorFiltro<T extends { franja: FranjaDia }>(
   }
   return conteo;
 }
+
+export type TramoFranja = { franja: FranjaConcreta; desde: number; hasta: number };
+
+/** Los tres tramos del día según los límites; la noche termina donde empieza la mañana (cruza medianoche). */
+export function tramosDelDia(limites: LimitesFranja = LIMITES_FRANJA_DEFECTO): TramoFranja[] {
+  return [
+    { franja: 'manana', desde: limites.mananaDesde, hasta: limites.tardeDesde },
+    { franja: 'tarde', desde: limites.tardeDesde, hasta: limites.nocheDesde },
+    { franja: 'noche', desde: limites.nocheDesde, hasta: limites.mananaDesde },
+  ];
+}
+
+/** Hora entera 0–23 como "5:00" o "19:00". */
+export function formatoHoraEntera(hora: number): string {
+  return `${hora}:00`;
+}
+
+/**
+ * Mueve un límite una hora hacia arriba o abajo. Devuelve los mismos límites
+ * si el resultado dejaría de ser válido (fuera de 0–23 o sin respetar
+ * mañana < tarde < noche): así los controles nunca producen un estado roto.
+ */
+export function moverLimite(limites: LimitesFranja, campo: keyof LimitesFranja, delta: -1 | 1): LimitesFranja {
+  const propuesta = { ...limites, [campo]: limites[campo] + delta };
+  return limitesValidos(propuesta) ? propuesta : limites;
+}

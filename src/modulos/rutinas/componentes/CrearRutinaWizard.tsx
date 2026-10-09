@@ -10,6 +10,7 @@ import { hapticSeguro } from '../../../nucleo/dispositivo/haptics';
 import { buscarIconoHabito } from '../../habitos/iconosHabitos';
 import type { HabitoResumen } from '../../habitos/tipos';
 import type { Tarea } from '../../tareas/tareas.tipos';
+import { usePerfilBasico } from '../../configuracion/usePerfilBasico';
 import { leerObjetivo } from '../formatoRutina';
 import type { PlantillaRutina } from '../plantillasRutinas';
 import { MAX_PASOS_RUTINA, type CrearRutinaInput, type FrecuenciaRutina, type ModoPasoPropio, type PasoNuevoRutina, type PasoRutina, type Rutina } from '../rutinas.tipos';
@@ -68,6 +69,7 @@ export function CrearRutinaWizard({ color, guardando, habitos, onCerrar, onCrear
   visible: boolean;
 }) {
   const { t } = useTranslation();
+  const { limitesFranja } = usePerfilBasico();
   const contador = useRef(0);
   const nuevaClave = () => `paso-${contador.current++}`;
   const [etapaIndice, setEtapaIndice] = useState(0);
@@ -120,7 +122,7 @@ export function CrearRutinaWizard({ color, guardando, habitos, onCerrar, onCrear
 
   const etapa: Etapa = ETAPAS[etapaIndice];
   const horaValida = HORA_VALIDA.test(hora);
-  const sugerida = recordatorio && horaValida ? sugerirFranjaPorHora(hora) : null;
+  const sugerida = recordatorio && horaValida ? sugerirFranjaPorHora(hora, limitesFranja) : null;
   const idsHabitosUsados = useMemo(() => new Set(pasos.flatMap((paso) => (paso.origen === 'habito' ? [paso.habitoId] : []))), [pasos]);
   const idsTareasUsadas = useMemo(() => new Set(pasos.flatMap((paso) => (paso.origen === 'tarea' ? [paso.tareaId] : []))), [pasos]);
   const llenaDePasos = pasos.length >= MAX_PASOS_RUTINA;
