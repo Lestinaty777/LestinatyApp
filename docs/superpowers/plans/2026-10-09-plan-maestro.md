@@ -14,7 +14,7 @@ Documentos de origen (leerlos solo cuando una tarea lo pida; este plan ya los re
 | Spec plantillas con gemas | `docs/superpowers/specs/2026-10-04-plantillas-rutinas-design.md` |
 | Spec sesión guiada | `docs/superpowers/specs/2026-10-05-sesion-guiada-rutinas-design.md` |
 
-> Cuatro de esos archivos **no existen en la copia local hasta completar la Fase 0** (solo están en `origin/mejoras`).
+> Esos documentos llaman 69–73 a las migraciones de franjas y rutinas; hoy son la 77–81 (ver sección 1.1). Donde un documento antiguo contradiga a este plan, **manda este plan**.
 
 ---
 
@@ -26,7 +26,7 @@ Documentos de origen (leerlos solo cuando una tarea lo pida; este plan ya los re
 4. **Verificación antes de cada commit:** `npm run typecheck && npm test`. Ambos deben terminar sin errores. Si fallan, arregla antes de seguir; nunca borres ni desactives un test para que pase.
 5. **Un commit por tarea**, con el mensaje exacto que indica la tarea. No hagas `git push` salvo que la tarea lo diga.
 6. **PARADA** significa: detente, muestra al usuario lo que se indica y espera su respuesta. No continúes por tu cuenta.
-7. **Base de datos real:** tiene datos de usuarios reales (9 perfiles, 35 hábitos). Solo se aplica SQL en una tarea marcada **PARADA-BD**, con confirmación del usuario. Las consultas de solo lectura (`select`) sí se pueden correr libremente.
+7. **Base de datos real:** tiene datos de usuarios reales (9 perfiles, 35 hábitos, 322 registros). Solo se aplica SQL en una tarea marcada **PARADA-BD**, con confirmación del usuario. Las consultas de solo lectura (`select`) sí se pueden correr libremente.
 8. **Nunca** uses `supabase db push` ni `supabase migration list` (el historial de migraciones de este proyecto no está sincronizado; no sirven). Se usa siempre:
    ```bash
    export SUPABASE_ACCESS_TOKEN=$(grep "^SUPABASE_ACESSS_TOKEN=" .env | cut -d= -f2-)   # el typo ACESSS es real
@@ -44,71 +44,155 @@ Documentos de origen (leerlos solo cuando una tarea lo pida; este plan ya los re
 
 ---
 
-## 1. Estado real verificado (2026-10-09)
+## 1. Estado real y referencia de la base de datos (verificado 2026-10-09)
 
-Verificado contra el repositorio local, `origin/mejoras` y la base de datos real.
+Todo lo de esta sección está comprobado contra la base real y el repositorio. **Es tu referencia: si necesitas una tabla, columna o RPC, búscala aquí antes de suponer nada.**
 
-### 1.1 Hay dos líneas de trabajo sin unir
+### 1.1 Dónde estamos
 
-| Dónde | Qué contiene | ¿En la base real? |
-| --- | --- | --- |
-| **Local, sin commitear** | Planes fase 11–12 (disponibilidad, nota de sección, ítems tipados, compartidos, ramas). 20 archivos modificados, 10 nuevos. Migraciones locales `69`–`76`. | **Sí**, las 8 aplicadas (`planes_ramas` existe, etc.) |
-| **`origin/mejoras`, 10 commits por delante** | Franjas (lógica + migración), Rutinas completas (backend, pantalla, asistente, plantillas con gemas, sesión guiada), los 4 documentos que faltan en local. Migraciones `69`–`73`. | **No**: no existe ninguna tabla `rutinas_*` ni `plantillas_*`, ni el dominio `franja_dia`, ni columnas `franja` |
+- Rama `mejoras`, local y `origin` iguales. La **Fase 0 está terminada**: el trabajo de Planes y el de Franjas/Rutinas ya están unidos.
+- **Migraciones 01 a 88 aplicadas en la base real.** No queda ninguna migración escrita sin aplicar.
+- Últimos commits relevantes: `49f6b96` (Planes), `e571ee3` (merge y renumeración a 77–81), `9fd60f5` (migraciones 82–86), `108ced4` (87), `dc79ed6` (88).
+- `npm run typecheck` limpio y 580 tests en verde tras el merge.
 
-**Problema:** las dos líneas usan los mismos números de migración 69–73 para cosas distintas. Las locales (Planes) ya están aplicadas, así que **se renumeran las del remoto** (Rutinas) a 77–81.
+Numeración de migraciones (para no confundirse: los documentos antiguos usan otros números):
 
-Simulación de merge: los commits se unen sin conflicto. El único archivo tocado por ambos lados es `src/servicios/i18n/recursos.ts` (el cambio local empieza en la línea ~65 y el remoto inserta en la ~61): puede dar conflicto de texto, se resuelve conservando ambos bloques.
+| Números | Contenido |
+| --- | --- |
+| 69–76 | Planes: disponibilidad, nota de sección, ítems tipados, compartidos, ramas |
+| 77 | Franjas del día (antes llamada 69) |
+| 78, 79 | Rutinas: tablas y RPCs (antes 70 y 71) |
+| 80 | Plantillas de rutinas con gemas (antes 72) |
+| 81 | Sesión guiada: pasos esenciales, iniciar y cerrar (antes 73) |
+| 82 | Franja de hábitos |
+| 83 | Resumen de Hoy: racha global y XP |
+| 84 | Recordatorios de rutina |
+| 85 | Editar rutina |
+| 86 | Permisos de las funciones de reclamo de recordatorios |
+| 87 | Áreas de vida y metas |
+| 88 | Prefijo de familia en los nombres de tabla |
 
-### 1.2 Qué está hecho (en `origin/mejoras`) y qué falta
+### 1.2 Qué está hecho y qué falta en el código
 
 | Pieza | Estado |
 | --- | --- |
 | `src/compartido/utilidades/franjas.ts` (`franjaDeHora`, `franjaActual`, `sugerirFranjaPorHora`, `limitesValidos`, `agruparPorFranja`, `filtrarPorFranja`, `contarPendientesPorFiltro`) | Hecho, con tests |
 | `src/diseno/componentes/SelectorFranja.tsx` (4 botones de filtro) | Hecho |
-| Tablas y RPCs de Rutinas, plantillas y sesión | SQL escrito, **sin aplicar** |
 | `src/modulos/rutinas/` (pantalla, asistente, plantillas, sesión guiada, `app/rutinas/[id].tsx`) | Hecho, **sin probar en dispositivo** |
-| `franja` en tipos/servicios de Tarea y Hábito | **Falta** |
-| Selector de franja en `CrearHabitoWizard`, `CrearTareaWizard` y edición | **Falta** |
-| Hoy unificado | **Falta.** `HoyPantalla.tsx` es hoy una maqueta: `TimelineHoy` pinta la constante `TAREAS_HOY` y `GridCategorias` usa progresos fijos |
-| Cabecera de Hoy (nombre, racha, nivel y XP) | **Falta.** Muestra "Alejandro", "3 Días" y "Nivel 4 · 95/120 XP" fijos. No existe ningún concepto de XP ni de racha global en la base ni en el código |
-| Rutina dibujada como camino de nodos | **Falta** (el spec de Rutinas lo pide; hoy es una lista) |
-| Guía hacia la primera victoria de un usuario nuevo | **Falta** |
-| Etiqueta "en Rutina X" y `SelectorFranja` en Hábitos y Tareas | **Falta** |
-| `actualizar_rutina` y editar una rutina | **Falta** |
-| Envío real del recordatorio de rutina | **Falta** (se guarda hora y activo, nadie lo envía) |
-| Racha de sesiones de rutina | **Falta** |
-| Borrar `tareas_items.routine_id` | **Falta** |
-| Ajustes de límites de franja, insights por franja | **Falta** |
-| Analítica | **Falta.** `src/servicios/analitica/posthog.ts` es un stub que no envía nada; `posthogKey` está vacío |
-| Plantillas premium reales | **Falta** (solo hay 4 gratuitas en la migración) |
-| Áreas de vida, Metas reales, packs, trial y límites en servidor, Live Activities | **Falta y sin spec** |
+| `franja` en tipos/servicios de Tarea y Hábito | **Falta** (Fase 1) |
+| Selector de franja en `CrearHabitoWizard`, `CrearTareaWizard` y edición | **Falta** (Fase 2) |
+| Hoy unificado | **Falta** (Fase 3). `HoyPantalla.tsx` es una maqueta: `TimelineHoy` pinta la constante `TAREAS_HOY` y `GridCategorias` usa progresos fijos |
+| Cabecera de Hoy (nombre, racha, nivel y XP) | **Falta** (Fase 3). Muestra "Alejandro", "3 Días" y "Nivel 4 · 95/120 XP" fijos |
+| Etiqueta "en Rutina X" y `SelectorFranja` en Hábitos y Tareas | **Falta** (Fase 3) |
+| Editar una rutina | **Falta** el cliente (Fase 4); el RPC existe |
+| Envío real del recordatorio de rutina | **Falta** la Edge Function y el cliente (Fase 4); la cola y los RPC existen |
+| Racha de sesiones, rutina como camino de nodos | **Falta** (Fase 4) |
+| Borrar `tareas_items.routine_id` | **Falta** (Fase 4): única migración que queda por escribir |
+| Ajustes de límites de franja, insights por franja | **Falta** (Fase 5) |
+| Analítica | **Falta** (Fase 6). `src/servicios/analitica/posthog.ts` es un stub; `posthogKey` está vacío |
+| Guía hacia la primera victoria | **Falta** (Fase 6B) |
+| Plantillas premium reales | **Falta** (Fase 7): solo hay 4 gratuitas |
+| Áreas y metas | **Falta** todo el cliente (Fases 8 y 9); la base existe. `src/modulos/metas/` es maqueta |
+| Packs, límites y trial en servidor, Live Activities | **Falta y sin spec** (Fases 10 a 13) |
 
-### 1.3 Datos del esquema real que usarás
+### 1.3 Referencia de la base de datos
 
-- `habitos_planes`: el rol `authenticated` solo tiene `SELECT`. Toda escritura pasa por funciones `security definer` del esquema `privacidad` con wrapper en `public`. No tiene triggers.
-- `tareas_items`: `authenticated` tiene `SELECT, INSERT, UPDATE, DELETE` (RLS por dueño).
-- `perfiles_usuario`: `authenticated` tiene `SELECT, UPDATE`.
-- `habitos_items.usuario_id` es la columna de dueño.
-- Cola de recordatorios: `privacidad.notificaciones_programadas` con columnas `plan_habito_id`, `tarea_id` y la restricción `notificaciones_programadas_un_solo_origen`.
-- `catalogo_notificaciones` activos: `habito_recordatorio`, `tarea_recordatorio`.
-- Motivos del ledger (`comercio.movimientos_gemas`): `compra_iap, gasto_tienda, ajuste_soporte, recompensa_nivel, gasto_semillas, referido_nivel2, trial_horizon_bono, cofre_intermedio, cofre_final, tarea_diaria, racha_tarea, cofre_final_tarea`.
-- Claves de caché existentes: `['rutinas','lista']` (`CLAVE_RUTINAS`), `['habitos','panel']`, `['habitos','detalles-hoy']`, `CLAVE_TAREAS_HOY`, `CLAVE_TAREAS_LISTA`, `CLAVE_SALDO_GEMAS`.
+Convención: toda tabla lleva el prefijo de su familia (`habitos_`, `tareas_`, `rutinas_`, `planes_`, `metas`, `areas_`). `!` = no admite nulo. "Directo" = el cliente puede leer y escribir con `from('tabla')` y RLS limita a lo propio. "Solo lectura" = el cliente solo hace `select`; se escribe por RPC.
 
-### 1.4 Base de datos de las fases 1 a 5, 8 y 9: ya definida
+#### Franjas del día
 
-Las migraciones 82 a 88 están escritas y ensayadas contra la base real dentro de una transacción con `rollback` (58 comprobaciones funcionales, todas correctas). **El agente no escribe ni modifica SQL en las fases 1 a 5, 8 y 9: solo conecta el cliente.**
+- Dominio `public.franja_dia`: `'manana' | 'tarde' | 'noche' | 'cualquier_momento'` (valor por defecto en todas partes).
+- `habitos_planes.franja!`, `tareas_items.franja!`, `rutinas_items.franja!`.
+- `perfiles_usuario.franja_manana_desde!` (5), `franja_tarde_desde!` (12), `franja_noche_desde!` (19): horas 0–23, con `mañana < tarde < noche`. La noche cruza medianoche.
+- `planes_bloques.momento` usa los mismos tres códigos como texto. **No se toca.**
 
-| Migración | Qué aporta | La usa |
+#### Hábitos
+
+| Tabla | Acceso | Notas |
 | --- | --- | --- |
-| `20261009_82_franja_habitos.sql` | `establecer_franja_habito` y herencia de franja entre planes | Tarea 1.4 |
-| `20261009_83_resumen_hoy.sql` | `obtener_resumen_hoy` (racha global, días activos, XP) | Tareas 3.7 y 3.8 |
-| `20261009_84_rutinas_recordatorios.sql` | Cola con origen rutina, `reclamar_recordatorios_rutinas`, `reprogramar_recordatorio_rutina`, catálogo | Tarea 4.2 |
-| `20261009_85_rutinas_actualizar.sql` | `actualizar_rutina` (conserva pasos por `id`) | Tarea 4.1 |
-| `20261009_86_cerrar_reclamo_recordatorios.sql` | Corrige permisos: `reclamar_recordatorios_tareas` era ejecutable por cualquier sesión | — |
-| `20261009_87_areas_y_metas.sql` | 7 áreas del sistema y áreas propias, ampliación de `metas`, `meta_id` en hábitos, tareas, rutinas y planes, `asignar_meta`, `obtener_metas` | Fases 8 y 9 |
-| `20261009_88_prefijos_por_familia.sql` | Renombra `plantillas_rutinas*` → `rutinas_plantillas*` y `tareas_diarias_reclamadas` → `habitos_tareas_diarias_reclamadas`. Los RPC no cambian de nombre | Fase 7 (nombres de tabla) |
+| `habitos_items` (`id, usuario_id, titulo, descripcion, icono_lucide, color, tipo_meta, unidad, estado, categoria, dificultad, disparador, recompensa, paquete_id, meta_id, …`) | Directo, pero **se escribe por RPC** | `tipo_meta`: `check / cantidad / duracion`. `estado = 'activo'` para los vigentes |
+| `habitos_planes` (`id, habito_id, frecuencia, dias_semana, veces_por_semana, objetivo_valor, desde_fecha, hasta_fecha, recordatorio_activo, hora_recordatorio, mostrar_nombre_notificacion, nivel, origen, mensaje_nivel, franja`) | **Solo lectura** | Versionado por rango de fechas: editar un hábito o subir de nivel puede crear un plan nuevo. Un plan nuevo **hereda la franja** del anterior (trigger) |
+| `habitos_registros` (`id, habito_id, usuario_id, fecha_local, valor, registrado_at, nota, …`) | Directo (lectura) | Un registro por hábito y día |
+| `habitos_tareas_diarias_reclamadas` | Solo lectura | Misiones diarias de hábitos (antes `tareas_diarias_reclamadas`). No es del módulo Tareas |
 
-Las aplica el usuario, en orden:
+RPC: `crear_habito_premium(…)`, `actualizar_habito_desde_detalle(…)`, `archivar_habito`, `registrar_progreso_habito(p_habito_id, p_fecha_local, p_valor, p_nota)`, `obtener_panel_habitos(p_fecha_referencia)`, `obtener_tareas_diarias()`, `reclamar_tarea_diaria(p_tarea_codigo)`, y el nuevo:
+
+- `establecer_franja_habito(p_habito_id uuid, p_franja text) → void`. Cambia la franja del plan más reciente de un hábito propio. Errores: `P0002` hábito ajeno o inexistente, `23514` franja inválida.
+
+#### Tareas
+
+| Tabla | Acceso | Notas |
+| --- | --- | --- |
+| `tareas_items` (`id, usuario_id, titulo, descripcion, estado, tipo, prioridad, columna_kanban, fecha_vencimiento, frecuencia, dias_semana, recordatorio_activo, hora_recordatorio, mostrar_nombre_notificacion, routine_id, paquete_id, color, icono_lucide, orden, completada_en, nivel, nivel_desde_fecha, objetivo_valor, unidad, valor_actual, franja, meta_id`) | Directo | `tipo`: `simple / checklist / contador / cronometro`. `frecuencia`: `una_vez / dias_semana`. `routine_id` está **pendiente de borrar** (tarea 4.4): no lo uses |
+| `tareas_registros` (`id, tarea_id, usuario_id, fecha_local, completada_en, valor, nota, …`) | Directo (lectura) | Solo para tareas `dias_semana` |
+| `tareas_subitems` (`id, tarea_id, titulo, hecho, orden`) | Directo | Pasos de una tarea `checklist` |
+
+RPC: `crear_tarea_premium(…)`, `completar_tarea_dia`, `registrar_progreso_tarea`, `registrar_progreso_tarea_unica`, `reprogramar_recordatorio_tarea(p_tarea_id, p_fecha_local)`, `obtener_panel_tareas`. La franja y la meta de una tarea se escriben con `update` directo (`franja`) o con `asignar_meta`.
+
+#### Rutinas
+
+| Tabla | Acceso | Notas |
+| --- | --- | --- |
+| `rutinas_items` (`id, usuario_id, titulo, descripcion, franja, icono_lucide, color, estado, frecuencia, dias_semana, hora_inicio, recordatorio_activo, mostrar_nombre_notificacion, archivada_en, meta_id`) | Directo | `estado`: `activa / pausada / archivada`. `frecuencia`: `diaria / dias_semana` |
+| `rutinas_pasos` (`id, rutina_id, orden, tipo_origen, habito_id, tarea_id, titulo, modo, objetivo_valor, unidad, esencial`) | Directo | `tipo_origen`: `habito / tarea / propio`. `titulo/modo/objetivo_valor/unidad` solo en pasos `propio`. Máximo 20 por rutina; un mismo hábito o tarea no se repite en una rutina |
+| `rutinas_pasos_registros` (`id, paso_id, usuario_id, fecha_local, valor, completado_en`) | Directo | Solo pasos `propio`. Los de hábito y tarea se registran en sus propias tablas |
+| `rutinas_registros` (`id, rutina_id, usuario_id, fecha_local, iniciada_en, completada_en`) | Directo | La sesión de cada día. `completada_en` no nulo = sesión completa |
+| `rutinas_plantillas` (`id text, titulo, descripcion, franja, icono_id, autor, precio_gemas, num_pasos, duracion_min, activa, orden`) | Solo lectura | `precio_gemas = 0` = gratis. Hay 4, todas gratuitas |
+| `rutinas_plantillas_contenido` (`plantilla_id, pasos jsonb`) | Solo lectura | RLS: solo si es gratis o la compraste |
+| `rutinas_plantillas_compradas` (`usuario_id, plantilla_id, precio_pagado, comprada_en`) | Solo lectura | Se escribe solo por el RPC de compra |
+
+RPC:
+
+| RPC | Devuelve | Notas |
+| --- | --- | --- |
+| `obtener_rutinas_hoy(p_fecha_referencia date)` | Arreglo de rutinas no archivadas | Cada una con `toca_hoy`, `sesion_iniciada_en`, `sesion_completada_en` y `pasos` (cada paso con `id, orden, origen, habito_id, tarea_id, esencial, tarea_tipo, tarea_frecuencia, titulo, icono_lucide, color, modo, objetivo_valor, unidad, aplica, completo, valor`). **No incluye `meta_id`** |
+| `crear_rutina(p_datos jsonb)` | `{ "id" }` | Exige 1–20 pasos y al menos uno esencial |
+| `actualizar_rutina(p_rutina_id uuid, p_datos jsonb)` | `{ "id" }` | Misma forma que `crear_rutina`; cada paso puede llevar su `id` para conservarse con sus registros. Errores: `P0002`, `23514` |
+| `completar_paso_propio_rutina(p_paso_id, p_valor, p_fecha_local)` | `{ paso_id, valor, completo }` | Solo pasos `propio` |
+| `iniciar_rutina(p_rutina_id, p_fecha_local)` | registro de la sesión | Idempotente |
+| `cerrar_rutina_dia(p_rutina_id, p_fecha_local)` | `{ completa, requeridos, requeridos_completos, completada_en }` | Completa = todos los esenciales que aplican hoy |
+| `obtener_plantillas_rutinas()` | Catálogo con `desbloqueada` y, si lo está, `pasos` | |
+| `comprar_plantilla_rutina(p_plantilla_id text)` | `{ plantilla_id, ya_desbloqueada, saldo_restante }` | Sin gemas: `23514` |
+| `reprogramar_recordatorio_rutina(p_rutina_id uuid)` | `void` | Llamar tras cambiar hora o apagar el recordatorio |
+| `reclamar_recordatorios_rutinas(p_limite integer)` | Arreglo para enviar | **Solo servidor** (`service_role`) |
+
+#### Hoy
+
+- `obtener_resumen_hoy(p_fecha_referencia date) → { "fecha", "racha", "dias_activos_semana": [1..7], "xp_total" }`. Calculado, no guardado. XP: 10 por registro de hábito con avance, 10 por registro de tarea, 10 por tarea `una_vez` hecha, 15 por sesión de rutina completa. Racha: días con alguna acción, consecutivos hasta hoy (o hasta ayer si hoy aún no hay acción).
+
+#### Áreas y metas
+
+| Tabla | Acceso | Notas |
+| --- | --- | --- |
+| `areas_vida` (`id, usuario_id, codigo, nombre, color, icono_lucide, orden, archivada_en`) | Directo | Del sistema: `usuario_id` nulo y `codigo` (`cuerpo, mente, espiritual, estudios, trabajo, negocios_proyectos, finanzas`); no editables. Propias: `usuario_id` de la sesión, `codigo` nulo, `color` `#RRGGBB`, máximo 20, nombre único por persona |
+| `metas` (`id, usuario_id, titulo, descripcion, estado, area_id, icono_lucide, color, fecha_inicio, duracion_dias, lograda_en, orden`) | Directo | `estado`: `activa / pausada / lograda / archivada`. `lograda` exige `lograda_en`, y al revés. `area_id` anulable en la base (lo usa un flujo antiguo de Aby); la interfaz lo exige. `senderos.meta_id` también apunta aquí |
+| `meta_id` en `habitos_items`, `tareas_items`, `rutinas_items`, `planes_items` | — | Una sola meta por elemento. El área de un elemento es la de su meta. Borrar una meta deja el elemento sin meta |
+
+RPC: `asignar_meta(p_tipo text, p_elemento_id uuid, p_meta_id uuid) → void` (`p_tipo`: `habito / tarea / rutina / plan`; `p_meta_id` nulo quita la meta) y `obtener_metas(p_fecha_referencia date)` (forma exacta en la Fase 8).
+
+#### Recordatorios
+
+- Cola `privacidad.notificaciones_programadas` (no accesible desde la app): exactamente uno de `plan_habito_id`, `tarea_id`, `rutina_id`.
+- `catalogo_notificaciones` activos: `habito_recordatorio`, `tarea_recordatorio`, `rutina_recordatorio`. La preferencia de cada persona nace **apagada**: al activar un recordatorio hay que llamar `actualizarPreferenciaNotificacion(codigo, true)`.
+- `reclamar_recordatorios_habitos / _tareas / _rutinas` y `finalizar_recordatorio_habito`: **solo servidor**. Las usa la Edge Function `despachar-recordatorios-habitos`, que corre cada minuto.
+
+#### Planes (no se modifican en este plan)
+
+`planes_items → planes_secciones → planes_dias → planes_bloques (momento) → planes_bloque_items`, con progreso en `planes_instancias` y `planes_instancia_progreso`, más `planes_propuestas`, `planes_ramas`, `planes_generaciones_uso`. `planes_items.meta_id` es lo único nuevo.
+
+#### Gemas
+
+- `comercio.movimientos_gemas` y `comercio.billeteras_gemas` (no accesibles desde la app; solo por RPC). Motivos válidos: `compra_iap, gasto_tienda, ajuste_soporte, recompensa_nivel, gasto_semillas, referido_nivel2, trial_horizon_bono, cofre_intermedio, cofre_final, tarea_diaria, racha_tarea, cofre_final_tarea, gasto_plantilla_rutina`. Añadir un motivo exige una migración que **conserve los 13**.
+
+#### Claves de caché que ya existen (úsalas tal cual)
+
+`['rutinas','lista']` (`CLAVE_RUTINAS`), `['habitos','panel']`, `['habitos','detalles-hoy']`, `['habitos','activos']`, `['habitos','mejor-racha']`, `CLAVE_TAREAS_HOY`, `CLAVE_TAREAS_LISTA`, `CLAVE_TAREAS_RECORDATORIOS`, `CLAVE_SALDO_GEMAS`, `['configuracion','usuario']`.
+
+### 1.4 Qué SQL te queda por escribir
+
+Solo una migración en las fases 1 a 9: borrar `tareas_items.routine_id` (tarea 4.4). **En todo lo demás conectas el cliente a lo que ya existe.** Si crees que necesitas otra tabla, columna o RPC, **PARADA** y explícalo: lo más probable es que ya esté en la sección 1.3.
+
+Si alguna vez una comprobación indica que falta algo de las migraciones 82–88 (por ejemplo, en una base de pruebas nueva), se aplican en orden así:
 
 ```bash
 export SUPABASE_ACCESS_TOKEN=$(grep "^SUPABASE_ACESSS_TOKEN=" .env | cut -d= -f2-)
@@ -117,15 +201,13 @@ for n in 82_franja_habitos 83_resumen_hoy 84_rutinas_recordatorios 85_rutinas_ac
 done
 ```
 
-Sin migración (lectura directa con RLS): franja de tareas (`tareas_items.franja`), límites de franja (`perfiles_usuario.franja_*_desde`), racha de sesiones (`rutinas_registros`), insights por franja. La única migración que queda para el agente en estas fases es borrar `tareas_items.routine_id` (tarea 4.4), que no se puede aplicar hasta que el cliente deje de leer esa columna.
-
 ---
 
 ## 2. Mapa de fases
 
 | Fase | Resultado | Depende de | ¿Toca la base real? |
 | --- | --- | --- | --- |
-| 0 | Una sola rama con todo, migraciones renumeradas y aplicadas | — | Sí |
+| 0 | Una sola rama con todo, migraciones renumeradas y aplicadas | — | **Hecha** |
 | 1 | Hábitos y tareas guardan y leen su franja | 0 | Ya definida (82) |
 | 2 | Selector de franja al crear y editar | 1 | No |
 | 3 | Hoy unificado con datos reales y cabecera funcional (racha, nivel, XP) | 1 | Ya definida (83) |
@@ -142,101 +224,24 @@ Sin migración (lectura directa con RLS): franja de tareas (`tareas_items.franja
 | 12 | Live Activities (iOS) | 4 | No |
 | 13 | Finanzas sencillas | 8, 9 | Por decidir |
 
-Las fases 0–9 (incluidas 5B y 6B) están detalladas. Las fases 10–13 **no tienen spec**: su primera tarea es escribirlo y hacer PARADA. La sección 3 dice cuándo se retoman las fases 6–10 de la visión (modelo unificado, Aby, cooperativo, cursos, marketplace).
+La Fase 0 está hecha; **empieza por la Fase 1**. Las fases 1–9 (incluidas 5B y 6B) están detalladas. Las fases 10–13 **no tienen spec**: su primera tarea es escribirlo y hacer PARADA. La sección 3 dice cuándo se retoman las fases 6–10 de la visión (modelo unificado, Aby, cooperativo, cursos, marketplace).
 
 ---
 
-## FASE 0 — Unir el trabajo y poner la base al día
+## FASE 0 — Unir el trabajo y poner la base al día — **HECHA (2026-10-09)**
 
-### Tarea 0.1 — Guardar el trabajo local de Planes
+No repitas nada de esta fase. Lo que se hizo:
 
-1. `git status --short`. Debe listar los archivos de Planes (ver sección 1.1). Confirma que `.env` **no** aparece.
-2. `npm run typecheck && npm test`. Si falla, **PARADA** y muestra el error (es trabajo del usuario, no lo arregles sin preguntar).
-3. `git add -A`
-4. Commit: `feat(planes): disponibilidad, ítems tipados, planes compartidos y ramas (migraciones 69-76)`
+1. Trabajo local de Planes commiteado (`49f6b96`).
+2. Merge con `origin/mejoras` sin conflictos y migraciones de Franjas/Rutinas renumeradas de 69–73 a 77–81 (`e571ee3`).
+3. Migraciones 77–88 aplicadas a la base real y verificadas con consultas de solo lectura.
+4. Todo subido a `origin/mejoras`.
 
-### Tarea 0.2 — Traer `origin/mejoras`
+Quedan tres pendientes **del usuario** (no bloquean la Fase 1; recuérdaselos en tu primer resumen):
 
-1. `git fetch origin`
-2. `git merge origin/mejoras --no-ff --no-commit`
-3. Si hay conflicto en `src/servicios/i18n/recursos.ts`: conserva **los dos** bloques completos (el local de Planes y el remoto de Rutinas) dentro del mismo objeto, en `en` y en `es`. No borres ninguna clave. En cualquier otro archivo con conflicto: **PARADA**.
-4. No hagas commit todavía; sigue con 0.3.
-
-### Tarea 0.3 — Renumerar las migraciones de Rutinas
-
-1. Ejecuta exactamente:
-   ```bash
-   cd supabase/migrations
-   git mv 20261004_69_franjas_del_dia.sql     20261009_77_franjas_del_dia.sql
-   git mv 20261004_70_rutinas_nucleo.sql      20261009_78_rutinas_nucleo.sql
-   git mv 20261004_71_rutinas_rpcs.sql        20261009_79_rutinas_rpcs.sql
-   git mv 20261004_72_plantillas_rutinas.sql  20261009_80_plantillas_rutinas.sql
-   git mv 20261005_73_rutinas_sesion.sql      20261009_81_rutinas_sesion.sql
-   cd ../..
-   ```
-2. Dentro de esos 5 archivos y de `supabase/tests/09_franjas_rutinas.sql`, `10_plantillas_rutinas.sql`, `11_sesion_rutinas.sql`, cambia **solo en comentarios** los números viejos por los nuevos (69→77, 70→78, 71→79, 72→80, 73→81). No toques SQL ejecutable.
-3. Busca referencias en código y documentos: `grep -rnE "migraci[oó]n (69|70|71|72|73)|2026100[45]_(69|70|71|72|73)_(franjas|rutinas|plantillas)" src docs supabase`. Corrige las que se refieran a franjas/rutinas/plantillas/sesión. **No** cambies las que se refieran a Planes (disponibilidad, nota, ítems tipados, compartidos, resumen).
-4. `ls supabase/migrations | tail -14` debe mostrar 69–76 de Planes y 77–81 de franjas/rutinas, sin números repetidos.
-5. `npm run typecheck && npm test`.
-6. Commit (cierra el merge): `merge: une Planes (69-76) con Franjas y Rutinas, renumeradas a 77-81`
-
-### Tarea 0.4 — Comprobar la base antes de aplicar (solo lectura)
-
-Corre esta consulta y guarda la salida:
-
-```sql
-select
-  (select count(*) from pg_type t join pg_namespace n on n.oid=t.typnamespace where n.nspname='public' and t.typname='franja_dia') as dominio_franja,
-  (select count(*) from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relkind='r' and (c.relname like 'rutinas%' or c.relname like 'plantillas%')) as tablas_rutinas,
-  (select pg_get_constraintdef(oid) from pg_constraint where conname='movimientos_gemas_motivo_check') as motivos;
-```
-
-Resultado esperado: `dominio_franja = 0`, `tablas_rutinas = 0`, y `motivos` con exactamente los 12 motivos de la sección 1.3. Abre `20261009_80_plantillas_rutinas.sql` y comprueba que su lista de motivos es **esos 12 más `gasto_plantilla_rutina`**. Si la base tiene algún motivo que la migración no incluye, **PARADA** (aplicarla lo borraría).
-
-### Tarea 0.5 — Aplicar migraciones 77–81 — **PARADA-BD**
-
-Muestra al usuario la salida de 0.4 y pide confirmación. Con el sí, una por una y en orden; si una falla, detente (cada archivo es una transacción, no queda a medias):
-
-```bash
-export SUPABASE_ACCESS_TOKEN=$(grep "^SUPABASE_ACESSS_TOKEN=" .env | cut -d= -f2-)
-for n in 77_franjas_del_dia 78_rutinas_nucleo 79_rutinas_rpcs 80_plantillas_rutinas 81_rutinas_sesion; do
-  echo "== $n"; npx supabase db query --linked --file supabase/migrations/20261009_$n.sql || break
-done
-```
-
-### Tarea 0.6 — Verificar lo aplicado (solo lectura)
-
-```sql
-select
-  (select count(*) from information_schema.columns where table_schema='public' and column_name='franja' and table_name in ('habitos_planes','tareas_items','rutinas_items')) as cols_franja,          -- 3
-  (select count(*) from information_schema.columns where table_schema='public' and table_name='perfiles_usuario' and column_name like 'franja_%') as cols_limites,                                  -- 3
-  (select count(*) from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relkind='r' and c.relname like 'rutinas%') as tablas_rutinas,                         -- 4
-  (select count(*) from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relkind='r' and c.relname like 'plantillas_rutinas%') as tablas_plantillas,           -- 3
-  (select count(*) from public.rutinas_plantillas) as plantillas,                                                                                                                                   -- 4
-  (select count(*) from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname in ('obtener_rutinas_hoy','crear_rutina','completar_paso_propio_rutina','iniciar_rutina','cerrar_rutina_dia','obtener_plantillas_rutinas','comprar_plantilla_rutina','franja_de_hora')) as funciones, -- 8
-  (select count(*) from public.habitos_planes where franja <> 'cualquier_momento') as habitos_con_franja,                                                                                           -- 0
-  (select count(*) from information_schema.columns where table_schema='public' and table_name='rutinas_pasos' and column_name='esencial') as col_esencial;                                          -- 1
-```
-
-Si algún número no coincide con el comentario: **PARADA**.
-
-### Tarea 0.7 — Pruebas SQL de humo (las hace el usuario) — **PARADA**
-
-Los tres archivos `supabase/tests/09|10|11_*.sql` usan comandos de `psql` (`\gset`, `\echo`) y `psql` **no está instalado** en esta máquina. Pide al usuario:
-
-1. `sudo pacman -S postgresql` (trae `psql`).
-2. Copiar la cadena de conexión del panel de Supabase (Project Settings → Database → Connection string, modo sesión) en la variable `DATABASE_URL`.
-3. Correr, en orden: `psql "$DATABASE_URL" -f supabase/tests/09_franjas_rutinas.sql`, luego `10_…`, luego `11_…`. Hacen `rollback`, no dejan datos.
-
-Si el usuario prefiere no hacerlo ahora, anótalo como pendiente y continúa.
-
-### Tarea 0.8 — Subir
-
-`git push origin mejoras`. Después, **PARADA**: pide al usuario que abra la app, vaya a Senderos → Rutinas, cree una rutina, use una plantilla y haga una sesión completa. Anota lo que reporte.
-
-### Tarea 0.9 — Base de pruebas (recomendada) — **PARADA**
-
-Hoy todo SQL nuevo se prueba contra la base real con `rollback`. Propón al usuario crear un segundo proyecto de Supabase ("staging") y aplicar ahí las migraciones 01–81 en orden. Si acepta: a partir de aquí, cada **PARADA-BD** se prueba primero en staging (aplicar de verdad, no `rollback`) y después en la real. Si no acepta, sigue con el método de `rollback` y deja anotado el riesgo en tu resumen.
+- **Prueba en dispositivo de Rutinas:** en Senderos → Rutinas, crear una rutina, usar una plantilla y hacer una sesión completa con cronómetro.
+- **Pruebas SQL de humo:** `supabase/tests/09_franjas_rutinas.sql`, `10_plantillas_rutinas.sql` y `11_sesion_rutinas.sql` necesitan `psql` (`sudo pacman -S postgresql`) y la cadena de conexión del panel de Supabase en `DATABASE_URL`. Hacen `rollback`.
+- **Base de pruebas (staging):** decidir si se crea un segundo proyecto de Supabase. Sin él, cualquier SQL nuevo se ensaya contra la base real dentro de `begin; … rollback;`.
 
 ---
 
@@ -257,7 +262,7 @@ Tu trabajo es solo llamarla desde el cliente (tarea 1.4).
 
 ### Tarea 1.2 — Comprobar que está aplicada (solo lectura)
 
-`select count(*) from pg_trigger where tgname = 'habitos_planes_heredar_franja';` debe dar 1. Si da 0, **PARADA**: pide al usuario que aplique las migraciones 82–86 (sección 1.4).
+`select count(*) from pg_trigger where tgname = 'habitos_planes_heredar_franja';` debe dar 1. Si da 0, **PARADA** y avisa al usuario (sección 1.4).
 
 ### Tarea 1.3 — Tareas: tipo, servicio y lectura
 
@@ -488,7 +493,7 @@ Definiciones que implementa (decisiones 10, 11 y 12 de la sección 4):
 - **Racha global:** días activos consecutivos terminando hoy; si hoy aún no hay acción, terminando ayer.
 - **XP** (calculado, no guardado; no da gemas): 10 por registro de hábito con avance, 10 por registro de tarea, 10 por tarea `una_vez` hecha, 15 por sesión de rutina completa.
 
-Comprobación: `select count(*) from pg_proc where proname = 'obtener_resumen_hoy';` debe dar 1. Si da 0, **PARADA** (sección 1.4).
+Comprobación: `select count(*) from pg_proc where proname = 'obtener_resumen_hoy';` debe dar 1. Si da 0, **PARADA** y avisa al usuario (sección 1.4).
 
 ### Tarea 3.7 — Nivel a partir del XP (función pura)
 
@@ -792,7 +797,7 @@ Forma exacta de cada elemento de `obtener_metas`:
 
 #### Tarea 8.1 — Comprobar que la migración 87 está aplicada
 
-`select count(*) from public.areas_vida where usuario_id is null;` debe dar 7. Si falla o da otro número, **PARADA** (sección 1.4).
+`select count(*) from public.areas_vida where usuario_id is null;` debe dar 7. Si falla o da otro número, **PARADA** y avisa al usuario (sección 1.4).
 
 #### Tarea 8.2 — Módulo de áreas
 
@@ -916,7 +921,7 @@ Mientras no responda, usa el valor por defecto de la tabla.
 | 10 | Qué cuenta como día activo y cómo se calcula la racha global | Cualquier acción cuenta; hoy sin acción no rompe la racha hasta que acabe el día | Tarea 3.6 |
 | 11 | Tabla de XP y curva de niveles | 10 / 10 / 10 / 15 XP; subir cuesta 60, 80, 100, 120… | Tareas 3.6 y 3.7 |
 | 12 | ¿El hábito da XP con cualquier avance o solo al cumplir la meta? | Con cualquier avance (`valor > 0`) | Tarea 3.6 |
-| 13 | ¿Crear un proyecto Supabase de staging? | Recomendado; sin él se sigue probando con `rollback` | Tarea 0.9 |
+| 13 | ¿Crear un proyecto Supabase de staging? | Recomendado; sin él se sigue probando con `rollback` | Fase 0 (pendientes del usuario) |
 | 14 | Nombre del área espiritual | "Espiritual" (código `espiritual`) | Fase 8 |
 | 15 | ¿Un elemento sin meta puede tener área? | No: el área siempre viene de la meta | Fase 8 |
 | 16 | ¿Cómo avanza una meta? | La persona la marca como lograda; la base solo cuenta los días | Fases 8 y 9 |
