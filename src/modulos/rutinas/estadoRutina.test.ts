@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { estaPendienteHoy, resumirDiaRutinas, resumirPasos, rutinasPorOrigen, siguientePaso } from './estadoRutina';
+import { estaPendienteHoy, nombreRutinasDe, resumirDiaRutinas, resumirPasos, rutinasPorOrigen, siguientePaso } from './estadoRutina';
 import type { PasoRutina, Rutina } from './rutinas.tipos';
 
 function paso(sobrescribir: Partial<PasoRutina> = {}): PasoRutina {
@@ -129,5 +129,14 @@ describe('rutinasPorOrigen', () => {
       rutinaCompleta('Archivada', [paso({ origen: 'habito', habitoId: 'h-1' })], { estado: 'archivada' }),
     ]);
     expect(habitos.size).toBe(0);
+  });
+});
+
+describe('nombreRutinasDe', () => {
+  it('devuelve null sin rutinas, el título con una, y el primero más el resto con varias', () => {
+    expect(nombreRutinasDe(undefined)).toBeNull();
+    expect(nombreRutinasDe([])).toBeNull();
+    expect(nombreRutinasDe(['Mañana'])).toBe('Mañana');
+    expect(nombreRutinasDe(['Mañana', 'Noche', 'Estudio'])).toBe('Mañana +2');
   });
 });

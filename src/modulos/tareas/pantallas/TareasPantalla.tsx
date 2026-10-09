@@ -7,7 +7,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
-import { MasterButton, MasterGlass, MasterIcon, MasterIconBg, MasterProgressbar, Rebote, Texto } from '../../../diseno';
+import { MasterButton, MasterGlass, MasterIcon, MasterIconBg, MasterProgressbar, Rebote, SelectorFranja, Texto } from '../../../diseno';
+import { useFiltroFranja } from '../../../compartido/utilidades/useFiltroFranja';
+import { useEtiquetasRutina } from '../../rutinas/useEtiquetasRutina';
 import { conAlfa, crearTonoMaster } from '../../../diseno/tema/masterColor';
 import { useEscala, useTonoMaster } from '../../../diseno/tema/MasterColorContext';
 import type { EscalaMaster } from '../../../diseno/tema/escalaEsmeralda';
@@ -267,6 +269,8 @@ function TareasPantallaContenido({ modulo, setModulo }: { modulo: 'planes' | 'ta
   const acentoPlanesFijo = useMemo(() => crearTonoMaster(PAQUETE_PLANES, COLOR_PAQUETE_PLANES).acento, []);
 
   const tareasHoy = consultaHoy.data ?? [];
+  const filtroFranja = useFiltroFranja(tareasHoy, (tarea) => !tarea.completada);
+  const etiquetasRutina = useEtiquetasRutina();
   const completadosHoy = tareasHoy.filter((tarea) => tarea.completada).length;
   const totalHoy = tareasHoy.length;
   const porcentajeHoy = totalHoy ? Math.round((completadosHoy * 100) / totalHoy) : 0;
@@ -467,12 +471,24 @@ function TareasPantallaContenido({ modulo, setModulo }: { modulo: 'planes' | 'ta
               consultaHoy.isLoading ? <Texto style={s.vacioTexto}>{t('tareas.pantalla.cargando')}</Texto> : consultaHoy.isError ? (
                 <Pressable onPress={() => consultaHoy.refetch()}><Texto style={s.error}>{t('tareas.pantalla.errorCargar')}</Texto></Pressable>
               ) : (
-                <TimelineTareasHoy
-                  completandoId={completandoId}
-                  onCompletar={(tarea: TareaHoyDetalle) => completar.mutate(tarea)}
-                  onRegistrarProgreso={(tarea: TareaHoyDetalle, valor: number) => completar.mutate({ ...tarea, valor })}
-                  tareas={tareasHoy}
-                />
+                <>
+                  {filtroFranja.visible && (
+                    <View style={{ marginBottom: 10 }}>
+                      <SelectorFranja color={esc.jade.l34} conteos={filtroFranja.conteos} etiquetaAccesible={filtroFranja.etiquetaAccesible} etiquetas={filtroFranja.etiquetas} onCambiar={filtroFranja.setFiltro} valor={filtroFranja.filtro} />
+                    </View>
+                  )}
+                  {filtroFranja.filtro !== 'todo' && filtroFranja.filtrados.length === 0 ? (
+                    <Texto style={s.vacioTexto}>{t('franjas.vacia')}</Texto>
+                  ) : (
+                    <TimelineTareasHoy
+                      completandoId={completandoId}
+                      etiquetasRutina={etiquetasRutina.tareas}
+                      onCompletar={(tarea: TareaHoyDetalle) => completar.mutate(tarea)}
+                      onRegistrarProgreso={(tarea: TareaHoyDetalle, valor: number) => completar.mutate({ ...tarea, valor })}
+                      tareas={filtroFranja.filtrados}
+                    />
+                  )}
+                </>
               )
             )}
 

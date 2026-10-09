@@ -8,7 +8,9 @@ import { useEffect, useState } from 'react';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, { Easing, FadeIn, FadeOut, runOnJS, useAnimatedStyle, useSharedValue, withDelay, withRepeat, withSequence, withSpring, withTiming, type SharedValue } from 'react-native-reanimated';
 
-import { Boton, entradaEncadenada, MasterAnimation, MasterGlass, MasterIcon, MasterIconBg, MasterProgressbar, Rebote, Skeleton, Texto } from '../../../diseno';
+import { Boton, entradaEncadenada, MasterAnimation, MasterGlass, MasterIcon, MasterIconBg, MasterProgressbar, Rebote, SelectorFranja, Skeleton, Texto } from '../../../diseno';
+import { useFiltroFranja } from '../../../compartido/utilidades/useFiltroFranja';
+import { useEtiquetasRutina } from '../../rutinas/useEtiquetasRutina';
 import { hapticSeguro } from '../../../nucleo/dispositivo/haptics';
 import { AuroraBoreal } from '../../hoy/componentes/AuroraBoreal';
 import { crearHabito, obtenerDetallesHabitosHoy, obtenerHabitoMasCercaDeNivel, obtenerHabitoMejorRacha, obtenerHabitosActivos, obtenerPanelHabitos, obtenerResumenPlanesHabitos, type HabitoHoyDetalle } from '../habitos.servicio';
@@ -117,6 +119,10 @@ export function HabitosPantalla() {
   const completados = habitos.filter((habito) => habito.completado).length;
   const porcentaje = habitos.length ? Math.round(completados * 100 / habitos.length) : 0;
   const detallesPorHabito = new Map((consultaDetallesHoy.data ?? []).map((detalle) => [detalle.habitoId, detalle]));
+  // La franja vive en el plan del hábito (detalles-hoy), no en el panel: se une aquí para poder filtrar.
+  const habitosConFranja = habitos.map((habito) => ({ ...habito, franja: detallesPorHabito.get(habito.id)?.franja ?? ('cualquier_momento' as const) }));
+  const filtroFranja = useFiltroFranja(habitosConFranja, (habito) => !habito.completado);
+  const etiquetasRutina = useEtiquetasRutina();
 
   useEffect(() => {
     let activo = true;
@@ -242,7 +248,8 @@ export function HabitosPantalla() {
         {vistaPanel === 'hoy' && <>
           {consulta.isLoading && <EsqueletoTimelineHoy />}
           {consulta.isError && <Pressable onPress={() => consulta.refetch()}><Texto style={s.error}>{t('habitos.pantalla.loadError')}</Texto>{__DEV__ && <Texto style={s.errorDetalle}>{consulta.error instanceof Error ? consulta.error.message : String(consulta.error)}</Texto>}</Pressable>}
-          {!consulta.isLoading && !consulta.isError && (vistaHoy === 'sendero' ? <TimelineHabitosHoy habitos={habitos} mostrarPistaSwipe={mostrarPistaSwipe} onDetalle={(id) => setDetalleHabitoId(id)} onSendero={(habito) => router.push({ pathname: '/senderos', params: { habitoId: habito.id } })} onSwipeDescubierto={marcarSwipeDescubierto} /> : <TareasDiariasHoy />)}
+          {!consulta.isLoading && !consulta.isError && vistaHoy === 'sendero' && filtroFranja.visible && <View style={{ marginBottom: 10 }}><SelectorFranja color={esc.jade.l34} conteos={filtroFranja.conteos} etiquetaAccesible={filtroFranja.etiquetaAccesible} etiquetas={filtroFranja.etiquetas} onCambiar={filtroFranja.setFiltro} valor={filtroFranja.filtro} /></View>}
+          {!consulta.isLoading && !consulta.isError && (vistaHoy === 'sendero' ? <TimelineHabitosHoy etiquetasRutina={etiquetasRutina.habitos} filtrado={filtroFranja.filtro !== 'todo'} habitos={filtroFranja.filtrados} mostrarPistaSwipe={mostrarPistaSwipe} onDetalle={(id) => setDetalleHabitoId(id)} onSendero={(habito) => router.push({ pathname: '/senderos', params: { habitoId: habito.id } })} onSwipeDescubierto={marcarSwipeDescubierto} /> : <TareasDiariasHoy />)}
         </>}
         {vistaPanel === 'progresion' && (
           consultaDetallesHoy.isLoading || consultaHabitosActivos.isLoading ? <CarruselEsqueleto /> : (
@@ -450,7 +457,7 @@ function ParticulaSwipe({ distanciaMeta, fraccion, indice, translateX }: { dista
   return <Animated.View pointerEvents="none" style={[s.filaHoyParticula, { borderRadius: tamano / 2, height: tamano, width: tamano }, estilo]} />;
 }
 
-function FilaHabitoHoy({ esActivo, esUltimo, habito, mostrarPista, onDetalle, onSendero, onSwipeDescubierto }: { esActivo: boolean; esUltimo: boolean; habito: HabitoResumen; mostrarPista: boolean; onDetalle: () => void; onSendero: () => void; onSwipeDescubierto: () => void }) {
+function FilaHabitoHoy({ esActivo, esUltimo, etiquetaRutina, habito, mostrarPista, onDetalle, onSendero, onSwipeDescubierto }: { esActivo: boolean; esUltimo: boolean; etiquetaRutina?: string; habito: HabitoResumen; mostrarPista: boolean; onDetalle: () => void; onSendero: () => void; onSwipeDescubierto: () => void }) {
   const esc = useEscala();
   const s = useEstilosS();
   const { t } = useTranslation();
@@ -526,7 +533,7 @@ function FilaHabitoHoy({ esActivo, esUltimo, habito, mostrarPista, onDetalle, on
           ))}
           <Animated.View style={[{ flex: 1 }, estiloTexto]}>
             <Texto numberOfLines={1} style={s.filaHoyTitulo}>{habito.titulo}</Texto>
-            <Texto numberOfLines={1} style={s.filaHoySubtitulo}>{metaEtiqueta}</Texto>
+            <Texto numberOfLines={1} style={s.filaHoySubtitulo}>{etiquetaRutina ? `${metaEtiqueta} · ${etiquetaRutina}` : metaEtiqueta}</Texto>
           </Animated.View>
           <Rebote accessibilityLabel={t('habitos.pantalla.goToTrail')} hitSlop={8} onPress={onSendero}>
             <MasterGlass style={s.filaHoyChevron}><ChevronRight color={esc.jade.l34} size={16} /></MasterGlass>
@@ -562,8 +569,9 @@ function PistaSwipeBanner({ onContinuar }: { onContinuar: () => void }) {
     </MasterGlass>
   );
 }
-function TimelineHabitosHoy({ habitos, mostrarPistaSwipe, onDetalle, onSendero, onSwipeDescubierto }: { habitos: HabitoResumen[]; mostrarPistaSwipe: boolean; onDetalle: (id: string) => void; onSendero: (habito: HabitoResumen) => void; onSwipeDescubierto: () => void }) {
+function TimelineHabitosHoy({ etiquetasRutina, filtrado, habitos, mostrarPistaSwipe, onDetalle, onSendero, onSwipeDescubierto }: { etiquetasRutina: Map<string, string>; filtrado: boolean; habitos: HabitoResumen[]; mostrarPistaSwipe: boolean; onDetalle: (id: string) => void; onSendero: (habito: HabitoResumen) => void; onSwipeDescubierto: () => void }) {
   const { t } = useTranslation();
+  if (habitos.length === 0 && filtrado) return <EstadoVacio texto={t('franjas.vacia')} />;
   if (habitos.length === 0) return <EstadoVacio titulo={t('habitos.pantalla.noTodayHabitsTitle')} texto={t('habitos.pantalla.noTodayHabitsDescription')} />;
   const indiceActivo = habitos.findIndex((habito) => !habito.completado);
   return (
@@ -571,7 +579,7 @@ function TimelineHabitosHoy({ habitos, mostrarPistaSwipe, onDetalle, onSendero, 
       <MasterAnimation duracion={340}>
         {mostrarPistaSwipe && <PistaSwipeBanner onContinuar={onSwipeDescubierto} />}
         {habitos.map((habito, indice) => (
-          <FilaHabitoHoy esActivo={indice === indiceActivo} esUltimo={indice === habitos.length - 1} habito={habito} key={habito.id} mostrarPista={mostrarPistaSwipe && indice === 0} onDetalle={() => onDetalle(habito.id)} onSendero={() => onSendero(habito)} onSwipeDescubierto={onSwipeDescubierto} />
+          <FilaHabitoHoy esActivo={indice === indiceActivo} esUltimo={indice === habitos.length - 1} etiquetaRutina={etiquetasRutina.get(habito.id)} habito={habito} key={habito.id} mostrarPista={mostrarPistaSwipe && indice === 0} onDetalle={() => onDetalle(habito.id)} onSendero={() => onSendero(habito)} onSwipeDescubierto={onSwipeDescubierto} />
         ))}
       </MasterAnimation>
     </View>

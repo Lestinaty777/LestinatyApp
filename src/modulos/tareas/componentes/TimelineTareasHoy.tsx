@@ -24,7 +24,9 @@ function esExpandible(tipo: TareaHoyDetalle['tipo']): boolean {
   return tipo === 'contador' || tipo === 'cronometro';
 }
 
-export function TimelineTareasHoy({ completandoId, onCompletar, onRegistrarProgreso, tareas }: {
+export function TimelineTareasHoy({ completandoId, etiquetasRutina, onCompletar, onRegistrarProgreso, tareas }: {
+  /** "En Rutina X" por id de tarea; opcional para no obligar a quien no lo necesita. */
+  etiquetasRutina?: Map<string, string>;
   completandoId: string | null;
   onCompletar: (tarea: TareaHoyDetalle) => void;
   onRegistrarProgreso: (tarea: TareaHoyDetalle, valor: number) => void;
@@ -49,6 +51,7 @@ export function TimelineTareasHoy({ completandoId, onCompletar, onRegistrarProgr
           <FilaTareaHoy
             completando={completandoId === tarea.id}
             esUltimo={indice === tareas.length - 1}
+            etiquetaRutina={etiquetasRutina?.get(tarea.id)}
             expandible={expandible}
             expandido={expandible && expandidoId === tarea.id}
             key={tarea.id}
@@ -66,7 +69,8 @@ export function TimelineTareasHoy({ completandoId, onCompletar, onRegistrarProgr
   );
 }
 
-function FilaTareaHoy({ completando, esUltimo, expandible, expandido, onPress, onPressNodo, onRegistrarProgreso, tarea }: {
+function FilaTareaHoy({ completando, esUltimo, etiquetaRutina, expandible, expandido, onPress, onPressNodo, onRegistrarProgreso, tarea }: {
+  etiquetaRutina?: string;
   completando: boolean;
   esUltimo: boolean;
   expandible: boolean;
@@ -100,7 +104,7 @@ function FilaTareaHoy({ completando, esUltimo, expandible, expandido, onPress, o
           <MasterGlass style={[s.tarjeta, completando && s.tarjetaOcupada]}>
             <View style={{ flex: 1 }}>
               <Texto numberOfLines={1} style={[s.titulo, tarea.completada && s.tituloCompletado]}>{tarea.titulo}</Texto>
-              <Texto numberOfLines={1} style={s.subtitulo}>{meta}</Texto>
+              <Texto numberOfLines={1} style={s.subtitulo}>{etiquetaRutina ? `${meta} · ${etiquetaRutina}` : meta}</Texto>
             </View>
             <View style={[s.chevron, { backgroundColor: conAlfa(esc.jade.l34, 0.1) }]}>
               {expandible ? (

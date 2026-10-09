@@ -94,3 +94,8 @@ export function rutinasPorOrigen(rutinas: readonly Rutina[]): {
   return { habitos, tareas };
 }
 
+/** "Mañana" o "Mañana +2" para la etiqueta "En {{nombre}}"; null si no está en ninguna rutina. */
+export function nombreRutinasDe(titulos: readonly string[] | undefined): string | null {
+  if (!titulos || titulos.length === 0) return null;
+  return titulos.length === 1 ? titulos[0] : `${titulos[0]} +${titulos.length - 1}`;
+}
