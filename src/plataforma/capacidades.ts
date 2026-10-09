@@ -7,9 +7,12 @@ export type CapacidadesPlataforma = {
   googleSignIn: boolean;
   notificacionesPush: boolean;
   widgets: boolean;
-  // El único beneficio real de Horizon hoy es el sistema de widgets — no hay
-  // ninguna otra función gateada en el código. Mientras eso siga así, Horizon
-  // no debe venderse donde no haya widgets (ver decisión 2026-09-25).
+  // Horizon hoy desbloquea dos beneficios reales: el sistema de widgets
+  // (Android) y la generación de Planes con Aby (ver
+  // _shared/accesoAbyPlanes.ts, sin dependencia de plataforma). Con Planes ya
+  // gateado por Horizon, no hace falta que haya widgets en una plataforma
+  // para venderlo ahí (decisión 2026-10-05 — reemplaza la de 2026-09-25, que
+  // solo contaba con widgets como beneficio).
   horizon: boolean;
 };
 
@@ -19,7 +22,7 @@ export function resolverCapacidades(plataforma: PlataformaSoportada): Capacidade
     googleSignIn: plataforma === 'android',
     notificacionesPush: plataforma === 'android' || plataforma === 'ios',
     widgets: plataforma === 'android',
-    horizon: plataforma === 'android',
+    horizon: plataforma === 'android' || plataforma === 'ios',
   };
 }
 

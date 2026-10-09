@@ -46,8 +46,14 @@ async function horizonActivo(usuarioId: string): Promise<boolean | null> {
   return new Date(entitlement.expires_date).getTime() > Date.now();
 }
 
-export async function verificarAccesoAby(clienteServidor: any, usuarioId: string): Promise<ResultadoAcceso> {
-  const activo = await horizonActivo(usuarioId);
+export async function verificarAccesoAby(clienteServidor: any, usuarioId: string, plataforma?: string): Promise<ResultadoAcceso> {
+  // ⚠️ BYPASS TEMPORAL — Android todavía no tiene un producto Horizon real en
+  // Play Store/RevenueCat (decisión 2026-10-05) — se trata como si siempre
+  // tuviera el entitlement activo, sin llamar a RevenueCat. Sigue sujeto al
+  // tope mensual de abajo (es control de costo, no de pago). iOS (y
+  // cualquier otro valor) usa siempre el chequeo real. Sacar esto en cuanto
+  // el producto de Android exista.
+  const activo = plataforma === 'android' ? true : await horizonActivo(usuarioId);
   if (activo === null) {
     return { codigo: 'revenuecat_no_disponible', mensaje: 'No pudimos confirmar tu suscripción. Intentalo de nuevo en un momento.', ok: false };
   }

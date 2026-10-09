@@ -137,6 +137,14 @@ export function resolverEstadoHorizon(info: CustomerInfo): EstadoHorizon {
 }
 
 export async function obtenerEstadoHorizon(): Promise<EstadoHorizon> {
+  // ⚠️ BYPASS TEMPORAL — Android todavía no tiene un producto Horizon real en
+  // Play Store/RevenueCat (el setup actual es solo para iOS), así que se
+  // reporta siempre activo para no bloquear Planes con Aby ni Widgets
+  // mientras se termina de armar esa tienda (decisión 2026-10-05). El
+  // chequeo real server-side en accesoAbyPlanes.ts tiene el mismo bypass,
+  // scoped a Android — iOS siempre usa el chequeo real. Sacar ambos en
+  // cuanto el producto de Android exista.
+  if (Platform.OS === 'android') return 'activo';
   if (!inicializado) return 'noDisponible';
   try {
     return resolverEstadoHorizon(await Purchases.getCustomerInfo());

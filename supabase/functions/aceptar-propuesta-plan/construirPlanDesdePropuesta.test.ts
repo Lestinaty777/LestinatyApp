@@ -5,12 +5,12 @@ import { construirPlanDesdePropuesta, type DiaPersistible, type RepositorioConst
 const diasDeEjemplo: DiaPersistible[] = [
   {
     bloques: [
-      { items: ['Instalar herramientas', 'Crear el repo'], mensajeContexto: 'Arrancá con calma.', momento: 'manana' },
-      { items: ['Leer la documentación'], mensajeContexto: 'Sin apuro.', momento: 'tarde' },
+      { items: [{ tipo: 'simple', titulo: 'Instalar herramientas' }, { tipo: 'simple', titulo: 'Crear el repo' }], mensajeContexto: 'Arrancá con calma.', momento: 'manana' },
+      { items: [{ tipo: 'simple', titulo: 'Leer la documentación' }], mensajeContexto: 'Sin apuro.', momento: 'tarde' },
     ],
   },
   {
-    bloques: [{ items: ['Primer commit'], mensajeContexto: 'Un paso chico cuenta.', momento: 'manana' }],
+    bloques: [{ items: [{ tipo: 'simple', titulo: 'Primer commit' }], mensajeContexto: 'Un paso chico cuenta.', momento: 'manana' }],
     titulo: 'Día 2',
   },
 ];
@@ -18,6 +18,7 @@ const diasDeEjemplo: DiaPersistible[] = [
 function crearRepositorioFalso(): RepositorioConstruccionPlan & { operaciones: string[] } {
   let contadorDias = 0;
   let contadorBloques = 0;
+  let contadorRamas = 0;
   const operaciones: string[] = [];
   return {
     operaciones,
@@ -27,11 +28,15 @@ function crearRepositorioFalso(): RepositorioConstruccionPlan & { operaciones: s
     crearInstancia: async () => { operaciones.push('crear-instancia'); return { id: 'instancia-1' }; },
     crearItems: async (items) => { operaciones.push(`crear-items:${items.length}`); },
     crearPlan: async () => { operaciones.push('crear-plan'); return { id: 'plan-1' }; },
+    crearRama: async () => { contadorRamas += 1; operaciones.push('crear-rama'); return { id: `rama-${contadorRamas}` }; },
     crearSeccion: async (input) => { operaciones.push(`crear-seccion:${input.estado}`); return { id: `seccion-${input.orden}` }; },
     eliminarDiasDeSeccion: async () => { operaciones.push('eliminar-dias'); },
     eliminarPlan: async () => { operaciones.push('eliminar-plan'); },
+    eliminarSeccionesDeRama: async () => { operaciones.push('eliminar-secciones-rama'); },
+    liberarRama: async () => { operaciones.push('liberar-rama'); },
     marcarPropuestaFallida: async () => { operaciones.push('marcar-fallida'); },
     marcarSeccionDetallada: async () => { operaciones.push('marcar-detallada'); },
+    reclamarRama: async () => { operaciones.push('reclamar-rama'); return { id: 'instancia-reclamada' }; },
   };
 }
 
@@ -39,8 +44,8 @@ describe('construirPlanDesdePropuesta — plan_inicial', () => {
   it('crea el plan, su instancia, todas las secciones (solo la primera con días) y acepta la propuesta', async () => {
     const repositorio = crearRepositorioFalso();
     const resultado = await construirPlanDesdePropuesta(repositorio, {
-      bloquesPorDia: 2,
       descripcion: 'Armar una app en 30 días.',
+      disponibilidad: { manana: 'moderado', noche: 'poco' },
       objetivoOriginal: 'Quiero crear una app en 30 días.',
       primeraSeccionDias: diasDeEjemplo,
       propuestaId: 'propuesta-1',
@@ -72,8 +77,8 @@ describe('construirPlanDesdePropuesta — plan_inicial', () => {
     repositorio.crearSeccion = async () => { throw new Error('boom'); };
 
     await expect(construirPlanDesdePropuesta(repositorio, {
-      bloquesPorDia: 1,
       descripcion: 'd',
+      disponibilidad: { manana: 'poco' },
       objetivoOriginal: 'o',
       primeraSeccionDias: [],
       propuestaId: 'propuesta-2',

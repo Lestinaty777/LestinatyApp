@@ -5,7 +5,7 @@ vi.mock('lucide-react-native', () => ({ Check: 'Check', Lock: 'Lock', Play: 'Pla
 import { construirNodosPlan } from './construirNodosPlan';
 import type { PlanDia } from './planes.tipos';
 
-const item = (hecho: boolean) => ({ bloqueId: 'b1', hecho, id: Math.random().toString(), orden: 0, titulo: 'x' });
+const item = (hecho: boolean) => ({ bloqueId: 'b1', hecho, id: Math.random().toString(), metaValor: null, nota: null, orden: 0, tipo: 'simple' as const, titulo: 'x', unidad: null, valorActual: null });
 const dia = (id: string, orden: number, itemsHechos: boolean[], titulo: string | null = null): PlanDia => ({
   bloques: [{ diaId: id, id: `bloque-${id}`, items: itemsHechos.map(item), mensajeContexto: null, momento: 'manana' }],
   id,

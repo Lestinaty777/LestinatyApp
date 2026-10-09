@@ -13,13 +13,22 @@ import { useEscala } from '../../../diseno/tema/MasterColorContext';
 import type { EscalaMaster } from '../../../diseno/tema/escalaEsmeralda';
 import { capacidades } from '../../../plataforma/capacidades';
 
-const CLAVES_BENEFICIOS = [
+// Dos sets de beneficios — Widgets (Android, hoy el único beneficio con
+// preview visual) y Planes con Aby (todas las plataformas). Sin widgets en
+// la plataforma (ej. iOS), no tiene sentido prometer un preview que no
+// existe ahí — se muestra el set de Planes en su lugar.
+const CLAVES_BENEFICIOS_WIDGETS = [
   { titulo: 'horizon.paywall.beneficios.b1Titulo', descripcion: 'horizon.paywall.beneficios.b1Desc' },
   { titulo: 'horizon.paywall.beneficios.b2Titulo', descripcion: 'horizon.paywall.beneficios.b2Desc' },
   { titulo: 'horizon.paywall.beneficios.b3Titulo', descripcion: 'horizon.paywall.beneficios.b3Desc' },
 ] as const;
+const CLAVES_BENEFICIOS_PLANES = [
+  { titulo: 'horizon.paywall.beneficiosPlanes.b1Titulo', descripcion: 'horizon.paywall.beneficiosPlanes.b1Desc' },
+  { titulo: 'horizon.paywall.beneficiosPlanes.b2Titulo', descripcion: 'horizon.paywall.beneficiosPlanes.b2Desc' },
+  { titulo: 'horizon.paywall.beneficiosPlanes.b3Titulo', descripcion: 'horizon.paywall.beneficiosPlanes.b3Desc' },
+] as const;
 
-export function HorizonPaywallPantalla() {
+export function HorizonPaywallPantalla({ volver }: { volver?: string }) {
   const { t } = useTranslation();
   const esc = useEscala();
   const s = useEstilosS();
@@ -30,6 +39,11 @@ export function HorizonPaywallPantalla() {
   const [restaurando, setRestaurando] = useState(false);
   const [aviso, setAviso] = useState<string | null>(null);
   const paquete = paquetes.data?.estado === 'lista' ? (paquetes.data.paquetes[0] ?? null) : null;
+  const beneficios = capacidades.widgets ? CLAVES_BENEFICIOS_WIDGETS : CLAVES_BENEFICIOS_PLANES;
+  // `volver` es opcional y aditivo — sin él, el destino post-compra sigue
+  // siendo exactamente el de siempre (Widgets de Hábitos), para no cambiar
+  // el único flujo que ya usaba esta pantalla.
+  const destinoPostCompra = volver ?? (capacidades.widgets ? '/habitos/widgets' : '/(principal)/hoy');
 
   async function actualizarAcceso() { await cliente.invalidateQueries({ queryKey: CLAVE_HORIZON }); }
   async function comprar() {
@@ -39,7 +53,7 @@ export function HorizonPaywallPantalla() {
       const resultado = await comprarHorizon(paquete.id);
       if (resultado.estado === 'completada') {
         await actualizarAcceso();
-        router.replace(capacidades.widgets ? '/habitos/widgets' : '/(principal)/hoy');
+        router.replace(destinoPostCompra);
       } else if (resultado.estado === 'pendiente') {
         setAviso(t('horizon.paywall.avisoPendiente'));
       } else if (resultado.estado === 'error') {
@@ -55,7 +69,7 @@ export function HorizonPaywallPantalla() {
       const resultado = await restaurarHorizon();
       await actualizarAcceso();
       if (resultado.estado === 'restaurada' && resultado.horizonActivo) {
-        router.replace(capacidades.widgets ? '/habitos/widgets' : '/(principal)/hoy');
+        router.replace(destinoPostCompra);
       } else if (resultado.estado === 'sin_compras' || resultado.estado === 'restaurada') {
         setAviso(t('horizon.paywall.avisoNoEncontrada'));
       } else {
@@ -66,9 +80,9 @@ export function HorizonPaywallPantalla() {
 
   return <SafeAreaView edges={['top', 'bottom']} style={s.raiz}><ScrollView contentContainerStyle={s.contenido} showsVerticalScrollIndicator={false}>
     <Pressable accessibilityLabel={t('horizon.paywall.volver')} hitSlop={12} onPress={() => router.back()} style={s.volver}><ArrowLeft color={esc.jade.l34} size={23} strokeWidth={2.5} /></Pressable>
-    <View style={s.hero}><MasterIconBg size={74}><Crown color={esc.jade.l42a} fill={esc.jade.l42a} size={34} /></MasterIconBg><Texto style={s.sobrelinea}>{t('horizon.paywall.sobrelinea')}</Texto><Texto style={s.titulo}>{t('horizon.paywall.titulo')}</Texto><Texto style={s.subtitulo}>{t('horizon.paywall.subtitulo')}</Texto></View>
-    <MasterGlass style={s.previa}><View style={s.previaCabecera}><Smartphone color={esc.jade.l42a} size={20} /><Texto style={s.previaTitulo}>{t('horizon.paywall.previaTitulo')}</Texto></View><View style={s.previaWidgets}><View style={s.widgetMini}><Texto style={s.widgetNumero}>2/4</Texto><Texto style={s.widgetTexto}>{t('horizon.paywall.habitosHoy')}</Texto></View><View style={s.widgetMini}><View style={s.anillo}><Check color="#FFFFFF" size={17} strokeWidth={3} /></View><Texto style={s.widgetTexto}>{t('horizon.paywall.registrar')}</Texto></View></View></MasterGlass>
-    <View style={s.beneficios}>{CLAVES_BENEFICIOS.map(({ titulo, descripcion }) => <MasterGlass key={titulo} style={s.beneficio}><View style={s.check}><Check color="#FFFFFF" size={15} strokeWidth={3} /></View><View style={s.beneficioTexto}><Texto style={s.beneficioTitulo}>{t(titulo)}</Texto><Texto style={s.beneficioDescripcion}>{t(descripcion)}</Texto></View></MasterGlass>)}</View>
+    <View style={s.hero}><MasterIconBg size={74}><Crown color={esc.jade.l42a} fill={esc.jade.l42a} size={34} /></MasterIconBg><Texto style={s.sobrelinea}>{t('horizon.paywall.sobrelinea')}</Texto><Texto style={s.titulo}>{t(capacidades.widgets ? 'horizon.paywall.titulo' : 'horizon.paywall.tituloPlanes')}</Texto><Texto style={s.subtitulo}>{t(capacidades.widgets ? 'horizon.paywall.subtitulo' : 'horizon.paywall.subtituloPlanes')}</Texto></View>
+    {capacidades.widgets && <MasterGlass style={s.previa}><View style={s.previaCabecera}><Smartphone color={esc.jade.l42a} size={20} /><Texto style={s.previaTitulo}>{t('horizon.paywall.previaTitulo')}</Texto></View><View style={s.previaWidgets}><View style={s.widgetMini}><Texto style={s.widgetNumero}>2/4</Texto><Texto style={s.widgetTexto}>{t('horizon.paywall.habitosHoy')}</Texto></View><View style={s.widgetMini}><View style={s.anillo}><Check color="#FFFFFF" size={17} strokeWidth={3} /></View><Texto style={s.widgetTexto}>{t('horizon.paywall.registrar')}</Texto></View></View></MasterGlass>}
+    <View style={s.beneficios}>{beneficios.map(({ titulo, descripcion }) => <MasterGlass key={titulo} style={s.beneficio}><View style={s.check}><Check color="#FFFFFF" size={15} strokeWidth={3} /></View><View style={s.beneficioTexto}><Texto style={s.beneficioTitulo}>{t(titulo)}</Texto><Texto style={s.beneficioDescripcion}>{t(descripcion)}</Texto></View></MasterGlass>)}</View>
     {paquetes.isLoading ? <ActivityIndicator color={esc.jade.l42a} style={s.cargando} /> : <Pressable accessibilityLabel={t('horizon.paywall.suscribirseAccesibilidad')} disabled={!paquete || comprando} onPress={() => void comprar()} style={[s.cta, (!paquete || comprando) && s.ctaDeshabilitado]}><Crown color="#FFFFFF" fill="#FFFFFF" size={19} /><Texto style={s.ctaTexto}>{comprando ? t('horizon.paywall.procesando') : (paquete ? t('horizon.paywall.ctaPrecio', { precio: paquete.precioTexto }) : t('horizon.paywall.cta'))}</Texto></Pressable>}
     {!paquetes.isLoading && !paquete && <Texto style={s.nota}>{t('horizon.paywall.noPaqueteNota')}</Texto>}
     {aviso && <Texto style={s.aviso}>{aviso}</Texto>}

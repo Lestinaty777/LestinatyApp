@@ -5,13 +5,13 @@ vi.mock('react-native', () => ({ Platform: { OS: 'android' } }));
 import { resolverCapacidades } from './capacidades';
 
 describe('capacidades por plataforma', () => {
-  it('desactiva widgets, Horizon y Google en iOS', () => {
+  it('desactiva widgets y Google en iOS, pero conserva Horizon (Planes con Aby no depende de widgets)', () => {
     expect(resolverCapacidades('ios')).toEqual({
       comprasNativas: true,
       googleSignIn: false,
       notificacionesPush: true,
       widgets: false,
-      horizon: false,
+      horizon: true,
     });
   });
 

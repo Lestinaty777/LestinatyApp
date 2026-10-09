@@ -23,6 +23,7 @@ import { ListaRecordatoriosTareas } from '../componentes/ListaRecordatoriosTarea
 import { TimelineTareasHoy } from '../componentes/TimelineTareasHoy';
 import { fechaLocalHoy } from '../../../nucleo/dispositivo/fechaLocal';
 import { CrearPlanWizard } from '../../planes/componentes/CrearPlanWizard';
+import { SeccionCompartidos } from '../../planes/componentes/SeccionCompartidos';
 import { TimelinePlanesHoy } from '../../planes/componentes/TimelinePlanesHoy';
 import { obtenerPlanes } from '../../planes/planes.servicio';
 import {
@@ -494,7 +495,11 @@ function TareasPantallaContenido({ modulo, setModulo }: { modulo: 'planes' | 'ta
               <View style={s.encabezadoHoy}><Texto style={s.vacioTexto}>{t('planes.pantalla.recordatoriosProximamente')}</Texto></View>
             )}
             {modulo === 'planes' && vistaPanel === 'compartidos' && (
-              <View style={s.encabezadoHoy}><Texto style={s.vacioTexto}>{t('planes.pantalla.compartidosProximamente')}</Texto></View>
+              consultaPlanes.isLoading ? <Texto style={s.vacioTexto}>{t('tareas.pantalla.cargando')}</Texto> : consultaPlanes.isError ? (
+                <Pressable onPress={() => consultaPlanes.refetch()}><Texto style={s.error}>{t('tareas.pantalla.errorCargar')}</Texto></Pressable>
+              ) : (
+                <SeccionCompartidos planes={planes} />
+              )
             )}
 
             {modulo === 'tareas' && vistaPanel === 'progresion' && (

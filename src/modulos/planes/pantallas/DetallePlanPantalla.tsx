@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ChevronLeft, Check, Plus, Sparkles, X } from 'lucide-react-native';
 import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -13,11 +13,15 @@ import { useEscala, useTonoMaster } from '../../../diseno/tema/MasterColorContex
 import type { EscalaMaster } from '../../../diseno/tema/escalaEsmeralda';
 import { hapticSeguro } from '../../../nucleo/dispositivo/haptics';
 import { TonoDelHabito } from '../../habitos/componentes/TonoDelHabito';
+// Reusado tal cual de Tareas — ya es presentacional (sin hooks propios de
+// Tareas), "cronometro" ahí ya es un contador con unidad fija en minutos
+// (ver WidgetProgresoTarea.tsx), así que cubre los dos tipos sin cambios.
+import { WidgetProgresoTarea } from '../../tareas/componentes/WidgetProgresoTarea';
 import {
-  aceptarPropuestaPlan, detallarSeccionPlan, guardarDetalleSeccionManual, marcarItemPlan,
-  obtenerDetalleSeccion, obtenerInstanciaPropia, obtenerPlanPorId, obtenerSeccionesPlan,
+  aceptarPropuestaPlan, detallarSeccionPlan, generarPlanInicial, guardarDetalleSeccionManual, marcarItemPlan,
+  obtenerDetalleSeccion, obtenerInstanciaPropia, obtenerParticipantesPlan, obtenerPlanPorId, obtenerRamasPlan, obtenerSeccionesPlan,
 } from '../planes.servicio';
-import type { PlanSeccion, PropuestaDia } from '../planes.tipos';
+import type { Disponibilidad, MomentoBloque, PlanRama, PlanSeccion, PropuestaDia, ValorDisponibilidad } from '../planes.tipos';
 
 // Aurelia real (master_pack_color en arboles_paquetes es #FFD000, igual al
 // que ya usa nacarMandala.ts) — Planes usa este paquete COMPLETO (color +
@@ -27,6 +31,7 @@ import type { PlanSeccion, PropuestaDia } from '../planes.tipos';
 const PAQUETE_PLANES = 'aurelia';
 const COLOR_PAQUETE_PLANES = '#FFD000';
 const CLAVE_PLANES_LISTA = ['planes', 'lista'] as const;
+const MOMENTOS_DISPONIBILIDAD: MomentoBloque[] = ['manana', 'tarde', 'noche'];
 
 // Pantalla de detalle de un Plan: lista de secciones + la sección vigente
 // (días/bloques/ítems de la que está 'detallada', o las dos formas de
@@ -52,25 +57,62 @@ function DetallePlanPantallaContenido({ id }: { id: string }) {
   const cliente = useQueryClient();
   const [seccionDetallarId, setSeccionDetallarId] = useState<string | null>(null);
   const [seccionExpandidaId, setSeccionExpandidaId] = useState<string | null>(null);
+  const [notaPendienteItemId, setNotaPendienteItemId] = useState<string | null>(null);
+  const [ramaReclamarId, setRamaReclamarId] = useState<string | null>(null);
 
   const consultaPlan = useQuery({ queryFn: () => obtenerPlanPorId(id), queryKey: ['planes', 'plan', id] });
   const consultaSecciones = useQuery({ queryFn: () => obtenerSeccionesPlan(id), queryKey: ['planes', 'secciones', id] });
   const consultaInstancia = useQuery({ queryFn: () => obtenerInstanciaPropia(id), queryKey: ['planes', 'instancia', id] });
+  const consultaRamas = useQuery({ queryFn: () => obtenerRamasPlan(id), queryKey: ['planes', 'ramas', id] });
 
   const plan = consultaPlan.data;
   const secciones = consultaSecciones.data ?? [];
   const instancia = consultaInstancia.data;
+  const ramas = consultaRamas.data ?? [];
+  const tieneRamas = ramas.length > 0;
+  // Las ramas que ya reclamó el usuario actual — puede ser más de una desde
+  // la migración 75 (ej. alguien llevando solo varios canales de un plan de
+  // marketing). Vacío si todavía no reclamó ninguna, o si el plan no tiene
+  // ramas (sin efecto en ese caso).
+  const misRamasIds = new Set(instancia ? ramas.filter((rama) => rama.instanciaId === instancia.id).map((rama) => rama.id) : []);
+  const ramaReclamar = ramas.find((rama) => rama.id === ramaReclamarId) ?? null;
 
-  // Primera sección sin detallar — la única que se puede "pedir" en este
-  // momento (generación progresiva: nunca varias a la vez).
-  const seccionPendiente = secciones.find((seccion) => seccion.estado === 'solo_titulo');
   // Primera detallada-no-completada, o la última si todas están completas —
-  // la que se expande sola al entrar.
-  const seccionVigente = secciones.find((seccion) => seccion.estado === 'detallada') ?? [...secciones].reverse().find((seccion) => seccion.estado === 'completada');
+  // la que se expande sola al entrar. Solo tiene sentido en el camino sin
+  // ramas (el plan entero es "mi camino"); con ramas, cada TarjetaRama
+  // calcula esto por su cuenta con SUS propias secciones.
+  const seccionVigente = tieneRamas
+    ? undefined
+    : secciones.find((seccion) => seccion.estado === 'detallada') ?? [...secciones].reverse().find((seccion) => seccion.estado === 'completada');
+
+  // La sección justo antes de la que se va a detallar — su nota (si alguien
+  // la dejó al completarla) precarga el contexto que se le pasa a Aby, en
+  // vez de pedirle al usuario que la recuerde y la re-escriba. Se busca
+  // dentro de la MISMA rama que la sección a detallar (cada rama tiene su
+  // propio "orden" independiente, así que no alcanza con el índice global).
+  const seccionDetallarRamaId = secciones.find((seccion) => seccion.id === seccionDetallarId)?.ramaId ?? null;
+  const seccionesRamaDetallar = secciones.filter((seccion) => seccion.ramaId === seccionDetallarRamaId);
+  const indiceSeccionDetallar = seccionesRamaDetallar.findIndex((seccion) => seccion.id === seccionDetallarId);
+  const seccionAnteriorId = indiceSeccionDetallar > 0 ? seccionesRamaDetallar[indiceSeccionDetallar - 1].id : null;
+  const consultaSeccionAnterior = useQuery({
+    enabled: seccionAnteriorId !== null && Boolean(instancia?.id),
+    queryFn: () => obtenerDetalleSeccion(seccionAnteriorId as string, instancia!.id),
+    queryKey: ['planes', 'seccion-detalle', seccionAnteriorId, instancia?.id],
+  });
+  let notaSeccionAnterior: string | null = null;
+  for (const dia of consultaSeccionAnterior.data?.dias ?? []) {
+    for (const bloque of dia.bloques) {
+      const item = bloque.items.find((item) => item.nota);
+      if (item?.nota) { notaSeccionAnterior = item.nota; break; }
+    }
+    if (notaSeccionAnterior) break;
+  }
 
   function invalidarTodo() {
     cliente.invalidateQueries({ queryKey: ['planes', 'secciones', id] });
     cliente.invalidateQueries({ queryKey: ['planes', 'plan', id] });
+    cliente.invalidateQueries({ queryKey: ['planes', 'ramas', id] });
+    cliente.invalidateQueries({ queryKey: ['planes', 'participantes', id] });
     cliente.invalidateQueries({ queryKey: CLAVE_PLANES_LISTA });
   }
 
@@ -96,41 +138,179 @@ function DetallePlanPantallaContenido({ id }: { id: string }) {
         </View>
 
         <View style={s.contenido}>
-          {secciones.map((seccion, indice) => (
-            <TarjetaSeccion
-              esUltima={indice === secciones.length - 1}
-              instanciaId={instancia?.id ?? null}
-              key={seccion.id}
-              onInvalidar={invalidarTodo}
-              onPedirDetalle={() => setSeccionDetallarId(seccion.id)}
-              onToggleExpandida={() => setSeccionExpandidaId((actual) => (actual === seccion.id ? null : seccion.id))}
-              seccion={seccion}
-              seccionNumero={indice + 1}
-              soloExpandible={seccion.id === (seccionVigente?.id ?? seccionExpandidaId)}
-            />
-          ))}
-          {secciones.length === 0 && !consultaSecciones.isLoading && (
+          {tieneRamas ? (
+            ramas.map((rama) => (
+              <TarjetaRama
+                esMia={misRamasIds.has(rama.id)}
+                instanciaId={instancia?.id ?? null}
+                key={rama.id}
+                onInvalidar={invalidarTodo}
+                onPedirDetalle={(seccionId) => setSeccionDetallarId(seccionId)}
+                onReclamar={() => setRamaReclamarId(rama.id)}
+                onSeccionCompletada={(bloqueItemId) => setNotaPendienteItemId(bloqueItemId)}
+                onToggleExpandida={(seccionId) => setSeccionExpandidaId((actual) => (actual === seccionId ? null : seccionId))}
+                puedoReclamar={rama.instanciaId === null && Boolean(instancia)}
+                rama={rama}
+                secciones={secciones.filter((seccion) => seccion.ramaId === rama.id)}
+                seccionExpandidaId={seccionExpandidaId}
+              />
+            ))
+          ) : (
+            secciones.map((seccion, indice) => (
+              <TarjetaSeccion
+                esUltima={indice === secciones.length - 1}
+                instanciaId={instancia?.id ?? null}
+                key={seccion.id}
+                onInvalidar={invalidarTodo}
+                onPedirDetalle={() => setSeccionDetallarId(seccion.id)}
+                onSeccionCompletada={(bloqueItemId) => setNotaPendienteItemId(bloqueItemId)}
+                onToggleExpandida={() => setSeccionExpandidaId((actual) => (actual === seccion.id ? null : seccion.id))}
+                seccion={seccion}
+                seccionNumero={indice + 1}
+                soloExpandible={seccion.id === (seccionVigente?.id ?? seccionExpandidaId)}
+              />
+            ))
+          )}
+          {secciones.length === 0 && !consultaSecciones.isLoading && !tieneRamas && (
             <View style={s.vacio}><Texto style={s.vacioTexto}>{t('planes.detalle.sinSecciones')}</Texto></View>
           )}
         </View>
+
+        {instancia && <SeccionParticipantes esCreador={instancia.esCreador} planId={id} />}
       </ScrollView>
 
       {instancia && (
         <ModalDetallarSeccion
+          notaInicial={notaSeccionAnterior}
           onCerrar={() => setSeccionDetallarId(null)}
           onListo={() => { setSeccionDetallarId(null); invalidarTodo(); }}
           seccionId={seccionDetallarId}
         />
       )}
+      {instancia && (
+        <ModalNotaSeccion
+          bloqueItemId={notaPendienteItemId}
+          instanciaId={instancia.id}
+          onListo={() => { setNotaPendienteItemId(null); invalidarTodo(); }}
+        />
+      )}
+      <ModalReclamarRama
+        disponibilidadInicial={ramas.find((rama) => misRamasIds.has(rama.id))?.disponibilidad ?? null}
+        onCerrar={() => setRamaReclamarId(null)}
+        onListo={() => { setRamaReclamarId(null); invalidarTodo(); }}
+        rama={ramaReclamar}
+      />
     </LinearGradient>
   );
 }
 
-function TarjetaSeccion({ esUltima, instanciaId, onInvalidar, onPedirDetalle, onToggleExpandida, seccion, seccionNumero, soloExpandible }: {
+// Solo MUESTRA progreso — generar/copiar/mandar el código de invitación
+// vive en la sección "Compartidos" (SeccionCompartidos.tsx), no acá, para no
+// duplicar ese flujo en dos lugares.
+function SeccionParticipantes({ esCreador, planId }: { esCreador: boolean; planId: string }) {
+  const esc = useEscala();
+  const { acento } = useTonoMaster();
+  const s = useEstilosS(esc, acento);
+  const { t } = useTranslation();
+  const consulta = useQuery({ queryFn: () => obtenerParticipantesPlan(planId), queryKey: ['planes', 'participantes', planId] });
+  const participantes = consulta.data ?? [];
+  // Desde que una persona puede tener varias ramas, esta lista trae una FILA
+  // POR RAMA, no una por persona — "¿hay alguien más?" hay que preguntarlo
+  // contando personas distintas, no filas.
+  const personasDistintas = new Set(participantes.map((participante) => participante.usuarioId)).size;
+
+  if (personasDistintas <= 1) {
+    if (!esCreador) return null;
+    return (
+      <View style={s.contenido}>
+        <Texto style={s.vacioTexto}>{t('planes.detalle.compartirSugerencia')}</Texto>
+      </View>
+    );
+  }
+
+  return (
+    <View style={[s.contenido, { gap: 8, marginTop: 10 }]}>
+      <Texto style={s.seccionTitulo}>{t('planes.detalle.participantesTitulo')}</Texto>
+      {participantes.map((participante) => (
+        <MasterGlass key={participante.ramaId ?? participante.instanciaId} style={{ alignItems: 'center', borderRadius: 14, flexDirection: 'row', gap: 10, padding: 12 }}>
+          <View style={{ flex: 1 }}>
+            <Texto style={s.diaTitulo}>
+              {participante.nombre}{participante.esCreador ? ` · ${t('planes.detalle.creador')}` : ''}{participante.ramaNombre ? ` · ${participante.ramaNombre}` : ''}
+            </Texto>
+            <MasterProgressbar altura={6} colorBase={acento} porcentaje={participante.total > 0 ? Math.round((participante.completadas / participante.total) * 100) : 0} style={{ marginTop: 6 }} />
+          </View>
+          <Texto style={{ color: acento, fontFamily: 'Montserrat-Bold', fontSize: 12 }}>{participante.completadas}/{participante.total}</Texto>
+        </MasterGlass>
+      ))}
+    </View>
+  );
+}
+
+// Una "rama" es una parte paralela de un plan dividido — cada una tiene su
+// propio arco de secciones, independiente de las demás. Sin reclamar, no
+// tiene secciones todavía (eso se genera recién al reclamarla, con la
+// disponibilidad real de quien la reclama — ver ModalReclamarRama).
+function TarjetaRama({ esMia, instanciaId, onInvalidar, onPedirDetalle, onReclamar, onSeccionCompletada, onToggleExpandida, puedoReclamar, rama, secciones, seccionExpandidaId }: {
+  esMia: boolean;
+  instanciaId: string | null;
+  onInvalidar: () => void;
+  onPedirDetalle: (seccionId: string) => void;
+  onReclamar: () => void;
+  onSeccionCompletada: (bloqueItemId: string) => void;
+  onToggleExpandida: (seccionId: string) => void;
+  puedoReclamar: boolean;
+  rama: PlanRama;
+  seccionExpandidaId: string | null;
+  secciones: PlanSeccion[];
+}) {
+  const esc = useEscala();
+  const { acento } = useTonoMaster();
+  const s = useEstilosS(esc, acento);
+  const { t } = useTranslation();
+  const sinReclamar = rama.instanciaId === null;
+  // Cada rama calcula su propia "vigente" con SUS propias secciones — una
+  // persona con varias ramas tiene un arco independiente en cada una, no un
+  // solo punto de avance global.
+  const seccionVigente = secciones.find((seccion) => seccion.estado === 'detallada') ?? [...secciones].reverse().find((seccion) => seccion.estado === 'completada');
+
+  return (
+    <View style={{ marginBottom: 18 }}>
+      <MasterGlass style={[s.tarjetaSeccion, { marginBottom: 10 }]}>
+        <Texto numberOfLines={2} style={s.seccionTitulo}>{rama.nombre}</Texto>
+        {rama.resumen && <Texto numberOfLines={2} style={s.seccionResumen}>{rama.resumen}</Texto>}
+        {sinReclamar && !puedoReclamar && <Texto style={[s.seccionResumen, { color: acento, marginTop: 6 }]}>{t('planes.detalle.ramaSinReclamar')}</Texto>}
+        {!sinReclamar && !esMia && <Texto style={[s.seccionResumen, { color: acento, marginTop: 6 }]}>{t('planes.detalle.ramaReclamada')}</Texto>}
+        {sinReclamar && puedoReclamar && (
+          <MasterButton color={acento} onPress={onReclamar} style={{ marginTop: 10 }}>
+            {t('planes.detalle.ramaReclamar')}
+          </MasterButton>
+        )}
+      </MasterGlass>
+
+      {esMia && secciones.map((seccion, indice) => (
+        <TarjetaSeccion
+          esUltima={indice === secciones.length - 1}
+          instanciaId={instanciaId}
+          key={seccion.id}
+          onInvalidar={onInvalidar}
+          onPedirDetalle={() => onPedirDetalle(seccion.id)}
+          onSeccionCompletada={onSeccionCompletada}
+          onToggleExpandida={() => onToggleExpandida(seccion.id)}
+          seccion={seccion}
+          seccionNumero={indice + 1}
+          soloExpandible={seccion.id === (seccionVigente?.id ?? seccionExpandidaId)}
+        />
+      ))}
+    </View>
+  );
+}
+
+function TarjetaSeccion({ esUltima, instanciaId, onInvalidar, onPedirDetalle, onSeccionCompletada, onToggleExpandida, seccion, seccionNumero, soloExpandible }: {
   esUltima: boolean;
   instanciaId: string | null;
   onInvalidar: () => void;
   onPedirDetalle: () => void;
+  onSeccionCompletada: (bloqueItemId: string) => void;
   onToggleExpandida: () => void;
   seccion: PlanSeccion;
   seccionNumero: number;
@@ -141,6 +321,7 @@ function TarjetaSeccion({ esUltima, instanciaId, onInvalidar, onPedirDetalle, on
   const s = useEstilosS(esc, acento);
   const { t } = useTranslation();
   const expandida = seccion.estado !== 'solo_titulo' && soloExpandible;
+  const [itemExpandidoId, setItemExpandidoId] = useState<string | null>(null);
 
   const consultaDetalle = useQuery({
     enabled: expandida && Boolean(instanciaId),
@@ -150,10 +331,23 @@ function TarjetaSeccion({ esUltima, instanciaId, onInvalidar, onPedirDetalle, on
 
   const marcar = useMutation({
     mutationFn: ({ bloqueItemId, hecho }: { bloqueItemId: string; hecho: boolean }) => marcarItemPlan(instanciaId as string, bloqueItemId, hecho),
-    onSuccess: () => {
+    onSuccess: (resultado, variables) => {
       hapticSeguro('confirmacion');
       consultaDetalle.refetch();
       onInvalidar();
+      if (resultado.seccionCompletada) onSeccionCompletada(variables.bloqueItemId);
+    },
+  });
+
+  // Mismo mecanismo que registrarProgresoTarea (meta vs. valor) — acá el
+  // servidor decide "hecho" comparando el valor contra la meta real del
+  // ítem, nunca el cliente.
+  const registrarValor = useMutation({
+    mutationFn: ({ bloqueItemId, valor }: { bloqueItemId: string; valor: number }) => marcarItemPlan(instanciaId as string, bloqueItemId, undefined, valor),
+    onSuccess: (resultado, variables) => {
+      consultaDetalle.refetch();
+      onInvalidar();
+      if (resultado.seccionCompletada) { setItemExpandidoId(null); onSeccionCompletada(variables.bloqueItemId); }
     },
   });
 
@@ -188,7 +382,7 @@ function TarjetaSeccion({ esUltima, instanciaId, onInvalidar, onPedirDetalle, on
                   <View key={bloque.id} style={{ marginTop: 8 }}>
                     <Texto style={s.momentoTexto}>{t(`planes.detalle.momento.${bloque.momento}`)}</Texto>
                     {bloque.mensajeContexto && <Texto style={s.mensajeContexto}>{bloque.mensajeContexto}</Texto>}
-                    {bloque.items.map((item) => (
+                    {bloque.items.map((item) => item.tipo === 'simple' ? (
                       <Pressable
                         disabled={marcar.isPending}
                         key={item.id}
@@ -200,6 +394,31 @@ function TarjetaSeccion({ esUltima, instanciaId, onInvalidar, onPedirDetalle, on
                         </View>
                         <Texto style={[s.itemTexto, item.hecho && s.itemTextoHecho]}>{item.titulo}</Texto>
                       </Pressable>
+                    ) : (
+                      <View key={item.id}>
+                        <Pressable onPress={() => setItemExpandidoId((actual) => (actual === item.id ? null : item.id))} style={s.filaItem}>
+                          <View style={[s.checkboxItem, item.hecho && { backgroundColor: acento }]}>
+                            {item.hecho && <Check color="#FFFFFF" size={12} strokeWidth={3} />}
+                          </View>
+                          <Texto style={[s.itemTexto, item.hecho && s.itemTextoHecho]}>
+                            {item.titulo} ({item.valorActual ?? 0}/{item.metaValor}{item.unidad ? ` ${item.unidad}` : ''})
+                          </Texto>
+                        </Pressable>
+                        {itemExpandidoId === item.id && (
+                          <View style={{ marginTop: 6, paddingLeft: 28 }}>
+                            <WidgetProgresoTarea
+                              color={acento}
+                              guardando={registrarValor.isPending}
+                              meta={item.metaValor ?? 1}
+                              onGuardar={(valor) => registrarValor.mutate({ bloqueItemId: item.id, valor })}
+                              tipo={item.tipo}
+                              titulo={item.titulo}
+                              unidad={item.unidad}
+                              valorInicial={item.valorActual ?? 0}
+                            />
+                          </View>
+                        )}
+                      </View>
                     ))}
                   </View>
                 ))}
@@ -212,7 +431,132 @@ function TarjetaSeccion({ esUltima, instanciaId, onInvalidar, onPedirDetalle, on
   );
 }
 
-function ModalDetallarSeccion({ onCerrar, onListo, seccionId }: { onCerrar: () => void; onListo: () => void; seccionId: string | null }) {
+// Reclamar una rama le asigna a quien la reclama su propia instancia (si no
+// tenía una en este plan, se crea del lado del servidor) + le arma su primer
+// tramo de secciones/días con SU disponibilidad real — nunca la de quien
+// armó el plan. Mismo flujo propuesta→revisión→aceptar que ya usa
+// ModalDetallarSeccion, pero pidiendo disponibilidad en vez de contexto (el
+// objetivo original del plan ya lo sabe el servidor).
+function ModalReclamarRama({ disponibilidadInicial, onCerrar, onListo, rama }: { disponibilidadInicial: Disponibilidad | null; onCerrar: () => void; onListo: () => void; rama: PlanRama | null }) {
+  const { t } = useTranslation();
+  const { acento } = useTonoMaster();
+  const [disponibilidad, setDisponibilidad] = useState<Disponibilidad>({});
+  const [propuestaId, setPropuestaId] = useState<string | null>(null);
+  const [propuesta, setPropuesta] = useState<{ primeraSeccionDias: readonly PropuestaDia[]; secciones: readonly { resumen: string; titulo: string }[] } | null>(null);
+
+  // Si ya reclamó otra rama de este mismo plan, precarga SU disponibilidad
+  // en vez de arrancar en blanco — es la misma persona, lo más probable es
+  // que tenga el mismo horario libre; queda editable por si no.
+  useEffect(() => {
+    if (rama) setDisponibilidad(disponibilidadInicial ?? {});
+  }, [rama, disponibilidadInicial]);
+
+  function reiniciar() {
+    setDisponibilidad({});
+    setPropuestaId(null);
+    setPropuesta(null);
+  }
+
+  const generar = useMutation({
+    mutationFn: () => generarPlanInicial({ disponibilidad, ramaId: rama?.id as string }),
+    onSuccess: (resultado) => {
+      setPropuestaId(resultado.propuestaId);
+      setPropuesta({ primeraSeccionDias: resultado.propuesta.primeraSeccionDias ?? [], secciones: resultado.propuesta.secciones ?? [] });
+    },
+  });
+
+  const aceptar = useMutation({
+    mutationFn: () => aceptarPropuestaPlan(propuestaId as string),
+    onSuccess: () => { hapticSeguro('confirmacion'); reiniciar(); onListo(); },
+  });
+
+  return (
+    <Modal animationType="fade" onRequestClose={() => { reiniciar(); onCerrar(); }} transparent visible={rama !== null}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={s2.fondo}>
+        <Pressable onPress={() => { reiniciar(); onCerrar(); }} style={StyleSheet.absoluteFill} />
+        <MasterGlass style={s2.tarjeta}>
+          <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+            {!propuesta && (
+              <View style={{ gap: 12 }}>
+                <Texto style={s2.titulo}>{t('planes.detalle.reclamarTitulo', { nombre: rama?.nombre ?? '' })}</Texto>
+                <Texto style={s2.subtitulo}>{t('planes.detalle.reclamarDescripcion')}</Texto>
+                {MOMENTOS_DISPONIBILIDAD.map((momento) => (
+                  <FilaMomentoSimple
+                    key={momento}
+                    momento={momento}
+                    onCambiar={(valor) => setDisponibilidad((actual) => {
+                      if (valor === undefined) {
+                        const copia = { ...actual };
+                        delete copia[momento];
+                        return copia;
+                      }
+                      return { ...actual, [momento]: valor };
+                    })}
+                    valor={disponibilidad[momento]}
+                  />
+                ))}
+                {generar.isError && <Texto style={s2.error}>{generar.error instanceof Error ? generar.error.message : t('planes.crear.errorGenerar')}</Texto>}
+                <MasterButton color={acento} disabled={Object.keys(disponibilidad).length === 0 || generar.isPending} onPress={() => generar.mutate()}>
+                  {generar.isPending ? t('planes.crear.generando') : t('planes.crear.generar')}
+                </MasterButton>
+              </View>
+            )}
+
+            {propuesta && (
+              <View style={{ gap: 10 }}>
+                <Texto style={s2.titulo}>{t('planes.detalle.revisionTitulo')}</Texto>
+                {propuesta.secciones.map((seccion, indice) => (
+                  <Texto key={seccion.titulo} style={s2.diaPreviewTitulo}>{indice + 1}. {seccion.titulo}</Texto>
+                ))}
+                {propuesta.primeraSeccionDias.map((dia, indice) => (
+                  <View key={indice} style={{ marginBottom: 6 }}>
+                    <Texto style={s2.diaPreviewTitulo}>{dia.titulo ?? t('planes.detalle.diaNumero', { numero: indice + 1 })}</Texto>
+                    {dia.bloques.flatMap((bloque) => bloque.items).map((item, indiceItem) => (
+                      <Texto key={indiceItem} style={s2.itemPreview}>
+                        • {item.titulo}{item.tipo !== 'simple' && item.metaValor ? ` (${item.metaValor}${item.unidad ? ` ${item.unidad}` : ''})` : ''}
+                      </Texto>
+                    ))}
+                  </View>
+                ))}
+                {aceptar.isError && <Texto style={s2.error}>{t('planes.crear.errorGenerar')}</Texto>}
+                <MasterButton color={acento} disabled={aceptar.isPending} onPress={() => aceptar.mutate()}>
+                  {aceptar.isPending ? t('tareas.pantalla.creando') : t('planes.crear.confirmar')}
+                </MasterButton>
+              </View>
+            )}
+          </ScrollView>
+        </MasterGlass>
+      </KeyboardAvoidingView>
+    </Modal>
+  );
+}
+
+function FilaMomentoSimple({ momento, onCambiar, valor }: { momento: MomentoBloque; onCambiar: (valor: ValorDisponibilidad | undefined) => void; valor: ValorDisponibilidad | undefined }) {
+  const { acento } = useTonoMaster();
+  const { t } = useTranslation();
+  const activo = valor !== undefined;
+  return (
+    <Rebote onPress={() => onCambiar(activo ? undefined : 'moderado')}>
+      <MasterGlass style={[s2.opcionGlass, activo && { backgroundColor: conAlfa(acento, 0.12) }]}>
+        <View style={s2.opcionFila}>
+          <Texto style={[s2.opcionTitulo, { flex: 1 }]}>{t(`planes.detalle.momento.${momento}`)}</Texto>
+          {activo && (
+            <View style={{ flexDirection: 'row', gap: 10 }}>
+              <Pressable onPress={() => onCambiar('poco')}>
+                <Texto style={{ color: valor === 'poco' ? acento : '#9A93A8', fontFamily: 'Montserrat-Bold', fontSize: 12 }}>{t('planes.crear.nivel.poco')}</Texto>
+              </Pressable>
+              <Pressable onPress={() => onCambiar('moderado')}>
+                <Texto style={{ color: valor === 'moderado' ? acento : '#9A93A8', fontFamily: 'Montserrat-Bold', fontSize: 12 }}>{t('planes.crear.nivel.moderado')}</Texto>
+              </Pressable>
+            </View>
+          )}
+        </View>
+      </MasterGlass>
+    </Rebote>
+  );
+}
+
+function ModalDetallarSeccion({ notaInicial, onCerrar, onListo, seccionId }: { notaInicial: string | null; onCerrar: () => void; onListo: () => void; seccionId: string | null }) {
   const { t } = useTranslation();
   const { acento } = useTonoMaster();
   const [modo, setModo] = useState<'aby' | 'elegir' | 'manual' | null>(null);
@@ -220,6 +564,13 @@ function ModalDetallarSeccion({ onCerrar, onListo, seccionId }: { onCerrar: () =
   const [propuestaId, setPropuestaId] = useState<string | null>(null);
   const [propuestaDias, setPropuestaDias] = useState<PropuestaDia[] | null>(null);
   const [itemsManual, setItemsManual] = useState<string[]>(['', '']);
+
+  // Precarga el contexto con la nota que se dejó al completar la sección
+  // anterior — solo si el usuario todavía no escribió nada, para no pisar lo
+  // que ya haya tipeado.
+  useEffect(() => {
+    if (seccionId && notaInicial && !contexto) setContexto(notaInicial);
+  }, [seccionId, notaInicial]);
 
   function reiniciar() {
     setModo(null);
@@ -240,7 +591,7 @@ function ModalDetallarSeccion({ onCerrar, onListo, seccionId }: { onCerrar: () =
   });
 
   const guardarManual = useMutation({
-    mutationFn: () => guardarDetalleSeccionManual(seccionId as string, [{ bloques: [{ items: itemsManual.filter((item) => item.trim()), mensajeContexto: '', momento: 'manana' }] }]),
+    mutationFn: () => guardarDetalleSeccionManual(seccionId as string, [{ bloques: [{ items: itemsManual.filter((item) => item.trim()).map((titulo) => ({ tipo: 'simple' as const, titulo })), mensajeContexto: '', momento: 'manana' }] }]),
     onSuccess: () => { hapticSeguro('confirmacion'); reiniciar(); onListo(); },
   });
 
@@ -280,6 +631,7 @@ function ModalDetallarSeccion({ onCerrar, onListo, seccionId }: { onCerrar: () =
               <View style={{ gap: 12 }}>
                 <Texto style={s2.titulo}>{t('planes.detalle.contextoTitulo')}</Texto>
                 <Texto style={s2.subtitulo}>{t('planes.detalle.contextoDescripcion')}</Texto>
+                {notaInicial && <Texto style={s2.notaAyuda}>{t('planes.detalle.contextoPrecargado')}</Texto>}
                 <TextInput multiline onChangeText={setContexto} placeholder={t('planes.detalle.contextoPlaceholder')} placeholderTextColor="#9A93A8" style={s2.input} value={contexto} />
                 {generar.isError && <Texto style={s2.error}>{t('planes.crear.errorGenerar')}</Texto>}
                 <MasterButton color={acento} disabled={!contexto.trim() || generar.isPending} onPress={() => generar.mutate()}>
@@ -295,7 +647,9 @@ function ModalDetallarSeccion({ onCerrar, onListo, seccionId }: { onCerrar: () =
                   <View key={indice} style={{ marginBottom: 6 }}>
                     <Texto style={s2.diaPreviewTitulo}>{dia.titulo ?? t('planes.detalle.diaNumero', { numero: indice + 1 })}</Texto>
                     {dia.bloques.flatMap((bloque) => bloque.items).map((item, indiceItem) => (
-                      <Texto key={indiceItem} style={s2.itemPreview}>• {item}</Texto>
+                      <Texto key={indiceItem} style={s2.itemPreview}>
+                        • {item.titulo}{item.tipo !== 'simple' && item.metaValor ? ` (${item.metaValor}${item.unidad ? ` ${item.unidad}` : ''})` : ''}
+                      </Texto>
                     ))}
                   </View>
                 ))}
@@ -343,6 +697,44 @@ function ModalDetallarSeccion({ onCerrar, onListo, seccionId }: { onCerrar: () =
   );
 }
 
+// Aparece justo al completar una sección (sea armada con Aby o a mano) — la
+// nota, si se deja una, se adjunta al ítem que completó la sección y
+// precarga el contexto al detallar la siguiente (ver ModalDetallarSeccion).
+// Totalmente opcional: "Omitir" marca el ítem sin nota.
+function ModalNotaSeccion({ bloqueItemId, instanciaId, onListo }: { bloqueItemId: string | null; instanciaId: string; onListo: () => void }) {
+  const { t } = useTranslation();
+  const { acento } = useTonoMaster();
+  const [nota, setNota] = useState('');
+
+  function cerrar() {
+    setNota('');
+    onListo();
+  }
+
+  const guardar = useMutation({
+    mutationFn: () => marcarItemPlan(instanciaId, bloqueItemId as string, true, undefined, nota.trim() || undefined),
+    onSuccess: cerrar,
+  });
+
+  return (
+    <Modal animationType="fade" onRequestClose={cerrar} transparent visible={bloqueItemId !== null}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={s2.fondo}>
+        <Pressable onPress={cerrar} style={StyleSheet.absoluteFill} />
+        <MasterGlass style={s2.tarjeta}>
+          <View style={{ gap: 10 }}>
+            <Texto style={s2.titulo}>{t('planes.detalle.notaTitulo')}</Texto>
+            <Texto style={s2.subtitulo}>{t('planes.detalle.notaDescripcion')}</Texto>
+            <TextInput multiline onChangeText={setNota} placeholder={t('planes.detalle.notaPlaceholder')} placeholderTextColor="#9A93A8" style={s2.input} value={nota} />
+            <MasterButton color={acento} disabled={guardar.isPending} onPress={() => guardar.mutate()}>
+              {guardar.isPending ? t('tareas.pantalla.creando') : (nota.trim() ? t('planes.detalle.notaGuardar') : t('planes.detalle.notaOmitir'))}
+            </MasterButton>
+          </View>
+        </MasterGlass>
+      </KeyboardAvoidingView>
+    </Modal>
+  );
+}
+
 const s2 = StyleSheet.create({
   fondo: { alignItems: 'center', flex: 1, justifyContent: 'center', padding: 24 },
   tarjeta: { borderRadius: 22, maxHeight: '80%', padding: 18, width: '100%' },
@@ -353,6 +745,7 @@ const s2 = StyleSheet.create({
   opcionFila: { alignItems: 'center', flexDirection: 'row', gap: 10 },
   opcionTitulo: { color: '#1A1335', fontFamily: 'MontserratAlternates-Bold', fontSize: 14 },
   error: { color: '#DC2626', fontFamily: 'Montserrat-Medium', fontSize: 12 },
+  notaAyuda: { color: '#9A93A8', fontFamily: 'Montserrat-Medium', fontSize: 11, marginTop: -4 },
   diaPreviewTitulo: { color: '#1A1335', fontFamily: 'MontserratAlternates-Bold', fontSize: 13, marginBottom: 2 },
   itemPreview: { color: '#7B7494', fontFamily: 'Montserrat-Medium', fontSize: 12, marginLeft: 4 },
   filaItemManual: { alignItems: 'center', flexDirection: 'row', gap: 6 },
