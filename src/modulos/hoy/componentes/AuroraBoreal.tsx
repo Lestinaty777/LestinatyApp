@@ -99,10 +99,10 @@ export function AuroraBoreal({ tema = 'morado' }: Props) {
             }
           : tema === 'azul'
             ? {
-                // Azul Celesthia (#01B0CF): fondo de Metas.
-                l1: ['rgba(1, 176, 207, 0.8)', 'rgba(125, 220, 240, 0.2)'],
-                l2: ['rgba(56, 198, 224, 0.7)', 'rgba(186, 236, 247, 0.1)'],
-                l3: ['rgba(2, 132, 170, 0.6)', 'rgba(1, 176, 207, 0)'],
+                // Azul Moon (#2F5FE0): fondo de Metas.
+                l1: ['rgba(47, 95, 224, 0.8)', 'rgba(147, 174, 245, 0.2)'],
+                l2: ['rgba(96, 135, 235, 0.7)', 'rgba(196, 211, 250, 0.1)'],
+                l3: ['rgba(30, 64, 175, 0.6)', 'rgba(47, 95, 224, 0)'],
               }
           : {
         l1: ['rgba(124, 58, 237, 0.8)', 'rgba(192, 132, 252, 0.2)'],

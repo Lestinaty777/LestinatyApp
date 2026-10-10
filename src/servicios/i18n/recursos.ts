@@ -68,13 +68,12 @@ export const recursosI18n = {
           titulo: 'Routines', frase: 'Do it in order. Keep it simple.', volverAlInicio: 'Back to home', comprarGemas: 'Buy gems', notificaciones: 'Notifications',
           cargando: 'Loading…', errorCargar: 'Could not load your routines. Tap to retry.',
           rutinasHoy: 'Routines today', vistaHoy: 'Today', completadasHoy: '{{completed}} of {{total}} completed',
-          vacioTitulo: 'No routines yet', vacioDescripcion: 'Build one step by step, or start from a template.',
+          vacioTitulo: 'No routines yet', vacioDescripcion: 'A few steps, done in order.',
           vacio: {
-            titulo: 'Build your first routine', pistaOrden: 'Choose your steps, in order.', pistaSesion: 'Do it one step at a time, with a timer when you need it.',
-            pistaEsencial: 'Short on time? Just do the essentials.', usarPlantilla: 'Use a template', verMisRutinas: 'See my routines',
+            titulo: 'Build your first routine', usarPlantilla: 'Use a template', verMisRutinas: 'See my routines',
           },
           vacioFranjaTitulo: 'Nothing in this part of the day', vacioFranjaDescripcion: 'Pick another one, or see everything.', verTodo: 'See all',
-          nadaHoyTitulo: 'No routines for today', nadaHoyDescripcion: 'Your routines will show up on the days you scheduled them.',
+          nadaHoyTitulo: 'No routines for today', nadaHoyDescripcion: 'None is scheduled for today.',
           vistaProgresion: 'My routines', vistaRecordatorios: 'Reminders', vistaPlantillas: 'Templates',
           access: {
             progresion: { label: 'My routines', description: 'All your routines' },
@@ -191,10 +190,9 @@ export const recursosI18n = {
             mis: { label: 'My goals', description: 'All of them' }, creacion: { label: 'Create', description: 'A new goal' },
             logradas: { label: 'Achieved', description: 'What you did' }, areas: { label: 'Areas', description: 'Yours too' },
           },
-          vacioTitulo: 'You have no goals yet', vacioDescripcion: 'A goal gathers the habits, tasks and routines that lead you to a result.',
+          vacioTitulo: 'You have no goals yet', vacioDescripcion: 'The result you want to reach.',
           vacio: {
             titulo: 'Create your first goal', crear: 'Create goal', verAreas: 'See the areas',
-            pistaResultado: 'One goal for each result you want.', pistaContenido: 'Put your habits, tasks, routines and plans inside it.', pistaPlazo: 'With a deadline in days, if it helps you.',
           },
           vacioArea: 'There are no goals in this area.', vacioVista: 'Nothing here yet.', vacioLogradas: 'You have not marked any goal as achieved yet.', verTodas: 'See all',
         },
@@ -388,10 +386,9 @@ export const recursosI18n = {
           },
           todayTasks: 'Tasks today', viewToday: 'Today',
           todayCompleted: '{{completed}} of {{total}} completed',
-          todayEmptyTitle: 'Nothing due today', todayEmptyDescription: 'Enjoy the clear day, or create a new task.',
+          todayEmptyTitle: 'Nothing due today', todayEmptyDescription: 'You have the day clear.',
           vacio: {
-            titulo: 'Create your first task', texto: 'A task is something concrete you want to get done.', crear: 'Create task', rapida: 'Quick task', verMisTareas: 'See my tasks',
-            pistaTipos: 'Simple, or with steps as a checklist.', pistaMedir: 'With a counter or a timer if you want to measure it.', pistaCuando: 'Once, or on the days you choose.',
+            titulo: 'Create your first task', texto: 'Something concrete to get done.', crear: 'Create task', rapida: 'Quick task', verMisTareas: 'See my tasks',
           },
           streakDays: '{{count}} day streak', oneTime: '1 time', repeats: 'Repeats', quickComplete: 'Mark complete',
           access: {
@@ -1363,13 +1360,12 @@ export const recursosI18n = {
           titulo: 'Rutinas', frase: 'Hacelo en orden. Hacelo simple.', volverAlInicio: 'Volver a Inicio', comprarGemas: 'Comprar gemas', notificaciones: 'Notificaciones',
           cargando: 'Cargando…', errorCargar: 'No pudimos cargar tus rutinas. Tocá para reintentar.',
           rutinasHoy: 'Rutinas hoy', vistaHoy: 'Hoy', completadasHoy: '{{completed}} de {{total}} completadas',
-          vacioTitulo: 'Todavía no hay rutinas', vacioDescripcion: 'Armá una paso a paso, o empezá desde una plantilla.',
+          vacioTitulo: 'Todavía no hay rutinas', vacioDescripcion: 'Unos pocos pasos, hechos en orden.',
           vacio: {
-            titulo: 'Armá tu primera rutina', pistaOrden: 'Elegí tus pasos, en orden.', pistaSesion: 'Hacela un paso a la vez, con cronómetro cuando haga falta.',
-            pistaEsencial: '¿Poco tiempo? Hacé solo lo esencial.', usarPlantilla: 'Usar una plantilla', verMisRutinas: 'Ver mis rutinas',
+            titulo: 'Armá tu primera rutina', usarPlantilla: 'Usar una plantilla', verMisRutinas: 'Ver mis rutinas',
           },
           vacioFranjaTitulo: 'Nada en este momento del día', vacioFranjaDescripcion: 'Elegí otro, o mirá todo.', verTodo: 'Ver todo',
-          nadaHoyTitulo: 'No hay rutinas para hoy', nadaHoyDescripcion: 'Tus rutinas van a aparecer los días que las programaste.',
+          nadaHoyTitulo: 'No hay rutinas para hoy', nadaHoyDescripcion: 'Ninguna está programada para hoy.',
           vistaProgresion: 'Mis rutinas', vistaRecordatorios: 'Recordatorios', vistaPlantillas: 'Plantillas',
           access: {
             progresion: { label: 'Mis rutinas', description: 'Todas tus rutinas' },
@@ -1486,10 +1482,9 @@ export const recursosI18n = {
             mis: { label: 'Mis metas', description: 'Todas juntas' }, creacion: { label: 'Crear', description: 'Una meta nueva' },
             logradas: { label: 'Logradas', description: 'Lo que cumpliste' }, areas: { label: 'Áreas', description: 'También tuyas' },
           },
-          vacioTitulo: 'Aún no tienes metas', vacioDescripcion: 'Una meta reúne los hábitos, tareas y rutinas que te llevan a un resultado.',
+          vacioTitulo: 'Aún no tienes metas', vacioDescripcion: 'El resultado al que quieres llegar.',
           vacio: {
             titulo: 'Crea tu primera meta', crear: 'Crear meta', verAreas: 'Ver las áreas',
-            pistaResultado: 'Una meta por cada resultado que quieres.', pistaContenido: 'Mete dentro tus hábitos, tareas, rutinas y planes.', pistaPlazo: 'Con un plazo en días, si te ayuda.',
           },
           vacioArea: 'No hay metas en esta área.', vacioVista: 'Todavía no hay nada aquí.', vacioLogradas: 'Todavía no marcaste ninguna meta como lograda.', verTodas: 'Ver todas',
         },
@@ -1680,10 +1675,9 @@ export const recursosI18n = {
           },
           todayTasks: 'Tareas hoy', viewToday: 'Hoy',
           todayCompleted: '{{completed}} de {{total}} completadas',
-          todayEmptyTitle: 'Nada pendiente hoy', todayEmptyDescription: 'Disfrutá el día libre, o creá una nueva tarea.',
+          todayEmptyTitle: 'Nada pendiente hoy', todayEmptyDescription: 'Tenés el día libre.',
           vacio: {
-            titulo: 'Creá tu primera tarea', texto: 'Una tarea es algo concreto que querés dejar hecho.', crear: 'Crear tarea', rapida: 'Tarea rápida', verMisTareas: 'Ver mis tareas',
-            pistaTipos: 'Simple, o con pasos en forma de lista.', pistaMedir: 'Con contador o cronómetro si querés medirla.', pistaCuando: 'Una sola vez, o los días que elijas.',
+            titulo: 'Creá tu primera tarea', texto: 'Algo concreto para dejar hecho.', crear: 'Crear tarea', rapida: 'Tarea rápida', verMisTareas: 'Ver mis tareas',
           },
           streakDays: '{{count}} días seguidos', oneTime: '1 vez', repeats: 'Se repite', quickComplete: 'Marcar como hecho',
           access: {

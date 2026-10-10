@@ -5,8 +5,8 @@ import { useTranslation } from 'react-i18next';
 import { EstadoVacioModulo } from '../../../diseno';
 
 // Estados vacíos de la vista "Hoy" de Rutinas. Dos casos distintos:
-//  · 'sin_rutinas': la persona aún no creó ninguna → se explica qué es una
-//    rutina en tres ideas y se ofrecen las dos formas de empezar.
+//  · 'sin_rutinas': la persona aún no creó ninguna → una frase y las dos
+//    formas de empezar (crear o usar una plantilla).
 //  · 'nada_hoy': tiene rutinas, pero hoy no toca ninguna → se le recuerda por
 //    qué está vacío y se la lleva a verlas.
 export function VacioRutinas({ color, ilustracion, onCrear, onVerMisRutinas, onVerPlantillas, tipo }: {
@@ -24,6 +24,7 @@ export function VacioRutinas({ color, ilustracion, onCrear, onVerMisRutinas, onV
     return (
       <EstadoVacioModulo
         accion={{ Icono: ListChecks, onPress: onVerMisRutinas, texto: t('rutinas.pantalla.vacio.verMisRutinas') }}
+        accionSecundaria={{ Icono: Plus, onPress: onCrear, texto: t('rutinas.pantalla.access.creacion.label') }}
         color={color}
         ilustracion={ilustracion}
         texto={t('rutinas.pantalla.nadaHoyDescripcion')}
@@ -37,11 +38,6 @@ export function VacioRutinas({ color, ilustracion, onCrear, onVerMisRutinas, onV
       accionSecundaria={{ Icono: LayoutTemplate, onPress: onVerPlantillas, texto: t('rutinas.pantalla.vacio.usarPlantilla') }}
       color={color}
       ilustracion={ilustracion}
-      pistas={[
-        { icono: 'tareas', texto: t('rutinas.pantalla.vacio.pistaOrden') },
-        { icono: 'reloj', texto: t('rutinas.pantalla.vacio.pistaSesion') },
-        { icono: 'rayo', texto: t('rutinas.pantalla.vacio.pistaEsencial') },
-      ]}
       texto={t('rutinas.pantalla.vacioDescripcion')}
       titulo={t('rutinas.pantalla.vacio.titulo')}
     />

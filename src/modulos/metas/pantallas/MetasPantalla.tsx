@@ -200,11 +200,6 @@ function MetasPantallaContenido() {
           accionSecundaria={{ Icono: Shapes, onPress: () => setVistaPanel('areas'), texto: t('metas.pantalla.vacio.verAreas') }}
           color={acento}
           ilustracion={assets?.semilla}
-          pistas={[
-            { icono: 'metas', texto: t('metas.pantalla.vacio.pistaResultado') },
-            { icono: 'progreso', texto: t('metas.pantalla.vacio.pistaContenido') },
-            { icono: 'calendario', texto: t('metas.pantalla.vacio.pistaPlazo') },
-          ]}
           texto={t('metas.pantalla.vacioDescripcion')}
           titulo={t('metas.pantalla.vacio.titulo')}
         />
@@ -216,6 +211,7 @@ function MetasPantallaContenido() {
         accion={filtroArea !== null
           ? { Icono: LayoutList, onPress: () => setFiltroArea(null), texto: t('metas.pantalla.verTodas') }
           : { Icono: Plus, onPress: abrirCreacion, texto: t('metas.pantalla.vacio.crear') }}
+        accionSecundaria={filtroArea !== null ? { Icono: Plus, onPress: abrirCreacion, texto: t('metas.pantalla.vacio.crear') } : undefined}
         color={acento}
         ilustracion={assets?.arbusto}
         texto={t(vistaPanel === 'logradas' ? 'metas.pantalla.vacioLogradas' : filtroArea !== null ? 'metas.pantalla.vacioArea' : 'metas.pantalla.vacioVista')}

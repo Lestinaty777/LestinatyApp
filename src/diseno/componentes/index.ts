@@ -13,7 +13,7 @@ export type { ColorMaster } from './MasterChanger';
 export { Pantalla } from './Pantalla';
 export { RecuadroGlass } from './RecuadroGlass';
 export { EstadoVacioFranja } from './EstadoVacioFranja';
-export { EstadoVacioModulo, type AccionEstadoVacio, type PistaEstadoVacio } from './EstadoVacioModulo';
+export { EstadoVacioModulo, type AccionEstadoVacio } from './EstadoVacioModulo';
 export { ICONOS_FRANJA, SelectorFranja } from './SelectorFranja';
 export { SelectorFranjaElemento } from './SelectorFranjaElemento';
 export { Skeleton } from './Skeleton';

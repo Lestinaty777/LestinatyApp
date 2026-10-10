@@ -491,11 +491,6 @@ function TareasPantallaContenido({ modulo, setModulo }: { modulo: 'planes' | 'ta
                       accionSecundaria={{ Icono: Zap, onPress: () => abrirModalRapido('simple'), texto: t('tareas.pantallaCompleta.vacio.rapida') }}
                       color={acentoActivo}
                       ilustracion={temaActivo.semilla}
-                      pistas={[
-                        { icono: 'tareas', texto: t('tareas.pantallaCompleta.vacio.pistaTipos') },
-                        { icono: 'reloj', texto: t('tareas.pantallaCompleta.vacio.pistaMedir') },
-                        { icono: 'calendario', texto: t('tareas.pantallaCompleta.vacio.pistaCuando') },
-                      ]}
                       texto={t('tareas.pantallaCompleta.vacio.texto')}
                       titulo={t('tareas.pantallaCompleta.vacio.titulo')}
                     />
