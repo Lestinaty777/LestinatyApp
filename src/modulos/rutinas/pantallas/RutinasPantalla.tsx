@@ -28,11 +28,12 @@ import { registrarEvento } from '../../../servicios/analitica/posthog';
 import { useRachasRutinas } from '../useRachasRutinas';
 import { ListaMisRutinas } from '../componentes/ListaMisRutinas';
 import { VacioRutinas } from '../componentes/VacioRutinas';
+import { WidgetSiguienteSesion } from '../componentes/WidgetSiguienteSesion';
 import { ListaRecordatoriosRutinas } from '../componentes/ListaRecordatoriosRutinas';
 import { ListaRutinasHoy } from '../componentes/ListaRutinasHoy';
 import { ModalCompraPlantilla, type ErrorCompraPlantilla } from '../componentes/ModalCompraPlantilla';
 import { PlantillasRutinasLista } from '../componentes/PlantillasRutinasLista';
-import { estaPendienteHoy, resumirDiaRutinas, siguientePaso } from '../estadoRutina';
+import { estaPendienteHoy, resumirDiaRutinas } from '../estadoRutina';
 import { esErrorGemasInsuficientes, type PlantillaRutina } from '../plantillasRutinas';
 import { CLAVE_PLANTILLAS_RUTINAS, comprarPlantillaRutina, obtenerPlantillasRutinas } from '../plantillasRutinas.servicio';
 import {
@@ -97,7 +98,6 @@ function RutinasPantallaContenido() {
   const visibles = useMemo(() => filtrarPorFranja(rutinasHoy, filtro), [rutinasHoy, filtro]);
   const dia = useMemo(() => resumirDiaRutinas(rutinas), [rutinas]);
   const proxima = useMemo(() => rutinasHoy.find(estaPendienteHoy) ?? null, [rutinasHoy]);
-  const pasoProximo = proxima ? siguientePaso(proxima.pasos) : null;
 
   const assets = useMemo(() => obtenerAssetsPaquete(PAQUETE_RUTINAS), []);
   const rachas = useRachasRutinas(rutinasHoy);
@@ -233,12 +233,12 @@ function RutinasPantallaContenido() {
                     <MasterProgressbar altura={10} porcentaje={dia.porcentaje} style={s.barraMaster} />
                   </View>
                 </MasterGlass>
-                {proxima ? (
-                  <MasterGlass style={s.siguienteCard}>
-                    <Texto numberOfLines={1} style={s.siguienteTitulo}>{proxima.titulo}</Texto>
-                    {pasoProximo ? <Texto numberOfLines={2} style={s.siguienteSub}>{t('rutinas.tarjeta.siguiente', { titulo: pasoProximo.titulo })}</Texto> : null}
-                  </MasterGlass>
-                ) : null}
+                <WidgetSiguienteSesion
+                  color={acento}
+                  hayRutinasHoy={rutinasHoy.length > 0}
+                  onEmpezar={(r) => router.push({ pathname: '/rutinas/[id]', params: { id: r.id } })}
+                  rutina={proxima}
+                />
               </View>
               {assets ? <View style={s.heroColDer}><View style={s.ilustracionContenedor}><Image resizeMode="cover" source={assets.etapas[6]} style={s.ilustracion} /></View></View> : null}
             </View>
@@ -388,8 +388,6 @@ const crearEstilos = (esc: EscalaMaster) => StyleSheet.create({
   nivelCard: { alignItems: 'center', borderRadius: 16, flexDirection: 'row', gap: 10, padding: 10 }, nivelInfo: { flex: 1 },
   nivelTexto: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' },
   nivelLabel: { color: C.texto, fontFamily: 'MontserratAlternates-Bold', fontSize: 12 }, nivelXP: { color: C.tenue, fontFamily: 'Montserrat-Medium', fontSize: 11 }, barraMaster: { marginTop: 2 },
-  siguienteCard: { borderRadius: 16, gap: 2, padding: 10 },
-  siguienteTitulo: { color: C.texto, fontFamily: 'MontserratAlternates-Bold', fontSize: 12 }, siguienteSub: { color: C.tenue, fontFamily: 'Montserrat-Medium', fontSize: 10, lineHeight: 12 },
   accesosFila: { flexDirection: 'row', gap: 6, marginBottom: 16, paddingHorizontal: 20 }, accesoTarjeta: { flex: 1 },
   accesoGlass: { alignItems: 'center', borderRadius: 14, justifyContent: 'flex-start', minHeight: 100, padding: 8 },
   accesoTexto: { alignItems: 'center', marginTop: 5, minHeight: 31, width: '100%' },

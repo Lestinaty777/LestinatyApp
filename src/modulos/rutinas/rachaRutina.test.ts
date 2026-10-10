@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { agruparFechasPorRutina, calcularRachaRutina, rutinaTocaEnFecha } from './rachaRutina';
+import { agruparFechasPorRutina, calcularRachaRutina, diasConSesionEstaSemana, rutinaTocaEnFecha } from './rachaRutina';
 
 const diaria = { frecuencia: 'diaria' as const, diasSemana: null };
 // 2026-10-09 es viernes (isodow 5). Lunes, miércoles y viernes:
@@ -61,5 +61,23 @@ describe('agruparFechasPorRutina', () => {
     ]);
     expect([...mapa.get('a') ?? []].sort()).toEqual(['2026-10-08', '2026-10-09']);
     expect(mapa.get('b')?.size).toBe(1);
+  });
+});
+
+describe('diasConSesionEstaSemana', () => {
+  // 2026-10-09 es viernes: la semana va del lunes 5 al domingo 11.
+  const f = (fechaLocal: string) => ({ fechaLocal });
+
+  it('devuelve los isodow de esta semana con alguna sesión, sin repetir y en orden', () => {
+    expect(diasConSesionEstaSemana([f('2026-10-09'), f('2026-10-05'), f('2026-10-07'), f('2026-10-07')], '2026-10-09')).toEqual([1, 3, 5]);
+  });
+
+  it('ignora la semana pasada y los días posteriores a hoy', () => {
+    expect(diasConSesionEstaSemana([f('2026-10-04'), f('2026-09-30'), f('2026-10-10')], '2026-10-09')).toEqual([]);
+  });
+
+  it('un lunes solo puede contar el propio lunes; un domingo, la semana entera', () => {
+    expect(diasConSesionEstaSemana([f('2026-10-05'), f('2026-10-04')], '2026-10-05')).toEqual([1]);
+    expect(diasConSesionEstaSemana([f('2026-10-05'), f('2026-10-11')], '2026-10-11')).toEqual([1, 7]);
   });
 });

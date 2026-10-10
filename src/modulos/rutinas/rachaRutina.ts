@@ -55,3 +55,22 @@ export function agruparFechasPorRutina(filas: readonly { rutinaId: string; fecha
   }
   return mapa;
 }
+
+/**
+ * Días de la semana en curso (lunes a domingo, isodow 1..7) en los que se
+ * completó al menos una sesión de cualquier rutina. Para los siete puntos del
+ * widget "Siguiente sesión". Los días posteriores a hoy nunca aparecen.
+ */
+export function diasConSesionEstaSemana(filas: readonly { fechaLocal: string }[], hoy: string): number[] {
+  const fechaHoy = fechaDesdeLocal(hoy);
+  const isodowHoy = ((fechaHoy.getDay() + 6) % 7) + 1;
+  const lunes = new Date(fechaHoy);
+  lunes.setDate(lunes.getDate() - (isodowHoy - 1));
+  const desde = aFechaLocal(lunes);
+  const dias = new Set<number>();
+  for (const { fechaLocal } of filas) {
+    if (fechaLocal < desde || fechaLocal > hoy) continue;
+    dias.add(((fechaDesdeLocal(fechaLocal).getDay() + 6) % 7) + 1);
+  }
+  return [...dias].sort((a, b) => a - b);
+}

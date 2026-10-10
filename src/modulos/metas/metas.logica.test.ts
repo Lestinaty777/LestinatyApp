@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-  agruparElementosPorTipo, borradorAInput, borradorDesdeMeta, BORRADOR_META_VACIO, contarMetasPorArea, elementosDeLaMeta, filtrarMetasPorArea,
+  agruparElementosPorTipo, balanceDeAreas, borradorAInput, borradorDesdeMeta, BORRADOR_META_VACIO, contarMetasPorArea, elementosDeLaMeta, filtrarMetasPorArea,
   leerDuracionDias, resumirMetas, SIN_AREA_META, validarBorradorMeta, type ElementoDeMeta,
 } from './metas.logica';
 import type { MetaVida } from './metas.tipos';
@@ -105,5 +105,21 @@ describe('elementos de una meta', () => {
     const grupos = agruparElementosPorTipo(elementosDeLaMeta(elementos, 'm1'));
     expect(grupos.map((g) => g.tipo)).toEqual(['habito', 'tarea', 'plan']);
     expect(grupos[0].elementos.map((e) => e.id)).toEqual(['h1']);
+  });
+});
+
+describe('balanceDeAreas', () => {
+  const areas = [{ id: 'cuerpo', color: '#EF4444' }, { id: 'estudios', color: '#8B5CF6' }, { id: 'finanzas', color: '#F97316' }];
+
+  it('enciende solo las áreas con alguna meta activa y conserva el orden', () => {
+    const balance = balanceDeAreas(areas, [meta(), meta({ area: area('estudios'), estado: 'pausada' }), meta({ area: area('finanzas'), estado: 'lograda' })]);
+    expect(balance).toEqual([
+      { id: 'cuerpo', color: '#EF4444', activa: true }, { id: 'estudios', color: '#8B5CF6', activa: false }, { id: 'finanzas', color: '#F97316', activa: false },
+    ]);
+  });
+
+  it('sin metas ninguna está encendida, y una meta sin área no enciende nada', () => {
+    expect(balanceDeAreas(areas, []).every((punto) => !punto.activa)).toBe(true);
+    expect(balanceDeAreas(areas, [meta({ area: null })]).every((punto) => !punto.activa)).toBe(true);
   });
 });

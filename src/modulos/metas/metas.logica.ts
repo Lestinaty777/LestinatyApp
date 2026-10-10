@@ -101,3 +101,18 @@ export function agruparElementosPorTipo(elementos: readonly ElementoDeMeta[]): {
     .map((tipo) => ({ tipo, elementos: elementos.filter((elemento) => elemento.tipo === tipo) }))
     .filter((grupo) => grupo.elementos.length > 0);
 }
+
+export type PuntoBalanceArea = { id: string; color: string; activa: boolean };
+
+/**
+ * Un punto por cada área de la persona, encendido si tiene al menos una meta
+ * activa. Para ver de un vistazo qué parte de su vida no tiene ninguna meta.
+ * Conserva el orden de `areas`.
+ */
+export function balanceDeAreas(
+  areas: readonly { id: string; color: string }[],
+  metas: readonly Pick<MetaVida, 'area' | 'estado'>[],
+): PuntoBalanceArea[] {
+  const conMetaActiva = new Set(metas.filter((meta) => meta.estado === 'activa' && meta.area).map((meta) => meta.area!.id));
+  return areas.map((area) => ({ id: area.id, color: area.color, activa: conMetaActiva.has(area.id) }));
+}

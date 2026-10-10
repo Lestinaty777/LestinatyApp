@@ -1,5 +1,5 @@
 import { Check, ChevronDown, ChevronUp, Pause } from 'lucide-react-native';
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
@@ -23,11 +23,13 @@ export function accionesDeMeta(estado: MetaVida['estado']): AccionMeta[] {
 
 // Una meta: área (punto de color + nombre), título, plazo si lo tiene y lo que
 // contiene. Al tocarla se abre con sus acciones y, si se pasa, su contenido.
-export function TarjetaMeta({ color, contenido, meta, ocupada, onAccion }: {
+export function TarjetaMeta({ color, contenido, destacada = false, meta, ocupada, onAccion }: {
   /** Acento del módulo. */
   color: string;
   /** Lo que se muestra al abrir la tarjeta, bajo las acciones (p. ej. la lista de lo que contiene). */
   contenido?: ReactNode;
+  /** true cuando otra parte de la pantalla (el widget de cuenta regresiva) pidió abrir esta meta: se despliega sola. */
+  destacada?: boolean;
   meta: MetaVida;
   /** true mientras se guarda un cambio de esta meta: desactiva las acciones. */
   ocupada: boolean;
@@ -35,6 +37,7 @@ export function TarjetaMeta({ color, contenido, meta, ocupada, onAccion }: {
 }) {
   const { t } = useTranslation();
   const [abierta, setAbierta] = useState(false);
+  useEffect(() => { if (destacada) setAbierta(true); }, [destacada]);
   const plazo = progresoPlazoMeta(meta);
   const { conteos } = meta;
   const partes = [

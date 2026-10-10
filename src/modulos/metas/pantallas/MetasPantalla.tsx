@@ -23,8 +23,8 @@ import { ContenidoMeta, SelectorElementosMeta } from '../componentes/ElementosMe
 import { FormularioMeta } from '../componentes/FormularioMeta';
 import { ListaAreas, type ErrorCrearArea } from '../componentes/ListaAreas';
 import { TarjetaMeta, type AccionMeta } from '../componentes/TarjetaMeta';
+import { WidgetCuentaRegresiva } from '../componentes/WidgetCuentaRegresiva';
 import { contarMetasPorArea, filtrarMetasPorArea, resumirMetas, SIN_AREA_META, type ElementoDeMeta, type FiltroAreaMeta } from '../metas.logica';
-import { progresoPlazoMeta } from '../metas.mapper';
 import {
   archivarMeta, asignarMeta, CLAVE_ELEMENTOS_DE_METAS, CLAVE_METAS, crearMeta, editarMeta, marcarMetaLograda, obtenerElementosDeMetas, obtenerMetas,
   pausarMeta, reabrirMeta,
@@ -68,6 +68,8 @@ function MetasPantallaContenido() {
   const [elementoEnCursoId, setElementoEnCursoId] = useState<string | null>(null);
   const [errorAccion, setErrorAccion] = useState(false);
   const [errorArea, setErrorArea] = useState<ErrorCrearArea>(null);
+  // Meta que el widget pidió abrir: su tarjeta se despliega sola.
+  const [metaDestacadaId, setMetaDestacadaId] = useState<string | null>(null);
 
   const consulta = useQuery({ queryKey: CLAVE_METAS, queryFn: obtenerMetas });
   const consultaAreas = useQuery({ queryKey: CLAVE_AREAS, queryFn: obtenerAreas });
@@ -90,7 +92,6 @@ function MetasPantallaContenido() {
     return filtradas.filter((meta) => meta.estado === 'activa');
   }, [filtradas, vistaPanel]);
   const assets = useMemo(() => obtenerAssetsPaquete(PAQUETE_METAS), []);
-  const plazoProxima = resumen.proximaAVencer ? progresoPlazoMeta(resumen.proximaAVencer) : null;
 
   const refrescar = () => Promise.all([
     cliente.invalidateQueries({ queryKey: CLAVE_METAS }),
@@ -157,6 +158,13 @@ function MetasPantallaContenido() {
       return Promise.all([cliente.invalidateQueries({ queryKey: CLAVE_AREAS }), refrescar()]);
     },
   });
+
+  // Desde el widget: lleva a la vista de metas en curso, sin filtro de área, y despliega esa meta.
+  function abrirMeta(meta: MetaVida) {
+    setVistaPanel('activas');
+    setFiltroArea(null);
+    setMetaDestacadaId(meta.id);
+  }
 
   function abrirCreacion() {
     setMetaEditando(null);
@@ -257,13 +265,9 @@ function MetasPantallaContenido() {
                     <MasterProgressbar altura={10} porcentaje={resumen.porcentajeLogradas} style={s.barraMaster} />
                   </View>
                 </MasterGlass>
-                {resumen.proximaAVencer && plazoProxima ? (
-                  <MasterGlass style={s.siguienteCard}>
-                    <Texto style={s.siguienteSub}>{t('metas.pantalla.proxima')}</Texto>
-                    <Texto numberOfLines={1} style={s.siguienteTitulo}>{resumen.proximaAVencer.titulo}</Texto>
-                    <Texto numberOfLines={1} style={s.siguienteSub}>{t('metas.plazo', { dia: plazoProxima.dia, total: plazoProxima.total })}</Texto>
-                  </MasterGlass>
-                ) : null}
+                {consulta.isLoading || consultaAreas.isLoading ? null : (
+                  <WidgetCuentaRegresiva areas={areas} meta={resumen.proximaAVencer} metas={metas} onAbrir={abrirMeta} />
+                )}
               </View>
               {assets ? <View style={s.heroColDer}><View style={s.ilustracionContenedor}><Image resizeMode="cover" source={assets.etapas[6]} style={s.ilustracion} /></View></View> : null}
             </View>
@@ -348,6 +352,7 @@ function MetasPantallaContenido() {
                 <TarjetaMeta
                   color={acento}
                   contenido={<ContenidoMeta cargando={consultaElementos.isLoading} elementos={consultaElementos.data} error={consultaElementos.isError} metaId={meta.id} />}
+                  destacada={metaDestacadaId === meta.id}
                   key={meta.id}
                   meta={meta}
                   ocupada={metaEnCursoId === meta.id}
@@ -406,8 +411,6 @@ const crearEstilos = (esc: EscalaMaster) => StyleSheet.create({
   nivelCard: { alignItems: 'center', borderRadius: 16, flexDirection: 'row', gap: 10, padding: 10 }, nivelInfo: { flex: 1 },
   nivelTexto: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' },
   nivelLabel: { color: C.texto, fontFamily: 'MontserratAlternates-Bold', fontSize: 12 }, nivelXP: { color: C.tenue, fontFamily: 'Montserrat-Medium', fontSize: 11 }, barraMaster: { marginTop: 2 },
-  siguienteCard: { borderRadius: 16, gap: 2, padding: 10 },
-  siguienteTitulo: { color: C.texto, fontFamily: 'MontserratAlternates-Bold', fontSize: 12 }, siguienteSub: { color: C.tenue, fontFamily: 'Montserrat-Medium', fontSize: 10, lineHeight: 12 },
   areasFila: { flexGrow: 0, marginBottom: 12 }, areasContenido: { gap: 6, paddingHorizontal: 20 },
   chipArea: { alignItems: 'center', backgroundColor: C.glass, borderColor: C.glassBorde, borderRadius: 16, borderWidth: 1.5, flexDirection: 'row', gap: 6, minHeight: 34, paddingHorizontal: 12, paddingVertical: 6 },
   chipAreaPunto: { borderRadius: 5, height: 10, width: 10 }, chipAreaPuntoActivo: { borderColor: '#FFFFFF', borderWidth: 1.5, height: 12, width: 12 },

@@ -63,6 +63,10 @@ export const recursosI18n = {
       },
       rutinas: {
         enRutina: 'In {{nombre}}',
+        widget: {
+          etiqueta: 'Next session', todoHecho: 'All done today', sinRutinasHoy: 'None today', descanso: 'Nothing left to do', empezar: 'Start {{titulo}}',
+          semana_one: 'Sessions this week: {{count}} day', semana_other: 'Sessions this week: {{count}} days',
+        },
         racha_one: '{{count}}-day streak', racha_other: '{{count}}-day streak',
         pantalla: {
           titulo: 'Routines', frase: 'Do it in order. Keep it simple.', volverAlInicio: 'Back to home', comprarGemas: 'Buy gems', notificaciones: 'Notifications',
@@ -178,6 +182,10 @@ export const recursosI18n = {
       },
       metas: {
         sinMeta: 'No goal', etiqueta: 'Goal', elegir: 'Which goal is it for?',
+        widget: {
+          etiqueta: 'Countdown', dias_one: 'day', dias_other: 'days', accesible_one: '{{count}} day left for {{titulo}}', accesible_other: '{{count}} days left for {{titulo}}',
+          balance: 'Balance of areas', balanceResumen: '{{activas}} of {{total}} with goals', areaConMeta: '{{area}}: has an active goal', areaSinMeta: '{{area}}: no active goal',
+        },
         selector: { vacio: 'You have no goals yet. You can create one from Goals.', cargando: 'Loading your goals…', error: 'Could not load your goals.' },
         plazo: 'Day {{dia}} of {{total}}',
         error: { asignar: 'It was created, but could not be linked to the goal.' },
@@ -1355,6 +1363,10 @@ export const recursosI18n = {
       },
       rutinas: {
         enRutina: 'En {{nombre}}',
+        widget: {
+          etiqueta: 'Siguiente sesión', todoHecho: 'Todo hecho hoy', sinRutinasHoy: 'Hoy no toca ninguna', descanso: 'Nada pendiente', empezar: 'Empezar {{titulo}}',
+          semana_one: 'Sesiones esta semana: {{count}} día', semana_other: 'Sesiones esta semana: {{count}} días',
+        },
         racha_one: '{{count}} día seguido', racha_other: '{{count}} días seguidos',
         pantalla: {
           titulo: 'Rutinas', frase: 'Hacelo en orden. Hacelo simple.', volverAlInicio: 'Volver a Inicio', comprarGemas: 'Comprar gemas', notificaciones: 'Notificaciones',
@@ -1470,6 +1482,10 @@ export const recursosI18n = {
       },
       metas: {
         sinMeta: 'Sin meta', etiqueta: 'Meta', elegir: '¿Para qué meta es?',
+        widget: {
+          etiqueta: 'Cuenta regresiva', dias_one: 'día', dias_other: 'días', accesible_one: 'Falta {{count}} día para {{titulo}}', accesible_other: 'Faltan {{count}} días para {{titulo}}',
+          balance: 'Balance de áreas', balanceResumen: '{{activas}} de {{total}} con metas', areaConMeta: '{{area}}: tiene una meta activa', areaSinMeta: '{{area}}: sin meta activa',
+        },
         selector: { vacio: 'Aún no tienes metas. Puedes crear una desde Metas.', cargando: 'Cargando tus metas…', error: 'No pudimos cargar tus metas.' },
         plazo: 'Día {{dia}} de {{total}}',
         error: { asignar: 'Se creó, pero no se pudo enlazar con la meta.' },
