@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-  agruparPorFranja, contarPendientesPorFiltro, filtrarPorFranja, formatoHoraEntera, franjaActual, franjaDeHora, limitesValidos,
+  agruparPorFranja, contarPendientesPorFiltro, filtrarPorFranja, formatoHoraEntera, franjaActual, franjaDeHora, horarioDeFranja, limitesValidos,
   LIMITES_FRANJA_DEFECTO, moverLimite, sugerirFranjaPorHora, tramosDelDia, type FranjaDia,
 } from './franjas';
 
@@ -125,5 +125,17 @@ describe('tramosDelDia, formatoHoraEntera y moverLimite', () => {
     expect(moverLimite(pegados, 'tardeDesde', 1)).toBe(pegados);
     expect(moverLimite({ mananaDesde: 0, tardeDesde: 12, nocheDesde: 23 }, 'mananaDesde', -1)).toEqual({ mananaDesde: 0, tardeDesde: 12, nocheDesde: 23 });
     expect(moverLimite({ mananaDesde: 0, tardeDesde: 12, nocheDesde: 23 }, 'nocheDesde', 1)).toEqual({ mananaDesde: 0, tardeDesde: 12, nocheDesde: 23 });
+  });
+});
+
+describe('horarioDeFranja', () => {
+  it('da el rango de horas de cada franja; la noche cruza medianoche', () => {
+    expect(horarioDeFranja('manana')).toBe('5:00 – 12:00');
+    expect(horarioDeFranja('tarde')).toBe('12:00 – 19:00');
+    expect(horarioDeFranja('noche')).toBe('19:00 – 5:00');
+  });
+
+  it('usa los límites del perfil', () => {
+    expect(horarioDeFranja('manana', { mananaDesde: 7, tardeDesde: 13, nocheDesde: 21 })).toBe('7:00 – 13:00');
   });
 });

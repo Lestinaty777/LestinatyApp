@@ -94,3 +94,9 @@ export function moverLimite(limites: LimitesFranja, campo: keyof LimitesFranja, 
   const propuesta = { ...limites, [campo]: limites[campo] + delta };
   return limitesValidos(propuesta) ? propuesta : limites;
 }
+
+/** Rango de horas de una franja para mostrar, p. ej. "5:00 – 12:00" (la noche: "19:00 – 5:00"). */
+export function horarioDeFranja(franja: FranjaConcreta, limites: LimitesFranja = LIMITES_FRANJA_DEFECTO): string {
+  const tramo = tramosDelDia(limites).find((candidato) => candidato.franja === franja);
+  return tramo ? `${formatoHoraEntera(tramo.desde)} – ${formatoHoraEntera(tramo.hasta)}` : '';
+}

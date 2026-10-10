@@ -221,6 +221,11 @@ export const recursosI18n = {
         sugerida: 'Suggested from the reminder time',
         pendientes: '{{franja}}, {{n}} pending',
         vacia: 'Nothing pending in this slot',
+        vacio: {
+          manana: { titulo: 'A free morning', texto: 'You have nothing scheduled for the morning. Enjoy the calm start.' },
+          tarde: { titulo: 'A free afternoon', texto: 'You have nothing scheduled for the afternoon. Room to breathe.' },
+          noche: { titulo: 'A free night', texto: 'You have nothing scheduled for the night. Time to rest.' },
+        },
         verTodo: 'See all',
         verMas: 'See {{n}} more',
         completados: '{{n}} completed',
@@ -1499,6 +1504,11 @@ export const recursosI18n = {
         sugerida: 'Sugerida por la hora del recordatorio',
         pendientes: '{{franja}}, {{n}} pendientes',
         vacia: 'Nada pendiente en esta franja',
+        vacio: {
+          manana: { titulo: 'Mañana libre', texto: 'No tienes nada programado para la mañana. Empieza el día con calma.' },
+          tarde: { titulo: 'Tarde libre', texto: 'No tienes nada programado para la tarde. Un respiro a mitad del día.' },
+          noche: { titulo: 'Noche libre', texto: 'No tienes nada programado para la noche. Es hora de descansar.' },
+        },
         verTodo: 'Ver todo',
         verMas: 'Ver {{n}} más',
         completados: '{{n}} completados',

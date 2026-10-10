@@ -17,8 +17,8 @@ import {
   Sparkles,
 } from 'lucide-react-native';
 
-import { conAlfa, ICONOS_FRANJA, MasterGlass, MasterIcon, MasterIconBg, MasterProgressbar, Rebote, RecuadroGlass, SelectorFranja, Skeleton, Texto, useEscala } from '../../../diseno';
-import { franjaActual, type FiltroFranja, type FranjaDia } from '../../../compartido/utilidades/franjas';
+import { conAlfa, EstadoVacioFranja, ICONOS_FRANJA, MasterGlass, MasterIcon, MasterIconBg, MasterProgressbar, Rebote, RecuadroGlass, SelectorFranja, Skeleton, Texto, useEscala } from '../../../diseno';
+import { franjaActual, horarioDeFranja, type FiltroFranja, type FranjaDia } from '../../../compartido/utilidades/franjas';
 import { hapticSeguro } from '../../../nucleo/dispositivo/haptics';
 import { registrarEvento } from '../../../servicios/analitica/posthog';
 import { AuroraBoreal } from '../componentes/AuroraBoreal';
@@ -217,10 +217,10 @@ function GridCategorias() {
   const { t } = useTranslation();
 
   const categorias = useMemo(() => [
-    { id: 'tareas', label: t('hoy.categorias.tareas'), subtitulo: t('hoy.categoriasSubtitulos.tareas'), color: C.amarillo, icono: 'hoy/tareas' },
-    { id: 'rutinas', label: t('hoy.categorias.rutinas'), subtitulo: t('hoy.categoriasSubtitulos.rutinas'), color: C.rojo, icono: 'hoy/rutinas' },
-    { id: 'habitos', label: t('hoy.categorias.habitos'), subtitulo: t('hoy.categoriasSubtitulos.habitos'), color: C.verde, icono: 'hoy/habitos' },
-    { id: 'metas', label: t('hoy.categorias.metas'), subtitulo: t('hoy.categoriasSubtitulos.metas'), color: C.azul, icono: 'hoy/metas' },
+    { id: 'tareas', label: t('hoy.categorias.tareas'), subtitulo: t('hoy.categoriasSubtitulos.tareas'), icono: 'hoy/tareas' },
+    { id: 'rutinas', label: t('hoy.categorias.rutinas'), subtitulo: t('hoy.categoriasSubtitulos.rutinas'), icono: 'hoy/rutinas' },
+    { id: 'habitos', label: t('hoy.categorias.habitos'), subtitulo: t('hoy.categoriasSubtitulos.habitos'), icono: 'hoy/habitos' },
+    { id: 'metas', label: t('hoy.categorias.metas'), subtitulo: t('hoy.categoriasSubtitulos.metas'), icono: 'hoy/metas' },
   ], [t]);
 
   return (
@@ -231,7 +231,8 @@ function GridCategorias() {
             accessibilityLabel={cat.label}
             onPress={() => { if (CATEGORIAS_CON_PANTALLA.has(cat.id)) router.navigate(`/${cat.id}` as any); }}
           >
-            <MasterGlass colorBase={cat.color} style={s.categoriaGlass}>
+            {/* Sin colorBase: la tarjeta toma el tono del tema elegido en Ajustes (solo aquí, en Hoy). El ícono conserva el color de su módulo. */}
+            <MasterGlass style={s.categoriaGlass}>
               <View style={s.categoriaIcono}><MasterIcon name={cat.icono} size={42} /></View>
               <View style={s.categoriaTexto}>
                 <Texto adjustsFontSizeToFit minimumFontScale={0.8} numberOfLines={1} style={s.categoriaLabel}>{cat.label}</Texto>
@@ -505,14 +506,19 @@ function TimelineHoy() {
             <Texto style={[s.invitacionBotonTexto, { color: esc.jade.l34 }]}>{t('hoy.vacio.rutinaLista')}</Texto>
           </Pressable>
         </View>
+      ) : plan.secciones.length === 0 && filtro !== 'todo' ? (
+        // Franja sin nada: se dibuja el momento del día (amanecer, sol o luna) con sus horas.
+        <EstadoVacioFranja
+          accion={t('franjas.verTodo')}
+          franja={filtro}
+          horario={horarioDeFranja(filtro, limitesFranja)}
+          onAccion={() => setFiltro('todo')}
+          texto={t(`franjas.vacio.${filtro}.texto`)}
+          titulo={t(`franjas.vacio.${filtro}.titulo`)}
+        />
       ) : plan.secciones.length === 0 ? (
         <View style={h.estado}>
           <Texto style={h.estadoTexto}>{t('franjas.vacia')}</Texto>
-          {filtro !== 'todo' && (
-            <Pressable accessibilityRole="button" onPress={() => setFiltro('todo')} style={h.estadoBoton}>
-              <Texto style={h.estadoBotonTexto}>{t('franjas.verTodo')}</Texto>
-            </Pressable>
-          )}
         </View>
       ) : (
         <View>
