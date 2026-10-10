@@ -1,8 +1,8 @@
-import { LayoutTemplate, ListChecks, ListOrdered, Plus, Sparkles, Timer, type LucideIcon } from 'lucide-react-native';
+import { LayoutTemplate, ListChecks, Plus } from 'lucide-react-native';
 import { Image, type ImageSourcePropType, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
-import { MasterButton, MasterIconBg, Texto } from '../../../diseno';
+import { MasterButton, MasterIcon, MasterIconBg, Texto } from '../../../diseno';
 
 const C = { texto: '#1A1335', tenue: '#7B7494' };
 
@@ -24,7 +24,8 @@ export function VacioRutinas({ color, ilustracion, onCrear, onVerMisRutinas, onV
   const { t } = useTranslation();
   const arte = ilustracion ? (
     // Imagen normal, no `fuente`: ya es el arte del paquete y no debe rotarse otra vez con el tema.
-    <MasterIconBg size={104}><Image resizeMode="contain" source={ilustracion} style={estilos.arte} /></MasterIconBg>
+    // MasterIconBg se alinea a la izquierda por defecto (alignSelf: 'flex-start'): aquí va centrado.
+    <MasterIconBg size={104} style={estilos.centrado}><Image resizeMode="contain" source={ilustracion} style={estilos.arte} /></MasterIconBg>
   ) : null;
 
   if (tipo === 'nada_hoy') {
@@ -38,10 +39,11 @@ export function VacioRutinas({ color, ilustracion, onCrear, onVerMisRutinas, onV
     );
   }
 
-  const pistas: { Icono: LucideIcon; clave: string }[] = [
-    { Icono: ListOrdered, clave: 'rutinas.pantalla.vacio.pistaOrden' },
-    { Icono: Timer, clave: 'rutinas.pantalla.vacio.pistaSesion' },
-    { Icono: Sparkles, clave: 'rutinas.pantalla.vacio.pistaEsencial' },
+  // Íconos propios de la app (assets/icons/ui), teñidos al tema: no de lucide.
+  const pistas: { clave: string; icono: string }[] = [
+    { clave: 'rutinas.pantalla.vacio.pistaOrden', icono: 'tareas' },
+    { clave: 'rutinas.pantalla.vacio.pistaSesion', icono: 'reloj' },
+    { clave: 'rutinas.pantalla.vacio.pistaEsencial', icono: 'rayo' },
   ];
   return (
     <View style={estilos.raiz}>
@@ -49,15 +51,15 @@ export function VacioRutinas({ color, ilustracion, onCrear, onVerMisRutinas, onV
       <Texto accessibilityRole="header" style={estilos.titulo}>{t('rutinas.pantalla.vacio.titulo')}</Texto>
       <Texto style={estilos.texto}>{t('rutinas.pantalla.vacioDescripcion')}</Texto>
       <View style={estilos.pistas}>
-        {pistas.map(({ Icono, clave }) => (
+        {pistas.map(({ clave, icono }) => (
           <View key={clave} style={estilos.pista}>
-            <View style={[estilos.pistaIcono, { backgroundColor: `${color}1F` }]}><Icono color={color} size={16} strokeWidth={2.4} /></View>
+            <MasterIconBg size={38}><MasterIcon alTema name={icono} size={22} /></MasterIconBg>
             <Texto style={estilos.pistaTexto}>{t(clave)}</Texto>
           </View>
         ))}
       </View>
       <View style={estilos.boton}><MasterButton color={color} iconoIzquierda={Plus} onPress={onCrear}>{t('rutinas.pantalla.access.creacion.label')}</MasterButton></View>
-      <MasterButton color="#EDE5E6" colorTexto={color} iconoIzquierda={LayoutTemplate} onPress={onVerPlantillas}>{t('rutinas.pantalla.vacio.usarPlantilla')}</MasterButton>
+      <MasterButton color="#FFFFFF" colorSombra="#E4DDF0" colorTexto={color} iconoIzquierda={LayoutTemplate} onPress={onVerPlantillas}>{t('rutinas.pantalla.vacio.usarPlantilla')}</MasterButton>
     </View>
   );
 }
@@ -65,11 +67,11 @@ export function VacioRutinas({ color, ilustracion, onCrear, onVerMisRutinas, onV
 const estilos = StyleSheet.create({
   raiz: { alignItems: 'center', gap: 8, paddingBottom: 6, paddingTop: 4 },
   arte: { height: 84, width: 84 },
+  centrado: { alignSelf: 'center' },
   titulo: { color: C.texto, fontFamily: 'MontserratAlternates-Bold', fontSize: 19, marginTop: 4, textAlign: 'center' },
   texto: { color: C.tenue, fontFamily: 'Montserrat-Medium', fontSize: 13, lineHeight: 18, paddingHorizontal: 8, textAlign: 'center' },
   pistas: { alignSelf: 'stretch', gap: 8, marginTop: 6 },
   pista: { alignItems: 'center', flexDirection: 'row', gap: 10 },
-  pistaIcono: { alignItems: 'center', borderRadius: 15, height: 30, justifyContent: 'center', width: 30 },
   pistaTexto: { color: C.texto, flex: 1, fontFamily: 'Montserrat-Medium', fontSize: 13, lineHeight: 17 },
   boton: { marginTop: 8 },
 });
