@@ -1,4 +1,4 @@
-import { Lock } from 'lucide-react-native';
+import { Gem, Lock, LockOpen } from 'lucide-react-native';
 import { Image, KeyboardAvoidingView, Modal, Platform, Pressable, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
@@ -50,9 +50,9 @@ export function ModalCompraPlantilla({ color, comprando, error, onCancelar, onCo
             {error === 'otro' ? <Texto style={estilos.error}>{t('rutinas.plantillas.errorCompra')}</Texto> : null}
 
             {faltan || error === 'gemas' ? (
-              <MasterButton color={color} onPress={onIrAGemas}>{t('rutinas.plantillas.conseguirGemas')}</MasterButton>
+              <MasterButton color={color} iconoIzquierda={Gem} onPress={onIrAGemas}>{t('rutinas.plantillas.conseguirGemas')}</MasterButton>
             ) : (
-              <MasterButton color={color} disabled={comprando} onPress={() => onComprar(plantilla)}>
+              <MasterButton color={color} disabled={comprando} iconoIzquierda={LockOpen} onPress={() => onComprar(plantilla)}>
                 {comprando ? t('rutinas.plantillas.comprando') : t('rutinas.plantillas.desbloquearPor', { count: plantilla.precioGemas })}
               </MasterButton>
             )}

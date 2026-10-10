@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect, useRouter } from 'expo-router';
-import { ChevronLeft } from 'lucide-react-native';
+import { ChevronLeft, LayoutList, Plus } from 'lucide-react-native';
 import { useCallback, useMemo, useState } from 'react';
 import { Alert, Image, Linking, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
@@ -197,14 +197,14 @@ function MetasPantallaContenido() {
         <View style={s.vacio}>
           <Texto style={s.vacioTitulo}>{t('metas.pantalla.vacioTitulo')}</Texto>
           <Texto style={s.vacioTexto}>{t('metas.pantalla.vacioDescripcion')}</Texto>
-          <MasterButton color={acento} onPress={abrirCreacion}>{t('metas.pantalla.access.creacion.label')}</MasterButton>
+          <MasterButton color={acento} iconoIzquierda={Plus} onPress={abrirCreacion}>{t('metas.pantalla.access.creacion.label')}</MasterButton>
         </View>
       );
     }
     return (
       <View style={s.vacio}>
         <Texto style={s.vacioTexto}>{t(vistaPanel === 'logradas' ? 'metas.pantalla.vacioLogradas' : filtroArea !== null ? 'metas.pantalla.vacioArea' : 'metas.pantalla.vacioVista')}</Texto>
-        {filtroArea !== null ? <MasterButton color={acento} onPress={() => setFiltroArea(null)}>{t('metas.pantalla.verTodas')}</MasterButton> : null}
+        {filtroArea !== null ? <MasterButton color={acento} iconoIzquierda={LayoutList} onPress={() => setFiltroArea(null)}>{t('metas.pantalla.verTodas')}</MasterButton> : null}
       </View>
     );
   }

@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { Check, ChevronLeft, Sparkles } from 'lucide-react-native';
+import { ArrowRight, Check, ChevronLeft, Play, RotateCcw, Sparkles } from 'lucide-react-native';
 import { useMemo, useRef, useState, type ReactNode } from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
@@ -159,7 +159,7 @@ function SesionContenido({ id }: { id: string }) {
         {completa.pasos.length === 0 ? (
           <>
             <Texto style={estilos.centro}>{t('rutinas.sesion.preparar.nadaPendiente')}</Texto>
-            <MasterButton color={acento} onPress={salir}>{t('rutinas.sesion.volver')}</MasterButton>
+            <MasterButton color={acento} iconoIzquierda={ChevronLeft} onPress={salir}>{t('rutinas.sesion.volver')}</MasterButton>
           </>
         ) : (
           <>
@@ -188,7 +188,7 @@ function SesionContenido({ id }: { id: string }) {
               />
             </MasterGlass>
             {plan.omitidos.length > 0 ? <Texto style={estilos.ayuda}>{t('rutinas.sesion.preparar.omitidos', { lista: plan.omitidos.map((p) => p.titulo).join(', ') })}</Texto> : null}
-            <MasterButton color={acento} onPress={empezar}>{t('rutinas.sesion.preparar.empezar')}</MasterButton>
+            <MasterButton color={acento} iconoIzquierda={Play} onPress={empezar}>{t('rutinas.sesion.preparar.empezar')}</MasterButton>
           </>
         )}
       </View>,
@@ -199,7 +199,7 @@ function SesionContenido({ id }: { id: string }) {
   if (fase === 'en_curso') {
     if (!pasoActual) {
       // El paso ya no existe (se archivó, p. ej.): se sigue con lo que quede.
-      return marco(<MasterButton color={acento} onPress={avanzar}>{t('rutinas.sesion.curso.siguiente')}</MasterButton>);
+      return marco(<MasterButton color={acento} iconoDerecha={ArrowRight} onPress={avanzar}>{t('rutinas.sesion.curso.siguiente')}</MasterButton>);
     }
     const icono = buscarIconoHabito(pasoActual.iconoLucide ?? rutina.iconoLucide);
     return marco(
@@ -238,7 +238,7 @@ function SesionContenido({ id }: { id: string }) {
       ) : errorCierre ? (
         <>
           <Texto style={[estilos.centro, { color: C.error }]}>{t('rutinas.sesion.fin.errorCierre')}</Texto>
-          <MasterButton color={acento} onPress={() => cerrar.mutate()}>{t('rutinas.sesion.fin.reintentar')}</MasterButton>
+          <MasterButton color={acento} iconoIzquierda={RotateCcw} onPress={() => cerrar.mutate()}>{t('rutinas.sesion.fin.reintentar')}</MasterButton>
         </>
       ) : (
         <>
@@ -249,8 +249,8 @@ function SesionContenido({ id }: { id: string }) {
           <MasterGlass style={[estilos.lista, { alignSelf: 'stretch' }]}>
             <CaminoRutina color={acento} etiquetaAccesible={etiquetaNodo} etiquetaOpcional={t('rutinas.sesion.preparar.opcional')} nodos={construirNodosRutina(rutina.pasos, t('rutinas.sesion.camino.destino'))} />
           </MasterGlass>
-          {!completa && pendientes.length > 0 ? <MasterButton color={acento} onPress={retomarPendientes}>{t('rutinas.sesion.fin.retomar')}</MasterButton> : null}
-          <MasterButton color={acento} onPress={salir}>{t('rutinas.sesion.fin.cerrar')}</MasterButton>
+          {!completa && pendientes.length > 0 ? <MasterButton color={acento} iconoIzquierda={Play} onPress={retomarPendientes}>{t('rutinas.sesion.fin.retomar')}</MasterButton> : null}
+          <MasterButton color={acento} iconoIzquierda={Check} onPress={salir}>{t('rutinas.sesion.fin.cerrar')}</MasterButton>
         </>
       )}
     </View>,

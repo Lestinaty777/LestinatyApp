@@ -42,7 +42,7 @@ export function EstadoVacioFranja({ accion, franja, horario, onAccion, texto, ti
       </View>
       <Texto accessibilityRole="header" style={estilos.titulo}>{titulo}</Texto>
       <Texto style={estilos.texto}>{texto}</Texto>
-      {accion && onAccion ? <View style={estilos.boton}><MasterButton color={ambiente.icono} onPress={onAccion}>{accion}</MasterButton></View> : null}
+      {accion && onAccion ? <View style={estilos.boton}><MasterButton color={ambiente.icono} iconoIzquierda={ICONOS_FRANJA.todo} onPress={onAccion}>{accion}</MasterButton></View> : null}
     </View>
   );
 }

@@ -1,4 +1,4 @@
-import { Minus, Pause, Play, Plus } from 'lucide-react-native';
+import { ArrowRight, Check, Minus, Pause, Play, Plus } from 'lucide-react-native';
 import { useEffect, useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
@@ -34,7 +34,7 @@ function ControlHecho({ color, ocupado, onCompletar, paso }: { color: string; oc
   return (
     <View style={estilos.bloque}>
       {paso.origen !== 'propio' ? <Texto style={estilos.ayuda}>{t('rutinas.sesion.curso.externoHint')}</Texto> : null}
-      <MasterButton color={color} disabled={ocupado} onPress={onCompletar}>{t('rutinas.sesion.curso.hecho')}</MasterButton>
+      <MasterButton color={color} disabled={ocupado} iconoIzquierda={Check} onPress={onCompletar}>{t('rutinas.sesion.curso.hecho')}</MasterButton>
     </View>
   );
 }
@@ -55,7 +55,7 @@ function ControlContador({ color, inicial, meta, ocupado, onCompletar, unidad }:
         <Rebote accessibilityLabel={t('rutinas.sesion.curso.mas')} disabled={llego} onPress={() => cambiar(1)} estilo={[estilos.redondo, { backgroundColor: color }, llego && { opacity: 0.4 }]}><Plus color="#FFFFFF" size={26} /></Rebote>
       </View>
       {/* Con la meta alcanzada se completa; antes de eso, "Siguiente" guarda el avance parcial y sigue (0 = nada que guardar). */}
-      <MasterButton color={color} disabled={ocupado} onPress={() => onCompletar(cuenta)}>{llego ? t('rutinas.sesion.curso.listo') : t('rutinas.sesion.curso.siguiente')}</MasterButton>
+      <MasterButton color={color} disabled={ocupado} iconoDerecha={llego ? undefined : ArrowRight} iconoIzquierda={llego ? Check : undefined} onPress={() => onCompletar(cuenta)}>{llego ? t('rutinas.sesion.curso.listo') : t('rutinas.sesion.curso.siguiente')}</MasterButton>
     </View>
   );
 }

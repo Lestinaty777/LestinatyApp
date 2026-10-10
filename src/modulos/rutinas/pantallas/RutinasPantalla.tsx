@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { ChevronLeft } from 'lucide-react-native';
+import { ChevronLeft, Plus } from 'lucide-react-native';
 import { useMemo, useState } from 'react';
 import { Image, Linking, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
@@ -184,7 +184,7 @@ function RutinasPantallaContenido() {
         <View style={s.vacio}>
           <Texto style={s.vacioTitulo}>{t('rutinas.pantalla.vacioTitulo')}</Texto>
           <Texto style={s.vacioTexto}>{t('rutinas.pantalla.vacioDescripcion')}</Texto>
-          <MasterButton color={acento} onPress={() => abrirCreacion()}>{t('rutinas.pantalla.access.creacion.label')}</MasterButton>
+          <MasterButton color={acento} iconoIzquierda={Plus} onPress={() => abrirCreacion()}>{t('rutinas.pantalla.access.creacion.label')}</MasterButton>
         </View>
       );
     }
