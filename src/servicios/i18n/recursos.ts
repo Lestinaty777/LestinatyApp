@@ -69,6 +69,10 @@ export const recursosI18n = {
           cargando: 'Loading…', errorCargar: 'Could not load your routines. Tap to retry.',
           rutinasHoy: 'Routines today', vistaHoy: 'Today', completadasHoy: '{{completed}} of {{total}} completed',
           vacioTitulo: 'No routines yet', vacioDescripcion: 'Build one step by step, or start from a template.',
+          vacio: {
+            titulo: 'Build your first routine', pistaOrden: 'Choose your steps, in order.', pistaSesion: 'Do it one step at a time, with a timer when you need it.',
+            pistaEsencial: 'Short on time? Just do the essentials.', usarPlantilla: 'Use a template', verMisRutinas: 'See my routines',
+          },
           vacioFranjaTitulo: 'Nothing in this part of the day', vacioFranjaDescripcion: 'Pick another one, or see everything.', verTodo: 'See all',
           nadaHoyTitulo: 'No routines for today', nadaHoyDescripcion: 'Your routines will show up on the days you scheduled them.',
           vistaProgresion: 'My routines', vistaRecordatorios: 'Reminders', vistaPlantillas: 'Templates',
@@ -1352,6 +1356,10 @@ export const recursosI18n = {
           cargando: 'Cargando…', errorCargar: 'No pudimos cargar tus rutinas. Tocá para reintentar.',
           rutinasHoy: 'Rutinas hoy', vistaHoy: 'Hoy', completadasHoy: '{{completed}} de {{total}} completadas',
           vacioTitulo: 'Todavía no hay rutinas', vacioDescripcion: 'Armá una paso a paso, o empezá desde una plantilla.',
+          vacio: {
+            titulo: 'Armá tu primera rutina', pistaOrden: 'Elegí tus pasos, en orden.', pistaSesion: 'Hacela un paso a la vez, con cronómetro cuando haga falta.',
+            pistaEsencial: '¿Poco tiempo? Hacé solo lo esencial.', usarPlantilla: 'Usar una plantilla', verMisRutinas: 'Ver mis rutinas',
+          },
           vacioFranjaTitulo: 'Nada en este momento del día', vacioFranjaDescripcion: 'Elegí otro, o mirá todo.', verTodo: 'Ver todo',
           nadaHoyTitulo: 'No hay rutinas para hoy', nadaHoyDescripcion: 'Tus rutinas van a aparecer los días que las programaste.',
           vistaProgresion: 'Mis rutinas', vistaRecordatorios: 'Recordatorios', vistaPlantillas: 'Plantillas',

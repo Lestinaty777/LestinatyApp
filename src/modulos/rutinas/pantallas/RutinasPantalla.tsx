@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { ChevronLeft, Plus } from 'lucide-react-native';
+import { ChevronLeft } from 'lucide-react-native';
 import { useMemo, useState } from 'react';
 import { Image, Linking, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
@@ -27,6 +27,7 @@ import { prepararAvisosDeRutina } from '../recordatorioRutina';
 import { registrarEvento } from '../../../servicios/analitica/posthog';
 import { useRachasRutinas } from '../useRachasRutinas';
 import { ListaMisRutinas } from '../componentes/ListaMisRutinas';
+import { VacioRutinas } from '../componentes/VacioRutinas';
 import { ListaRecordatoriosRutinas } from '../componentes/ListaRecordatoriosRutinas';
 import { ListaRutinasHoy } from '../componentes/ListaRutinasHoy';
 import { ModalCompraPlantilla, type ErrorCompraPlantilla } from '../componentes/ModalCompraPlantilla';
@@ -181,19 +182,12 @@ function RutinasPantallaContenido() {
   function vacioHoy() {
     if (rutinas.length === 0) {
       return (
-        <View style={s.vacio}>
-          <Texto style={s.vacioTitulo}>{t('rutinas.pantalla.vacioTitulo')}</Texto>
-          <Texto style={s.vacioTexto}>{t('rutinas.pantalla.vacioDescripcion')}</Texto>
-          <MasterButton color={acento} iconoIzquierda={Plus} onPress={() => abrirCreacion()}>{t('rutinas.pantalla.access.creacion.label')}</MasterButton>
-        </View>
+        <VacioRutinas color={acento} ilustracion={assets?.semilla} onCrear={() => abrirCreacion()} onVerMisRutinas={() => setVistaPanel('progresion')} onVerPlantillas={() => setVistaPanel('plantillas')} tipo="sin_rutinas" />
       );
     }
     if (rutinasHoy.length === 0) {
       return (
-        <View style={s.vacio}>
-          <Texto style={s.vacioTitulo}>{t('rutinas.pantalla.nadaHoyTitulo')}</Texto>
-          <Texto style={s.vacioTexto}>{t('rutinas.pantalla.nadaHoyDescripcion')}</Texto>
-        </View>
+        <VacioRutinas color={acento} ilustracion={assets?.arbusto} onCrear={() => abrirCreacion()} onVerMisRutinas={() => setVistaPanel('progresion')} onVerPlantillas={() => setVistaPanel('plantillas')} tipo="nada_hoy" />
       );
     }
     // Hay rutinas hoy, pero ninguna en la franja elegida (aquí filtro nunca es 'todo').
