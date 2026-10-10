@@ -1,13 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect, useRouter } from 'expo-router';
-import { ChevronLeft, LayoutList, Plus } from 'lucide-react-native';
+import { ChevronLeft, LayoutList, Plus, Shapes } from 'lucide-react-native';
 import { useCallback, useMemo, useState } from 'react';
 import { Alert, Image, Linking, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { MasterButton, MasterGlass, MasterIcon, MasterIconBg, MasterProgressbar, Rebote, Texto } from '../../../diseno';
+import { EstadoVacioModulo, MasterGlass, MasterIcon, MasterIconBg, MasterProgressbar, Rebote, Texto } from '../../../diseno';
 import type { EscalaMaster } from '../../../diseno/tema/escalaEsmeralda';
 import { useEscala, useTonoMaster } from '../../../diseno/tema/MasterColorContext';
 import { hapticSeguro } from '../../../nucleo/dispositivo/haptics';
@@ -193,19 +193,33 @@ function MetasPantallaContenido() {
 
   function vacio() {
     if (metas.length === 0) {
+      // Todavía no creó ninguna meta: qué es una meta y las dos formas de empezar.
       return (
-        <View style={s.vacio}>
-          <Texto style={s.vacioTitulo}>{t('metas.pantalla.vacioTitulo')}</Texto>
-          <Texto style={s.vacioTexto}>{t('metas.pantalla.vacioDescripcion')}</Texto>
-          <MasterButton color={acento} iconoIzquierda={Plus} onPress={abrirCreacion}>{t('metas.pantalla.access.creacion.label')}</MasterButton>
-        </View>
+        <EstadoVacioModulo
+          accion={{ Icono: Plus, onPress: abrirCreacion, texto: t('metas.pantalla.vacio.crear') }}
+          accionSecundaria={{ Icono: Shapes, onPress: () => setVistaPanel('areas'), texto: t('metas.pantalla.vacio.verAreas') }}
+          color={acento}
+          ilustracion={assets?.semilla}
+          pistas={[
+            { icono: 'metas', texto: t('metas.pantalla.vacio.pistaResultado') },
+            { icono: 'progreso', texto: t('metas.pantalla.vacio.pistaContenido') },
+            { icono: 'calendario', texto: t('metas.pantalla.vacio.pistaPlazo') },
+          ]}
+          texto={t('metas.pantalla.vacioDescripcion')}
+          titulo={t('metas.pantalla.vacio.titulo')}
+        />
       );
     }
+    // Tiene metas, pero ninguna en esta vista o en esta área.
     return (
-      <View style={s.vacio}>
-        <Texto style={s.vacioTexto}>{t(vistaPanel === 'logradas' ? 'metas.pantalla.vacioLogradas' : filtroArea !== null ? 'metas.pantalla.vacioArea' : 'metas.pantalla.vacioVista')}</Texto>
-        {filtroArea !== null ? <MasterButton color={acento} iconoIzquierda={LayoutList} onPress={() => setFiltroArea(null)}>{t('metas.pantalla.verTodas')}</MasterButton> : null}
-      </View>
+      <EstadoVacioModulo
+        accion={filtroArea !== null
+          ? { Icono: LayoutList, onPress: () => setFiltroArea(null), texto: t('metas.pantalla.verTodas') }
+          : { Icono: Plus, onPress: abrirCreacion, texto: t('metas.pantalla.vacio.crear') }}
+        color={acento}
+        ilustracion={assets?.arbusto}
+        texto={t(vistaPanel === 'logradas' ? 'metas.pantalla.vacioLogradas' : filtroArea !== null ? 'metas.pantalla.vacioArea' : 'metas.pantalla.vacioVista')}
+      />
     );
   }
 

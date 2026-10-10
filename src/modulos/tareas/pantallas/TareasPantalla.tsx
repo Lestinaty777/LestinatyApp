@@ -1,13 +1,13 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { ChevronLeft, Plus, X } from 'lucide-react-native';
+import { ChevronLeft, ListChecks, Plus, X, Zap } from 'lucide-react-native';
 import { useMemo, useState } from 'react';
 import { Image, KeyboardAvoidingView, Linking, Modal, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
-import { MasterButton, MasterGlass, MasterIcon, MasterIconBg, MasterProgressbar, Rebote, SelectorFranja, Texto } from '../../../diseno';
+import { EstadoVacioModulo, MasterButton, MasterGlass, MasterIcon, MasterIconBg, MasterProgressbar, Rebote, SelectorFranja, Texto } from '../../../diseno';
 import { useFiltroFranja } from '../../../compartido/utilidades/useFiltroFranja';
 import { VacioDeFranja } from '../../hoy/componentes/VacioDeFranja';
 import { registrarEvento } from '../../../servicios/analitica/posthog';
@@ -267,7 +267,7 @@ function TareasPantallaContenido({ modulo, setModulo }: { modulo: 'planes' | 'ta
   // que mostrar los dos colores reales a la vez, sin importar cuál está activo.
   const temaActivo = useMemo(() => {
     const assets = obtenerAssetsPaquete(modulo === 'planes' ? PAQUETE_PLANES : PAQUETE_TAREAS)!;
-    return { arbol: assets.etapas[6], arbusto: assets.arbusto };
+    return { arbol: assets.etapas[6], arbusto: assets.arbusto, semilla: assets.semilla };
   }, [modulo]);
   const { acento: acentoActivo } = useTonoMaster();
   const acentoTareasFijo = useMemo(() => crearTonoMaster(PAQUETE_TAREAS, COLOR_PAQUETE_TAREAS).acento, []);
@@ -484,6 +484,31 @@ function TareasPantallaContenido({ modulo, setModulo }: { modulo: 'planes' | 'ta
                   )}
                   {filtroFranja.filtro !== 'todo' && filtroFranja.filtrados.length === 0 ? (
                     <VacioDeFranja franja={filtroFranja.filtro} onVerTodo={() => filtroFranja.setFiltro('todo')} />
+                  ) : tareasHoy.length === 0 && (consultaLista.data ?? []).length === 0 && !consultaLista.isLoading ? (
+                    // Todavía no creó ninguna tarea: qué es una tarea y las dos formas de empezar.
+                    <EstadoVacioModulo
+                      accion={{ Icono: Plus, onPress: () => setCrearAbierto(true), texto: t('tareas.pantallaCompleta.vacio.crear') }}
+                      accionSecundaria={{ Icono: Zap, onPress: () => abrirModalRapido('simple'), texto: t('tareas.pantallaCompleta.vacio.rapida') }}
+                      color={acentoActivo}
+                      ilustracion={temaActivo.semilla}
+                      pistas={[
+                        { icono: 'tareas', texto: t('tareas.pantallaCompleta.vacio.pistaTipos') },
+                        { icono: 'reloj', texto: t('tareas.pantallaCompleta.vacio.pistaMedir') },
+                        { icono: 'calendario', texto: t('tareas.pantallaCompleta.vacio.pistaCuando') },
+                      ]}
+                      texto={t('tareas.pantallaCompleta.vacio.texto')}
+                      titulo={t('tareas.pantallaCompleta.vacio.titulo')}
+                    />
+                  ) : tareasHoy.length === 0 ? (
+                    // Tiene tareas, pero ninguna toca hoy.
+                    <EstadoVacioModulo
+                      accion={{ Icono: ListChecks, onPress: () => setVistaPanel('progresion'), texto: t('tareas.pantallaCompleta.vacio.verMisTareas') }}
+                      accionSecundaria={{ Icono: Plus, onPress: () => setCrearAbierto(true), texto: t('tareas.pantallaCompleta.vacio.crear') }}
+                      color={acentoActivo}
+                      ilustracion={temaActivo.arbusto}
+                      texto={t('tareas.pantallaCompleta.todayEmptyDescription')}
+                      titulo={t('tareas.pantallaCompleta.todayEmptyTitle')}
+                    />
                   ) : (
                     <TimelineTareasHoy
                       completandoId={completandoId}
