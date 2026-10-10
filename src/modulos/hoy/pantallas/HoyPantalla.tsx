@@ -17,7 +17,7 @@ import {
   Sparkles,
 } from 'lucide-react-native';
 
-import { conAlfa, ICONOS_FRANJA, MasterGlass, MasterIcon, MasterIconBg, MasterProgressbar, Rebote, RecuadroGlass, SelectorFranja, Skeleton, Texto, useEscala } from '../../../diseno';
+import { conAlfa, ICONOS_FRANJA, useTonoMaster, MasterGlass, MasterIcon, MasterIconBg, MasterProgressbar, Rebote, RecuadroGlass, SelectorFranja, Skeleton, Texto, useEscala } from '../../../diseno';
 import { franjaActual, type FiltroFranja, type FranjaDia } from '../../../compartido/utilidades/franjas';
 import { hapticSeguro } from '../../../nucleo/dispositivo/haptics';
 import { registrarEvento } from '../../../servicios/analitica/posthog';
@@ -34,6 +34,7 @@ import type { AreaVidaResumen } from '../../areas/areas.tipos';
 import { areaPorMeta } from '../../metas/metas.mapper';
 import { habitoAElemento, resumirCategoriasHoy, rutinaAElemento, tareaAElemento } from '../adaptadoresHoy';
 import { nivelDesdeXp } from '../nivelUsuario';
+import { tonosCategorias } from '../tonosCategorias';
 import { detectarPrimeraVictoria, tipoDePrimeraVictoria } from '../primeraVictoria';
 import { RESUMEN_HOY_VACIO, indiceDiaSemana } from '../resumenHoy.mapper';
 import { CLAVE_RESUMEN_HOY, obtenerResumenHoy } from '../resumenHoy.servicio';
@@ -216,12 +217,14 @@ const CATEGORIAS_CON_PANTALLA = new Set(['tareas', 'rutinas', 'habitos', 'metas'
 function GridCategorias() {
   const router = useRouter();
   const { t } = useTranslation();
+  const { acento } = useTonoMaster();
+  const tonos = useMemo(() => tonosCategorias(acento), [acento]);
 
   const categorias = useMemo(() => [
-    { id: 'tareas', label: t('hoy.categorias.tareas'), subtitulo: t('hoy.categoriasSubtitulos.tareas'), icono: 'hoy/tareas' },
-    { id: 'rutinas', label: t('hoy.categorias.rutinas'), subtitulo: t('hoy.categoriasSubtitulos.rutinas'), icono: 'hoy/rutinas' },
-    { id: 'habitos', label: t('hoy.categorias.habitos'), subtitulo: t('hoy.categoriasSubtitulos.habitos'), icono: 'hoy/habitos' },
-    { id: 'metas', label: t('hoy.categorias.metas'), subtitulo: t('hoy.categoriasSubtitulos.metas'), icono: 'hoy/metas' },
+    { id: 'tareas' as const, label: t('hoy.categorias.tareas'), subtitulo: t('hoy.categoriasSubtitulos.tareas'), icono: 'hoy/tareas' },
+    { id: 'rutinas' as const, label: t('hoy.categorias.rutinas'), subtitulo: t('hoy.categoriasSubtitulos.rutinas'), icono: 'hoy/rutinas' },
+    { id: 'habitos' as const, label: t('hoy.categorias.habitos'), subtitulo: t('hoy.categoriasSubtitulos.habitos'), icono: 'hoy/habitos' },
+    { id: 'metas' as const, label: t('hoy.categorias.metas'), subtitulo: t('hoy.categoriasSubtitulos.metas'), icono: 'hoy/metas' },
   ], [t]);
 
   return (
@@ -232,8 +235,8 @@ function GridCategorias() {
             accessibilityLabel={cat.label}
             onPress={() => { if (CATEGORIAS_CON_PANTALLA.has(cat.id)) router.navigate(`/${cat.id}` as any); }}
           >
-            {/* Sin colorBase: la tarjeta toma el tono del tema elegido en Ajustes (solo aquí, en Hoy). El ícono conserva el color de su módulo. */}
-            <MasterGlass style={s.categoriaGlass}>
+            {/* Cada tarjeta, un tono vecino del tema elegido en Ajustes (solo aquí, en Hoy): Hábitos el del tema; las demás, girados. El ícono conserva el color de su módulo. */}
+            <MasterGlass colorBase={tonos[cat.id]} style={s.categoriaGlass}>
               <View style={s.categoriaIcono}><MasterIcon name={cat.icono} size={42} /></View>
               <View style={s.categoriaTexto}>
                 <Texto adjustsFontSizeToFit minimumFontScale={0.8} numberOfLines={1} style={s.categoriaLabel}>{cat.label}</Texto>
