@@ -34,8 +34,9 @@ describe('tonosCategorias', () => {
     }
   });
 
-  it('se quedan cerca del tema: ningún giro pasa de 60°', () => {
-    expect(Math.max(...Object.values(GIRO_CATEGORIA).map(Math.abs))).toBeLessThanOrEqual(60);
+  it('se quedan cerca del tema: ningún giro pasa de 30°', () => {
+    expect(GIRO_CATEGORIA).toEqual({ habitos: 0, tareas: 15, rutinas: -15, metas: 30 });
+    expect(Math.max(...Object.values(GIRO_CATEGORIA).map(Math.abs))).toBeLessThanOrEqual(30);
   });
 
   it('devuelve colores hex válidos', () => {
