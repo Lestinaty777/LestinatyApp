@@ -17,11 +17,12 @@ import {
   Sparkles,
 } from 'lucide-react-native';
 
-import { conAlfa, EstadoVacioFranja, ICONOS_FRANJA, MasterGlass, MasterIcon, MasterIconBg, MasterProgressbar, Rebote, RecuadroGlass, SelectorFranja, Skeleton, Texto, useEscala } from '../../../diseno';
-import { franjaActual, horarioDeFranja, type FiltroFranja, type FranjaDia } from '../../../compartido/utilidades/franjas';
+import { conAlfa, ICONOS_FRANJA, MasterGlass, MasterIcon, MasterIconBg, MasterProgressbar, Rebote, RecuadroGlass, SelectorFranja, Skeleton, Texto, useEscala } from '../../../diseno';
+import { franjaActual, type FiltroFranja, type FranjaDia } from '../../../compartido/utilidades/franjas';
 import { hapticSeguro } from '../../../nucleo/dispositivo/haptics';
 import { registrarEvento } from '../../../servicios/analitica/posthog';
 import { AuroraBoreal } from '../componentes/AuroraBoreal';
+import { VacioDeFranja } from '../componentes/VacioDeFranja';
 import { ESCALA_ESMERALDA, type EscalaMaster } from '../../../diseno/tema/escalaEsmeralda';
 import { useAssetsPaqueteTema } from '../../habitos/usePaqueteTema';
 import { useSaldoGemas } from '../../tienda/useSaldoGemas';
@@ -508,14 +509,7 @@ function TimelineHoy() {
         </View>
       ) : plan.secciones.length === 0 && filtro !== 'todo' ? (
         // Franja sin nada: se dibuja el momento del día (amanecer, sol o luna) con sus horas.
-        <EstadoVacioFranja
-          accion={t('franjas.verTodo')}
-          franja={filtro}
-          horario={horarioDeFranja(filtro, limitesFranja)}
-          onAccion={() => setFiltro('todo')}
-          texto={t(`franjas.vacio.${filtro}.texto`)}
-          titulo={t(`franjas.vacio.${filtro}.titulo`)}
-        />
+        <VacioDeFranja franja={filtro} onVerTodo={() => setFiltro('todo')} />
       ) : plan.secciones.length === 0 ? (
         <View style={h.estado}>
           <Texto style={h.estadoTexto}>{t('franjas.vacia')}</Texto>

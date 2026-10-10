@@ -1,8 +1,8 @@
 import { LinearGradient } from 'expo-linear-gradient';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import type { FranjaConcreta } from '../../compartido/utilidades/franjas';
-import { hapticSeguro } from '../../nucleo/dispositivo/haptics';
+import { MasterButton } from './MasterButton';
 import { ICONOS_FRANJA } from './SelectorFranja';
 import { Texto } from './Texto';
 
@@ -22,7 +22,7 @@ export function EstadoVacioFranja({ accion, franja, horario, onAccion, texto, ti
   /** Texto del botón; sin él no se muestra botón. */
   accion?: string;
   franja: FranjaConcreta;
-  /** Rango de horas ya formateado, p. ej. "5:00 – 12:00". */
+  /** Rango de horas ya formateado, con AM/PM, p. ej. "5:00 AM – 12:00 PM". */
   horario: string;
   onAccion?: () => void;
   texto: string;
@@ -42,11 +42,7 @@ export function EstadoVacioFranja({ accion, franja, horario, onAccion, texto, ti
       </View>
       <Texto accessibilityRole="header" style={estilos.titulo}>{titulo}</Texto>
       <Texto style={estilos.texto}>{texto}</Texto>
-      {accion && onAccion ? (
-        <Pressable accessibilityRole="button" onPress={() => { hapticSeguro('seleccion'); onAccion(); }} style={[estilos.boton, { borderColor: ambiente.icono }]}>
-          <Texto style={[estilos.botonTexto, { color: ambiente.icono }]}>{accion}</Texto>
-        </Pressable>
-      ) : null}
+      {accion && onAccion ? <View style={estilos.boton}><MasterButton color={ambiente.icono} onPress={onAccion}>{accion}</MasterButton></View> : null}
     </View>
   );
 }
@@ -59,6 +55,5 @@ const estilos = StyleSheet.create({
   horarioTexto: { fontFamily: 'Montserrat-Bold', fontSize: 11, letterSpacing: 0.3 },
   titulo: { color: '#1A1335', fontFamily: 'MontserratAlternates-Bold', fontSize: 18, marginTop: 2, textAlign: 'center' },
   texto: { color: '#7B7494', fontFamily: 'Montserrat-Medium', fontSize: 13, lineHeight: 18, paddingHorizontal: 12, textAlign: 'center' },
-  boton: { borderRadius: 14, borderWidth: 1.5, marginTop: 8, minHeight: 38, justifyContent: 'center', paddingHorizontal: 18, paddingVertical: 7 },
-  botonTexto: { fontFamily: 'Montserrat-Bold', fontSize: 13 },
+  boton: { marginTop: 10 },
 });

@@ -22,6 +22,7 @@ import { obtenerTareas } from '../../tareas/tareas.servicio';
 import { CLAVE_SALDO_GEMAS, useSaldoGemas } from '../../tienda/useSaldoGemas';
 import { CrearRutinaWizard } from '../componentes/CrearRutinaWizard';
 import { usePerfilBasico } from '../../configuracion/usePerfilBasico';
+import { VacioDeFranja } from '../../hoy/componentes/VacioDeFranja';
 import { prepararAvisosDeRutina } from '../recordatorioRutina';
 import { registrarEvento } from '../../../servicios/analitica/posthog';
 import { useRachasRutinas } from '../useRachasRutinas';
@@ -195,13 +196,9 @@ function RutinasPantallaContenido() {
         </View>
       );
     }
-    return (
-      <View style={s.vacio}>
-        <Texto style={s.vacioTitulo}>{t('rutinas.pantalla.vacioFranjaTitulo')}</Texto>
-        <Texto style={s.vacioTexto}>{t('rutinas.pantalla.vacioFranjaDescripcion')}</Texto>
-        <MasterButton color={acento} onPress={() => setFiltro('todo')}>{t('rutinas.pantalla.verTodo')}</MasterButton>
-      </View>
-    );
+    // Hay rutinas hoy, pero ninguna en la franja elegida (aquí filtro nunca es 'todo').
+    if (filtro !== 'todo') return <VacioDeFranja franja={filtro} onVerTodo={() => setFiltro('todo')} />;
+    return null;
   }
 
   return (

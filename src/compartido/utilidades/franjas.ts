@@ -85,6 +85,11 @@ export function formatoHoraEntera(hora: number): string {
   return `${hora}:00`;
 }
 
+/** Hora entera 0–23 en formato de 12 horas: "5:00 AM", "12:00 PM", "7:00 PM", "12:00 AM". Mismo estilo que formatoHora12. */
+export function formatoHoraEntera12(hora: number): string {
+  return `${hora % 12 === 0 ? 12 : hora % 12}:00 ${hora < 12 ? 'AM' : 'PM'}`;
+}
+
 /**
  * Mueve un límite una hora hacia arriba o abajo. Devuelve los mismos límites
  * si el resultado dejaría de ser válido (fuera de 0–23 o sin respetar
@@ -95,8 +100,8 @@ export function moverLimite(limites: LimitesFranja, campo: keyof LimitesFranja, 
   return limitesValidos(propuesta) ? propuesta : limites;
 }
 
-/** Rango de horas de una franja para mostrar, p. ej. "5:00 – 12:00" (la noche: "19:00 – 5:00"). */
+/** Rango de horas de una franja para mostrar, con AM/PM: "5:00 AM – 12:00 PM" (la noche: "7:00 PM – 5:00 AM"). */
 export function horarioDeFranja(franja: FranjaConcreta, limites: LimitesFranja = LIMITES_FRANJA_DEFECTO): string {
   const tramo = tramosDelDia(limites).find((candidato) => candidato.franja === franja);
-  return tramo ? `${formatoHoraEntera(tramo.desde)} – ${formatoHoraEntera(tramo.hasta)}` : '';
+  return tramo ? `${formatoHoraEntera12(tramo.desde)} – ${formatoHoraEntera12(tramo.hasta)}` : '';
 }

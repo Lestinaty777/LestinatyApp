@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-  agruparPorFranja, contarPendientesPorFiltro, filtrarPorFranja, formatoHoraEntera, franjaActual, franjaDeHora, horarioDeFranja, limitesValidos,
+  agruparPorFranja, contarPendientesPorFiltro, filtrarPorFranja, formatoHoraEntera, formatoHoraEntera12, franjaActual, franjaDeHora, horarioDeFranja, limitesValidos,
   LIMITES_FRANJA_DEFECTO, moverLimite, sugerirFranjaPorHora, tramosDelDia, type FranjaDia,
 } from './franjas';
 
@@ -130,12 +130,23 @@ describe('tramosDelDia, formatoHoraEntera y moverLimite', () => {
 
 describe('horarioDeFranja', () => {
   it('da el rango de horas de cada franja; la noche cruza medianoche', () => {
-    expect(horarioDeFranja('manana')).toBe('5:00 – 12:00');
-    expect(horarioDeFranja('tarde')).toBe('12:00 – 19:00');
-    expect(horarioDeFranja('noche')).toBe('19:00 – 5:00');
+    expect(horarioDeFranja('manana')).toBe('5:00 AM – 12:00 PM');
+    expect(horarioDeFranja('tarde')).toBe('12:00 PM – 7:00 PM');
+    expect(horarioDeFranja('noche')).toBe('7:00 PM – 5:00 AM');
   });
 
   it('usa los límites del perfil', () => {
-    expect(horarioDeFranja('manana', { mananaDesde: 7, tardeDesde: 13, nocheDesde: 21 })).toBe('7:00 – 13:00');
+    expect(horarioDeFranja('manana', { mananaDesde: 7, tardeDesde: 13, nocheDesde: 21 })).toBe('7:00 AM – 1:00 PM');
+  });
+});
+
+describe('formatoHoraEntera12', () => {
+  it('convierte a 12 horas con AM y PM, incluidas medianoche y mediodía', () => {
+    expect(formatoHoraEntera12(0)).toBe('12:00 AM');
+    expect(formatoHoraEntera12(5)).toBe('5:00 AM');
+    expect(formatoHoraEntera12(11)).toBe('11:00 AM');
+    expect(formatoHoraEntera12(12)).toBe('12:00 PM');
+    expect(formatoHoraEntera12(19)).toBe('7:00 PM');
+    expect(formatoHoraEntera12(23)).toBe('11:00 PM');
   });
 });

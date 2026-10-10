@@ -5,7 +5,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
 import {
-  formatoHoraEntera, LIMITES_FRANJA_DEFECTO, moverLimite, tramosDelDia, type LimitesFranja,
+  formatoHoraEntera12, LIMITES_FRANJA_DEFECTO, moverLimite, tramosDelDia, type LimitesFranja,
 } from '../../../compartido/utilidades/franjas';
 import { Boton, MasterGlass, Texto, useTonoMaster } from '../../../diseno';
 import { hapticSeguro } from '../../../nucleo/dispositivo/haptics';
@@ -65,7 +65,7 @@ export function SeccionFranjasDia() {
               >
                 <Minus color={tono.paleta.titulo} size={16} strokeWidth={2.6} />
               </Pressable>
-              <Texto accessibilityLabel={formatoHoraEntera(limites[campo])} style={[estilos.hora, { color: tono.paleta.titulo }]}>{formatoHoraEntera(limites[campo])}</Texto>
+              <Texto accessibilityLabel={formatoHoraEntera12(limites[campo])} style={[estilos.hora, { color: tono.paleta.titulo }]}>{formatoHoraEntera12(limites[campo])}</Texto>
               <Pressable
                 accessibilityLabel={t('franjas.ajustes.despues', { franja: nombre })}
                 accessibilityRole="button"
@@ -85,7 +85,7 @@ export function SeccionFranjasDia() {
       <View style={estilos.previa}>
         {tramosDelDia(limites).map((tramo) => (
           <Texto key={tramo.franja} style={[estilos.previaTexto, { color: tono.paleta.suave }]}>
-            {t('franjas.ajustes.tramo', { franja: t(`franjas.${tramo.franja}`), desde: formatoHoraEntera(tramo.desde), hasta: formatoHoraEntera(tramo.hasta) })}
+            {t('franjas.ajustes.tramo', { franja: t(`franjas.${tramo.franja}`), desde: formatoHoraEntera12(tramo.desde), hasta: formatoHoraEntera12(tramo.hasta) })}
           </Texto>
         ))}
       </View>
@@ -108,7 +108,7 @@ const estilos = StyleSheet.create({
   control: { alignItems: 'center', flexDirection: 'row', gap: 10 },
   boton: { alignItems: 'center', backgroundColor: 'rgba(26,19,53,0.08)', borderRadius: 16, height: 32, justifyContent: 'center', width: 32 },
   botonInactivo: { opacity: 0.35 },
-  hora: { fontFamily: 'Montserrat-Bold', fontSize: 15, minWidth: 52, textAlign: 'center' },
+  hora: { fontFamily: 'Montserrat-Bold', fontSize: 15, minWidth: 78, textAlign: 'center' },
   previa: { gap: 2 },
   previaTexto: { fontFamily: 'Montserrat-Medium', fontSize: 12 },
   error: { color: '#DC2626', fontFamily: 'Montserrat-Medium', fontSize: 12 },

@@ -9,6 +9,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { MasterButton, MasterGlass, MasterIcon, MasterIconBg, MasterProgressbar, Rebote, SelectorFranja, Texto } from '../../../diseno';
 import { useFiltroFranja } from '../../../compartido/utilidades/useFiltroFranja';
+import { VacioDeFranja } from '../../hoy/componentes/VacioDeFranja';
 import { registrarEvento } from '../../../servicios/analitica/posthog';
 import { useEtiquetasRutina } from '../../rutinas/useEtiquetasRutina';
 import { conAlfa, crearTonoMaster } from '../../../diseno/tema/masterColor';
@@ -482,7 +483,7 @@ function TareasPantallaContenido({ modulo, setModulo }: { modulo: 'planes' | 'ta
                     </View>
                   )}
                   {filtroFranja.filtro !== 'todo' && filtroFranja.filtrados.length === 0 ? (
-                    <Texto style={s.vacioTexto}>{t('franjas.vacia')}</Texto>
+                    <VacioDeFranja franja={filtroFranja.filtro} onVerTodo={() => filtroFranja.setFiltro('todo')} />
                   ) : (
                     <TimelineTareasHoy
                       completandoId={completandoId}

@@ -9,7 +9,9 @@ import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, { Easing, FadeIn, FadeOut, runOnJS, useAnimatedStyle, useSharedValue, withDelay, withRepeat, withSequence, withSpring, withTiming, type SharedValue } from 'react-native-reanimated';
 
 import { Boton, entradaEncadenada, MasterAnimation, MasterColorProvider, MasterGlass, MasterIcon, MasterIconBg, MasterProgressbar, Rebote, SelectorFranja, Skeleton, Texto, TONO_ESMERALDA } from '../../../diseno';
+import type { FiltroFranja } from '../../../compartido/utilidades/franjas';
 import { useFiltroFranja } from '../../../compartido/utilidades/useFiltroFranja';
+import { VacioDeFranja } from '../../hoy/componentes/VacioDeFranja';
 import { useEtiquetasRutina } from '../../rutinas/useEtiquetasRutina';
 import { hapticSeguro } from '../../../nucleo/dispositivo/haptics';
 import { registrarEvento } from '../../../servicios/analitica/posthog';
@@ -263,7 +265,7 @@ function HabitosPantallaContenido() {
           {consulta.isLoading && <EsqueletoTimelineHoy />}
           {consulta.isError && <Pressable onPress={() => consulta.refetch()}><Texto style={s.error}>{t('habitos.pantalla.loadError')}</Texto>{__DEV__ && <Texto style={s.errorDetalle}>{consulta.error instanceof Error ? consulta.error.message : String(consulta.error)}</Texto>}</Pressable>}
           {!consulta.isLoading && !consulta.isError && vistaHoy === 'sendero' && filtroFranja.visible && <View style={{ marginBottom: 10 }}><SelectorFranja color={esc.jade.l34} conteos={filtroFranja.conteos} etiquetaAccesible={filtroFranja.etiquetaAccesible} etiquetas={filtroFranja.etiquetas} onCambiar={filtroFranja.setFiltro} valor={filtroFranja.filtro} /></View>}
-          {!consulta.isLoading && !consulta.isError && (vistaHoy === 'sendero' ? <TimelineHabitosHoy etiquetasRutina={etiquetasRutina.habitos} filtrado={filtroFranja.filtro !== 'todo'} habitos={filtroFranja.filtrados} mostrarPistaSwipe={mostrarPistaSwipe} onDetalle={(id) => setDetalleHabitoId(id)} onSendero={(habito) => router.push({ pathname: '/senderos', params: { habitoId: habito.id } })} onSwipeDescubierto={marcarSwipeDescubierto} /> : <TareasDiariasHoy />)}
+          {!consulta.isLoading && !consulta.isError && (vistaHoy === 'sendero' ? <TimelineHabitosHoy etiquetasRutina={etiquetasRutina.habitos} filtro={filtroFranja.filtro} habitos={filtroFranja.filtrados} onVerTodo={() => filtroFranja.setFiltro('todo')} mostrarPistaSwipe={mostrarPistaSwipe} onDetalle={(id) => setDetalleHabitoId(id)} onSendero={(habito) => router.push({ pathname: '/senderos', params: { habitoId: habito.id } })} onSwipeDescubierto={marcarSwipeDescubierto} /> : <TareasDiariasHoy />)}
         </>}
         {vistaPanel === 'progresion' && (
           consultaDetallesHoy.isLoading || consultaHabitosActivos.isLoading ? <CarruselEsqueleto /> : (
@@ -584,9 +586,9 @@ function PistaSwipeBanner({ onContinuar }: { onContinuar: () => void }) {
     </MasterGlass>
   );
 }
-function TimelineHabitosHoy({ etiquetasRutina, filtrado, habitos, mostrarPistaSwipe, onDetalle, onSendero, onSwipeDescubierto }: { etiquetasRutina: Map<string, string>; filtrado: boolean; habitos: HabitoResumen[]; mostrarPistaSwipe: boolean; onDetalle: (id: string) => void; onSendero: (habito: HabitoResumen) => void; onSwipeDescubierto: () => void }) {
+function TimelineHabitosHoy({ etiquetasRutina, filtro, habitos, mostrarPistaSwipe, onDetalle, onSendero, onSwipeDescubierto, onVerTodo }: { etiquetasRutina: Map<string, string>; filtro: FiltroFranja; onVerTodo: () => void; habitos: HabitoResumen[]; mostrarPistaSwipe: boolean; onDetalle: (id: string) => void; onSendero: (habito: HabitoResumen) => void; onSwipeDescubierto: () => void }) {
   const { t } = useTranslation();
-  if (habitos.length === 0 && filtrado) return <EstadoVacio texto={t('franjas.vacia')} />;
+  if (habitos.length === 0 && filtro !== 'todo') return <VacioDeFranja franja={filtro} onVerTodo={onVerTodo} />;
   if (habitos.length === 0) return <EstadoVacio titulo={t('habitos.pantalla.noTodayHabitsTitle')} texto={t('habitos.pantalla.noTodayHabitsDescription')} />;
   const indiceActivo = habitos.findIndex((habito) => !habito.completado);
   return (
